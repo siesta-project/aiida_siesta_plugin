@@ -28,14 +28,9 @@ RUN chown -R aiida:aiida /home/aiida/.dockerscripts && \
 ### Here we setup the Siesta plugin for AiiDA
 USER aiida
 WORKDIR /home/aiida/code/
-RUN mkdir siesta && cd siesta && \
-    git clone https://github.com/albgar/aiida_core.git && \
-    cd aiida_core/ && \
-    git checkout siesta-0.7 && \
-    cp -r aiida/orm/calculation/job/siesta/ ../../aiida_core/aiida/orm/calculation/job/siesta/ && \
-    cp -r aiida/parsers/plugins/siesta/ ../../aiida_core/aiida/parsers/plugins/siesta/ && \
-    cp -r aiida/orm/data/psf.py ../../aiida_core/aiida/orm/data/psf.py && \
-    cp -r aiida/cmdline/commands/data.py ../../aiida_core/aiida/cmdline/commands/data.py
+COPY aiida_siesta_plugin/input/siesta /home/aiida/code/aiida_core/aiida/orm/calculation/job 
+COPY aiida_siesta_plugin/parser/siesta /home/aiida/code/aiida_core/aiida/parsers/plugins
+COPY aiida_siesta_plugin/data/psf.py /home/aiida/code/aiida_core/aiida/orm/data/psf.py 
 
 # Important to end as user root (to run the init script)
 USER root
