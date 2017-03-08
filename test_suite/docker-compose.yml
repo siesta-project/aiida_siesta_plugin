@@ -1,0 +1,38 @@
+version: '2'
+
+volumes:
+  # Named voluem for PG data
+  dbdata:
+  # Named volume for AiiDA logs 
+  aiidalogs:
+  # Named volume for AiiDA repository
+  aiidarepo:
+
+services:
+  db:
+     image: postgres:9.5
+     volumes:
+       - dbdata:/var/lib/postgres/data
+     env_file:
+       - compose-init/env/postgres.env
+
+  # torquessh-withplugin should extend torquessh_base
+  # with your simulations software
+  torquessh:
+     build: torquessh-withplugin/
+     privileged: true
+     env_file:
+       - compose-init/env/torque.env
+
+  aiida:
+     build: aiida/
+     volumes:
+        - aiidalogs:/home/aiida/.aiida/
+        - aiidarepo:/home/aiida/.aiida-repo/
+        - ./compose-init/sshkeys/sharedfolder:/home/aiida/.ssh/keys:ro
+     depends_on:
+        - db
+     env_file:
+        - compose-init/env/aiida.env
+
+
