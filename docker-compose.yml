@@ -19,13 +19,17 @@ services:
   # torquessh-withplugin should extend torquessh_base
   # with your simulations software
   torquessh:
-     build: torquessh-withplugin/
+     build:
+      context: .
+      dockerfile: torquessh-withplugin/Dockerfile
      privileged: true
      env_file:
        - compose-init/env/torque.env
 
   aiida:
-     build: aiida/
+     build:
+      context: .
+      dockerfile: aiida/Dockerfile
      volumes:
         - aiidalogs:/home/aiida/.aiida/
         - aiidarepo:/home/aiida/.aiida-repo/

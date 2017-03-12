@@ -18,13 +18,11 @@ before_install:
 install:
   #  Start all services, setup aiida, start daemon, setup/configure computer,
   #  setup also code.
-  - cp -rp aiida_siesta_plugin test_suite/aiida/
-  - cd test_suite
   - ./startup_firsttime.sh 
 
 script:
   # Run a simple test (I should still be in the right folder)
-  - ./test_compose.py
+  - ./test_compose.sh
 
 git:
   depth: 3

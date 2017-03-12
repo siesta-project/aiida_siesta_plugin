@@ -7,9 +7,7 @@ CMD ["/sbin/my_init"]
 # Install required packages
 RUN apt-get update \ 
     && apt-get install -y --no-install-recommends \
-    bzr \
     gfortran \
-    liblapack-dev \
     liblapack-dev \
     make \
     && rm -rf /var/lib/apt/lists/* \
@@ -19,15 +17,23 @@ USER app
 
 WORKDIR /home/app
 
-RUN bzr branch https://code.launchpad.net/~albertog/siesta/4.0-aiida && \
-    cd 4.0-aiida/Obj/ && \
+#
+# Compile Siesta
+#   Get source from a GitHub mirror of the Launchpad sources
+#   This avoids having to install bzr and dependencies in the image
+#   (temporary hack)
+#
+RUN curl -L -o master.tar.gz \
+    https://github.com/siesta-project/siesta-aiida-4.0/archive/master.tar.gz && \
+    tar xzf master.tar.gz && \
+    cd siesta-aiida-4.0-master/Obj/ && \
     sh ../Src/configure FC=gfortran && \
     sh ../Src/obj_setup.sh && \
     make && \
     mkdir /home/app/bin/ && \
     cp siesta /home/app/bin/siesta && \
     cd ../../ && \
-    rm -rf 4.0-aiida
+    rm -rf siesta-aiida-4.0-master master.tar.gz
 
 # I need to go back to root
 USER root   
