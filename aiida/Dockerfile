@@ -27,19 +27,23 @@ RUN chown -R aiida:aiida /home/aiida/.dockerscripts && \
 
 ### Here we setup the Siesta plugin for AiiDA
 USER aiida
+#
+ADD ./siesta_plugin_files /home/aiida/code/siesta_plugin_files
+#
 WORKDIR /home/aiida/code/
-COPY ./siesta_plugin_files/input/siesta/ /home/aiida/code/aiida_core/aiida/orm/calculation/job/siesta/
-COPY ./siesta_plugin_files/parser/siesta/ /home/aiida/code/aiida_core/aiida/parsers/plugins/siesta/
-COPY ./siesta_plugin_files/data/psf.py /home/aiida/code/aiida_core/aiida/orm/data/psf.py 
+#
+# Establish symbolic links to plugin files
+#
+RUN ln -sf /home/aiida/code/siesta_plugin_files/input/siesta \
+           /home/aiida/code/aiida_core/aiida/orm/calculation/job/siesta && \
+    ln -sf /home/aiida/code/siesta_plugin_files/parser/siesta \
+           /home/aiida/code/aiida_core/aiida/parsers/plugins/siesta   && \
+    ln -sf /home/aiida/code/siesta_plugin_files/data/psf.py \
+           /home/aiida/code/aiida_core/aiida/orm/data/psf.py 
 
 # Important to end as user root (to run the init script)
-# (AG: Also, explicitly set the owner of the plugin files... I am not sure what is different from
-#  earlier versions)
 #
 USER root
-RUN chown -R aiida:aiida /home/aiida/code/aiida_core/aiida/orm/calculation/job/siesta && \
-    chown -R aiida:aiida /home/aiida/code/aiida_core/aiida/parsers/plugins/siesta && \
-    chown    aiida:aiida /home/aiida/code/aiida_core/aiida/orm/data/psf.py
     
 # Use baseimage-docker's init system.
 CMD ["/sbin/my_init"]

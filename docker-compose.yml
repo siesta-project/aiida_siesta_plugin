@@ -34,6 +34,7 @@ services:
         - aiidalogs:/home/aiida/.aiida/
         - aiidarepo:/home/aiida/.aiida-repo/
         - ./compose-init/sshkeys/sharedfolder:/home/aiida/.ssh/keys:ro
+        - ./siesta_plugin_files:/home/aiida/code/siesta_plugin_files
      depends_on:
         - db
      env_file:
