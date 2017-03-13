@@ -9,4 +9,6 @@ The docker-compose infrastructure (see README_docker-compose.md) is at the top l
 is no longer necessary to make an extra copy of the plugin files in the docker context,
 as the latter is the top level.
 
+aiida_core commit needed: 7b3b3c3
+
 
