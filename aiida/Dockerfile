@@ -21,6 +21,12 @@ RUN chown -R aiida:aiida /home/aiida/.dockerscripts && \
     chown -R aiida:aiida /home/aiida/.aiida && \
     chown -R aiida:aiida /home/aiida/.ssh 
 
+WORKDIR  /home/aiida/code/aiida_core
+#
+#  Install extra functionality for interactive use...
+#
+RUN      pip install -e .[atomic_tools]
+#
 # TO CHECK: also because we need to start the web service and install Apache
 # expose https port (for rest? or maybe instead expose jupyter?)
 #EXPOSE 443
