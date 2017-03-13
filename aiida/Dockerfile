@@ -38,7 +38,9 @@ RUN ln -sf /home/aiida/code/siesta_plugin_files/input/siesta \
            /home/aiida/code/aiida_core/aiida/orm/calculation/job/siesta && \
     ln -sf /home/aiida/code/siesta_plugin_files/parser/siesta \
            /home/aiida/code/aiida_core/aiida/parsers/plugins/siesta   && \
-    ln -sf /home/aiida/code/siesta_plugin_files/data/psf.py \
+    ln -sf /home/aiida/code/siesta_plugin_files/examples/submission/siesta \
+           /home/aiida/code/aiida_core/examples/submission/siesta  && \
+    ln -sf /home/aiida/code/siesta_plugin_files/orm.data/psf.py \
            /home/aiida/code/aiida_core/aiida/orm/data/psf.py 
 
 # Important to end as user root (to run the init script)
