@@ -44,7 +44,7 @@ if isinstance(calc,SiestaCalc):
             print ">> Output structure not available !!"
             
     else:
-        sin=calc.inp.output_structure
+        sin=calc.inp.structure
         msg = "Input structure"
         print "{}".format(sin._prepare_cif())
 
