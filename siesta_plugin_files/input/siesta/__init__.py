@@ -273,11 +273,8 @@ class SiestaCalculation(JobCalculation):
         ##############################
 
 
-        # First-level keys as uppercase (i.e., namelist and card names)
-        # and the second-level keys as lowercase
-        # (deeper levels are unchanged)
-        orig_input_params = _lowercase_dict(parameters.get_dict(),
-            dict_name='parameters')
+        #
+        orig_input_params = parameters.get_dict()
 
         # This is to be removed. Sanitization should be done
         # in the script, and the semicolon was an unfortunate choice.
@@ -285,6 +282,10 @@ class SiestaCalculation(JobCalculation):
         input_params = { k.replace(':','-') :v for k,v in
             orig_input_params.iteritems() }
 
+        # There should be a warning for duplicated (canonicalized) keys
+        # in the original dictionary in the script
+
+        # Use the canonicalized in the FDFDict class for this
         # look for blocked keywords here if present raise
         # add the keyword to the dictionary
 
@@ -830,41 +831,6 @@ def get_input_data_text(key,val, mapping=None):
             return b1 + "\n%endblock " + bname + "\n"
         else:
             return "{0}  {1}\n".format(key, my_conv_to_fortran(val))
-
-def _lowercase_dict(d, dict_name):
-    from collections import Counter
-    
-    if isinstance(d,dict):
-        new_dict = dict((str(k).lower(), v) for k, v in d.iteritems())
-        if len(new_dict) != len(d):
-            num_items = Counter(str(k).lower() for k in d.keys())
-            double_keys = ",".join([k for k, v in num_items if v > 1])
-            raise InputValidationError(
-                "Inside the dictionary '{}' there are the following keys that "
-                "are repeated more than once when compared case-insensitively: "
-                "{}."
-                "This is not allowed.".format(dict_name, double_keys))
-        return new_dict
-    else:
-        raise TypeError("_lowercase_dict accepts only dictionaries as argument")
-    
-def _uppercase_dict(d, dict_name):
-    from collections import Counter
-    
-    if isinstance(d,dict):
-        new_dict = dict((str(k).upper(), v) for k, v in d.iteritems())
-        if len(new_dict) != len(d):
-            
-            num_items = Counter(str(k).upper() for k in d.keys())
-            double_keys = ",".join([k for k, v in num_items if v > 1])
-            raise InputValidationError(
-                "Inside the dictionary '{}' there are the following keys that "
-                "are repeated more than once when compared case-insensitively: "
-                "{}."
-                "This is not allowed.".format(dict_name, double_keys))
-        return new_dict
-    else:
-        raise TypeError("_lowercase_dict accepts only dictionaries as argument")
 
 def my_conv_to_fortran(val):
     """
