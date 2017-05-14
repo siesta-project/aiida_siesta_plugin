@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 import os
 
+# Module with fdf-aware dictionary
+from tkdict import FDFDict
+
 from aiida.orm.calculation.job import JobCalculation
 from aiida.common.exceptions import InputValidationError
 from aiida.orm import DataFactory
@@ -36,18 +39,17 @@ class SiestaCalculation(JobCalculation):
 
         # Keywords that cannot be set
         # We need to canonicalize this!
-        self._aiida_blocked_keywords = ['systemname','systemlabel']
-        self._aiida_blocked_keywords.append('system-name')
-        self._aiida_blocked_keywords.append('system-label')
-        self._atom_blocked_keywords = ['numberofspecies','numberofatoms']
-        self._atom_blocked_keywords.append('number-of-species')
-        self._atom_blocked_keywords.append('number-of-atoms')
+
+        self._aiida_blocked_keywords = ['system-name','system-label']
+        
+        self._aiida_blocked_keywords.append('number-of-species')
+        self._aiida_blocked_keywords.append('number-of-atoms')
         #
         #
-        self._atom_blocked_keywords.append('latticeconstant')
-        self._atom_blocked_keywords.append('lattice-constant')
-        self._atom_blocked_keywords.append('atomic-coordinates-format')
-        self._atom_blocked_keywords.append('atomiccoordinatesformat')
+        self._aiida_blocked_keywords.append('latticeconstant')
+        self._aiida_blocked_keywords.append('lattice-constant')
+        self._aiida_blocked_keywords.append('atomic-coordinates-format')
+        self._aiida_blocked_keywords.append('atomiccoordinatesformat')
 
         # Default input and output files                                        
         self._DEFAULT_INPUT_FILE = 'aiida.in'
@@ -189,6 +191,7 @@ class SiestaCalculation(JobCalculation):
         else:
             if not isinstance(basis, ParameterData):
                 raise InputValidationError("basis not of type ParameterData")
+#            input_basis=FDFDict(basis.get_dict())
             input_basis=basis.get_dict()
 
         try:
@@ -272,35 +275,26 @@ class SiestaCalculation(JobCalculation):
         # END OF INITIAL INPUT CHECK #
         ##############################
 
-
         #
-        orig_input_params = parameters.get_dict()
-
-        # This is to be removed. Sanitization should be done
-        # in the script, and the semicolon was an unfortunate choice.
-        # substitute semicolon with .  ( AG: '-' is more legible)
-        input_params = { k.replace(':','-') :v for k,v in
-            orig_input_params.iteritems() }
-
         # There should be a warning for duplicated (canonicalized) keys
         # in the original dictionary in the script
 
-        # Use the canonicalized in the FDFDict class for this
-        # look for blocked keywords here if present raise
-        # add the keyword to the dictionary
+        input_params = FDFDict(parameters.get_dict())
 
-        for blockedaiida in self._aiida_blocked_keywords:
-            if blockedaiida in input_params:
-                raise InputValidationError(
-                    "You cannot specify explicitly the '{}' flag in the "
-                        "input parameters".format(blockedaiida))
-            input_params.update({blockedaiida: self._PREFIX})
+        # Look for blocked keywords and
+        # add the proper values to the dictionary
 
-        for blockedatm in self._atom_blocked_keywords:
-            if blockedatm in input_params:
-                raise InputValidationError(
+        for blocked_key in self._aiida_blocked_keywords:
+           canonical_blocked = FDFDict.translate_key(blocked_key)
+           for key in input_params:
+               if key == canonical_blocked:
+                   raise InputValidationError(
                     "You cannot specify explicitly the '{}' flag in the "
-                        "input parameters".format(blockedatm))
+                        "input parameters".format(input_params.get_last_key(key)))
+
+        input_params.update({'system-name': self._PREFIX})
+        input_params.update({'system-label': self._PREFIX})
+
             
         input_params.update({'number-of-species': len(structure.kinds)})
         input_params.update({'number-of-atoms': len(structure.sites)})
@@ -689,7 +683,7 @@ class SiestaCalculation(JobCalculation):
         
         calc_inp = self.get_inputs_dict()
 
-        old_inp_dict = calc_inp['parameters'].get_dict()
+        old_inp_dict = FDFDict(calc_inp['parameters'].get_dict())
         
         # add the restart flag
         # In Siesta, this could be the option to read the DM, if
@@ -859,3 +853,21 @@ def my_conv_to_fortran(val):
     return val_str
 
     
+def _uppercase_dict(d, dict_name):
+    from collections import Counter
+
+    if isinstance(d,dict):
+        new_dict = dict((str(k).upper(), v) for k, v in d.iteritems())
+        if len(new_dict) != len(d):
+
+            num_items = Counter(str(k).upper() for k in d.keys())
+            double_keys = ",".join([k for k, v in num_items if v > 1])
+            raise InputValidationError(
+              "Inside the dictionary '{}' there are the following keys that "
+                "are repeated more than once when compared case-insensitively: "
+             "{}."
+             "This is not allowed.".format(dict_name, double_keys))
+        return new_dict
+    else:
+        raise TypeError("_lowercase_dict accepts only dictionaries as argument")
+
