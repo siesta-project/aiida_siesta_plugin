@@ -412,17 +412,26 @@ class SiestaParser(Parser):
 
      import re
      
-     # Search for 'FATAL:' messages and return immediately
+     # Search for 'FATAL:' messages, log them, and return immediately
+     there_are_fatals = False 
      for line in lines:
           if re.match('^FATAL:.*$',line):
                self.logger.error(line)
-               return False, lines[:-1]  # Remove last (empty) element
+               there_are_fatals = True
+               
+     if there_are_fatals:
+          return False, lines[:-1]  # Remove last (empty) element
 
      # Make sure that the job did finish (and was not interrupted
      # externally)
 
-     if lines[-2] != 'INFO: Job completed':
-          lines[-1] = 'FATAL: Job did not finish'
+     normal_end = False
+     for line in lines:
+          if re.match('^INFO: Job completed.*$',line):
+               normal_end = True
+               
+     if normal_end == False:
+          lines[-1] = 'FATAL: ABNORMAL_EXTERNAL_TERMINATION'
           self.logger.error("Calculation interrupted externally")
           return False, lines
 
