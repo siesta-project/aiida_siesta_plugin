@@ -1,6 +1,6 @@
 #TODO: specify a specific version here
 
-FROM aiidateam/aiida_core_base
+FROM aiidateam/aiida_core_base:0.8.0
 MAINTAINER AiiDA Team <info@aiida.net>
 
 # Make directory (if COPY in the line below creates it automatically, it then will
@@ -41,13 +41,15 @@ WORKDIR /home/aiida/code/
 # Establish symbolic links to plugin files
 #
 RUN ln -sf /home/aiida/code/siesta_plugin_files/input/siesta \
-           /home/aiida/code/aiida_core/aiida/orm/calculation/job/siesta && \
+           /home/aiida/code/aiida_core/aiida/orm/calculation/job && \
     ln -sf /home/aiida/code/siesta_plugin_files/parser/siesta \
-           /home/aiida/code/aiida_core/aiida/parsers/plugins/siesta   && \
+           /home/aiida/code/aiida_core/aiida/parsers/plugins   && \
     ln -sf /home/aiida/code/siesta_plugin_files/examples/submission/siesta \
-           /home/aiida/code/aiida_core/examples/submission/siesta  && \
+           /home/aiida/code/aiida_core/examples/submission  && \
     ln -sf /home/aiida/code/siesta_plugin_files/orm.data/psf.py \
-           /home/aiida/code/aiida_core/aiida/orm/data/psf.py 
+           /home/aiida/code/aiida_core/aiida/orm/data/psf.py && \
+    ln -sf /home/aiida/code/siesta_plugin_files/docs/siesta \
+           /home/aiida/code/aiida_core/docs/source/plugins
 
 # Important to end as user root (to run the init script)
 #
