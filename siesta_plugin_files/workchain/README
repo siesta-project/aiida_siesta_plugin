@@ -1,0 +1,6 @@
+This directory contains examples of Siesta workchains (the new-style
+workflows).
+
+Models:
+https://github.com/aiidateam/aiida_demos/blob/master/workchain/quantumespresso/pw/
+
