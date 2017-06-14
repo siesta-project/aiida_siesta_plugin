@@ -177,12 +177,12 @@ for fname, kinds, in raw_pseudos:
 
 calc.set_max_wallclock_seconds(30*60) # 30 min
 
-calc.set_resources({"num_machines": 1})
-code_mpi_enabled =  False
-try:
-    code_mpi_enabled =  code.get_extra("mpi")
-except AttributeError:
-    pass
+calc.set_resources({"num_machines": 1, "num_mpiprocs_per_machine": 2,})
+code_mpi_enabled =  True
+# try:
+    # code_mpi_enabled =  code.get_extra("mpi")
+# except AttributeError:
+    # pass
 calc.set_withmpi(code_mpi_enabled)
 #------------------
 queue = None
