@@ -20,7 +20,8 @@ KpointsData = DataFactory('array.kpoints')
 # Set Invocation Params
 scale_facs = (0.96, 0.98, 1.0, 1.02, 1.04)
 labels = ["c1", "c2", "c3", "c4", "c5"]
-codename = 'siesta_icn2work@icn2work'
+#codename = 'siesta_icn2work@icn2work'
+codename = 'Siesta-4.0@rinaldo'
 ###############################
 
 @wf
