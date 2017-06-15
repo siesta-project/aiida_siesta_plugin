@@ -8,7 +8,7 @@ from aiida.orm.calculation.job import JobCalculation
 from aiida.common.exceptions import InputValidationError
 from aiida.orm import DataFactory
 from aiida.common.datastructures import CalcInfo
-from aiida.orm.data.psf import get_pseudos_from_structure
+from aiida_siesta.data.psf import get_pseudos_from_structure, PsfData
 from aiida.common.utils import classproperty
 from aiida.common.datastructures import CodeInfo
 
@@ -29,13 +29,13 @@ class SiestaCalculation(JobCalculation):
     """
     Add docs
     """
-    _siesta_plugin_version = 'aiida-0.7--plugin-0.6.3'
+    _siesta_plugin_version = 'aiida-0.9.X--plugin-YYY'
     
     def _init_internal_params(self):
         super(SiestaCalculation, self)._init_internal_params()
 
         # Default Siesta output parser provided by AiiDA
-        self._default_parser = "siesta"
+        self._default_parser = "siesta.parser"
 
         # Keywords that cannot be set
         # We need to canonicalize this!

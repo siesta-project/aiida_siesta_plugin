@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from aiida.parsers.parser import Parser
-from aiida.orm.calculation.job.siesta import SiestaCalculation
+from aiida_siesta.calculations.siesta import SiestaCalculation
 from aiida.orm.data.parameter import ParameterData
 
 __copyright__ = u"Copyright (c), 2015, ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE (Theory and Simulation of Materials (THEOS) and National Centre for Computational Design and Discovery of Novel Materials (NCCR MARVEL)), Switzerland and ROBERT BOSCH LLC, USA. All rights reserved."
