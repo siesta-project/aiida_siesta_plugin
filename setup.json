@@ -1,0 +1,28 @@
+{
+    "version": "0.1.0",
+    "name": "aiida_siesta",
+    "url": "https://github.com/albgar/aiida_siesta_plugin",
+    "license": "MIT License",
+    "author": "Alberto Garcia,Vladimir Dikan",
+    "author_email": "sympa@uam.es",
+    "description": "A plugin for Siesta's basic functionality within AiiDA framework.",
+    "classifiers": [
+        "License :: OSI Approved :: MIT License",
+        "Programming Language :: Python :: 2.7",
+        "Development Status :: 4 - Beta"
+    ],
+    "install_requires": [
+        "aiida"
+    ],
+    "entry_points": {
+        "aiida.calculations": [
+            "siesta.siesta = aiida_siesta.calculations.siesta:SiestaCalculation"
+        ],
+        "aiida.parsers": [
+            "siesta.parser = aiida_siesta.parsers.siesta:SiestaParser"
+        ],
+        "aiida.data": [
+            "siesta.psf = aiida_siesta.data.psf:PsfData"
+        ]
+    }
+}

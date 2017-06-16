@@ -7,4 +7,6 @@ __pycache__/
 \#*\#
 # C extensions
 *.so
+# python eggs
+*.egg-info/
 siesta_plugin_files/examples/submission/siesta/submit_test/
