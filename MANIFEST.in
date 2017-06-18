@@ -1,0 +1,2 @@
+include *.txt *.yml *.sh *.rst *.py *.json
+recursive-include examples *.txt *.py *.psf *.rst
