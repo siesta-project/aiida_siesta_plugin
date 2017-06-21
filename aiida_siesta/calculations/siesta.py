@@ -15,7 +15,6 @@ from aiida.common.datastructures import CodeInfo
 from aiida.orm.data.structure import StructureData
 from aiida.orm.data.parameter import ParameterData
 from aiida.orm.data.array.kpoints import KpointsData
-from aiida.orm.data.psf import PsfData
 from aiida.orm.data.remote import RemoteData 
 
 from aiida.common.constants import elements

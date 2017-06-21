@@ -7,4 +7,10 @@ __pycache__/
 \#*\#
 # C extensions
 *.so
+
+# distribution build directories
+*.egg-info/
+build/
+dist/
+
 siesta_plugin_files/examples/submission/siesta/submit_test/
