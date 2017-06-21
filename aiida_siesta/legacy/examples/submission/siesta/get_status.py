@@ -13,7 +13,7 @@ __authors__ = "The AiiDA team."
 #
 
 # Used to test the parent calculation
-SiestaCalc = CalculationFactory('siesta') 
+SiestaCalc = CalculationFactory('siesta.siesta') 
 
 try:
     calc_id = sys.argv[1]
