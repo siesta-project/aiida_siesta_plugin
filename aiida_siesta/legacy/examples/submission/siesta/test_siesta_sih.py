@@ -14,7 +14,7 @@ from aiida.common.exceptions import NotExistent
 
 ################################################################
 
-PsfData = DataFactory('psf')
+PsfData = DataFactory('siesta.psf')
 ParameterData = DataFactory('parameter')
 KpointsData = DataFactory('array.kpoints')
 StructureData = DataFactory('structure')

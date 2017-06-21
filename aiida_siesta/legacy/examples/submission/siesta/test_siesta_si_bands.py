@@ -14,7 +14,7 @@ from aiida.common.exceptions import NotExistent
 
 ################################################################
 
-PsfData = DataFactory('psf')
+PsfData = DataFactory('siesta.psf')
 ParameterData = DataFactory('parameter')
 KpointsData = DataFactory('array.kpoints')
 StructureData = DataFactory('structure')
@@ -44,7 +44,7 @@ auto_pseudos = True
 queue = None
 settings = None
 
-code = test_and_get_code(codename, expected_code_type='siesta')
+code = test_and_get_code(codename, expected_code_type='siesta.siesta')
 
 alat = 5.430 # angstrom
 cell = [[0.5*alat, 0.5*alat, 0.,],

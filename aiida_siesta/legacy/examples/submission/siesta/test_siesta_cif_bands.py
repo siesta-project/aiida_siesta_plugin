@@ -15,7 +15,7 @@ from aiida.common.exceptions import NotExistent
 
 ################################################################
 
-PsfData = DataFactory('psf')
+PsfData = DataFactory('siesta.psf')
 ParameterData = DataFactory('parameter')
 KpointsData = DataFactory('array.kpoints')
 StructureData = DataFactory('structure')
@@ -38,7 +38,7 @@ try:
 except IndexError:
     codename = 'Siesta-4.0@rinaldo'
 
-code = test_and_get_code(codename, expected_code_type='siesta')
+code = test_and_get_code(codename, expected_code_type='siesta.siesta')
 #
 #  Set up calculation object first
 #
