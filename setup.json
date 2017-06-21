@@ -1,10 +1,10 @@
 {
-    "version": "0.0.1",
+    "version": "0.0.2",
     "name": "aiida_siesta",
     "url": "https://github.com/albgar/aiida_siesta_plugin",
     "license": "MIT License",
-    "author": "Alberto Garcia,Vladimir Dikan",
-    "author_email": "sympa@uam.es",
+    "author": "Alberto Garcia, Victor M. Garcia-Suarez, Emanuele Bosoni, Vladimir Dikan",
+    "author_email": "albertog@icmab.es",
     "description": "A plugin for Siesta's basic functionality within AiiDA framework.",
     "classifiers": [
         "License :: OSI Approved :: MIT License",
