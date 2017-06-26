@@ -1,3 +1,7 @@
+## NOTE
+
+The docker-compose setup is being updated to work with the new plugin architecture.
+
 # Brief summary
 
 This is a docker-compose setup to have three containers:
