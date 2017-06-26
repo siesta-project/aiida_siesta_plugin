@@ -12,9 +12,9 @@ Use your own installation of the database, and your own computers and codes.
 You need to work on a specially patched copy of aiida_core that works
 around a few issues relevant to the Siesta plugin:
 
-  git clone https://github.com/vdikan/aiida_core
-  cd aiida_core
-  git checkout v0.9_siesta_patch
+       git clone https://github.com/vdikan/aiida_core
+       cd aiida_core
+       git checkout v0.9_siesta_patch
 
 Install aiida with the '-e' option (and optionally install the
 dependencies for extra utilities such as pymatgen, cif, etc, and the
