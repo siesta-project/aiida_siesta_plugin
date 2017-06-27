@@ -131,6 +131,11 @@ class SiestaBaseWorkChain(WorkChain):
         # else:
         #     inputs['parameters']['CONTROL']['restart_mode'] = 'from_scratch'
 
+        # NOTE really the logic should be here
+        if self.ctx.restart_calc:
+            inputs['parameters']['dm-use-save-dm'] = True
+            inputs['parent_folder'] = self.ctx.restart_calc.out.remote_folder
+
         inputs['parameters'] = ParameterData(dict=inputs['parameters'])
         inputs['basis'] = ParameterData(dict=inputs['basis'])
         inputs['settings'] = ParameterData(dict=inputs['settings'])
@@ -173,16 +178,18 @@ class SiestaBaseWorkChain(WorkChain):
                 calculation.get_state(), calculation.pk))
 
         # Retry: submission failed, try to restart or abort
-        # NOTE This handler doen't seem to be implemented properly
+        # NOTE This handler is not implemented
         elif calculation.get_state() in [calc_states.SUBMISSIONFAILED]:
             self._handle_submission_failure(calculation)
 
         # Retry: calculation failed, try to salvage or abort
-        # NOTE This handler doen't seem to be implemented properly
-        elif calculation.get_state() in [calc_states.FAILED]:
-            self._handle_calculation_failure(calculation)
+        # NOTE This handler is not implemented
+        # elif calculation.get_state() in [calc_states.FAILED]:
+        #     self._handle_calculation_failure(calculation)
 
         # Retry: try to convergence restarting from this calculation
+        # NOTE I dunno how it helps
+        #      because it just clone-restarts the whole WorkChain
         else:
             self.report('calculation did not converge after {} iterations, restarting'.format(self.ctx.iteration))
             self.ctx.restart_calc = calculation
@@ -217,6 +224,7 @@ class SiestaBaseWorkChain(WorkChain):
         """
         self.abort_nowait('execution failed for the {} in iteration {}, but error handling is not implemented yet'
             .format(SiestaCalculation.__name__, self.ctx.iteration))
+        # TODO some logic here OR differentiate FAILED state out of convergence/whatever
 
     def on_stop(self):
         """

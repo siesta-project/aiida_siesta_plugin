@@ -82,7 +82,7 @@ def execute(args):
         'dm:numberpulay': 4,
         'dm:mixingweight': 0.3,
         'dm:tolerance': 1.e-3,
-        'max-scfiterations': 300,
+        'max-scfiterations': 3,
         'scf-must-converge': True,
         'Solution-method': 'diagon',
         'electronic-temperature': '25 meV',
