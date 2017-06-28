@@ -135,9 +135,21 @@ class SiestaBaseWorkChain(WorkChain):
             inputs['parameters']['dm-use-save-dm'] = True
             inputs['parent_folder'] = self.ctx.restart_calc.out.remote_folder
 
+        # Maybe we need to add here the previous structure, for cases of
+        # geometry optimization
+        #
+        # if (self.ctx.geometry_did_not_converge):
+        ###      copy old structure
+        #      inputs['structure'] = self.ctx.restart_calc.out.output_structure
+        # --- maybe decide whether to actually use the DM... or to extrapolate...
+        #      self.report('Re-using previous output_structure')
+        #
+        
         inputs['parameters'] = ParameterData(dict=inputs['parameters'])
-        inputs['basis'] = ParameterData(dict=inputs['basis'])
-        inputs['settings'] = ParameterData(dict=inputs['settings'])
+        
+        # These should not be needed as we did not change them...
+        #inputs['basis'] = ParameterData(dict=inputs['basis'])
+        #inputs['settings'] = ParameterData(dict=inputs['settings'])
 
         process = SiestaCalculation.process()
         running = submit(process, **inputs)
@@ -224,6 +236,9 @@ class SiestaBaseWorkChain(WorkChain):
         self.abort_nowait('execution failed for the {} in iteration {}, but error handling is not implemented yet'
             .format(SiestaCalculation.__name__, self.ctx.iteration))
         # TODO some logic here OR differentiate FAILED state out of convergence/whatever
+        # Inspect the warnings in the res object, to check for failure to converge the scf, or the geometry
+        # optimization
+        # Set self.ctx.geometry_did_not_converge if there is a geometry warning
 
     def on_stop(self):
         """
