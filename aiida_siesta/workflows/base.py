@@ -69,8 +69,7 @@ class SiestaBaseWorkChain(WorkChain):
 
         # Prevent SiestaCalculation from being terminated by scheduler
         max_wallclock_seconds = self.ctx.inputs['_options']['max_wallclock_seconds']
-        # TODO NOTE Dunno if we have that thing for SIESTA
-        # self.ctx.inputs['parameters']['CONTROL']['max_seconds'] = int(0.95 * max_wallclock_seconds)
+        self.ctx.inputs['parameters']['max-walltime'] = max_wallclock_seconds
 
         return
 
