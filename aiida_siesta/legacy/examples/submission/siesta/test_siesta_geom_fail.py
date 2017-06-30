@@ -37,7 +37,7 @@ try:
 except IndexError:
     codename = 'Siesta-4.0@rinaldo'
 
-code = test_and_get_code(codename, expected_code_type='siesta')
+code = test_and_get_code(codename, expected_code_type='siesta.siesta')
 #
 #  Set up calculation object first
 #
