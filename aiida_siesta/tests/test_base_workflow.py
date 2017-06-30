@@ -22,7 +22,7 @@ def parser_setup():
     )
     parser.add_argument(
         '-m', type=int, default=5, dest='max_iterations',
-        help='the maximum number of iterations to allow for each SCF cycle for a single k-point. (default: %(default)d)'
+        help='the maximum number of iterations to allow in the Workflow. (default: %(default)d)'
     )
     parser.add_argument(
         '-k', nargs=3, type=int, default=[4, 4, 4], dest='kpoints', metavar='Q',
