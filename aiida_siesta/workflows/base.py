@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from abc import ABCMeta, abstractmethod
+
 from aiida.orm import Code
 from aiida.orm.data.base import Bool, Int, Str
 from aiida.orm.data.remote import RemoteData
@@ -17,8 +19,14 @@ class SiestaBaseWorkChain(WorkChain):
     """
     Base Workchain to launch a total energy calculation via Siesta
     """
+    __metaclass__ = ABCMeta
     def __init__(self, *args, **kwargs):
         super(SiestaBaseWorkChain, self).__init__(*args, **kwargs)
+
+    @abstractmethod
+    def create_outline(cls):
+        """Abstract method: specify the outline for your WorkChain here."""
+        pass
 
     @classmethod
     def define(cls, spec):
@@ -35,15 +43,9 @@ class SiestaBaseWorkChain(WorkChain):
         spec.input('options', valid_type=ParameterData)
         spec.input('clean_workdir', valid_type=Bool, default=Bool(False))
         spec.input('max_iterations', valid_type=Int, default=Int(10))
-        spec.outline(
-            cls.setup,
-            cls.validate_pseudo_potentials,
-            while_(cls.should_run_siesta)(
-                cls.run_siesta,
-                cls.inspect_siesta,
-            ),
-            cls.run_results,
-        )
+
+        outline_args = cls.create_outline()
+        spec.outline(*outline_args)
         spec.dynamic_output()
 
     def setup(self):
@@ -152,7 +154,7 @@ class SiestaBaseWorkChain(WorkChain):
             local_inputs['parameters']['dm-use-save-dm'] = True
             self.report('Re-using previous DM')
 
-        
+
         local_inputs['parameters'] = ParameterData(dict=local_inputs['parameters'])
 
         local_inputs['basis'] = ParameterData(dict=local_inputs['basis'])
@@ -262,7 +264,7 @@ class SiestaBaseWorkChain(WorkChain):
                 self.ctx.scf_did_not_converge = True
 
         self.ctx.restart_calc = calculation
-                
+
 
 
     def on_stop(self):

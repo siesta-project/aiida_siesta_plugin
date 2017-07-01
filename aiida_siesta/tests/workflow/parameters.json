@@ -1,0 +1,20 @@
+{
+    "xc:functional": "LDA",
+    "xc:authors": "CA",
+    "spinpolarized": true,
+    "meshcutoff": "40.000 Ry",
+    "dm:numberpulay": 4,
+    "dm:mixingweight": 0.3,
+    "dm:tolerance": 1e-3,
+    "max-scfiterations": 3,
+    "scf-must-converge": true,
+    "Solution-method": "diagon",
+    "electronic-temperature": "25 meV",
+    "md-typeofrun": "CG",
+    "md-numcgsteps": 0,
+    "md-maxcgdispl": "0.1 Ang",
+    "md-maxforcetol": "0.04 eV/Ang",
+    "writeforces": true,
+    "writecoorstep": true,
+    "xml:write": true
+}

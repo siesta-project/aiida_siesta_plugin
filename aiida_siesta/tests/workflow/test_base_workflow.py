@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+import json
+
 from aiida.common.exceptions import NotExistent
 from aiida.orm.data.base import Int, Str
 from aiida.orm.data.parameter import ParameterData
@@ -9,7 +11,8 @@ from aiida.orm.data.structure import StructureData
 from aiida.orm.data.array.kpoints import KpointsData
 from aiida.work.run import run
 
-from aiida_siesta.workflows.base import SiestaBaseWorkChain
+# from aiida_siesta.workflows.base import SiestaBaseWorkChain
+from aiida_siesta.workflows.child import SiestaWorkChain
 
 
 def parser_setup():
@@ -48,6 +51,11 @@ def parser_setup():
     return parser
 
 
+def load_property_json(filename):
+    with open(filename) as _file:
+        return json.load(_file)
+
+
 def execute(args):
     """
     The main execution of the script, which will run some preliminary checks on the command
@@ -74,41 +82,16 @@ def execute(args):
     kpoints = KpointsData()
     kpoints.set_kpoints_mesh(args.kpoints)
 
-    parameters = {
-        'xc:functional': 'LDA',
-        'xc:authors': 'CA',
-        'spinpolarized': True,
-        'meshcutoff': '40.000 Ry',
-        'dm:numberpulay': 4,
-        'dm:mixingweight': 0.3,
-        'dm:tolerance': 1.e-3,
-        'max-scfiterations': 3,
-        'scf-must-converge': True,
-        'Solution-method': 'diagon',
-        'electronic-temperature': '25 meV',
-        'md-typeofrun': 'CG',
-        'md-numcgsteps': 0,
-        'md-maxcgdispl': '0.1 Ang',
-        'md-maxforcetol': '0.04 eV/Ang',
-        'writeforces': True,
-        'writecoorstep': True,
-        'xml:write': True
-    }
-    basis = {
-        'pao-energy-shift': '300 meV',
-        '%block pao-basis-sizes': """
-        Si DZP                    """,
-    }
-    settings = {}
-    options  = {
-        'resources': {
-            'num_machines': 1
-        },
-        'max_wallclock_seconds': args.max_wallclock_seconds,
-    }
+    parameters = load_property_json('parameters.json')
+    basis = load_property_json('basis.json')
+    settings = load_property_json('settings.json')
+    options = load_property_json('options.json')
+
+    options['max_wallclock_seconds'] = args.max_wallclock_seconds
 
     run(
-        SiestaBaseWorkChain,
+        # SiestaBaseWorkChain,
+        SiestaWorkChain,
         code=code,
         structure=structure,
         pseudo_family=Str(args.pseudo_family),
