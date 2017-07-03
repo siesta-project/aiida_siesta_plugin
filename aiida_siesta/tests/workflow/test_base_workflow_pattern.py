@@ -11,7 +11,7 @@ from aiida.orm.data.structure import StructureData
 from aiida.orm.data.array.kpoints import KpointsData
 from aiida.work.run import run
 
-from aiida_siesta.workflows.simple import SiestaWorkChain
+from aiida_siesta.workflows.pattern import SiestaWorkChain
 
 
 def parser_setup():

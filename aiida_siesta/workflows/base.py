@@ -23,10 +23,12 @@ class SiestaBaseWorkChain(WorkChain):
     def __init__(self, *args, **kwargs):
         super(SiestaBaseWorkChain, self).__init__(*args, **kwargs)
 
+
     @abstractmethod
     def create_outline(cls):
         """Abstract method: specify the outline for your WorkChain here."""
         pass
+
 
     @classmethod
     def define(cls, spec):
@@ -48,7 +50,8 @@ class SiestaBaseWorkChain(WorkChain):
         spec.outline(*outline_args)
         spec.dynamic_output()
 
-    def setup(self):
+
+    def _initial_setup(self):
         """
         Initialize context variables
         """
@@ -77,7 +80,8 @@ class SiestaBaseWorkChain(WorkChain):
 
         return
 
-    def validate_pseudo_potentials(self):
+
+    def _validate_pseudo_potentials(self):
         """
         Validate the inputs related to pseudopotentials to check that we have the minimum required
         amount of information to be able to run a SiestaCalculation
@@ -104,7 +108,8 @@ class SiestaBaseWorkChain(WorkChain):
             elif not isinstance(self.ctx.inputs['pseudo'][kind], PsfData):
                 self.abort_nowait('pseudo for element {} is not of type PsfData'.format(kind))
 
-    def should_run_siesta(self):
+
+    def _should_run_scf(self):
         """
         Return whether a siesta restart calculation should be run, which is the case as long as the last
         calculation was not converged successfully and the maximum number of restarts has not yet
@@ -112,7 +117,13 @@ class SiestaBaseWorkChain(WorkChain):
         """
         return not self.ctx.is_finished and self.ctx.iteration < self.ctx.max_iterations
 
-    def run_siesta(self):
+
+    def _scf_reset(self):
+        self.ctx.is_finished = False
+        self.ctx.iteration = 0
+
+
+    def _run_scf_cycle(self):
         """
         Run a new SiestaCalculation or restart from a previous SiestaCalculation run in this workchain
         """
@@ -167,7 +178,8 @@ class SiestaBaseWorkChain(WorkChain):
 
         return ToContext(calculation=running)
 
-    def inspect_siesta(self):
+
+    def _inspect_scf_cycle(self):
         """
         Analyse the results of the previous SiestaCalculation, checking whether it finished successfully
         or if not troubleshoot the cause and adapt the input parameters accordingly before
@@ -216,7 +228,8 @@ class SiestaBaseWorkChain(WorkChain):
 
         return
 
-    def run_results(self):
+
+    def _scf_results(self):
         """
         Attach the output parameters and retrieved folder of the last calculation to the outputs
         """
@@ -228,6 +241,7 @@ class SiestaBaseWorkChain(WorkChain):
         if 'output_structure' in self.ctx.restart_calc.out:
             self.out('output_structure', self.ctx.restart_calc.out.output_structure)
 
+
     def _handle_submission_failure(self, calculation):
         """
         The submission of the calculation has failed, if it was the second consecutive failure we
@@ -235,6 +249,7 @@ class SiestaBaseWorkChain(WorkChain):
         """
         self.abort_nowait('submission failed for the {} in iteration {}, but error handling is not implemented yet'
             .format(SiestaCalculation.__name__, self.ctx.iteration))
+
 
     def _handle_calculation_failure(self, calculation):
         """
@@ -264,7 +279,6 @@ class SiestaBaseWorkChain(WorkChain):
                 self.ctx.scf_did_not_converge = True
 
         self.ctx.restart_calc = calculation
-
 
 
     def on_stop(self):
