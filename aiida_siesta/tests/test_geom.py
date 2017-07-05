@@ -1,6 +1,14 @@
 #!/usr/bin/env runaiida
 # -*- coding: utf-8 -*-
 
+#
+# An example of Workchain to perform geometry relaxation
+# Note: The current input structure is non-optimal, in the
+# sense that the structure is pulled from the database, while
+# the parameters are set here. For example, the parameters are
+# taken from the 'test_siesta_geom_fail.py' legacy test, which
+# is for a water molecule.
+#
 import argparse
 from aiida.common.exceptions import NotExistent
 from aiida.orm.data.base import Int, Str
@@ -25,7 +33,7 @@ def parser_setup():
         help='the maximum number of iterations to allow in the Workflow. (default: %(default)d)'
     )
     parser.add_argument(
-        '-k', nargs=3, type=int, default=[4, 4, 4], dest='kpoints', metavar='Q',
+        '-k', nargs=3, type=int, default=[1, 1, 1], dest='kpoints', metavar='Q',
         help='define the q-points mesh. (default: %(default)s)'
     )
     parser.add_argument(
@@ -75,30 +83,24 @@ def execute(args):
     kpoints.set_kpoints_mesh(args.kpoints)
 
     parameters = {
-        'xc:functional': 'LDA',
-        'xc:authors': 'CA',
-        'spinpolarized': True,
-        'meshcutoff': '40.000 Ry',
-        'dm:numberpulay': 4,
-        'dm:mixingweight': 0.3,
-        'dm:tolerance': 1.e-3,
-        'max-scfiterations': 3,
-        'scf-must-converge': True,
-        'Solution-method': 'diagon',
-        'electronic-temperature': '25 meV',
-        'md-typeofrun': 'CG',
-        'md-numcgsteps': 0,
-        'md-maxcgdispl': '0.1 Ang',
-        'md-maxforcetol': '0.04 eV/Ang',
-        'writeforces': True,
-        'writecoorstep': True,
-        'xml:write': True
+    'xc-functional': 'LDA',
+    'xc-authors': 'CA',
+    'mesh-cutoff': '100.000 Ry',
+    'max-scfiterations': 30,
+    'dm-numberpulay': 4,
+    'dm-mixingweight': 0.1,
+    'dm-tolerance': 1.e-4,
+    'md-typeofrun': 'cg',
+    'md-numcgsteps': 8,
+    'md-maxcgdispl': '0.200 bohr',
+    'md-maxforcetol': '0.020 eV/Ang',
+    'geometry-must-converge': True,    
+    'xml-write': True
     }
-    basis = {
-        'pao-energy-shift': '300 meV',
-        '%block pao-basis-sizes': """
-        Si DZP                    """,
-    }
+
+    # default basis
+    basis = {}
+    
     settings = {}
     options  = {
         'resources': {
