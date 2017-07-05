@@ -3,6 +3,10 @@
 This repository contains the files that implement the AiiDA Siesta
 plugin (input, parser, and tests) as a stand-alone package.
 
+Documentation (work in progress) can be found in:
+
+http://aiida-siesta-plugin.readthedocs.io
+
 ## DEVELOPMENT AND USAGE guidelines:
 
 # Local development
