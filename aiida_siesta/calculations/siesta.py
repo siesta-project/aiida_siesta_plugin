@@ -488,7 +488,13 @@ class SiestaCalculation(JobCalculation):
         # ------------------------------------- END of fdf file creation
         
         # operations for restart
-        # copy remote output dir, if specified
+
+        # The presence of a 'parent_calc_folder' input node signals
+        # that we want to get something from there, as indicated in the
+        # self._restart_copy_from attribute.
+        # In Siesta's case, for now, it is just the density-matrix file
+        #
+        # It will be copied to the current calculation's working folder.
         
         if parent_calc_folder is not None:
             remote_copy_list.append(
@@ -648,30 +654,41 @@ class SiestaCalculation(JobCalculation):
 
         self.use_parent_folder(remotedata)
 
-    def create_restart(self,force_restart=False): 
+    def create_restart(self,use_output_structure=True,force_restart=True): 
         """
         Simple Function to restart a calculation that was not completed
         (for example, due to max walltime reached, or lack of convergence)
  
-        This version requests that the density-matrix file be copied
+        This version effectively requests that the density-matrix file be copied
         from the old calculation's output folder, and sets an fdf option to
         read it upon start. Other possibilites might be given by extra arguments
-        in the future.
-
-        No support for updated structures in variable-geometry runs yet.
+        in the future (for example, start from scratch)
 
         Returns a calculation c2, with all links prepared but not stored in DB.
         To submit it simply:
         c2.store_all()
         c2.submit()
         
-        :param bool force_restart: restart also if parent is not in FINISHED 
-        state (e.g. FAILED, IMPORTED, etc.). Default=False.
+        :param bool force_restart: restart also if parent is not in
+           FINISHED state (e.g. FAILED, IMPORTED, etc.). Default=True.
+
+        :param bool use_output_structure: if True, the output
+           structure of the restarted calculation is used if
+           available, rather than its input structure.
+           Default=True.
+
         """
         from aiida.common.datastructures import calc_states
         
         # Check the calculation's state using ``from_attribute=True`` to
-        # correctly handle IMPORTED calculations.
+        # correctly handle IMPORTED calculations (so far this applies really only
+        # to QE, but it is kept here for future use)
+
+        # In the Siesta plugin, the parser marks non-converged calculations as FAILED
+        # when the 'scf-must-converge' and/or 'geometry-must-converge' fdf flags
+        # are set.
+        # So in practice we will always need to use the force_restart=True
+        #
         if self.get_state(from_attribute=True) != calc_states.FINISHED:
             if force_restart:
                 pass
@@ -680,40 +697,64 @@ class SiestaCalculation(JobCalculation):
                     "be in the {} state. Otherwise, use the force_restart "
                     "flag".format(calc_states.FINISHED) )
         
+
+        # We start here the creation of the new calculation object, using
+        # information from the current one
+        # What exactly is involved in this 'copy'?
+        #
+        c2 = self.copy()
+
         calc_inp = self.get_inputs_dict()
 
-        old_inp_dict = FDFDict(calc_inp['parameters'].get_dict())
+        # The philosophy here is different from that of QE.
         
-        # add the restart flag
-        # In Siesta, this could be the option to read the DM, if
-        # the restart is due to lack of convergence, but in general
-        # one would need to pick up the latest structure if doing
-        # geometry optimizations ...
+        # There is no 'restart' calculation mode in Siesta.
+        # We can set the option to read and re-use the DM, if
+        # the restart is due to lack of convergence.
+        # There is no direct way to read a structure from the working folder
+        # and restart a relaxation from it, so in practice we pick up
+        # the latest structure from the output node list of the previous calculation.
 
-        # Warning: we need a way to canonicalize the fdf options...
-        # or in this case an "order-preserving" dictionary to put
-        # this option at the beginning...
-        
+        # As 'old_inp_dict' is a FDFDict object we can be sure that fdf options are effectively
+        # canonicalized, so the following assignment will override any other values
+        # for the re-use of DM flag, even if they are in mixed case, etc.
+        # Note that options with aliases need to be handled with more care, by
+        # setting all possible aliases.
+
+        old_inp_dict = FDFDict(calc_inp['parameters'].get_dict())
         old_inp_dict['dm-use-save-dm'] = True
-        inp_dict = ParameterData(dict=old_inp_dict) 
+        c2.use_parameters(ParameterData(dict=old_inp_dict))
         
         remote_folders = self.get_outputs(type=RemoteData)
         if len(remote_folders)!=1:
             raise InputValidationError("More than one output RemoteData found "
                                        "in calculation {}".format(self.pk))
         remote_folder = remote_folders[0]
-        
-        c2 = self.copy()
-        
-        # set the new links
-
-        c2.use_code(calc_inp['code'])
         c2._set_parent_remotedata( remote_folder )
 
-        # New fdf options
-        c2.use_parameters(inp_dict)
+        # Note that the items to copy from the parent folder are already specified
+        # elsewhere in the plugin. We might re-define them here:
+        #
+        # c2._restart_copy_from = os.path.join(c2._OUTPUT_SUBFOLDER, '*.DM Rho.grid.nc')
+
+        # Could we want to try with a new version of the code?
+        c2.use_code(calc_inp['code'])
 
         # Pseudopotentials
+        # This section could be done more cleanly with the following idiom
+        # taken from a recent version of the QE plugin:
+        # 
+        #   for linkname, input_node in calc_inp.iteritems():
+        #         if isinstance(input_node, UpfData):
+        #            c2.add_link_from(input_node, label=linkname)
+        #
+        # For Siesta, we need to use PsfData (or 'SiestaPseudoData' or similar
+        # umbrella class, if we ever allow PsmlData as another kind of pseudo.
+        #
+        # But we need to make sure that the 'kinds' support is correctly handled
+        # (it would be: for example, pseudo_C_Cred is the linkname that assigns
+        # the pseudo to the C and Cred kinds).
+        
 
         for link in calc_inp.keys():
             # Is it a pseudo node?
@@ -726,17 +767,28 @@ class SiestaCalculation(JobCalculation):
                 the_pseudo = calc_inp[link]
                 c2.use_pseudo(the_pseudo, kind=kinds)
 
-        # We use the latest structure from
-        # an aborted calculation, if available
+        # As explained above, by default we use the latest structure generated
+        # by a possibly FAILED relaxation calculation, if available
 
-        calc_out = self.get_outputs_dict()
-        try:
-            new_structure = calc_out['output_structure']
-            c2.use_structure(new_structure)
-        except KeyError:
-            c2.use_structure(calc_inp['structure'])
-
+        if use_output_structure:
+            calc_out = self.get_outputs_dict()
+            try:
+                new_structure = calc_out['output_structure']
+                c2.use_structure(new_structure)
+            except KeyError:
+                c2.use_structure(calc_inp['structure'])
+        else:
+            c2.use_structure(calc_inp[self.get_linkname('structure')])
+            
         # These are optional...
+
+        # But we could allow an optional argument 'new_basis' (in the form of
+        # a basis (ParameterData) object, that would replace the old one. In
+        # this case, DM re-use would not be possible.
+        # Same for the k-points...
+        #
+        # In practice, this is probably better done in a workflow, and keep
+        # this basic mechanism simple.
         
         try:
             old_basis = calc_inp['basis']
@@ -752,6 +804,10 @@ class SiestaCalculation(JobCalculation):
         if old_kpoints is not None:
             c2.use_kpoints(old_kpoints)
 
+        # If the calculation needs to be restarted, it has probably not reached
+        # the 'siesta_analysis' stage, so this link needs to be present.
+        # ** Study the workflow implications
+        
         try:
             old_bandskpoints = calc_inp['bandskpoints']
         except KeyError:
