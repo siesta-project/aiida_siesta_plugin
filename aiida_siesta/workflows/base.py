@@ -111,11 +111,12 @@ class SiestaBaseWorkChain(WorkChain):
 
     def _should_run_scf(self):
         """
-        Return whether a siesta restart calculation should be run, which is the case as long as the last
-        calculation was not converged successfully and the maximum number of restarts has not yet
+        Return whether a siesta restart calculation should be run, which
+        is the case as long as the last calculation was not converged
+        successfully and the maximum number of restarts has not yet
         been exceeded
         """
-        return not self.ctx.is_finished and self.ctx.iteration < self.ctx.max_iterations
+        return ( (not self.ctx.is_finished) and (self.ctx.iteration < self.ctx.max_iterations) )
 
 
     def _scf_reset(self):
@@ -125,11 +126,15 @@ class SiestaBaseWorkChain(WorkChain):
 
     def _run_scf_cycle(self):
         """
-        Run a new SiestaCalculation or restart from a previous SiestaCalculation run in this workchain
+        Run a new SiestaCalculation or restart from a previous
+        SiestaCalculation run in this workchain
+
         """
         self.ctx.iteration += 1
 
-        # Create local copy of general inputs stored in the context and adapt for next calculation
+        # Create local copy of general initial inputs stored in the context
+        # and adapt for next calculation
+        
         local_inputs = dict(self.ctx.inputs)
 
         # Indicates if restarting or doing calculations from scratch.
@@ -137,6 +142,10 @@ class SiestaBaseWorkChain(WorkChain):
         # TODO Clarify on that matter
         #
         # if self.ctx.iteration == 1 and 'parent_folder' in self.inputs:
+        #  For Siesta, we should decide on which files to actually
+        #  use in the parent_folder. It might be enough to specify
+        #  'dm-use-save-DM'
+        #
         #     inputs['parameters']['CONTROL']['restart_mode'] = 'restart'
         #     inputs['parent_folder'] = self.inputs.parent_folder
         # elif self.ctx.restart_calc:
@@ -154,11 +163,25 @@ class SiestaBaseWorkChain(WorkChain):
             local_inputs['parameters']['dm-use-save-dm'] = True
             self.report('Re-using previous DM')
 
-        # Maybe we need to add here the previous structure, for cases of
+        # We need to add here the previous structure, for cases of
         # geometry optimization
         #
         if self.ctx.geometry_did_not_converge:
-            ###      copy old structure
+            
+            # The previous calculation, even if failed, should
+            # have produced an 'output_structure' node containing the
+            # last recorded geometry in the XML file.
+            # 
+            # So we benefit from all the geometry optimization work
+            # done in that calculation (except from the internal state
+            # of the optimizer...)
+            #
+            # Another route to geometry re-use is to employ the
+            # information in files that checkpoint the geometry:
+            #
+            # 'move XXX.STRUCT_OUT TO XXX.STRUCT_IN'
+            #  and add the 'use-struct-in' fdf option
+            # 
             local_inputs['structure'] = self.ctx.restart_calc.out.output_structure
             self.report('Re-using previous output_structure')
             # --- maybe decide whether to actually use the DM... or to extrapolate...
@@ -183,12 +206,16 @@ class SiestaBaseWorkChain(WorkChain):
         """
         Analyse the results of the previous SiestaCalculation, checking whether it finished successfully
         or if not troubleshoot the cause and adapt the input parameters accordingly before
+        """
+        Analyse the results of the previous SiestaCalculation, checking
+        whether it finished successfully, or if not troubleshoot the
+        cause and adapt the input parameters accordingly before
         restarting, or abort if unrecoverable error was found
         """
         try:
             calculation = self.ctx.calculation
         except Exception:
-            self.abort_nowait('the first iteration finished without returning a SiestaCalculation')
+            self.abort_nowait('The previous iteration finished without returning a SiestaCalculation')
             return
 
         expected_states = [calc_states.FINISHED, calc_states.FAILED, calc_states.SUBMISSIONFAILED]
@@ -214,18 +241,24 @@ class SiestaBaseWorkChain(WorkChain):
         elif calculation.get_state() in [calc_states.SUBMISSIONFAILED]:
             self._handle_submission_failure(calculation)
 
-        # Retry: calculation failed, try to salvage or abort
-        # NOTE This handler is not implemented
+        # Retry: calculation failed
+        # The FAILED state is the one actually reported for
+        # non-converged calculations when the
+        # 'scf-must-converge'
+        # and/or
+        # 'geometry-must-converge'
+        # fdf options are specified. There are then 'FATAL'
+        # lines in the MESSAGES file (and thus in the 'warnings'
+        # list)
+        #
+        # We might also check 'FINISHED' calculations for
+        # 'WARNING' SCF_NOT_CONV and/or GEOM_NOT_CONV lines.
+        #
         elif calculation.get_state() in [calc_states.FAILED]:
             self._handle_calculation_failure(calculation)
 
-        # Retry: try to convergence restarting from this calculation
-        # NOTE I dunno how it helps
-        #      because it just clone-restarts the whole WorkChain
         else:
             self.abort_nowait('This place should not be reached...')
-#            self.ctx.restart_calc = calculation
-
         return
 
 
@@ -243,9 +276,11 @@ class SiestaBaseWorkChain(WorkChain):
 
 
     def _handle_submission_failure(self, calculation):
+
         """
-        The submission of the calculation has failed, if it was the second consecutive failure we
-        abort the workchain, else we set the has_submission_failed flag and try again
+        The submission of the calculation has failed, if it was the second
+        consecutive failure we abort the workchain, else we set the
+        has_submission_failed flag and try again
         """
         self.abort_nowait('submission failed for the {} in iteration {}, but error handling is not implemented yet'
             .format(SiestaCalculation.__name__, self.ctx.iteration))
@@ -253,21 +288,38 @@ class SiestaBaseWorkChain(WorkChain):
 
     def _handle_calculation_failure(self, calculation):
         """
-        The calculation has failed so we try to analyze the reason and change the inputs accordingly
-        for the next calculation. If the calculation failed, but did so cleanly, we set it as the
-        restart_calc, in all other cases we do not replace the restart_calc
-        """
-        #self.abort_nowait('execution failed for the {} in iteration {}, but error handling is not implemented yet'
-        #    .format(SiestaCalculation.__name__, self.ctx.iteration))
-        # TODO some logic here OR differentiate FAILED state out of convergence/whatever
-        # Inspect the warnings in the res object, to check for failure to converge the scf, or the geometry
-        # optimization
-        # Set self.ctx.geometry_did_not_converge if there is a geometry warning
+        The calculation has failed so we try to analyze the reason and
+        change the inputs accordingly for the next calculation. If the
+        calculation failed, but did so cleanly, we set it as the
+        restart_calc, in all other cases we do not replace the
+        restart_calc
 
+        """
+        # Typical contents of the warnings list for a FAILED calculation:
+        #
         #        "warnings": [
         #        "FATAL: GEOM_NOT_CONV: Geometry relaxation not converged",
         #        "FATAL: ABNORMAL_TERMINATION"
+        
         warnings_list = calculation.out.output_parameters.get_dict()['warnings']
+
+        # Formally we should be checking also for an OUT_OF_TIME fatal message,
+        # but in this case Siesta attaches SCF or GEOM 'WARNING' lines, so the
+        # checks below will cover it:
+        #
+        #  WARNING: SCF_NOT_CONV: SCF did not converge at wall time exhaustion
+        #   (info): Geom step, scf iteration, dmax:   4  4    0.000413
+        #  FATAL: OUT_OF_TIME: Time is up.
+        
+        # We should, however, report it:
+        
+        for line in warnings_list:
+            if u'FATAL: OUT_OF_TIME' in line:
+                self.report('Out of time in SiestaCalculation<{}>'.format(calculation.pk))
+
+        # Note again that we check for the strings themselves, and not
+        # for 'FATAL' or 'WARNING' qualifiers
+        
         self.ctx.geometry_did_not_converge = False
         for line in warnings_list:
             if u'GEOM_NOT_CONV' in line:
@@ -280,11 +332,11 @@ class SiestaBaseWorkChain(WorkChain):
 
         self.ctx.restart_calc = calculation
 
-
     def on_stop(self):
-        """
-        Clean remote folders of the SiestaCalculations that were run if the clean_workdir parameter was
-        set to true in the Workchain inputs
+        """Clean remote folders of the SiestaCalculations that were run if
+        the clean_workdir parameter was set to true in the Workchain
+        inputs
+
         """
         super(SiestaBaseWorkChain, self).on_stop()
 

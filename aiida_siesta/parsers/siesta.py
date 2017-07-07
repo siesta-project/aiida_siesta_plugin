@@ -123,6 +123,14 @@ def get_last_structure(xmldoc, input_structure):
          if m.attributes['dictRef'].value != "SCF":
               finalmodule = m
 
+    # In case there is no appropriate data, fall back and
+    # at least return the initial structure
+    # (this should not be necessary, as the initial Geometry module
+    # is opened very soon)
+    if finalmodule is None:
+         #self.logger.warning("Returning input structure in output_structure node")
+         return input_structure
+    
     atoms = finalmodule.getElementsByTagName('atom')
     cellvectors = finalmodule.getElementsByTagName('latticeVector')
 

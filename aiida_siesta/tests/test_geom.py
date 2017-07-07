@@ -1,9 +1,15 @@
 #!/usr/bin/env runaiida
 # -*- coding: utf-8 -*-
 
+#
+# An example of Workchain to perform geometry relaxation
+# Note: The current input structure is non-optimal, in the
+# sense that the structure is pulled from the database, while
+# the parameters are set here. For example, the parameters are
+# taken from the 'test_siesta_geom_fail.py' legacy test, which
+# is for a water molecule.
+#
 import argparse
-import json
-
 from aiida.common.exceptions import NotExistent
 from aiida.orm.data.base import Int, Str
 from aiida.orm.data.parameter import ParameterData
@@ -11,7 +17,7 @@ from aiida.orm.data.structure import StructureData
 from aiida.orm.data.array.kpoints import KpointsData
 from aiida.work.run import run
 
-from aiida_siesta.workflows.simple import SiestaWorkChain
+from aiida_siesta.workflows.base import SiestaBaseWorkChain
 
 
 def parser_setup():
@@ -27,7 +33,7 @@ def parser_setup():
         help='the maximum number of iterations to allow in the Workflow. (default: %(default)d)'
     )
     parser.add_argument(
-        '-k', nargs=3, type=int, default=[4, 4, 4], dest='kpoints', metavar='Q',
+        '-k', nargs=3, type=int, default=[1, 1, 1], dest='kpoints', metavar='Q',
         help='define the q-points mesh. (default: %(default)s)'
     )
     parser.add_argument(
@@ -48,11 +54,6 @@ def parser_setup():
     )
 
     return parser
-
-
-def load_property_json(filename):
-    with open(filename) as _file:
-        return json.load(_file)
 
 
 def execute(args):
@@ -81,15 +82,35 @@ def execute(args):
     kpoints = KpointsData()
     kpoints.set_kpoints_mesh(args.kpoints)
 
-    parameters = load_property_json('parameters.json')
-    basis = load_property_json('basis.json')
-    settings = load_property_json('settings.json')
-    options = load_property_json('options.json')
+    parameters = {
+    'xc-functional': 'LDA',
+    'xc-authors': 'CA',
+    'mesh-cutoff': '100.000 Ry',
+    'max-scfiterations': 30,
+    'dm-numberpulay': 4,
+    'dm-mixingweight': 0.1,
+    'dm-tolerance': 1.e-4,
+    'md-typeofrun': 'cg',
+    'md-numcgsteps': 8,
+    'md-maxcgdispl': '0.200 bohr',
+    'md-maxforcetol': '0.020 eV/Ang',
+    'geometry-must-converge': True,    
+    'xml-write': True
+    }
 
-    options['max_wallclock_seconds'] = args.max_wallclock_seconds
+    # default basis
+    basis = {}
+    
+    settings = {}
+    options  = {
+        'resources': {
+            'num_machines': 1
+        },
+        'max_wallclock_seconds': args.max_wallclock_seconds,
+    }
 
     run(
-        SiestaWorkChain,
+        SiestaBaseWorkChain,
         code=code,
         structure=structure,
         pseudo_family=Str(args.pseudo_family),

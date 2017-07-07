@@ -6,9 +6,9 @@ Description
 
 A plugin for Siesta's basic functionality. There remain some details to address.
 
-These docs are for version: *aiida-pre-0.8--plugin-0.6.4* of the plugin,
-which is compatible with the AiiDA commit 7b3b3c3 (just a frozen reference
-prior to the release of version 0.8...)
+These docs are for version: *aiida-0.9.0--plugin-0.7.0* of the plugin,
+which is compatible with the AiiDA v0.9.0
+
 
 Supported Siesta versions
 -------------------------
@@ -16,13 +16,8 @@ Supported Siesta versions
 In principle, all modern Siesta versions (>= 3.X) might work, but
 some extra functionality (i.e., warnings handling and consistency of
 the CML file in the face of early termination) are only available
-for recent versions. We are preparing a special set of patches for the
-already-released 4.0 version that will make it compatible with the
-features of the parser. It is work in progress in the '4.0-aiida'
-branch of the SIESTA Launchpad platform (http://launchpad.net/siesta/)
-and should be finished soon.
-
-This will be documented more fully when v1.0 of the plugin is finalized.
+starting with recent versions: 4.0.1 of the 4.0 series, and 4.1-b3 of the 4.1
+series, which can be found in the development platform (http://launchpad.net/siesta/).
 
 Inputs
 ------
@@ -80,7 +75,7 @@ nodes to be inserted in the database, so it should not be used
 in the input script (or removed before assigning the dictionary to
 the ParameterData instance).
 
-* **pseudo**, class :py:class:`PsfData <aiida.orm.data.psf.PsfData>`
+* **pseudo**, class :py:class:`PsfData <aiida_siesta.data.psf.PsfData>`
 
 The PsfData class has been implemented along the lines of the Upf class for QE.
 
@@ -104,7 +99,7 @@ A dictionary specifically intended for basis set information. It
 follows the same structure as the **parameters** element, including
 the allowed use of fdf-block items. This raw interface allows a
 direct translation of the myriad basis-set options supported by the
-program. In future we might have a more structured input for
+Siesta program. In future we might have a more structured input for
 basis-set information.
 
 * **kpoints**, class :py:class:`KpointsData <aiida.orm.data.array.kpoints.KpointsData>`
@@ -189,7 +184,7 @@ positions refer to the last configuration.
   <aiida.orm.data.array.bands.BandsData>`
   
 Present only if a band calculation is requested (signaled by the
-presence of a 'bandskpoints' input node of class KpointsData)
+presence of a **bandskpoints** input node of class KpointsData)
 Contains the list of electronic energies for every kpoint. For
 spin-polarized calculations, the 'bands' array has an extra dimension
 for spin.
@@ -199,7 +194,7 @@ No trajectories have been implemented yet.
 Errors
 ------
 
-Errors of the parsing are reported in the log of the calculation (accessible 
+Errors during the parsing stage are reported in the log of the calculation (accessible 
 with the ``verdi calculation logshow`` command). 
 Moreover, they are stored in the ParameterData under the key ``warnings``, and are
 accessible with ``Calculation.res.warnings``.
