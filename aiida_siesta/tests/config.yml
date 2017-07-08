@@ -1,0 +1,14 @@
+computers:
+    - name: localhost
+      hostname: localhost
+      description: localhost
+      transport: local
+      scheduler: direct
+      work_directory: /tmp/test_aiida_pytest_run
+
+codes:
+    - label: tsiesta
+      description: tsiesta
+      default_plugin: siesta.siesta
+      remote_computer: localhost
+      remote_abspath: /bin/ls
