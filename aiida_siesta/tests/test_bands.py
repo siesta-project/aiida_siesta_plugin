@@ -71,6 +71,9 @@ def execute(args):
     try:
         structure = load_node(args.structure)
     except:
+        #
+        # Slightly distorted structure
+        #
         alat = 5.430 # angstrom
         cell = [[0.5*alat, 0.5*alat, 0.,],
                 [0., 0.5*alat, 0.5*alat,],
@@ -82,7 +85,7 @@ def execute(args):
         #
         structure = StructureData(cell=cell)
         structure.append_atom(position=(0.000*alat,0.000*alat,0.000*alat),symbols=['Si'])
-        structure.append_atom(position=(0.250*alat,0.250*alat,0.250*alat),symbols=['Si'])
+        structure.append_atom(position=(0.250*alat,0.245*alat,0.250*alat),symbols=['Si'])
         
         #print "Execution failed: failed to load the node for the given structure pk '{}'".format(args.structure)
         #print "Exception report: {}".format(exception)
@@ -104,15 +107,15 @@ def execute(args):
                 'xc-functional': 'LDA',
                 'xc-authors': 'CA',
                 'spinpolarized': False,
-                'meshcutoff': '40.000 Ry',
+                'meshcutoff': '150.0 Ry',
                 'max-scfiterations': 50,
                 'dm-numberpulay': 4,
                 'dm-mixingweight': 0.3,
-                'dm-tolerance': 1.e-3,
+                'dm-tolerance': 1.e-4,
                 'Solution-method': 'diagon',
                 'electronic-temperature': '25 meV',
                 'md-typeofrun': 'cg',
-                'md-numcgsteps': 3,
+                'md-numcgsteps': 10,
                 'md-maxcgdispl': '0.1 Ang',
                 'md-maxforcetol': '0.04 eV/Ang',
                 'xml:write': True,
@@ -120,7 +123,7 @@ def execute(args):
 
     # default basis
     basis = {
-        'pao-energy-shift': '300 meV',
+        'pao-energy-shift': '100 meV',
         '%block pao-basis-sizes': """
         Si DZP                    """,
     }
