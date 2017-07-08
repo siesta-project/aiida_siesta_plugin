@@ -109,6 +109,7 @@ class SiestaBandsWorkChain(WorkChain):
         We use SeeKPath to determine the primitive structure for the given input structure, if it
         wasn't yet the case.
         """
+        self.report('Running setup_structure')
         seekpath_result = seekpath_structure(self.inputs.structure)
         self.ctx.structure_initial_primitive = seekpath_result['primitive_structure']
 
@@ -117,6 +118,7 @@ class SiestaBandsWorkChain(WorkChain):
         Define the k-point mesh for the relax and scf calculations. Also get the k-point path for
         the bands calculation for the initial input structure from SeeKpath
         """
+        self.report('Running setup_kpoints')
         kpoints_mesh = KpointsData()
         kpoints_mesh.set_cell_from_structure(self.ctx.structure_initial_primitive)
         kpoints_mesh.set_kpoints_mesh_from_density(
@@ -131,6 +133,7 @@ class SiestaBandsWorkChain(WorkChain):
         Based on the given input structure and the protocol, use the SSSP library to determine the
         optimal pseudo potentials for the different elements in the structure
         """
+        self.report('Running setup_pseudo_potentials')
         structure = self.ctx.structure_initial_primitive
         pseudo_familyname = self.ctx.protocol['pseudo_familyname']
         self.ctx.inputs['pseudos'] = get_pseudos_from_structure(structure, pseudo_familyname)
@@ -139,6 +142,7 @@ class SiestaBandsWorkChain(WorkChain):
         """
         Setup the default input parameters required for a SiestaCalculation and the SiestaBaseWorkChain
         """
+        self.report('Running setup_parameters')
         structure = self.ctx.structure_initial_primitive
         meshcutoff = 0.0
 
@@ -165,25 +169,28 @@ class SiestaBandsWorkChain(WorkChain):
         Setup the basis dictionary.
         Very simple for now. Just the same for all elements. With more heuristics, we could do more.
         """
+        self.report('Running setup_basis')
         self.ctx.inputs['basis'] = self.ctx.protocol['basis']
         
     def run_relax(self):
         """
         Run the SiestaBaseWorkChain to relax the input structure
         """
+        self.report('Running run_relax')
         inputs = dict(self.ctx.inputs)
 
         # Final input preparation, wrapping dictionaries in ParameterData nodes
-        # The code and settings were set above
+        # The code and options were set above
         
         inputs['kpoints'] = self.ctx.kpoints_mesh
         inputs['basis'] = ParameterData(dict=inputs['basis'])
         inputs['structure'] = self.ctx.structure_initial_primitive
+        inputs['structure'] = self.inputs.structure
         inputs['parameters'] = ParameterData(dict=inputs['parameters'])
         inputs['settings'] = ParameterData(dict=inputs['settings'])
         
+        self.report('launching SiestaBaseWorkChain in relaxation mode')
         running = submit(SiestaBaseWorkChain, **inputs)
-        
         self.report('launching SiestaBaseWorkChain<{}> in relaxation mode'.format(running.pid))
         
         return ToContext(workchain_relax=running)
@@ -193,6 +200,7 @@ class SiestaBandsWorkChain(WorkChain):
         Run the relaxed structure through SeeKPath to get the new primitive structure, just in case
         the symmetry of the cell changed in the cell relaxation step
         """
+        self.report('Running seekpath_on_the_relaxed_structure')
         try:
             structure = self.ctx.workchain_relax.out.output_structure
         except:
@@ -211,6 +219,8 @@ class SiestaBandsWorkChain(WorkChain):
         """
         Run the SiestaBaseWorkChain in scf+bands mode on the primitive cell of the relaxed input structure
         """
+        self.report('Running bands calculation')
+
         inputs = dict(self.ctx.inputs)
 
         # This was wrong in QE's demo
