@@ -181,17 +181,19 @@ class SiestaBandsWorkChain(WorkChain):
 
         # Final input preparation, wrapping dictionaries in ParameterData nodes
         # The code and options were set above
+        # Pseudos was set above in ctx.inputs, and so in inputs
         
         inputs['kpoints'] = self.ctx.kpoints_mesh
         inputs['basis'] = ParameterData(dict=inputs['basis'])
         inputs['structure'] = self.ctx.structure_initial_primitive
-        inputs['structure'] = self.inputs.structure
         inputs['parameters'] = ParameterData(dict=inputs['parameters'])
         inputs['settings'] = ParameterData(dict=inputs['settings'])
+        inputs['clean_workdir'] = Bool(False)
+        inputs['max_iterations'] = Int(20)
         
-        self.report('launching SiestaBaseWorkChain in relaxation mode')
+        self.report('About to launch SiestaBaseWorkChain in relaxation mode')
         running = submit(SiestaBaseWorkChain, **inputs)
-        self.report('launching SiestaBaseWorkChain<{}> in relaxation mode'.format(running.pid))
+        self.report('launched SiestaBaseWorkChain<{}> in relaxation mode'.format(running.pid))
         
         return ToContext(workchain_relax=running)
 

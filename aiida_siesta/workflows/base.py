@@ -51,6 +51,8 @@ class SiestaBaseWorkChain(WorkChain):
         """
         Initialize context variables
         """
+        self.report("Entering setup in Base Workchain")
+        
         self.ctx.max_iterations = self.inputs.max_iterations.value
         self.ctx.restart_calc = None
         self.ctx.is_finished = False
@@ -132,6 +134,8 @@ class SiestaBaseWorkChain(WorkChain):
         SiestaCalculation run in this workchain
 
         """
+        self.report("Running Siesta")
+        
         self.ctx.iteration += 1
 
         # Create local copy of general initial inputs stored in the context
@@ -345,7 +349,7 @@ class SiestaBaseWorkChain(WorkChain):
         super(SiestaBaseWorkChain, self).on_stop()
 
         if not self.inputs.clean_workdir.value:
-            self.report('remote folders will not be cleaned')
+            self.report('SiestaBase: remote folders will not be cleaned')
             return
 
         for calc in self.ctx.calculation:
