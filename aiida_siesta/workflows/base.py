@@ -97,8 +97,6 @@ class SiestaBaseWorkChain(WorkChain):
         Validate the inputs related to pseudopotentials to check that we have the minimum required
         amount of information to be able to run a SiestaCalculation
         """
-        structure = self.inputs.structure
-        pseudo_family = self.inputs.pseudo_family.value
 
         if all([key not in self.inputs for key in ['pseudos', 'pseudo_family']]):
             self.abort_nowait('neither explicit pseudos nor a pseudo_family was specified in the inputs')
@@ -111,7 +109,8 @@ class SiestaBaseWorkChain(WorkChain):
             self.ctx.inputs['pseudo'] = self.inputs.pseudos
         elif 'pseudo_family' in self.inputs:
             self.report('only a pseudo_family was specified: using pseudos from pseudo_family')
-            self.ctx.inputs['pseudo'] = get_pseudos_from_structure(structure, pseudo_family)
+            structure = self.inputs.structure
+            self.ctx.inputs['pseudo'] = get_pseudos_from_structure(structure, self.inputs.pseudo_family.value)
 
         for kind in self.inputs.structure.get_kind_names():
             if kind not in self.ctx.inputs['pseudo']:
