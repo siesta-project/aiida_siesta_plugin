@@ -13,4 +13,6 @@ __pycache__/
 build/
 dist/
 
+.cache/
+
 siesta_plugin_files/examples/submission/siesta/submit_test/

@@ -7,15 +7,11 @@ https://packaging.python.org/en/latest/distributing.html
 https://github.com/pypa/sampleproject
 """
 
-from setuptools import setup, find_packages
 import json
 
+from setuptools import find_packages, setup
 
 if __name__ == '__main__':
     with open('setup.json', 'r') as info:
         kwargs = json.load(info)
-    setup(
-        include_package_data=True,
-        packages=find_packages(),
-        **kwargs
-    )
+    setup(include_package_data=True, packages=find_packages(), **kwargs)
