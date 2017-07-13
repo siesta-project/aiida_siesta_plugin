@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-from abc import ABCMeta, abstractmethod
-
 from aiida.orm import Code
 from aiida.orm.data.base import Bool, Int, Str
 from aiida.orm.data.remote import RemoteData
@@ -19,16 +17,8 @@ class SiestaBaseWorkChain(WorkChain):
     """
     Base Workchain to launch a total energy calculation via Siesta
     """
-    __metaclass__ = ABCMeta
     def __init__(self, *args, **kwargs):
         super(SiestaBaseWorkChain, self).__init__(*args, **kwargs)
-
-
-    @abstractmethod
-    def create_outline(cls):
-        """Abstract method: specify the outline for your WorkChain here."""
-        pass
-
 
     @classmethod
     def define(cls, spec):
@@ -46,13 +36,18 @@ class SiestaBaseWorkChain(WorkChain):
         spec.input('options', valid_type=ParameterData)
         spec.input('clean_workdir', valid_type=Bool, default=Bool(False))
         spec.input('max_iterations', valid_type=Int, default=Int(10))
-
-        outline_args = cls.create_outline()
-        spec.outline(*outline_args)
+        spec.outline(
+            cls.setup,
+            cls.validate_pseudo_potentials,
+            while_(cls.should_run_siesta)(
+                cls.run_siesta,
+                cls.inspect_siesta,
+            ),
+            cls.run_results,
+        )
         spec.dynamic_output()
 
-
-    def _initial_setup(self):
+    def setup(self):
         """
         Initialize context variables
         """
@@ -97,8 +92,7 @@ class SiestaBaseWorkChain(WorkChain):
 
         return
 
-
-    def _validate_pseudo_potentials(self):
+    def validate_pseudo_potentials(self):
         """
         Validate the inputs related to pseudopotentials to check that we have the minimum required
         amount of information to be able to run a SiestaCalculation
@@ -124,8 +118,7 @@ class SiestaBaseWorkChain(WorkChain):
             elif not isinstance(self.ctx.inputs['pseudo'][kind], PsfData):
                 self.abort_nowait('pseudo for element {} is not of type PsfData'.format(kind))
 
-
-    def _should_run_scf(self):
+    def should_run_siesta(self):
         """
         Return whether a siesta restart calculation should be run, which
         is the case as long as the last calculation was not converged
@@ -134,13 +127,7 @@ class SiestaBaseWorkChain(WorkChain):
         """
         return ( (not self.ctx.is_finished) and (self.ctx.iteration < self.ctx.max_iterations) )
 
-
-    def _scf_reset(self):
-        self.ctx.is_finished = False
-        self.ctx.iteration = 0
-
-
-    def _run_scf_cycle(self):
+    def run_siesta(self):
         """
         Run a new SiestaCalculation or restart from a previous
         SiestaCalculation run in this workchain
@@ -206,7 +193,7 @@ class SiestaBaseWorkChain(WorkChain):
             local_inputs['parameters']['dm-use-save-dm'] = True
             self.report('Re-using previous DM')
 
-
+        
         local_inputs['parameters'] = ParameterData(dict=local_inputs['parameters'])
 
         local_inputs['basis'] = ParameterData(dict=local_inputs['basis'])
@@ -219,11 +206,8 @@ class SiestaBaseWorkChain(WorkChain):
 
         return ToContext(calculation=running)
 
+    def inspect_siesta(self):
 
-    def _inspect_scf_cycle(self):
-        """
-        Analyse the results of the previous SiestaCalculation, checking whether it finished successfully
-        or if not troubleshoot the cause and adapt the input parameters accordingly before
         """
         Analyse the results of the previous SiestaCalculation, checking
         whether it finished successfully, or if not troubleshoot the
@@ -279,8 +263,7 @@ class SiestaBaseWorkChain(WorkChain):
             self.abort_nowait('This place should not be reached...')
         return
 
-
-    def _scf_results(self):
+    def run_results(self):
         """
         Attach the output parameters and retrieved folder of the last calculation to the outputs
         """
@@ -294,7 +277,6 @@ class SiestaBaseWorkChain(WorkChain):
         if 'bands_array' in self.ctx.restart_calc.out:
             self.out('bands_array', self.ctx.restart_calc.out.bands_array)
 
-
     def _handle_submission_failure(self, calculation):
 
         """
@@ -304,7 +286,6 @@ class SiestaBaseWorkChain(WorkChain):
         """
         self.abort_nowait('submission failed for the {} in iteration {}, but error handling is not implemented yet'
             .format(SiestaCalculation.__name__, self.ctx.iteration))
-
 
     def _handle_calculation_failure(self, calculation):
         """
@@ -356,6 +337,7 @@ class SiestaBaseWorkChain(WorkChain):
         # includes the bands calculation
         
         self.ctx.restart_calc = calculation
+                
 
     def on_stop(self):
         """Clean remote folders of the SiestaCalculations that were run if
