@@ -39,6 +39,7 @@ class SiestaBaseWorkChain(WorkChain):
         spec.input('pseudo_family', valid_type=Str, required=False)
         spec.input('parent_folder', valid_type=RemoteData, required=False)
         spec.input('kpoints', valid_type=KpointsData)
+        spec.input('bandskpoints', valid_type=KpointsData, required=False)
         spec.input('parameters', valid_type=ParameterData)
         spec.input('basis', valid_type=ParameterData)
         spec.input('settings', valid_type=ParameterData)
@@ -55,12 +56,17 @@ class SiestaBaseWorkChain(WorkChain):
         """
         Initialize context variables
         """
+        self.report("Entering setup in Base Workchain")
+        
         self.ctx.max_iterations = self.inputs.max_iterations.value
         self.ctx.restart_calc = None
         self.ctx.is_finished = False
         self.ctx.iteration = 0
+        #
         self.ctx.scf_did_not_converge = False
         self.ctx.geometry_did_not_converge = False
+        self.ctx.want_band_structure = False
+        self.ctx.out_of_time = False
 
         # Define convenience dictionary of inputs for SiestaCalculation
         self.ctx.inputs = {
@@ -73,6 +79,17 @@ class SiestaBaseWorkChain(WorkChain):
             'settings': self.inputs.settings.get_dict(),
             '_options': self.inputs.options.get_dict(),
         }
+        if 'bandskpoints' in self.inputs:
+            self.ctx.want_band_structure = True
+            self.ctx.inputs['bandskpoints'] = self.inputs.bandskpoints
+        #
+        #  This is of limited usefulness, as would need
+        #  to check that the items in the folder are compatible
+        #  with the rest of the calculation's parameters
+        
+        if 'parent_folder' in self.inputs:
+            self.ctx.has_parent_folder = True
+            self.ctx.inputs['parent_folder'] = self.inputs.parent_folder
 
         # Prevent SiestaCalculation from being terminated by scheduler
         max_wallclock_seconds = self.ctx.inputs['_options']['max_wallclock_seconds']
@@ -86,8 +103,6 @@ class SiestaBaseWorkChain(WorkChain):
         Validate the inputs related to pseudopotentials to check that we have the minimum required
         amount of information to be able to run a SiestaCalculation
         """
-        structure = self.inputs.structure
-        pseudo_family = self.inputs.pseudo_family.value
 
         if all([key not in self.inputs for key in ['pseudos', 'pseudo_family']]):
             self.abort_nowait('neither explicit pseudos nor a pseudo_family was specified in the inputs')
@@ -100,7 +115,8 @@ class SiestaBaseWorkChain(WorkChain):
             self.ctx.inputs['pseudo'] = self.inputs.pseudos
         elif 'pseudo_family' in self.inputs:
             self.report('only a pseudo_family was specified: using pseudos from pseudo_family')
-            self.ctx.inputs['pseudo'] = get_pseudos_from_structure(structure, pseudo_family)
+            structure = self.inputs.structure
+            self.ctx.inputs['pseudo'] = get_pseudos_from_structure(structure, self.inputs.pseudo_family.value)
 
         for kind in self.inputs.structure.get_kind_names():
             if kind not in self.ctx.inputs['pseudo']:
@@ -130,6 +146,8 @@ class SiestaBaseWorkChain(WorkChain):
         SiestaCalculation run in this workchain
 
         """
+        self.report("Running Siesta")
+        
         self.ctx.iteration += 1
 
         # Create local copy of general initial inputs stored in the context
@@ -273,6 +291,8 @@ class SiestaBaseWorkChain(WorkChain):
 
         if 'output_structure' in self.ctx.restart_calc.out:
             self.out('output_structure', self.ctx.restart_calc.out.output_structure)
+        if 'bands_array' in self.ctx.restart_calc.out:
+            self.out('bands_array', self.ctx.restart_calc.out.bands_array)
 
 
     def _handle_submission_failure(self, calculation):
@@ -313,8 +333,10 @@ class SiestaBaseWorkChain(WorkChain):
         
         # We should, however, report it:
         
+        self.ctx.out_of_time = False
         for line in warnings_list:
             if u'FATAL: OUT_OF_TIME' in line:
+                self.ctx.out_of_time = True
                 self.report('Out of time in SiestaCalculation<{}>'.format(calculation.pk))
 
         # Note again that we check for the strings themselves, and not
@@ -330,6 +352,9 @@ class SiestaBaseWorkChain(WorkChain):
             if u'SCF_NOT_CONV' in line:
                 self.ctx.scf_did_not_converge = True
 
+        # We might have run out of time during the analysis stage, which
+        # includes the bands calculation
+        
         self.ctx.restart_calc = calculation
 
     def on_stop(self):
@@ -341,7 +366,7 @@ class SiestaBaseWorkChain(WorkChain):
         super(SiestaBaseWorkChain, self).on_stop()
 
         if not self.inputs.clean_workdir.value:
-            self.report('remote folders will not be cleaned')
+            self.report('SiestaBase: remote folders will not be cleaned')
             return
 
         for calc in self.ctx.calculation:
