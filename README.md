@@ -37,7 +37,7 @@ Install the plugin by executing, from the top level of the plugin directory:
 # Development tests
 
 It is possible now to run development tests located in `aiida_siesta/tests/` via *pytest*. 
-The approach was originally implemented by *Dominik Gresch* in his [[https://github.com/greschd/aiida_pytest][`aiida_pytest`]] module.
+The approach was originally implemented by **Dominik Gresch** in his [aiida_pytest](https://github.com/greschd/aiida_pytest) module.
 
 In order to run tests, after you install core and plugin as described above, run:
 ```
