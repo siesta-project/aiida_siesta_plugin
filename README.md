@@ -34,6 +34,27 @@ Install the plugin by executing, from the top level of the plugin directory:
 
 	pip install -e .
 
+# Development tests
+
+It is possible now to run development tests located in `aiida_siesta/tests/` via *pytest*. 
+The approach was originally implemented by *Dominik Gresch* in his [[https://github.com/greschd/aiida_pytest][`aiida_pytest`]] module.
+
+In order to run tests, after you install core and plugin as described above, run:
+```
+pip install -r test_reqirements.txt
+```
+which will install necessary versions of dependencies.
+
+Then `cd aiida_siesta/tests` and invoke:
+```
+./all.sh
+```
+to run all tests, or:
+```
+./run.sh <test_module_filenames>
+```
+to run specific tests.
+
 # Docker-based usage and automated testing
 
 The Docker framework is being updated to the new plugin architecture.
