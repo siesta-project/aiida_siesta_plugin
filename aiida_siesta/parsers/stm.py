@@ -67,7 +67,7 @@ class STMParser(Parser):
         result_list.append((link_name,output_data))
 
         # Save forces and stress in an ArrayData object
-        stm_data = get_stm_data(plot_path)
+        stm_data = self.get_stm_data(plot_path)
 
         if stm_data is not None:
              from aiida.orm.data.array import ArrayData
@@ -76,6 +76,7 @@ class STMParser(Parser):
              arraydata.set_array('stm_data', numpy.array(stm_data))
              result_list.append((self.get_linkname_outarray(),arraydata))
 
+        successful = True
         return successful, result_list
 
     def parse_with_retrieved(self,retrieved):
@@ -151,7 +152,7 @@ class STMParser(Parser):
         """
         return 'stm_array'
 
-   def get_stm_data(self,plot_path):
+    def get_stm_data(self,plot_path):
         """
         Parses the STM plot file to get a list of lists
         """

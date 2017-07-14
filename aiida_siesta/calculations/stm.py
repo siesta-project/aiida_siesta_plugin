@@ -125,7 +125,8 @@ class STMCalculation(JobCalculation):
             raise InputValidationError("parameters is not of type "
                 "ParameterData")
 
-        parent_calc_folder = inputdict.pop(self.get_linkname('parent_folder'))
+        try:
+            parent_calc_folder = inputdict.pop(self.get_linkname('parent_folder'))
         except KeyError:
             raise InputValidationError("No parent_calc_folder specified for this "
                 "calculation")
@@ -169,12 +170,13 @@ class STMCalculation(JobCalculation):
         # Maybe check that the 'z' coordinate makes sense...
         
         input_filename = tempfolder.get_abs_path(self._INPUT_FILE_NAME)
+
         with open(input_filename,'w') as infile:
-            infile.write("aiida")
-            infile.write("ldos")
-            infile.write("constant-height")
-            infile.write("{}".format(input_params['z']))
-            infile.write("unformatted")
+            infile.write("aiida\n")
+            infile.write("ldos\n")
+            infile.write("constant-height\n")
+            infile.write("{}\n".format(input_params['z']))
+            infile.write("unformatted\n")
 
         # ------------------------------------- END of input file creation
         
