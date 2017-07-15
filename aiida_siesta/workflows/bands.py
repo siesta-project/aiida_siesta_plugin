@@ -4,35 +4,16 @@ from aiida.orm.data.base import Bool, Int, Str
 from aiida.orm.data.parameter import ParameterData
 from aiida.orm.data.structure import StructureData
 from aiida.orm.data.array.kpoints import KpointsData
-from aiida.work.run import submit
+from aiida.work.run import submit, run
 from aiida.work.workchain import WorkChain, ToContext
 from aiida.work.workfunction import workfunction
 from aiida.common.links import LinkType
-from seekpath.aiidawrappers import get_path, get_explicit_k_path
 
 from aiida_siesta.data.psf import get_pseudos_from_structure
 ##from aiida_siesta.calculations.siesta import SiestaCalculation
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
+from aiida.orm.data.array.kpoints import KpointsData
 
-@workfunction
-def seekpath_structure(structure):
-
-    seekpath_info = get_path(structure)
-    explicit_path = get_explicit_k_path(structure)
-
-    primitive_structure = seekpath_info.pop('primitive_structure')
-    conv_structure = seekpath_info.pop('conv_structure')
-    parameters = ParameterData(dict=seekpath_info)
-    
-    result = {
-        'parameters': parameters,
-        'conv_structure': conv_structure,
-        'primitive_structure': primitive_structure,
-        'explicit_kpoints_path': explicit_path['explicit_kpoints'],
-    }
-
-    return result
-                        
 class SiestaBandsWorkChain(WorkChain):
     """
     Bands Workchain. An example of workflow composition.
@@ -57,7 +38,6 @@ class SiestaBandsWorkChain(WorkChain):
             cls.setup_parameters,
             cls.setup_basis,
             cls.run_relax,
-            cls.run_seekpath,   # In case cell has changed much
             cls.run_bands,   # We can run this directly, a combined scf+bands
             cls.run_results,
         )
@@ -106,19 +86,16 @@ class SiestaBandsWorkChain(WorkChain):
 
     def setup_structure(self):
         """
-        We use SeeKPath to determine the primitive structure for the given input structure, if it
-        wasn't yet the case.
+        Just a stub for future expansion, maybe with normalization
         """
-        self.report('Running setup_structure')
-        seekpath_result = seekpath_structure(self.inputs.structure)
-        self.ctx.structure_initial_primitive = seekpath_result['primitive_structure']
+
+        self.ctx.structure_initial_primitive = self.inputs.structure
 
     def setup_kpoints(self):
         """
-        Define the k-point mesh for the relax and scf calculations. Also get the k-point path for
-        the bands calculation for the initial input structure from SeeKpath
+        Define the k-point mesh for the relax and scf calculations.
         """
-        self.report('Running setup_kpoints')
+
         kpoints_mesh = KpointsData()
         kpoints_mesh.set_cell_from_structure(self.ctx.structure_initial_primitive)
         kpoints_mesh.set_kpoints_mesh_from_density(
@@ -133,7 +110,6 @@ class SiestaBandsWorkChain(WorkChain):
         Based on the given input structure and the protocol, use the SSSP library to determine the
         optimal pseudo potentials for the different elements in the structure
         """
-        self.report('Running setup_pseudo_potentials')
         structure = self.ctx.structure_initial_primitive
         pseudo_familyname = self.ctx.protocol['pseudo_familyname']
         self.ctx.inputs['pseudos'] = get_pseudos_from_structure(structure, pseudo_familyname)
@@ -142,7 +118,6 @@ class SiestaBandsWorkChain(WorkChain):
         """
         Setup the default input parameters required for a SiestaCalculation and the SiestaBaseWorkChain
         """
-        self.report('Running setup_parameters')
         structure = self.ctx.structure_initial_primitive
         meshcutoff = 0.0
 
@@ -169,7 +144,6 @@ class SiestaBandsWorkChain(WorkChain):
         Setup the basis dictionary.
         Very simple for now. Just the same for all elements. With more heuristics, we could do more.
         """
-        self.report('Running setup_basis')
         self.ctx.inputs['basis'] = self.ctx.protocol['basis']
         
     def run_relax(self):
@@ -180,8 +154,8 @@ class SiestaBandsWorkChain(WorkChain):
         inputs = dict(self.ctx.inputs)
 
         # Final input preparation, wrapping dictionaries in ParameterData nodes
-        # The code and options were set above
-        # Pseudos was set above in ctx.inputs, and so in inputs
+        # The code and options (_options?)  were set above
+        # Pseudos was set above in 'ctx.inputs', and so it is in 'inputs' already
         
         inputs['kpoints'] = self.ctx.kpoints_mesh
         inputs['basis'] = ParameterData(dict=inputs['basis'])
@@ -191,31 +165,11 @@ class SiestaBandsWorkChain(WorkChain):
         inputs['clean_workdir'] = Bool(False)
         inputs['max_iterations'] = Int(20)
         
-        self.report('About to launch SiestaBaseWorkChain in relaxation mode')
         running = submit(SiestaBaseWorkChain, **inputs)
         self.report('launched SiestaBaseWorkChain<{}> in relaxation mode'.format(running.pid))
         
         return ToContext(workchain_relax=running)
 
-    def run_seekpath(self):
-        """
-        Run the relaxed structure through SeeKPath to get the new primitive structure, just in case
-        the symmetry of the cell changed in the cell relaxation step
-        """
-        self.report('Running seekpath_on_the_relaxed_structure')
-        try:
-            structure = self.ctx.workchain_relax.out.output_structure
-        except:
-            self.abort_nowait('failed to get the output structure from the relaxation run')
-            return
-        
-        seekpath_result = seekpath_structure(structure)
-        
-        self.ctx.structure_relaxed_primitive = seekpath_result['primitive_structure']
-        self.ctx.kpoints_path = seekpath_result['explicit_kpoints_path']
-        
-        self.out('final_relax_structure', seekpath_result['primitive_structure'])
-        self.out('final_seekpath_parameters', seekpath_result['parameters'])
 
     def run_bands(self):
         """
@@ -223,18 +177,30 @@ class SiestaBandsWorkChain(WorkChain):
         """
         self.report('Running bands calculation')
 
+        try:
+            structure = self.ctx.workchain_relax.out.output_structure
+        except:
+            self.abort_nowait('failed to get the output structure from the relaxation run')
+            return
+        
+        self.ctx.structure_relaxed_primitive = structure
+
+
         inputs = dict(self.ctx.inputs)
 
-        # This was wrong in QE's demo
-        
         kpoints_mesh = KpointsData()
         kpoints_mesh.set_cell_from_structure(self.ctx.structure_relaxed_primitive)
         kpoints_mesh.set_kpoints_mesh_from_density(
             distance=self.ctx.protocol['kpoints_mesh_density'],
             offset=self.ctx.protocol['kpoints_mesh_offset'])
 
+        bandskpoints = KpointsData()
+        bandskpoints.set_cell(structure.cell, structure.pbc)
+        bandskpoints.set_kpoints_path(kpoint_distance = 0.05)
+        self.ctx.kpoints_path = bandskpoints
+
         # Final input preparation, wrapping dictionaries in ParameterData nodes
-        inputs['bandskpoints'] = self.ctx.kpoints_path             # determined in run_seekpath above
+        inputs['bandskpoints'] = self.ctx.kpoints_path           
         inputs['kpoints'] = kpoints_mesh
         inputs['structure'] = self.ctx.structure_relaxed_primitive
         inputs['parameters'] = ParameterData(dict=inputs['parameters'])
@@ -252,11 +218,11 @@ class SiestaBandsWorkChain(WorkChain):
         Attach the relevant output nodes from the band calculation to the workchain outputs
         for convenience
         """
-        calculation_band = self.ctx.workchain_bands.get_outputs(link_type=LinkType.CALL)[0]
+        band_results = self.ctx.workchain_bands.out
 
         self.report('workchain succesfully completed'.format())
-        self.out('scf_plus_band_parameters', calculation_band.out.output_parameters)
-        self.out('bandstructure', calculation_band.out.bands_array)
+        self.out('scf_plus_band_parameters', band_results.output_parameters)
+        self.out('bandstructure', band_results.bands_array)
         #self.out('remote_folder', calculation_band.out.remote_folder)
         #self.out('retrieved', calculation_band.out.retrieved)
 
