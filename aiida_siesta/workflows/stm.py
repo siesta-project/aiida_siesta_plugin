@@ -47,7 +47,7 @@ class SiestaSTMWorkChain(WorkChain):
                                          
     def setup_protocol(self):
         """
-        Setup of context variables and inputs for the SistaBaseWorkChain. Based on the specified
+        Setup of context variables and inputs for the SiestaBaseWorkChain. Based on the specified
         protocol, we define values for variables that affect the execution of the calculations
         """
         self.ctx.inputs = {
