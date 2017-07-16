@@ -339,21 +339,21 @@ class SiestaBaseWorkChain(WorkChain):
         self.ctx.restart_calc = calculation
                 
 
-    def on_stop(self):
-        """Clean remote folders of the SiestaCalculations that were run if
-        the clean_workdir parameter was set to true in the Workchain
-        inputs
+    # def on_stop(self):
+    #     """Clean remote folders of the SiestaCalculations that were run if
+    #     the clean_workdir parameter was set to true in the Workchain
+    #     inputs
 
-        """
-        super(SiestaBaseWorkChain, self).on_stop()
+    #     """
+    #     super(SiestaBaseWorkChain, self).on_stop()
 
-        if not self.inputs.clean_workdir.value:
-            self.report('SiestaBase: remote folders will not be cleaned')
-            return
+    #     if not self.inputs.clean_workdir.value:
+    #         self.report('SiestaBase: remote folders will not be cleaned')
+    #         return
 
-        for calc in self.ctx.calculation:
-            try:
-                calc.out.remote_folder._clean()
-                self.report('cleaned remote folder of {}<{}>'.format(calc.__class__.__name__, calc.pk))
-            except Exception:
-                pass
+    #     for calc in self.ctx.calculation:
+    #         try:
+    #             calc.out.remote_folder._clean()
+    #             self.report('cleaned remote folder of {}<{}>'.format(calc.__class__.__name__, calc.pk))
+    #         except Exception:
+    #             pass
