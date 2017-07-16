@@ -57,7 +57,9 @@ A structure. See the plugin documentation for more details.
 Either "standard" or "fast" at this point.
 Each has its own set of associated parameters.
 
-- "standard"::
+- standard::
+
+             {
                 'kpoints_mesh_offset': [0., 0., 0.],
                 'kpoints_mesh_density': 0.2,
                 'dm_convergence_threshold': 1.0e-4,
@@ -67,7 +69,6 @@ Each has its own set of associated parameters.
                 'md-type-of-run': "cg",
                 'md-num-cg-steps': 10,
                 'pseudo_familyname': 'lda-ag',
-                # Future expansion. Add basis info, caveats, etc
                 'atomic_heuristics': {
                     'H': { 'cutoff': 100 },
                     'Si': { 'cutoff': 100 }
@@ -76,8 +77,11 @@ Each has its own set of associated parameters.
                     'pao-energy-shift': '100 meV',
                     'pao-basis-size': 'DZP'
                 }
+	      }
 
-- "fast"::
+- fast::
+    
+             {
                 'kpoints_mesh_offset': [0., 0., 0.],
                 'kpoints_mesh_density': 0.25,
                 'dm_convergence_threshold': 1.0e-3,
@@ -87,7 +91,6 @@ Each has its own set of associated parameters.
                 'md-type-of-run': "cg",
                 'md-num-cg-steps': 8,
                 'pseudo_familyname': 'lda-ag',
-                # Future expansion. Add basis info, caveats, etc
                 'atomic_heuristics': {
                     'H': { 'cutoff': 50 },
                     'Si': { 'cutoff': 50 }
@@ -96,6 +99,7 @@ Each has its own set of associated parameters.
                     'pao-energy-shift': '100 meV',
                     'pao-basis-size': 'SZP'
                 }
+	      }
 
 The *atomic_heuristics* dictionary is intended to encode the
 peculiarities of particular elements. It is work in progress.
