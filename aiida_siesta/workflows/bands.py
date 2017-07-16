@@ -84,6 +84,32 @@ class SiestaBandsWorkChain(WorkChain):
                           
             }
 
+        elif self.inputs.protocol == 'fast':
+            self.report('running the workchain in the "{}" protocol'.format(self.inputs.protocol.value))
+            self.ctx.protocol = {
+                'kpoints_mesh_offset': [0., 0., 0.],
+                'kpoints_mesh_density': 0.25,
+                'dm_convergence_threshold': 1.0e-3,
+                'forces_convergence_threshold': "0.2 eV/Ang",
+                'min_meshcutoff': 80, # In Rydberg (!)
+                'electronic_temperature': "25.0 meV",
+                'md-type-of-run': "cg",
+                'md-num-cg-steps': 8,
+                'pseudo_familyname': 'lda-ag',
+                # Future expansion. Add basis info, caveats, etc
+                'atomic_heuristics': {
+                    'H': { 'cutoff': 50 },
+                    'Si': { 'cutoff': 50 }
+                },
+                'basis': {
+                    'pao-energy-shift': '100 meV',
+                    'pao-basis-size': 'SZP'
+                }
+                          
+            }
+        else:
+            self.abort_nowait('Protocol {} not known'.format(self.ctx.protocol.value))
+            
     def setup_structure(self):
         """
         Just a stub for future expansion, maybe with normalization
