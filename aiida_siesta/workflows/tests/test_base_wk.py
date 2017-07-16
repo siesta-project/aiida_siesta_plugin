@@ -21,7 +21,7 @@ def parser_setup():
         description='Run the SiestaBaseWorkChain for a given input structure',
     )
     parser.add_argument(
-        '-m', type=int, default=5, dest='max_iterations',
+        '-m', type=int, default=20, dest='max_iterations',
         help='the maximum number of iterations to allow in the Workflow. (default: %(default)d)'
     )
     parser.add_argument(
@@ -56,31 +56,20 @@ def execute(args):
         print "Exception report: {}".format(exception)
         return
 
-    alat = 15. # angstrom
+    alat = 10.0 # angstrom
     cell = [[alat, 0., 0.,],
             [0., alat, 0.,],
             [0., 0., alat,],
     ]
 
-    # Benzene molecule
-    #
-    s = StructureData(cell=cell)
+    # Water molecule
+    # One of the H atoms is sligthy moved
 
-    def perm(x,y,z):
-        return (z,y,0.5*alat)
-    
-    s.append_atom(position=perm(0.000,0.000,0.468),symbols=['H'])
-    s.append_atom(position=perm(0.000,0.000,1.620),symbols=['C'])
-    s.append_atom(position=perm(0.000,-2.233,1.754),symbols=['H'])
-    s.append_atom(position=perm(0.000,2.233,1.754),symbols=['H'])
-    s.append_atom(position=perm(0.000,-1.225,2.327),symbols=['C'])
-    s.append_atom(position=perm(0.000,1.225,2.327),symbols=['C'])
-    s.append_atom(position=perm(0.000,-1.225,3.737),symbols=['C'])
-    s.append_atom(position=perm(0.000,1.225,3.737),symbols=['C'])
-    s.append_atom(position=perm(0.000,-2.233,4.311),symbols=['H'])
-    s.append_atom(position=perm(0.000,2.233,4.311),symbols=['H'])
-    s.append_atom(position=perm(0.000,0.000,4.442),symbols=['C'])
-    s.append_atom(position=perm(0.000,0.000,5.604),symbols=['H'])
+    s = StructureData(cell=cell)
+    s.append_atom(position=(0.000,0.000,0.00),symbols=['O'])
+    s.append_atom(position=(0.757,0.586,0.00),symbols=['H'])
+    s.append_atom(position=(-0.780,0.600,0.00),symbols=['H'])
+
 
     structure = s
 
@@ -89,29 +78,23 @@ def execute(args):
     kpoints.set_kpoints_mesh(args.kpoints)
 
     parameters = {
-        'xc:functional': 'LDA',
-        'xc:authors': 'CA',
-        'spinpolarized': True,
-        'meshcutoff': '40.000 Ry',
+        'meshcutoff': '80.000 Ry',
         'dm:numberpulay': 4,
-        'dm:mixingweight': 0.3,
+        'dm:mixingweight': 0.2,
         'dm:tolerance': 1.e-3,
-        'max-scfiterations': 5,
+        'max-scfiterations': 30,
         'scf-must-converge': True,
         'geometry-must-converge': True,
-        'Solution-method': 'diagon',
         'electronic-temperature': '25 meV',
         'md-typeofrun': 'CG',
-        'md-numcgsteps': 3,
+        'md-numcgsteps': 6,
         'md-maxcgdispl': '0.1 Ang',
-        'md-maxforcetol': '0.02 eV/Ang',
-        'writeforces': True,
-        'writecoorstep': True,
+        'md-maxforcetol': '0.03 eV/Ang',
         'xml:write': True
     }
     basis = {
         'pao-energy-shift': '300 meV',
-        'pao-basis-size': 'SZP'
+        'pao-basis-size': 'DZP'
     }
     settings = {}
     options  = {
