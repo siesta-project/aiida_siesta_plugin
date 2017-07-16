@@ -13,11 +13,9 @@ which is compatible with the AiiDA v0.9.0
 Supported Siesta versions
 -------------------------
 
-In principle, all modern Siesta versions (>= 3.X) might work, but
-some extra functionality (i.e., warnings handling and consistency of
-the CML file in the face of early termination) are only available
-starting with recent versions: 4.0.1 of the 4.0 series, and 4.1-b3 of the 4.1
-series, which can be found in the development platform (http://launchpad.net/siesta/).
+At least 4.0.1 of the 4.0 series, and 4.1-b3 of the 4.1 series, which
+can be found in the development platform
+(http://launchpad.net/siesta/).
 
 Inputs
 ------
