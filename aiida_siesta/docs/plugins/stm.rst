@@ -22,9 +22,10 @@ A dictionary with a few parameters to specify the mode of calculation
 and the height or isovalue at which to process the LDOS::
 
     {
-      "mode": "constant-height",
       "z": "5.8"     # In Ang
     }
+
+(The `mode of calculation` is hard-wired to `constant-height` for now)
 
 * **parent_folder**, class
   :py:class:`RemoteData <aiida.orm.data.RemoteData>`
@@ -36,9 +37,12 @@ Outputs
 -------
 
 
-* **stm_array** :py:class: `ArrayData <aiida.orm.data.array.ArrayData>` 
+* **stm_array** :py:class:`ArrayData <aiida.orm.data.array.ArrayData>` 
 
-A 2D array holding the section or topography information.
+A collection of three 2D arrays (`X`, `Y`, `Z`) holding the section or
+topography information. They follow the `meshgrid` convention in
+Numpy. A contour plot can be generated with the `get_stm_image.py`
+script in the repository of examples.
 
 * **output_parameters** :py:class:`ParameterData <aiida.orm.data.parameter.ParameterData>` 
   (accessed by ``calculation.res``)

@@ -38,9 +38,6 @@ class STMParser(Parser):
         Extracts output nodes from the standard output and standard error
         files. (and plot file)
         """
-        from aiida.orm.data.array.trajectory import TrajectoryData
-        import re
-
         parser_version = 'aiida-0.9.0--stm-0.1'
         parser_info = {}
         parser_info['parser_info'] = 'AiiDA STM(Siesta) Parser V. {}'.format(parser_version)
@@ -49,8 +46,6 @@ class STMParser(Parser):
         result_dict = {}
         result_list = []
 
-        #in_struc = self._calc.get_inputs_dict()['structure']
-        #
         # Settings (optional)
         #
         try:
@@ -66,15 +61,11 @@ class STMParser(Parser):
         link_name = self.get_linkname_outparams()
         result_list.append((link_name,output_data))
 
-        # Save forces and stress in an ArrayData object
+        # Save X, Y, and Z arrays in an ArrayData object
         stm_data = self.get_stm_data(plot_path)
 
         if stm_data is not None:
-             from aiida.orm.data.array import ArrayData
-             import numpy
-             arraydata = ArrayData()
-             arraydata.set_array('stm_data', numpy.array(stm_data))
-             result_list.append((self.get_linkname_outarray(),arraydata))
+             result_list.append((self.get_linkname_outarray(),stm_data))
 
         successful = True
         return successful, result_list
@@ -154,13 +145,83 @@ class STMParser(Parser):
 
     def get_stm_data(self,plot_path):
         """
-        Parses the STM plot file to get a list of lists
-        """
+        Parses the STM plot file to get an Array object with
+        X, Y, and Z arrays in the 'meshgrid'
+        setting, as in the example code:
+
         import numpy as np
+        xlist = np.linspace(-3.0, 3.0, 3)
+        ylist = np.linspace(-3.0, 3.0, 4)
+        X, Y = np.meshgrid(xlist, ylist)
+        Z = np.sqrt(X**2 + Y**2)
+
+        X:
+        [[-3.  0.  3.]
+        [-3.  0.  3.]
+        [-3.  0.  3.]
+        [-3.  0.  3.]]
+
+        Y:
+        [[-3. -3. -3.]
+        [-1. -1. -1.]
+        [ 1.  1.  1.]
+        [ 3.  3.  3.]]
+
+        Z:
+        [[ 4.24264069  3.          4.24264069]
+        [ 3.16227766  1.          3.16227766]
+        [ 3.16227766  1.          3.16227766]
+        [ 4.24264069  3.          4.24264069]]
+
+        These can then be used in matplotlib to get a contour plot.
+        """
+        
+        import numpy as np
+        from itertools import groupby
+
         from aiida.common.exceptions import InputValidationError
         from aiida.common.exceptions import ValidationError
 
-        #f=open(plot_path)
-        dummy=[ 3.14, 2.1718, 0.0, 1.0 ]
-        return dummy
+        file=open(plot_path,"r")  # aiida.CH.STM or aiida.CC.STM...
+        data = file.read().split('\n')
+        data = [ i.split() for i in data]
+
+        # The data in the file is organized in "lines" parallel to the Y axes
+        # (that is, for constant X) separated by blank lines.
+        # In the following we use the 'groupby' function to get at the individual
+        # blocks one by one, and set the appropriate arrays.
+
+        # I am not sure about the mechanics of groupby,
+        # so repeat
+        xx=[]
+        yy=[]
+        zz=[]
+        #
+        # Function to separate the blocks
+        h = lambda x: len(x)==0
+        #
+        for k,g in groupby(data, h):
+             if not k:
+                  xx.append([i[0] for i in g])
+        for k,g in groupby(data, h):
+             if not k:
+                  yy.append([i[1] for i in g])
+        for k,g in groupby(data, h):
+             if not k:
+                  zz.append([i[2] for i in g])
+
+        # Now, transpose, since x runs fastest in our fortran code,
+        # the opposite convention of the meshgrid paradigm.
+
+        X = np.array(xx,dtype=float).transpose()
+        Y = np.array(yy,dtype=float).transpose()
+        Z = np.array(zz,dtype=float).transpose()
         
+        from aiida.orm.data.array import ArrayData
+        
+        arraydata = ArrayData()
+        arraydata.set_array('X', np.array(X))
+        arraydata.set_array('Y', np.array(Y))
+        arraydata.set_array('Z', np.array(Z))
+
+        return arraydata

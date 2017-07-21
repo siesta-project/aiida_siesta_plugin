@@ -26,6 +26,14 @@ We also thank the AiiDA team for their help.
 Contents:
 ---------
 
+Installation
+============
+
+.. toctree::
+   :maxdepth: 2
+
+   installation
+
 SIESTA plugins
 =================
 

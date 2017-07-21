@@ -28,7 +28,7 @@ LUMO), and a range of heights should automatically be selected by the
 workflow and the results presented to the user for further
 consideration. The workflow executes the **plstm** program via an
 AiiDA plugin, which is also included in the **aiida-siesta**
-distribution. Its parser stage returns an AiiDA 2D array whose
+distribution. Its parser stage returns an AiiDA ArrayData object whose
 contents can be displayed by standard tools within AiiDA and the wider
 Python ecosystem.
 
@@ -113,9 +113,12 @@ Outputs
 
 The final relaxed structure (if applicable)
 
-* **stm_array** :py:class: `ArrayData <aiida.orm.data.array.ArrayData>` 
+* **stm_array** :py:class:`ArrayData <aiida.orm.data.array.ArrayData>` 
 
-A 2D array holding the section or topography information.
+A collection of three 2D arrays (`X`, `Y`, `Z`) holding the section or
+topography information. They follow the `meshgrid` convention in
+Numpy. A contour plot can be generated with the `get_stm_image.py`
+script in the repository of examples.
   
 
 

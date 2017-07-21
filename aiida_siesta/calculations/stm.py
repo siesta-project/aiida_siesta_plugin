@@ -134,6 +134,16 @@ class STMCalculation(JobCalculation):
             raise InputValidationError("parent_calc_folder, if specified,"
                                        "must be of type RemoteData")
 
+        #
+        # Important note: This program should NOT be run with MPI.
+        # Scripts using this plugin should use:
+        #
+        # calc.set_withmpi(False)
+        #
+        # We do it right here, and hope that it will not be overriden
+        #
+        self.set_withmpi(False)
+        #
         try:
             code = inputdict.pop(self.get_linkname('code'))
         except KeyError:
@@ -175,7 +185,8 @@ class STMCalculation(JobCalculation):
             infile.write("aiida\n")
             infile.write("ldos\n")
             infile.write("constant-height\n")
-            infile.write("{}\n".format(input_params['z']))
+            # Convert height to bohr...
+            infile.write("{}\n".format(input_params['z']/0.529177))
             infile.write("unformatted\n")
 
         # ------------------------------------- END of input file creation

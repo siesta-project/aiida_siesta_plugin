@@ -75,7 +75,7 @@ def execute(args):
     s = StructureData(cell=cell)
 
     def perm(x,y,z):
-        return (z,y,0.5*alat)
+        return (z,y+0.5*alat,0.5*alat)
     
     s.append_atom(position=perm(0.000,0.000,0.468),symbols=['H'])
     s.append_atom(position=perm(0.000,0.000,1.620),symbols=['C'])
