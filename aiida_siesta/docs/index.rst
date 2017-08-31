@@ -18,6 +18,18 @@ workflows.  It is distributed under the MIT license and available from
 Acknowledgments:
 ----------------
 
+The Siesta input plugin was originally developed by Victor
+M. Garcia-Suarez.
+
+Alberto Garcia further improved the Siesta input plugin and wrote the
+parser for Siesta and the STM plugin.
+
+Emanuele Bosoni contributed the band-structure support for the Siesta
+plugin.
+
+Vladimir Dikan and Alberto Garcia developed the workflows and
+refined the architecture of the package.
+
 We acknowledge partial support from the EU Centre of Excellence “MaX –
 Materials Design at the Exascale” (http://www.max-centre.eu). (Horizon
 2020 EINFRA-5, Grant No. 676598)
