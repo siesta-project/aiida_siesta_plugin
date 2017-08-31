@@ -1,15 +1,15 @@
-# aiida_siesta_plugin
+# AiiDA Siesta plugins and workflows
 
 This repository contains the files that implement the AiiDA Siesta
-plugin (input, parser, and tests) as a stand-alone package.
+plugins and a set of related AiiDA workflows.
 
-Documentation (work in progress) can be found in:
+Documentation can be found in:
 
 http://aiida-siesta-plugin.readthedocs.io
 
-## DEVELOPMENT AND USAGE guidelines:
+## Development and usage guidelines
 
-# Local development
+### Local development
 
 Use your own installation of the database, and your own computers and codes.
 
@@ -35,7 +35,7 @@ Install the plugin by executing, from the top level of the plugin directory:
 
 	pip install -e .
 
-# Development tests
+#### Development tests
 
 It is possible now to run development tests located in `aiida_siesta/tests/` via *pytest*. 
 The approach was originally implemented by **Dominik Gresch** in his [aiida_pytest](https://github.com/greschd/aiida_pytest) module.
@@ -56,7 +56,7 @@ to run all tests, or:
 ```
 to run specific tests.
 
-# Docker-based usage and automated testing
+### Docker-based usage and automated testing
 
 The Docker framework is being updated to the new plugin architecture.
 

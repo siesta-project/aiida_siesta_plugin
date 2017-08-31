@@ -1,5 +1,5 @@
 {
-    "version": "0.0.2",
+    "version": "0.9.7",
     "name": "aiida_siesta",
     "url": "https://github.com/albgar/aiida_siesta_plugin",
     "license": "MIT License",
@@ -9,7 +9,7 @@
     "classifiers": [
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 2.7",
-        "Development Status :: 2 - Pre-Alpha"
+        "Development Status :: 3 - Alpha"
     ],
     "install_requires": [
         "aiida"
