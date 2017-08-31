@@ -11,14 +11,26 @@ http://aiida-siesta-plugin.readthedocs.io
 Development and usage guidelines
 --------------------------------
 
+Installation
+~~~~~~~~~~~~
+
+The distribution package of the plugin is available on PyPI.
+To install it directly from the index run:
+
+::
+   pip install --process-dependency-links aiida-siesta
+
+However, at this development stage `aiida-siesta` uses a custom version of `aiida-core`, to work around a few issues relevant to the Siesta plugin. Thus, using package from PyPI is not recommended at the moment, since the installation relies on deprecated `--process-dependency-links` flag.
+
+For a more suitable development setup (including custom `aiida-core` installation) see the section below.
+
 Local development
 ~~~~~~~~~~~~~~~~~
 
 Use your own installation of the database, and your own computers and
 codes.
 
-You need to work on a specially patched copy of aiida\_core that works
-around a few issues relevant to the Siesta plugin. Assuming that you are
+Assuming that you are
 at the top-level of the Siesta AiiDA plugin hierarchy, do:
 
 ::
