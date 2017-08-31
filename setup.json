@@ -1,5 +1,5 @@
 {
-    "version": "0.9.7",
+    "version": "0.9.0",
     "name": "aiida_siesta",
     "url": "https://github.com/albgar/aiida_siesta_plugin",
     "download_url": "https://github.com/archive/aiida_siesta_plugin/0.9.7.tar.gz",
