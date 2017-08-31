@@ -11,7 +11,7 @@
 #
 import argparse
 from aiida.common.exceptions import NotExistent
-from aiida.orm.data.base import Int, Str
+from aiida.orm.data.base import Int, Str, Float
 from aiida.orm.data.structure import StructureData
 from aiida.work.run import run
 
@@ -38,6 +38,10 @@ def parser_setup():
         '-s', type=int, required=False, dest='structure',
         help='the node id of the structure'
     )
+    parser.add_argument(
+        '-z', type=float, required=False, dest='height',
+        help='the height at which to compute the image'
+    )
 
     return parser
 
@@ -55,7 +59,8 @@ def execute(args):
         return
 
     stm_code = Code.get_from_string("plstm-4.0@rinaldo")
-    
+    height = Float(args.height)
+        
     try:
         protocol = args.protocol
     except:
@@ -97,7 +102,8 @@ def execute(args):
         code=code,
         stm_code=stm_code,
         structure=structure,
-        protocol=protocol
+        protocol=protocol,
+        height=height
     )
 
 

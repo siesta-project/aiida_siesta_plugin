@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from aiida.orm import Code
-from aiida.orm.data.base import Bool, Int, Str
+from aiida.orm.data.base import Bool, Int, Str, Float
 from aiida.orm.data.parameter import ParameterData
 from aiida.orm.data.structure import StructureData
 from aiida.orm.data.array.kpoints import KpointsData
@@ -32,6 +32,7 @@ class SiestaSTMWorkChain(WorkChain):
         spec.input('stm_code', valid_type=Code)
         spec.input('structure', valid_type=StructureData)
         spec.input('protocol', valid_type=Str, default=Str('standard'))
+        spec.input('height', valid_type=Float, default=Float(0.0))
         spec.outline(
             cls.setup_protocol,
             cls.setup_structure,
@@ -53,6 +54,7 @@ class SiestaSTMWorkChain(WorkChain):
         self.ctx.inputs = {
             'code': self.inputs.code,
             'stm_code': self.inputs.stm_code,
+            'height': self.inputs.height,
             'parameters': {},
             'settings': {},
             'options': ParameterData(dict={
@@ -136,8 +138,8 @@ class SiestaSTMWorkChain(WorkChain):
         
     def setup_pseudo_potentials(self):
         """
-        Based on the given input structure and the protocol, use the SSSP library to determine the
-        optimal pseudo potentials for the different elements in the structure
+        Based on the given input structure, get the 
+        pseudo potentials for the different elements in the structure
         """
         self.report('Running setup_pseudo_potentials')
         structure = self.ctx.structure_initial_primitive
@@ -188,6 +190,7 @@ class SiestaSTMWorkChain(WorkChain):
         self.report('Running run_relax_and_analyze')
         
         inputs = dict(self.ctx.inputs)
+        # Remove hard-wired parameters
         inputs['parameters']['%block local-density-of-states'] = """
                -5.0 1.0 eV  """
 
@@ -203,9 +206,8 @@ class SiestaSTMWorkChain(WorkChain):
         inputs['clean_workdir'] = Bool(False)
         inputs['max_iterations'] = Int(20)
         
-        self.report('About to launch SiestaBaseWorkChain in relaxation mode')
         running = submit(SiestaBaseWorkChain, **inputs)
-        self.report('launched SiestaBaseWorkChain<{}> in relaxation mode'.format(running.pid))
+        self.report('launched SiestaBaseWorkChain<{}> in relax+ldos mode'.format(running.pid))
         
         return ToContext(workchain_relax=running)
 
@@ -220,7 +222,11 @@ class SiestaSTMWorkChain(WorkChain):
         stm_inputs = {}
         stm_inputs['code'] = self.ctx.inputs['stm_code']
         stm_inputs['parent_folder'] = remote_folder
-        stm_inputs['parameters'] = ParameterData(dict={ 'z': 7.5})
+
+        # Height of image plane, in Ang
+        stm_inputs['parameters'] = ParameterData(dict={ 'z': self.ctx.inputs['height']})
+        
+        # Dummy dict
         settings_dict = {'a': 'b'}
         stm_inputs['settings'] = ParameterData(dict= settings_dict)
         

@@ -17,7 +17,7 @@
 #
 # and run the script as:
 #
-#   frameworkpython get_stm_image.py
+#   frameworkpython get_stm_image.py [ id of stm_array ]
 #
 #
 
@@ -35,8 +35,15 @@ from aiida.orm import load_node
 import matplotlib
 import numpy as np
 import matplotlib.pyplot as plt
+import sys
 
-arraydata = load_node(3536)  # Hardcoded for now
+try:
+    stm_id = int(sys.argv[1])
+except:
+    print >> sys.stderr, ("Must provide as parameter the stm_array ID")
+    sys.exit(1)
+    
+arraydata = load_node(stm_id)
 
 X = arraydata.get_array("X")
 Y = arraydata.get_array("Y")

@@ -52,6 +52,11 @@ Inputs
 
 A structure. See the plugin documentation for more details.
 
+* **height**, class :py:class:`Float
+  <aiida.orm.data.base.Float>`
+
+The height of the plane at which the image is desired (in Ang).
+
 * **protocol**, Str
 
 Either "standard" or "fast" at this point.
