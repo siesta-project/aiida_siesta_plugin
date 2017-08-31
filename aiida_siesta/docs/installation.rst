@@ -2,7 +2,8 @@ Installation
 ++++++++++++
 
 You need to work on a specially patched copy of aiida\_core that works
-around a few issues relevant to the Siesta plugin:
+around a few issues relevant to the Siesta plugin. Assuming that you
+are at the top-level of the Siesta AiiDA plugin hierarchy, do:
 
 ::
 

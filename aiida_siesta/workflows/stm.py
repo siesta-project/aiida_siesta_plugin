@@ -33,6 +33,8 @@ class SiestaSTMWorkChain(WorkChain):
         spec.input('structure', valid_type=StructureData)
         spec.input('protocol', valid_type=Str, default=Str('standard'))
         spec.input('height', valid_type=Float, default=Float(0.0))
+        spec.input('e1', valid_type=Float, default=Float(-5.0))
+        spec.input('e2', valid_type=Float, default=Float(1.0))
         spec.outline(
             cls.setup_protocol,
             cls.setup_structure,
@@ -55,6 +57,8 @@ class SiestaSTMWorkChain(WorkChain):
             'code': self.inputs.code,
             'stm_code': self.inputs.stm_code,
             'height': self.inputs.height,
+            'e1': self.inputs.e1,
+            'e2': self.inputs.e2,
             'parameters': {},
             'settings': {},
             'options': ParameterData(dict={
@@ -190,9 +194,10 @@ class SiestaSTMWorkChain(WorkChain):
         self.report('Running run_relax_and_analyze')
         
         inputs = dict(self.ctx.inputs)
-        # Remove hard-wired parameters
-        inputs['parameters']['%block local-density-of-states'] = """
-               -5.0 1.0 eV  """
+        
+        ldos_e = "\n {e1} {e2} eV".format(e1=self.inputs.e1,e2=self.inputs.e2)
+        inputs['parameters']['%block local-density-of-states'] = ldos_e
+
 
         # Final input preparation, wrapping dictionaries in ParameterData nodes
         # The code and options were set above

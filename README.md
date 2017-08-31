@@ -14,7 +14,8 @@ http://aiida-siesta-plugin.readthedocs.io
 Use your own installation of the database, and your own computers and codes.
 
 You need to work on a specially patched copy of aiida_core that works
-around a few issues relevant to the Siesta plugin:
+around a few issues relevant to the Siesta plugin. Assuming that you
+are at the top-level of	the Siesta AiiDA plugin hierarchy, do:
 
        git clone https://github.com/vdikan/aiida_core
        cd aiida_core

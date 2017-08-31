@@ -42,6 +42,14 @@ def parser_setup():
         '-z', type=float, required=False, dest='height',
         help='the height at which to compute the image'
     )
+    parser.add_argument(
+        '-e', type=float, required=False, dest='e1',
+        help='the lower limit of the energy window'
+    )
+    parser.add_argument(
+        '-E', type=float, required=False, dest='e2',
+        help='the upper limit of the energy window'
+    )
 
     return parser
 
@@ -59,8 +67,11 @@ def execute(args):
         return
 
     stm_code = Code.get_from_string("plstm-4.0@rinaldo")
+
     height = Float(args.height)
-        
+    e1 = Float(args.e1)
+    e2 = Float(args.e2)
+
     try:
         protocol = args.protocol
     except:
@@ -103,7 +114,9 @@ def execute(args):
         stm_code=stm_code,
         structure=structure,
         protocol=protocol,
-        height=height
+        height=height,
+        e1=e1,
+        e2=e2
     )
 
 

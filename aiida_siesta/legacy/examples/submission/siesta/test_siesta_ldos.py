@@ -86,6 +86,8 @@ calc.use_structure(s)
 #
 # Parameters ---------------------------------------------------
 #
+ldos_block_content="\n {e1} {e2} eV".format(e1=-5.0,e2=1.0)
+
 params_dict= {
 'xc-functional': 'LDA',
 'xc-authors': 'CA',
@@ -95,8 +97,7 @@ params_dict= {
 'dm-tolerance': 1.e-4,
 'electronic-temperature': '100.000 K',
 'xml-write': True,
-'%block local-density-of-states': """
- -5.0 1.0 eV  """,
+'%block local-density-of-states': ldos_block_content,
 }
 parameters = ParameterData(dict=params_dict)
 calc.use_parameters(parameters)

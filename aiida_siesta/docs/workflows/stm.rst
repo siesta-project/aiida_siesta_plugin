@@ -57,6 +57,18 @@ A structure. See the plugin documentation for more details.
 
 The height of the plane at which the image is desired (in Ang).
 
+* **e1**, class :py:class:`Float
+  <aiida.orm.data.base.Float>`
+
+The lower limit of the energy window for which the LDOS is to be
+computed (in eV).
+
+* **e2**, class :py:class:`Float
+  <aiida.orm.data.base.Float>`
+
+The upper limit of the energy window for which the LDOS is to be
+computed (in eV).
+
 * **protocol**, Str
 
 Either "standard" or "fast" at this point.
