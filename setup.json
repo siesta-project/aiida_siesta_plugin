@@ -1,7 +1,9 @@
 {
-    "version": "0.9.7",
+    "version": "0.9.7.0",
     "name": "aiida_siesta",
     "url": "https://github.com/albgar/aiida_siesta_plugin",
+    "download_url": "https://github.com/vdikan/aiida_siesta_plugin/archive/0.9.7.tar.gz",
+    "keywords": ["aiida", "siesta", "dft"],
     "license": "MIT License",
     "author": "Alberto Garcia, Victor M. Garcia-Suarez, Emanuele Bosoni, Vladimir Dikan",
     "author_email": "albertog@icmab.es",
@@ -12,7 +14,10 @@
         "Development Status :: 3 - Alpha"
     ],
     "install_requires": [
-        "aiida"
+        "aiida_core[docs,atomic_tools]==0.9.0"
+    ],
+    "dependency_links": [
+        "git+https://github.com/vdikan/aiida_core.git@develop#egg=aiida_core"
     ],
     "entry_points": {
         "aiida.calculations": [

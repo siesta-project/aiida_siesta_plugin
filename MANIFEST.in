@@ -1,2 +1,2 @@
-include *.txt *.yml *.sh *.rst *.py *.json
-recursive-include examples *.txt *.py *.psf *.rst
+include *.txt *.yml *.sh *.rst *.py *.json *.psf  *.cif
+recursive-include aiida_siesta/examples/ *.txt *.py *.psf  *.cif *.rst
