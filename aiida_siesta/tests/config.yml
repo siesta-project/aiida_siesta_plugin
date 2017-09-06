@@ -16,6 +16,6 @@ codes:
 
 pseudo_families:
   test_psf_family:
-    command_name: aiida.cmdline.commands.data._Psf
+    command_name: aiida_siesta.commands.psfdata._Psf
     folder: ./pseudos
     group_description: test psf pseudopotentials family
