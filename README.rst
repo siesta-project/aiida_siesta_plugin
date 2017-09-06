@@ -65,12 +65,11 @@ Development tests
 ^^^^^^^^^^^^^^^^^
 
 It is possible now to run development tests located in
-``aiida_siesta/tests/`` via *pytest*. The approach was originally
-implemented by **Dominik Gresch** in his
-`aiida\_pytest <https://github.com/greschd/aiida_pytest>`__ module.
+``aiida_siesta/tests/`` via *pytest*.
+The approach we use for unit- and integrity testing is implemented
+by **Dominik Gresch** in his `aiida\_pytest <https://github.com/greschd/aiida_pytest>`__ module.
 
-In order to run tests, after you install core and plugin as described
-above, run:
+In order to run tests, after you install core and plugin as described above, run:
 
 ::
 

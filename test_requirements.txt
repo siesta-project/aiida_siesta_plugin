@@ -1,2 +1,2 @@
-git+https://github.com/vdikan/aiida_pytest.git@siesta#egg=aiida_pytest
+git+https://github.com/greschd/aiida_pytest.git@master#egg=aiida_pytest
 git+https://github.com/greschd/pgtest.git@master#egg=pgtest
