@@ -14,7 +14,8 @@
         "Development Status :: 3 - Alpha"
     ],
     "install_requires": [
-        "aiida_core[docs,atomic_tools]==0.9.0"
+        "aiida_core[docs,atomic_tools]==0.9.0",
+        "reentry>=1.0.2"
     ],
     "dependency_links": [
         "git+https://github.com/vdikan/aiida_core.git@develop#egg=aiida_core"
