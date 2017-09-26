@@ -32,4 +32,5 @@ if __name__ == '__main__':
         include_package_data=True,
         packages=find_packages(),
         long_description=read('README.rst'),
+        reentry_register=True,
         **kwargs)

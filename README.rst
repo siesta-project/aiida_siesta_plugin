@@ -1,8 +1,8 @@
 AiiDA Siesta plugins and workflows
 ==================================
 
-This repository contains the files that implement the AiiDA Siesta
-plugins and a set of related AiiDA workflows.
+A plugin with `Siesta DFT code <https://departments.icmab.es/leem/siesta/>`_
+interface to the `AiiDA system <http://www.aiida.net/>`_.
 
 Documentation can be found in:
 
@@ -14,30 +14,27 @@ Installation and usage guidelines
 Installation
 ~~~~~~~~~~~~
 
-The distribution package of the plugin is available on PyPI.
-To install it directly from the index run:
+``aiida-siesta`` is compatible with latest release of AiiDA.
+
+To install it directly from PyPI run:
 
 ::
 
-       pip install --process-dependency-links aiida-siesta
+       pip install aiida-siesta
 
-However, at this development stage ``aiida\_siesta`` uses a custom version of ``aiida\_core``, to work around a few issues relevant to the Siesta plugin. Thus, using package from PyPI is not recommended at the moment, since the installation relies on deprecated ``--process-dependency-links`` flag.
 
-For a more suitable development setup (including custom ``aiida\_core`` installation) see the section below.
+Development guide
+~~~~~~~~~~~~~~~~~
+
+For development and testing purposes, create and activate python ``virtualenv`` environment instance, then follow the steps below:
 
 
 Local environment setup
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-Use your own installation of the database, and your own computers and
-codes.
-
-Assuming that you are
-at the top-level of the Siesta AiiDA plugin hierarchy, do:
-
 ::
 
-       git clone https://github.com/vdikan/aiida_core
+       git clone https://github.com/aiidateam/aiida_core
        cd aiida_core
        git checkout develop
 
@@ -65,12 +62,11 @@ Development tests
 ^^^^^^^^^^^^^^^^^
 
 It is possible now to run development tests located in
-``aiida_siesta/tests/`` via *pytest*. The approach was originally
-implemented by **Dominik Gresch** in his
-`aiida\_pytest <https://github.com/greschd/aiida_pytest>`__ module.
+``aiida_siesta/tests/`` via *pytest*.
+The approach we use for unit- and integrity testing is implemented
+by **Dominik Gresch** in his `aiida\_pytest <https://github.com/greschd/aiida_pytest>`__ module.
 
-In order to run tests, after you install core and plugin as described
-above, run:
+In order to run tests, after you install core and plugin as described above, run:
 
 ::
 
