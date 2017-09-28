@@ -405,7 +405,7 @@ class SiestaCalculation(JobCalculation):
             if any([(i != 0. and i != 0.5) for i in offset]):
                 raise InputValidationError("offset list must only be made "
                                            "of 0 or 0.5 floats")
-            the_offset = [0 if i == 0. else 1 for i in offset]
+            the_offset = offset
             the_6_integers = list(mesh) + the_offset
             kpoints_card_list.append("{0:6} {1:6} {2:6} {3:18.10f}\n".format(
                 mesh[0], 0, 0, the_offset[0]))
