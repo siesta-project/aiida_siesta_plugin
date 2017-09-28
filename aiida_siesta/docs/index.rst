@@ -30,9 +30,10 @@ plugin.
 Vladimir Dikan and Alberto Garcia developed the workflows and
 refined the architecture of the package.
 
-We acknowledge partial support from the EU Centre of Excellence “MaX –
-Materials Design at the Exascale” (http://www.max-centre.eu). (Horizon
-2020 EINFRA-5, Grant No. 676598)
+We acknowledge partial support from the Spanish MINECO (projects
+FIS2012-37549-C05-05 and FIS2015-64886-C5-4-P) and from the EU Centre
+of Excellence “MaX – Materials Design at the Exascale”
+(http://www.max-centre.eu). (Horizon 2020 EINFRA-5, Grant No. 676598)
 We also thank the AiiDA team for their help.
 
 Contents:
