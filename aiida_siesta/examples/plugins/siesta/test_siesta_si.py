@@ -110,7 +110,7 @@ kpoints = KpointsData()
 
 # method mesh
 kpoints_mesh = 4
-kpoints.set_kpoints_mesh([kpoints_mesh,kpoints_mesh,kpoints_mesh])
+kpoints.set_kpoints_mesh([kpoints_mesh,kpoints_mesh,kpoints_mesh],[0.5,0.5,0.5])
 
 calc = code.new_calc()
 calc.label = "Si bulk"
