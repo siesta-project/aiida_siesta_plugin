@@ -102,32 +102,23 @@ class SiestaCalculation(JobCalculation):
             'docstring': "Use an additional node for special settings",
         }
         retdict["parameters"] = {
-            'valid_types':
-            ParameterData,
-            'additional_parameter':
-            None,
-            'linkname':
-            'parameters',
+            'valid_types': ParameterData,
+            'additional_parameter': None,
+            'linkname': 'parameters',
             'docstring': ("Use a node that specifies the input parameters "
                           "for the namelists"),
         }
         retdict["parent_folder"] = {
-            'valid_types':
-            RemoteData,
-            'additional_parameter':
-            None,
-            'linkname':
-            'parent_calc_folder',
+            'valid_types': RemoteData,
+            'additional_parameter': None,
+            'linkname': 'parent_calc_folder',
             'docstring': ("Use a remote folder as parent folder (for "
                           "restarts and similar"),
         }
         retdict["pseudo"] = {
-            'valid_types':
-            PsfData,
-            'additional_parameter':
-            "kind",
-            'linkname':
-            cls._get_linkname_pseudo,
+            'valid_types': PsfData,
+            'additional_parameter': "kind",
+            'linkname': cls._get_linkname_pseudo,
             'docstring': ("Use a node for the PSF pseudopotential of one of "
                           "the elements in the structure. You have to pass "
                           "an additional parameter ('kind') specifying the "
@@ -138,14 +129,11 @@ class SiestaCalculation(JobCalculation):
                           "same pseudo"),
         }
         retdict['bandskpoints'] = {
-            'valid_types':
-            KpointsData,
-            'additional_parameter':
-            None,
-            'linkname':
-            'bandskpoints',
-            'docstring':
-            "Use the node defining the kpoint sampling to use for bands calculation",
+            'valid_types': KpointsData,
+            'additional_parameter': None,
+            'linkname': 'bandskpoints',
+            'docstring': ("Use the node defining the kpoint sampling"
+                          "to use for bands calculation"),
         }
         return retdict
 
@@ -402,17 +390,17 @@ class SiestaCalculation(JobCalculation):
             # This will fail if has_mesh is False (for the case of a list),
             # since in that case 'offset' is undefined.
             #
-            if any([(i != 0. and i != 0.5) for i in offset]):
-                raise InputValidationError("offset list must only be made "
-                                           "of 0 or 0.5 floats")
-            the_offset = [0 if i == 0. else 1 for i in offset]
-            the_6_integers = list(mesh) + the_offset
+            # if any([(i != 0. and i != 0.5) for i in offset]):
+                # raise InputValidationError("offset list must only be made "
+                #                            "of 0 or 0.5 floats")
+            # the_offset = [0 if i == 0. else 1 for i in offset]
+            # the_6_integers = list(mesh) + the_offset
             kpoints_card_list.append("{0:6} {1:6} {2:6} {3:18.10f}\n".format(
-                mesh[0], 0, 0, the_offset[0]))
+                mesh[0], 0, 0, offset[0]))
             kpoints_card_list.append("{0:6} {1:6} {2:6} {3:18.10f}\n".format(
-                0, mesh[1], 0, the_offset[1]))
+                0, mesh[1], 0, offset[1]))
             kpoints_card_list.append("{0:6} {1:6} {2:6} {3:18.10f}\n".format(
-                0, 0, mesh[2], the_offset[2]))
+                0, 0, mesh[2], offset[2]))
 
             kpoints_card = "".join(kpoints_card_list)
             kpoints_card += "%endblock kgrid_monkhorst_pack\n"
