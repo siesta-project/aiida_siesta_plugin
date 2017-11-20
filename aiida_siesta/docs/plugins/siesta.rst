@@ -91,6 +91,10 @@ Alternatively, a pseudo for every atomic species can be set with the
 has been installed. (But the family approach does not yet support
 multiple species sharing the same pseudopotential.)
 
+NOTE: The verdi command-line interface cannot yet be used to upload
+Psf pseudopotential families. Use instead the `uploadfamily.py` script in
+the `aiida_siesta/examples` directory.
+
 * **basis**, class :py:class:`ParameterData  <aiida.orm.data.parameter.ParameterData>`
   
 A dictionary specifically intended for basis set information. It
