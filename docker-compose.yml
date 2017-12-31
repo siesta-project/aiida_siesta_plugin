@@ -1,0 +1,35 @@
+version: "3"
+
+services:
+  aiida:
+    image: aiida_siesta_dev:latest
+    deploy:
+      restart_policy:
+        condition: on-failure
+    command: python delay.py
+
+  db:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER:     aiida
+      POSTGRES_PASSWORD: example
+      POSTGRES_DB:       aiidadb
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+        - 5432:5432
+    deploy:
+      restart_policy:
+        condition: on-failure
+
+  adminer:
+    image: adminer
+    deploy:
+      restart_policy:
+        condition: on-failure
+    ports:
+      - 8080:8080
+
+volumes:
+  pgdata:
+    driver: local
