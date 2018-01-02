@@ -6,30 +6,33 @@ services:
     deploy:
       restart_policy:
         condition: on-failure
-    command: python delay.py
+    command: /bin/bash /code/scripts/docker-start.sh
+    depends_on:
+      - db
+    volumes:
+      - ./docker-start.sh:/code/scripts/docker-start.sh
+      - ./test.sh:/code/test.sh
+      # - aiidalogs:/root/.aiida/
+      # - aiidarepo:/root/.aiida-repo/
 
   db:
     image: postgres:latest
     environment:
       POSTGRES_USER:     aiida
-      POSTGRES_PASSWORD: example
+      POSTGRES_PASSWORD: aiidapwd
       POSTGRES_DB:       aiidadb
-    volumes:
-      - pgdata:/var/lib/postgresql/data
+    # volumes:
+      # - pgdata:/var/lib/postgresql/data
     ports:
         - 5432:5432
     deploy:
       restart_policy:
         condition: on-failure
 
-  adminer:
-    image: adminer
-    deploy:
-      restart_policy:
-        condition: on-failure
-    ports:
-      - 8080:8080
-
 volumes:
   pgdata:
+    driver: local
+  aiidalogs:
+    driver: local
+  aiidarepo:
     driver: local
