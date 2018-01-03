@@ -2,18 +2,16 @@ version: "3"
 
 services:
   aiida:
-    image: aiida_siesta_dev:latest
+    image: aiida_siesta_code:0.10.1
     deploy:
       restart_policy:
         condition: on-failure
-    command: /bin/bash /code/scripts/docker-start.sh
+    command:
+      - /code/siesta_plugin/dockerscripts/setup_develop.sh
     depends_on:
       - db
     volumes:
-      - ./docker-start.sh:/code/scripts/docker-start.sh
-      - ./test.sh:/code/test.sh
-      # - aiidalogs:/root/.aiida/
-      # - aiidarepo:/root/.aiida-repo/
+      - ./:/code/siesta_plugin/
 
   db:
     image: postgres:latest
@@ -21,18 +19,8 @@ services:
       POSTGRES_USER:     aiida
       POSTGRES_PASSWORD: aiidapwd
       POSTGRES_DB:       aiidadb
-    # volumes:
-      # - pgdata:/var/lib/postgresql/data
     ports:
         - 5432:5432
     deploy:
       restart_policy:
         condition: on-failure
-
-volumes:
-  pgdata:
-    driver: local
-  aiidalogs:
-    driver: local
-  aiidarepo:
-    driver: local
