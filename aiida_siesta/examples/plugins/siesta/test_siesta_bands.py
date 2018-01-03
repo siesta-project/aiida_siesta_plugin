@@ -16,7 +16,7 @@ StructureData = DataFactory('structure')
 RemoteData = DataFactory('remote')
 
 # Used to test the parent calculation
-SiestaCalc = CalculationFactory('siesta') 
+SiestaCalc = CalculationFactory('siesta.siesta') 
 
 try:
     dontsend = sys.argv[1]

@@ -35,16 +35,16 @@ except IndexError:
 try:
     codename = sys.argv[2]
 except IndexError:
-    codename = 'Siesta-4.0@rinaldo'
+    codename = 'siesta@develop'
 
 # If True, load the pseudos from the family specified below
 # Otherwise, use static files provided
-auto_pseudos = True
+auto_pseudos = False
 
 queue = None
 settings = None
 
-code = test_and_get_code(codename, expected_code_type='siesta')
+code = test_and_get_code(codename, expected_code_type='siesta.siesta')
 
 alat = 5.430 # angstrom
 cell = [[2*alat, 0., 0.,],
@@ -129,8 +129,7 @@ if auto_pseudos:
     valid_pseudo_groups = PsfData.get_psf_groups(filter_elements=elements)
 
     try:
-        #pseudo_family = sys.argv[3]
-        pseudo_family = 'lda-ag'
+        pseudo_family = sys.argv[3]
     except IndexError:
         print >> sys.stderr, "Error, auto_pseudos set to True. You therefore need to pass as second parameter"
         print >> sys.stderr, "the pseudo family name."
