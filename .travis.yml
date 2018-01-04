@@ -6,23 +6,24 @@ services:
   - docker
 
 env:
-  - DOCKER_COMPOSE_VERSION=1.10.0 
+  - DOCKER_COMPOSE_VERSION=1.17.1
 
-before_install:
+install:
   # Update docker-compose
   - sudo rm /usr/local/bin/docker-compose
   - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
   - chmod +x docker-compose
   - sudo mv docker-compose /usr/local/bin
 
-install:
-  #  Start all services, setup aiida, start daemon, setup/configure computer,
-  #  setup also code.
-  - ./startup_firsttime.sh 
+before_script:
+  - docker-compose pull && docker-compose up -d
 
 script:
   # Run a simple test (I should still be in the right folder)
   - ./test_compose.sh
+
+after_script:
+  - docker-compose down --volumes
 
 git:
   depth: 3

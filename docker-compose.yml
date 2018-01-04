@@ -2,7 +2,7 @@ version: "3"
 
 services:
   aiida:
-    image: aiida_siesta_code:0.10.1
+    image: vdikan/aiida_siesta_code:0.10.1
     deploy:
       restart_policy:
         condition: on-failure
