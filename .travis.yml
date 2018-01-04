@@ -14,15 +14,15 @@ install:
   - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
   - chmod +x docker-compose
   - sudo mv docker-compose /usr/local/bin
-
-before_script:
   # Let's stop postgresql
   - sudo service postgresql stop
   # wait for postgresql to shutdown
   - while sudo lsof -Pi :5432 -sTCP:LISTEN -t; do sleep 1; done
   # run application stack
-  # - docker-compose pull && docker-compose up -d
-  - docker-compose up
+  - docker-compose pull && docker-compose up --abort-on-container-exit
+
+before_script:
+  - docker-compose up -d
 
 script:
   # Run py.tests inside aiida_siesta_plugin container 

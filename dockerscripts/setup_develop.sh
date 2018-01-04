@@ -44,12 +44,14 @@ else
 
     # Enable verdi auto-completion inside the container:
     echo "eval \"\$(verdi completioncommand)"\" >> ~/.bashrc
+
+    find / -name \*.pyc -delete  # remove python bytecode from everywhere
+                                 # (some of it could point to ghost places)
+
+    reentry scan -r aiida  # to make sure that `reentry` finds everything
+
+    exit 0  # setup finished, exit
 fi
-
-find / -name \*.pyc -delete  # remove python bytecode from everywhere
-                             # (some of it could point to ghost places)
-
-reentry scan -r aiida  # to make sure that `reentry` finds everything
 
 verdi daemon restart   # restart the daemon
 verdi daemon logshow   # eventually, launch the daemon continuous log show
