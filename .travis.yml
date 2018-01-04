@@ -19,7 +19,7 @@ install:
   # wait for postgresql to shutdown
   - while sudo lsof -Pi :5432 -sTCP:LISTEN -t; do sleep 1; done
   # run application stack
-  - docker-compose pull && docker-compose up --abort-on-container-exit
+  - docker-compose pull && docker-compose up -d --abort-on-container-exit
 
 before_script:
   - docker-compose up -d
