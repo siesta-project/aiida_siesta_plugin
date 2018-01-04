@@ -15,7 +15,8 @@
     ],
     "install_requires": [
         "aiida_core[docs,atomic_tools]>=0.9.1",
-        "reentry>=1.0.2"
+        "reentry>=1.0.2",
+        "pytest>=3.2.5"
     ],
     "entry_points": {
         "aiida.calculations": [
