@@ -21,7 +21,8 @@ before_script:
   # wait for postgresql to shutdown
   - while sudo lsof -Pi :5432 -sTCP:LISTEN -t; do sleep 1; done
   # run application stack
-  - docker-compose pull && docker-compose up -d
+  # - docker-compose pull && docker-compose up -d
+  - docker-compose up
 
 script:
   # Run py.tests inside aiida_siesta_plugin container 
