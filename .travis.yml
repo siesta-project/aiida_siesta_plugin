@@ -24,8 +24,8 @@ before_script:
   - docker-compose pull && docker-compose up -d
 
 script:
-  # Run a simple test (I should still be in the right folder)
-  - ./test_compose.sh
+  # Run py.tests inside aiida_siesta_plugin container 
+  - docker exec -it aiidasiestaplugin_aiida_1 pytest -vs /code/siesta_plugin/aiida_siesta/tests
 
 after_script:
   - docker-compose down --volumes
