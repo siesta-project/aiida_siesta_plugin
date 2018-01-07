@@ -3,7 +3,7 @@
 import os.path as op
 
 
-def test_simple_submission(configure):
+def test_simple_submission(siesta_develop):
     """Test that single calculation is submitted."""
     from aiida.orm import DataFactory
     from aiida.common.example_helpers import test_and_get_code
@@ -13,7 +13,7 @@ def test_simple_submission(configure):
     ParameterData = DataFactory('parameter')
     KpointsData = DataFactory('array.kpoints')
 
-    code = test_and_get_code('tsiesta', expected_code_type='siesta.siesta')
+    code = test_and_get_code('siesta', expected_code_type='siesta.siesta')
     assert code is not None
 
     # Si diamond structure
@@ -94,7 +94,7 @@ def test_simple_submission(configure):
     # calc.use_pseudos_from_family(pseudo_family)
     #
     for fname, kind in raw_pseudos:
-        absname = op.realpath(op.join(op.dirname(__file__), "pseudos", fname))
+        absname = op.realpath(op.join(op.dirname(__file__), "..", "pseudos", fname))
         pseudo, created = PsfData.get_or_create(absname, use_first=True)
 
         if created:
