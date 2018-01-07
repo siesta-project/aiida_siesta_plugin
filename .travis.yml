@@ -1,31 +1,39 @@
 sudo: required
+
 language: python
+
 services:
-- docker
+  - docker
+
 env:
-- DOCKER_COMPOSE_VERSION=1.17.1
+  - DOCKER_COMPOSE_VERSION=1.17.1
+
 install:
-- sudo rm /usr/local/bin/docker-compose
-- curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname
+  - sudo rm /usr/local/bin/docker-compose
+  - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname
   -s`-`uname -m` > docker-compose
-- chmod +x docker-compose
-- sudo mv docker-compose /usr/local/bin
-- sudo service postgresql stop
-- while sudo lsof -Pi :5432 -sTCP:LISTEN -t; do sleep 1; done
-- docker-compose pull && docker-compose up --abort-on-container-exit
+  - chmod +x docker-compose
+  - sudo mv docker-compose /usr/local/bin
+  - sudo service postgresql stop
+  - while sudo lsof -Pi :5432 -sTCP:LISTEN -t; do sleep 1; done
+  - docker-compose pull && docker-compose up --abort-on-container-exit
+
 before_script:
-- docker-compose up -d
+  - docker-compose up -d
+
 script:
-- docker exec -it aiidasiestaplugin_aiida_1 pytest -vs /code/siesta_plugin/aiida_siesta/tests
+  - docker exec -it aiidasiestaplugin_aiida_1 pytest -vs /code/siesta_plugin/aiida_siesta/tests
+
 after_script:
-- docker-compose down --volumes
+  - docker-compose down --volumes
+
 git:
   depth: 3
 
 before_deploy:
-- # If the script step uses sudo, the build artifacts will be owned by root.
-- # `chown` to the build user to support the deploy step.
-- sudo chown -R $USER:$USER *
+  - # If the script step uses sudo, the build artifacts will be owned by root.
+  - # `chown` to the build user to support the deploy step.
+  - sudo chown -R $USER:$USER *
 
 deploy:
   provider: pypi
@@ -36,4 +44,4 @@ deploy:
   skip_cleanup: true
   on:
     branch: develop
-    #tags: true
+    tags: true
