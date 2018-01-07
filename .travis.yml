@@ -39,5 +39,8 @@ deploy:
   user: vdikan
   password:
     secure: "Rsrxch6Q6bLBuLIQCLyKcqSx1um/d7MNanWxvNA/jHX0H9EnPHK6vZ7F9UVSlDuI1nDgmij5wLnmCARQ2V/r7TMe/NzqMI+Ba1gh2WTwPRRdg/VoS/rVgk+dzC1zLuGteQNny18ex1NUD45LDXgOjT9FQg9dlpZ0JE6JhFFC/RqLQxKxVpiXzySAPjbwhMjX4Cp2dBf//NwkRZDlnO40qu8x5Yb6fripjekiDEmlKa6ucS/vQ4AlVx9D68u5pgpjCjD5JuEZyJ8Akn5sL/ZEmXBwcl9N/ruNczhD3DP4Dgm7l/+D7UCKwE5HqUpSFRDVmgE9O5SLZZT/BaVYf9eP9Eh20Ir8Q5ksW7k03n5H6OjAL28/C/hFpbDOJNWULik4BtgZAhgKt/9Mj7RNIDNyOjpV5hKWF2aIgaCNIdX9aCq5qV2rTzTOxM9OgRYd9YuEPfxc2be5kGG/7ggubuf/UfWxyIgA/Zgz2iQFMxrzVxSMTcjrLB8JLi5j4le766VRjao9QICpvskY8H4e2EH2sq95LzBOQh/73HZZ47ut1078Kd3mU/McH+8ggW8tYceLk54yMowdLs54M9cSv+rT7knO8sO5YF09oAzfbOpWTyIQdATN2L3tkFmck1pT1c1AHagXfRD1NmkFU+1nLNvGnsbes+84LeIe+DJaxcog6ts="
+  distributions: "sdist bdist_wheel"
+  skip_cleanup: true
   on:
     branch: develop
+    tags: true
