@@ -43,5 +43,5 @@ deploy:
   distributions: sdist bdist_wheel
   skip_cleanup: true
   on:
-    branch: develop
+    branch: master
     tags: true
