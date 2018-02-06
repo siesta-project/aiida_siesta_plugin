@@ -111,12 +111,12 @@ def test_serial_workfunction(siesta_develop):
                 os.path.join(os.path.dirname(__file__), '..', 'pseudos', fname))
             pseudo, created = PsfData.get_or_create(absname, use_first=True)
 
-        if created:
-            print "Created the pseudo for {}".format(kind)
-        else:
-            print "Using the pseudo for {} from DB: {}".format(kind, pseudo.pk)
-        # Attach pseudo node to the calculation
-        pseudo_dict[kind] = pseudo
+            if created:
+                print "Created the pseudo for {}".format(kind)
+            else:
+                print "Using the pseudo for {} from DB: {}".format(kind, pseudo.pk)
+            # Attach pseudo node to the calculation
+            pseudo_dict[kind] = pseudo
 
         inputs.pseudo = pseudo_dict
 

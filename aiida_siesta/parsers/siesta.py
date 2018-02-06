@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
+import numpy as np
 from aiida.parsers.parser import Parser
 from aiida_siesta.calculations.siesta import SiestaCalculation
 from aiida.orm.data.parameter import ParameterData
 
+# TODO Get modules metadata from setup script.
 __copyright__ = u"Copyright (c), 2015, ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE (Theory and Simulation of Materials (THEOS) and National Centre for Computational Design and Discovery of Novel Materials (NCCR MARVEL)), Switzerland and ROBERT BOSCH LLC, USA. All rights reserved."
 __license__ = "MIT license, see LICENSE.txt file"
-__version__ = "0.9.0"
+__version__ = "0.9.8"
 __contributors__ = "Andrius Merkys, Giovanni Pizzi, Victor Garcia-Suarez, Alberto Garcia, Emanuele Bosoni"
-
-# -*- coding: utf-8 -*-
 
 
 # These auxiliary functions should be put in another module...
@@ -18,6 +18,11 @@ __contributors__ = "Andrius Merkys, Giovanni Pizzi, Victor Garcia-Suarez, Albert
 standard_output_list = [ 'siesta:FreeE', 'siesta:E_KS',
                          'siesta:Ebs', 'siesta:E_Fermi',
                          'siesta:stot']  ## leave svec for later
+
+
+def text_to_array(s, dtype):
+    return np.array(s.replace("\n", "").split(), dtype=dtype)
+
 
 def get_parsed_xml_doc(xml_path):
 
@@ -253,6 +258,7 @@ class SiestaParser(Parser):
 
         if xml_path is None:
             self.logger.error("Could not find a CML file to parse")
+            # NOTE aiida.xml is not there?
             raise SiestaOutputParsingError("Could not find a CML file to parse")
         
         # We get everything from the CML file
@@ -260,7 +266,7 @@ class SiestaParser(Parser):
         xmldoc = get_parsed_xml_doc(xml_path)
         if xmldoc is None:
             self.logger.error("Malformed CML file: cannot parse")
-            raise
+            raise SiestaOutputParsingError("Malformed CML file: cannot parse")
         
         # These are examples of how we can access input items
         #
@@ -309,21 +315,22 @@ class SiestaParser(Parser):
 
         if forces is not None and stress is not None:
              from aiida.orm.data.array import ArrayData
-             import numpy
              arraydata = ArrayData()
-             arraydata.set_array('forces', numpy.array(forces))
-             arraydata.set_array('stress', numpy.array(stress))
+             arraydata.set_array('forces', np.array(forces))
+             arraydata.set_array('stress', np.array(stress))
              result_list.append((self.get_linkname_outarray(),arraydata))
 
         # Parse band-structure information if available
         if bands_path is not None:
-	    bands = self.get_bands(bands_path)
-	    from aiida.orm.data.array.bands import BandsData
-	    arraybands = BandsData()
-            arraybands.set_kpoints(self._calc.inp.bandskpoints.get_kpoints(cartesian=True))
-	    arraybands.set_bands(bands,units="eV")
-	    result_list.append((self.get_linkname_bandsarray(),arraybands))
-	
+             bands, coords = self.get_bands(bands_path)
+             from aiida.orm.data.array.bands import BandsData
+             arraybands = BandsData()
+             arraybands.set_kpoints(self._calc.inp.bandskpoints.get_kpoints(cartesian=True))
+             arraybands.set_bands(bands,units="eV")
+             result_list.append((self.get_linkname_bandsarray(), arraybands))
+             bandsparameters = ParameterData(dict={"kp_coordinates": coords})
+             result_list.append((self.get_linkname_bandsparameters(), bandsparameters))
+
         return successful, result_list
 
     def parse_with_retrieved(self,retrieved):
@@ -351,10 +358,7 @@ class SiestaParser(Parser):
             self.logger.error("No output files found")
             return False, ()
 
-        successful, out_nodes = self._get_output_nodes(output_path,
-                                           messages_path,
-                                           xml_path,
-                                           bands_path)
+        successful, out_nodes = self._get_output_nodes(output_path, messages_path, xml_path, bands_path)
         
         return successful, out_nodes
 
@@ -387,7 +391,7 @@ class SiestaParser(Parser):
         output_path = None
         messages_path  = None
         xml_path  = None
-	bands_path = None
+        bands_path = None
 
         if self._calc._DEFAULT_OUTPUT_FILE in list_of_files:
             output_path = os.path.join( out_folder.get_abs_path('.'),
@@ -450,58 +454,70 @@ class SiestaParser(Parser):
      
      return True, lines[:-1]  # Remove last (empty) element
 
+    def get_bands(self, bands_path):
+        # The parsing is different depending on whether I have Bands or Points.
+        # I recognise these two situations by looking at bandskpoints.label
+        # (like I did in the plugin)
+        from aiida.common.exceptions import InputValidationError
+        from aiida.common.exceptions import ValidationError
+        tottx = []
+        f = open(bands_path)
+        tottx = f.read().split()
 
-    def get_bands(self,bands_path):
-         
-         # The parsing is different depending on whether I have Bands or Points.
-         # I recognise these two situations by looking at bandskpoints.label
-         # (like I did in the plugin)
-         import numpy as np
-         from aiida.common.exceptions import InputValidationError
-         from aiida.common.exceptions import ValidationError
-         tottx = []
-         f=open(bands_path)
-         tottx=f.read().split()
-         
-         ef = float(tottx[0])
-         if self._calc.inp.bandskpoints.labels==None:
-              minfreq,maxfreq = float(tottx[1]), float(tottx[2])
-              nbands, nspins, nkpoints = int(tottx[3]), int(tottx[4]), int(tottx[5])
-	      spinup=np.zeros((nkpoints,nbands))
-	      spindown=np.zeros((nkpoints,nbands))
-              if (nspins==2):
-                   block_length= nbands*2
-              else:
-                   block_length= nbands
-              for i in range(nkpoints):
-                   for j in range(nbands):
-                        spinup[i,j]=(float(tottx[i*(block_length+3)+6+j+3]))
-                        if (nspins==2):
-                             spindown[i,j]=(float(tottx[i*(nbands*2+3)+6+j+3+nbands]))   
-         else:
-              mink,maxk = float(tottx[1]), float(tottx[2])
-              minfreq,maxfreq = float(tottx[3]), float(tottx[4])
-              nbands, nspins, nkpoints = int(tottx[5]), int(tottx[6]), int(tottx[7])
-              spinup=np.zeros((nkpoints,nbands))
-              spindown=np.zeros((nkpoints,nbands))
-              if (nspins==2):
-                   block_length= nbands*2
-              else:
-                   block_length= nbands
-             
-              for i in range(nkpoints):
-                   for j in range(nbands):
-                        spinup[i,j]=(float(tottx[i*(block_length+1)+8+j+1]))
-       	                if (nspins==2):
-            	             spindown[i,j]=(float(tottx[i*(nbands*2+1)+8+j+1+nbands]))
-         if (nspins==2):
-	      bands = (spinup, spindown)
-         elif (nspins==1):
-	      bands = spinup
-         else:
-	      raise NotImplementedError('nspins=4: non collinear bands not implemented yet')
-         
-         return bands                     
+        ef = float(tottx[0])
+        if self._calc.inp.bandskpoints.labels == None:
+            minfreq, maxfreq = float(tottx[1]), float(tottx[2])
+            nbands, nspins, nkpoints = int(tottx[3]), int(tottx[4]), int(
+                tottx[5])
+            spinup = np.zeros((nkpoints, nbands))
+            spindown = np.zeros((nkpoints, nbands))
+            coords = np.zeros(nkpoints)
+            if (nspins == 2):
+                block_length = nbands * 2
+            else:
+                block_length = nbands
+            for i in range(nkpoints):
+                # coords[i] = float(tottx[i * (block_length + 3) + 6])
+                for j in range(nbands):
+                    spinup[i, j] = (
+                        float(tottx[i * (block_length + 3) + 6 + j + 3]))
+                    if (nspins == 2):
+                        # Probably wrong! - need to test!!!
+                        spindown[i, j] = (float(
+                            tottx[i * (nbands * 2 + 3) + 6 + j + 3 + nbands]))
+        else:
+            mink, maxk = float(tottx[1]), float(tottx[2])
+            minfreq, maxfreq = float(tottx[3]), float(tottx[4])
+            nbands, nspins, nkpoints = int(tottx[5]), int(tottx[6]), int(
+                tottx[7])
+            spinup = np.zeros((nkpoints, nbands))
+            spindown = np.zeros((nkpoints, nbands))
+            coords = np.zeros(nkpoints)
+            if (nspins == 2):
+                block_length = nbands * 2
+            else:
+                block_length = nbands
+
+            for i in range(nkpoints):
+                coords[i] = float(tottx[i * (block_length + 1) + 8])
+
+                for j in range(nbands):
+                    spinup[i, j] = (
+                        float(tottx[i * (block_length + 1) + 8 + j + 1]))
+                    if (nspins == 2):
+                        # Probably wrong! - need to test!!!
+                        spindown[i, j] = (float(
+                            tottx[i * (nbands * 2 + 1) + 8 + j + 1 + nbands]))
+        if (nspins == 2):
+            bands = (spinup, spindown)
+        elif (nspins == 1):
+            bands = spinup
+        else:
+            raise NotImplementedError(
+                'nspins=4: non collinear bands not implemented yet')
+
+        return (bands, coords)
+
 
     def get_linkname_outstructure(self):
         """
@@ -525,5 +541,10 @@ class SiestaParser(Parser):
         pending the implementation of trajectory data.
         """
         return 'bands_array'
-                       
-   
+
+    def get_linkname_bandsparameters(self):
+        """
+        Returns the name of the link to the bands_path.
+        X-axis data for bands. Maybe should use ArrayData (db-integrity?).
+        """
+        return 'bands_parameters'

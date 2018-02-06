@@ -54,22 +54,22 @@ def test_bands(siesta_develop):
     # Pseudopotentials
     # from aiida_siesta.data.psf import get_pseudos_from_structure
     # inputs.pseudo = get_pseudos_from_structure(structure, "test_psf_family")
-    raw_pseudos = [ 
-            ("Mg.psf", 'Mg'),
-            ("O.psf", 'O'), 
-            ]
+    raw_pseudos = [
+        ("Mg.psf", 'Mg'),
+        ("O.psf", 'O'),
+    ]
     pseudo_dict = {}
     for fname, kind in raw_pseudos:
         absname = os.path.realpath(
             os.path.join(os.path.dirname(__file__), '..', 'pseudos', fname))
         pseudo, created = PsfData.get_or_create(absname, use_first=True)
 
-    if created:
-        print "Created the pseudo for {}".format(kind)
-    else:
-        print "Using the pseudo for {} from DB: {}".format(kind, pseudo.pk)
-    # Attach pseudo node to the calculation
-    pseudo_dict[kind] = pseudo
+        if created:
+            print "Created the pseudo for {}".format(kind)
+        else:
+            print "Using the pseudo for {} from DB: {}".format(kind, pseudo.pk)
+        # Attach pseudo node to the calculation
+        pseudo_dict[kind] = pseudo
 
     inputs.pseudo = pseudo_dict
 
@@ -91,13 +91,15 @@ def test_bands(siesta_develop):
     inputs.bandskpoints = bandskpoints
 
     # Calculation parameters
-    parameters = ParameterData(dict={
-        'xc-functional': 'LDA',
-        'xc-authors': 'CA',
-        'spin-polarized': False,
-        'meshcutoff': '200 Ry',
-        'max-scfiterations': 50,
-    })
+    parameters = ParameterData(
+        dict={
+            'xc-functional': 'LDA',
+            'xc-authors': 'CA',
+            'spin-polarized': False,
+            'meshcutoff': '200 Ry',
+            'max-scfiterations': 50,
+            'xml-write': True,
+        })
     inputs.parameters = parameters
 
     # Create and run Siesta calculation process
