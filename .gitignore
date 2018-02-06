@@ -1,10 +1,12 @@
 aiida_core
 aiida_core/
 __pycache__/
+.pytest_cache/
 *.py[cod]
 *$py.class
 *~
 \#*\#
+*.swp
 # C extensions
 *.so
 
