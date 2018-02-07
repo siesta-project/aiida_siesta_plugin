@@ -2,6 +2,8 @@
 export C_FORCE_ROOT=1  # environment variable to be able to run
                        # aiida daemon under root inside the container
 
+sleep 3  # Wait for DB container to start serving
+
 # Check if the container is set up.
 # That means that it is re-used by docker-compose.
 if [ -e ~/.aiida/config.json ]
