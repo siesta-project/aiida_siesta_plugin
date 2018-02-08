@@ -56,7 +56,7 @@ calc.set_max_wallclock_seconds(30*60) # 30 min
 calc.set_resources({"num_machines": 1, "num_mpiprocs_per_machine": 1})
 
 from aiida.orm.data.remote import RemoteData
-remotedata = load_node(3163)
+remotedata = load_node(147)
 calc.use_parent_folder(remotedata)
 
 if submit_test:
