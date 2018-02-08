@@ -2,8 +2,9 @@
 # -*- coding: utf-8 -*-
 import os
 import sys
+from aiida import load_dbenv
+load_dbenv()
 import aiida_siesta.data.psf as psf
-
 
 def uploadfamily(*args):
     """
@@ -11,9 +12,11 @@ def uploadfamily(*args):
     Returns the numbers of files found and the number of nodes uploaded.
     Call without parameters to get some help.
     """
+    print args
+    
     if not len(args) == 3 and not len(args) == 4:
         print >> sys.stderr, ("Usage:")
-        print >> sys.stderr, ("./uploadfamily.py <group_name>  <group_description> "
+        print >> sys.stderr, ("./uploadfamily.py FOLDER_NAME <group_name>  <group_description> "
                               "[OPTIONAL: --stop-if-existing]\n")
         sys.exit(1)
 
@@ -41,4 +44,5 @@ def uploadfamily(*args):
 
 
 if __name__ == "__main__":
-    uploadfamily(os.path.dirname(__file__), *sys.argv[1:])
+    #    uploadfamily(os.path.dirname(__file__), *sys.argv[1:])
+    uploadfamily(*sys.argv[1:])
