@@ -30,7 +30,7 @@
             "siesta.psf = aiida_siesta.data.psf:PsfData"
         ],
         "aiida.cmdline.data": [
-            "psf = aiida_siesta.commands.psfdata:_Psf"
+            "psf = aiida_siesta.commands.data_psf:psfdata"
         ]
     }
 }
