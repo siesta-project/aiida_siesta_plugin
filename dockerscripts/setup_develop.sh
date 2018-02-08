@@ -14,6 +14,8 @@ else
     # First, install siesta plugin from the mounted volume:
     pip install -e /code/siesta_plugin/
 
+    reentry scan -r aiida  # to make sure that `reentry` finds everything
+
     # Setup default aiida profile:
     verdi setup --non-interactive \
           --backend=django \
@@ -50,11 +52,15 @@ else
     find / -name \*.pyc -delete  # remove python bytecode from everywhere
                                  # (some of it could point to ghost places)
 
-    reentry scan -r aiida  # to make sure that `reentry` finds everything
 
-    exit 0  # setup finished, exit
+    # exit 0  # setup finished, exit
+    verdi daemon logshow
 fi
 
-verdi daemon restart   # restart the daemon
-verdi daemon logshow   # eventually, launch the daemon continuous log show
+# NOTE aiida-core v0.11.0 has troubles with daemon in Docker, thus halt:
+echo "The dev docker stack should be recreated; abort"
+exit 0
+
+# verdi daemon restart   # restart the daemon
+# verdi daemon logshow   # eventually, launch the daemon continuous log show
                        # as the `service` to prevent shutdown of the dev container
