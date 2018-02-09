@@ -39,12 +39,12 @@ def parser_setup():
         help='the protocol (default: %(default)s)'
     )
     parser.add_argument(
-        '-s', type=int, required=False, dest='structure',
+        '-s', type=int, required=False, dest='structure', default=0,
         help='the node id of the structure'
     )
     parser.add_argument(
-        '-z', type=float, required=False, dest='height', default=0.0,
-        help='the height at which to compute the image'
+        '-z', type=float, required=False, dest='height', default=7.5,
+        help='the height (in Ang) at which to compute the image'
     )
     parser.add_argument(
         '-e', type=float, required=False, dest='e1', default=-5.0,
@@ -112,7 +112,10 @@ def execute(args):
     s.append_atom(position=perm(0.000,0.000,4.442),symbols=['C'])
     s.append_atom(position=perm(0.000,0.000,5.604),symbols=['H'])
 
-    structure = s
+    if args.structure > 0:
+        structure = load_node(args.structure)
+    else:
+        structure = s
 
     run(
         SiestaSTMWorkChain,
