@@ -14,7 +14,7 @@ directory:
 As a pre-requisite, this will install an appropriate version of the
 aiida_core python framework.
 
-Next, run the following command
+.. important:: Next, do not forget to run the following command
 
 ::
 
