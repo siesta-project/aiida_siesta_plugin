@@ -267,7 +267,6 @@ class PsfData(SinglefileData):
                         "DB. pks={}".format(
                             ",".join([str(i.pk) for i in pseudos])))
             else:
-                print type(pseudos[0])
                 return (pseudos[0], False)
 
     @classproperty
