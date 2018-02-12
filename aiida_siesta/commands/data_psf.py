@@ -71,7 +71,6 @@ def listfamilies(element, with_description):
     """
     Print on screen the list of installed PSF-pseudo families.
     """
-
     from aiida import is_dbenv_loaded, load_dbenv
     if not is_dbenv_loaded():
         load_dbenv()
@@ -124,3 +123,40 @@ def listfamilies(element, with_description):
 
     else:
         click.echo("No valid PSF pseudopotential family found.", err=True)
+
+
+@psfdata.command()
+@click.argument('family')
+@click.argument(
+    'directory',
+    type=click.Path(exists=False, file_okay=False, resolve_path=True))
+def exportfamily(family, directory):
+    """
+    Export a pseudopotential family into a new directory.
+    """
+    from aiida import is_dbenv_loaded, load_dbenv
+    if not is_dbenv_loaded():
+        load_dbenv()
+
+    import os
+    from aiida.common.exceptions import NotExistent
+    from aiida.orm import DataFactory
+
+    PsfData = DataFactory('siesta.psf')
+    try:
+        group = PsfData.get_psf_group(family)
+    except NotExistent:
+        click.echo("PSF family {} not found".format(family), err=True)
+
+    try:
+        os.makedirs(directory)
+        for pseudo in group.nodes:
+            dest_path = os.path.join(directory, pseudo.filename)
+            with open(dest_path, 'w') as dest:
+                with pseudo._get_folder_pathsubfolder.open(
+                        pseudo.filename) as source:
+                    dest.write(source.read())
+    except OSError:
+        click.echo(
+            "Destination directory {} exists; aborted".format(directory),
+            err=True)
