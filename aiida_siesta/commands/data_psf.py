@@ -51,45 +51,30 @@ def uploadfamily(name, description, stop_if_existing, directory):
     files_found, files_uploaded = psf.upload_psf_family(
         directory, name, description, stop_if_existing)
 
-    print "PSF files found: {}. New files uploaded: {}".format(
-        files_found, files_uploaded)
+    click.echo("PSF files found: {}. New files uploaded: {}".format(
+        files_found, files_uploaded))
 
 
 @psfdata.command()
-def listfamilies():
+@click.option(
+    '-e',
+    '--element',
+    multiple=True,
+    help="OPTIONAL: Filter the families only to those containing "
+    "a pseudo for each of the specified elements.")
+@click.option(
+    '-D',
+    '--with-description',
+    is_flag=True,
+    help="OPTIONAL: Print families\' description.")
+def listfamilies(element, with_description):
     """
     Print on screen the list of installed PSF-pseudo families.
     """
+
     from aiida import is_dbenv_loaded, load_dbenv
     if not is_dbenv_loaded():
         load_dbenv()
-
-    # TODO Adapt arguments parsing for new Click interface
-    # note that the following command requires that the psfdata has a
-    # key called element. As such, it is not well separated.
-    # import argparse
-
-    # parser = argparse.ArgumentParser(
-    #     prog=self.get_full_command_name(),
-    #     description='List AiiDA psf families.')
-    # parser.add_argument(
-    #     '-e',
-    #     '--element',
-    #     nargs='+',
-    #     type=str,
-    #     default=None,
-    #     help="Filter the families only to those containing "
-    #     "a pseudo for each of the specified elements")
-    # parser.add_argument(
-    #     '-d',
-    #     '--with-description',
-    #     dest='with_description',
-    #     action='store_true',
-    #     help="Show also the description for the PSF family")
-    # parser.set_defaults(with_description=False)
-
-    # args = list(args)
-    # parsed_args = parser.parse_args(args)
 
     from aiida.orm import DataFactory
     from aiida_siesta.data.psf import PSFGROUP_TYPE
@@ -99,11 +84,10 @@ def listfamilies():
     from aiida.orm.group import Group
     qb = QueryBuilder()
     qb.append(PsfData, tag='psfdata')
-    # if parsed_args.element is not None:
-    #     qb.add_filter(PsfData,
-    #                     {'attributes.element': {
-    #                         'in': parsed_args.element
-    #                     }})
+
+    if element:
+        qb.add_filter(PsfData, {'attributes.element': {'in': element}})
+
     qb.append(
         Group,
         group_of='psfdata',
@@ -129,14 +113,14 @@ def listfamilies():
                 })
             qb.append(PsfData, project=["id"], member_of='thisgroup')
 
-            # if parsed_args.with_description:
-            #     description_string = ": {}".format(group_desc)
-            # else:
-            #     description_string = ""
-            description_string = ""
+            if with_description:
+                description_string = ": {}".format(group_desc)
+            else:
+                description_string = ""
 
-            print "* {} [{} pseudos]{}".format(group_name,
-                                               qb.count(), description_string)
+            click.echo("* {} [{} pseudos]{}".format(group_name,
+                                                    qb.count(),
+                                                    description_string))
 
     else:
-        print "No valid PSF pseudopotential family found."
+        click.echo("No valid PSF pseudopotential family found.", err=True)
