@@ -31,23 +31,27 @@ def parser_setup():
         help='the name of the AiiDA code that references Siesta.siesta plugin'
     )
     parser.add_argument(
+        '-t', type=str, required=True, dest='stm_codename', 
+        help='the name of the AiiDA code that references Siesta.stm plugin'
+    )
+    parser.add_argument(
         '-p', type=str, required=False, dest='protocol', default='standard',
         help='the protocol (default: %(default)s)'
     )
     parser.add_argument(
-        '-s', type=int, required=False, dest='structure',
+        '-s', type=int, required=False, dest='structure', default=0,
         help='the node id of the structure'
     )
     parser.add_argument(
-        '-z', type=float, required=False, dest='height',
-        help='the height at which to compute the image'
+        '-z', type=float, required=False, dest='height', default=7.5,
+        help='the height (in Ang) at which to compute the image'
     )
     parser.add_argument(
-        '-e', type=float, required=False, dest='e1',
+        '-e', type=float, required=False, dest='e1', default=-5.0,
         help='the lower limit of the energy window'
     )
     parser.add_argument(
-        '-E', type=float, required=False, dest='e2',
+        '-E', type=float, required=False, dest='e2', default=1.0,
         help='the upper limit of the energy window'
     )
 
@@ -66,20 +70,22 @@ def execute(args):
         print "Exception report: {}".format(exception)
         return
 
-    stm_code = Code.get_from_string("plstm-4.0@rinaldo")
+    try:
+        stm_code = Code.get_from_string(args.stm_codename)
+    except NotExistent as exception:
+        print "Execution failed: could not retrieve the code '{}'".format(args.stm_codename)
+        print "Exception report: {}".format(exception)
+        return
+
 
     height = Float(args.height)
     e1 = Float(args.e1)
     e2 = Float(args.e2)
 
-    try:
-        protocol = args.protocol
-    except:
-        print "Cannot seem to get protocol..."
-        protocol = "standard"
-
-    protocol = Str(protocol)
+    protocol = Str(args.protocol)
     
+
+            
     alat = 15. # angstrom
     cell = [[alat, 0., 0.,],
             [0., alat, 0.,],
@@ -106,7 +112,10 @@ def execute(args):
     s.append_atom(position=perm(0.000,0.000,4.442),symbols=['C'])
     s.append_atom(position=perm(0.000,0.000,5.604),symbols=['H'])
 
-    structure = s
+    if args.structure > 0:
+        structure = load_node(args.structure)
+    else:
+        structure = s
 
     run(
         SiestaSTMWorkChain,

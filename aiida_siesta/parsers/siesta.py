@@ -217,6 +217,9 @@ from aiida.parsers.exceptions import OutputParsingError
 
 class SiestaOutputParsingError(OutputParsingError):
      pass
+class SiestaCMLParsingError(OutputParsingError):
+     pass
+
 #---------------------------
 
 class SiestaParser(Parser):
@@ -260,7 +263,7 @@ class SiestaParser(Parser):
         xmldoc = get_parsed_xml_doc(xml_path)
         if xmldoc is None:
             self.logger.error("Malformed CML file: cannot parse")
-            raise
+            raise SiestaCMLParsingError("Malformed CML file: cannot parse")
         
         # These are examples of how we can access input items
         #

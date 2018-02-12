@@ -32,9 +32,9 @@ class SiestaSTMWorkChain(WorkChain):
         spec.input('stm_code', valid_type=Code)
         spec.input('structure', valid_type=StructureData)
         spec.input('protocol', valid_type=Str, default=Str('standard'))
-        spec.input('height', valid_type=Float, default=Float(0.0))
-        spec.input('e1', valid_type=Float, default=Float(-5.0))
-        spec.input('e2', valid_type=Float, default=Float(1.0))
+        spec.input('height', valid_type=Float)
+        spec.input('e1', valid_type=Float)
+        spec.input('e2', valid_type=Float)
         spec.outline(
             cls.setup_protocol,
             cls.setup_structure,
