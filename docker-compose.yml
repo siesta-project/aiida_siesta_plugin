@@ -1,0 +1,38 @@
+version: "3"
+
+services:
+  aiida:
+    image: vdikan/aiida_siesta_code:0.11.0
+    deploy:
+      restart_policy:
+        condition: on-failure
+    command:
+      - /code/siesta_plugin/dockerscripts/setup_develop.sh
+    depends_on:
+      - db
+    volumes:
+      - ./:/code/siesta_plugin/
+      - aiida_dev_logs:/root/.aiida/
+      - aiida_dev_repo:/root/.aiida_repo/
+
+  db:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER:     aiida
+      POSTGRES_PASSWORD: aiidapwd
+      POSTGRES_DB:       aiidadb
+    volumes:
+      - aiida_dev_pgdata:/var/lib/postgresql/data
+    ports:
+        - 5432:5432
+    deploy:
+      restart_policy:
+        condition: on-failure
+
+volumes:
+  aiida_dev_pgdata:
+      driver: local
+  aiida_dev_logs:
+      driver: local
+  aiida_dev_repo:
+      driver: local

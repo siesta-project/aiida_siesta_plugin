@@ -92,11 +92,9 @@ has been installed. (But the family approach does not yet support
 multiple species sharing the same pseudopotential.)
 
 .. note:: The verdi command-line interface has recently been upgraded
-   to support entry points defined by external packages. We are in the
-   process of implementing a `verdi data psf` family of commands. The
-   inteface cannot yet be used to upload Psf pseudopotential
-   families. Use instead the `uploadfamily.py` script in the
-   `aiida_siesta/examples` directory.
+   to support entry points defined by external packages. We have
+   implemented a `verdi data psf` family of commands: `uploadfamily`,
+   `exportfamily`, and `listfamilies`. 
 
 * **basis**, class :py:class:`ParameterData  <aiida.orm.data.parameter.ParameterData>`
   

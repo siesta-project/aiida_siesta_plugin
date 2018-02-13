@@ -1,0 +1,6 @@
+siesta
+SIESTA code built in the Docker image
+False
+siesta.siesta
+develop
+/usr/local/bin/siesta

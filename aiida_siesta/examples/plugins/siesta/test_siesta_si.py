@@ -35,11 +35,11 @@ except IndexError:
 try:
     codename = sys.argv[2]
 except IndexError:
-    codename = 'Siesta-4.0@rinaldo'
+    codename = 'siesta@develop'
 
 # If True, load the pseudos from the family specified below
 # Otherwise, use static files provided
-auto_pseudos = True
+auto_pseudos = False
 
 queue = None
 settings = None

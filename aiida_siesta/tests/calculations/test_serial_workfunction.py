@@ -6,7 +6,7 @@ import sys
 import numpy as np
 
 
-def test_serial_workfunction(configure_with_daemon):
+def test_serial_workfunction(siesta_develop):
     """Test workfunction runs and outputs results in serial mode."""
     from aiida.common.example_helpers import test_and_get_code
     from aiida.orm import Code, DataFactory
@@ -23,7 +23,7 @@ def test_serial_workfunction(configure_with_daemon):
     ParameterData = DataFactory('parameter')
     KpointsData = DataFactory('array.kpoints')
 
-    codename = 'tsiesta@localhost'
+    codename = 'siesta@develop'
     scale_facs = (0.96, 0.98, 1.0, 1.02, 1.04)
     labels = ["c1", "c2", "c3", "c4", "c5"]
 
@@ -108,15 +108,15 @@ def test_serial_workfunction(configure_with_daemon):
         pseudo_dict = {}
         for fname, kind in raw_pseudos:
             absname = os.path.realpath(
-                os.path.join(os.path.dirname(__file__), 'pseudos', fname))
+                os.path.join(os.path.dirname(__file__), '..', 'pseudos', fname))
             pseudo, created = PsfData.get_or_create(absname, use_first=True)
 
-        if created:
-            print "Created the pseudo for {}".format(kind)
-        else:
-            print "Using the pseudo for {} from DB: {}".format(kind, pseudo.pk)
-        # Attach pseudo node to the calculation
-        pseudo_dict[kind] = pseudo
+            if created:
+                print "Created the pseudo for {}".format(kind)
+            else:
+                print "Using the pseudo for {} from DB: {}".format(kind, pseudo.pk)
+            # Attach pseudo node to the calculation
+            pseudo_dict[kind] = pseudo
 
         inputs.pseudo = pseudo_dict
 

@@ -1,0 +1,10 @@
+develop
+localhost
+Dev container computer setting
+True
+local
+direct
+#!/bin/bash
+/scratch/aiida_run/
+mpirun -np 1
+1

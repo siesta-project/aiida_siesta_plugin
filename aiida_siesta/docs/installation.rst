@@ -20,33 +20,3 @@ aiida_core python framework.
 
    reentry scan -r aiida
 
-
-Development tests
-+++++++++++++++++
-
-It is possible now to run development tests located in
-``aiida_siesta/tests/`` via *pytest*. The approach was originally
-implemented by **Dominik Gresch** in his
-`aiida\_pytest <https://github.com/greschd/aiida_pytest>`__ module.
-
-In order to run tests, after the installation described above, run:
-
-::
-
-    pip install -r test_reqirements.txt
-
-which will install necessary versions of dependencies.
-
-Then ``cd aiida_siesta/tests`` and invoke:
-
-::
-
-    ./all.sh
-
-to run all tests, or:
-
-::
-
-    ./run.sh <test_module_filenames>
-
-to run specific tests.
