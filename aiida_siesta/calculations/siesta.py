@@ -17,7 +17,7 @@ from tkdict import FDFDict
 
 __copyright__ = u"Copyright (c), 2015, ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE (Theory and Simulation of Materials (THEOS) and National Centre for Computational Design and Discovery of Novel Materials (NCCR MARVEL)), Switzerland and ROBERT BOSCH LLC, USA. All rights reserved."
 __license__ = "MIT license, see LICENSE.txt file"
-__version__ = "0.9.7"
+__version__ = "0.11.5"
 __contributors__ = "Victor M. Garcia-Suarez, Alberto Garcia, Emanuele Bosoni"
 
 
@@ -25,7 +25,7 @@ class SiestaCalculation(JobCalculation):
     """
     Siesta calculator class for AiiDA.
     """
-    _siesta_plugin_version = 'aiida-0.9.1--plugin-0.9.7'
+    _siesta_plugin_version = 'aiida-0.11.0--plugin-0.11.5'
 
     def _init_internal_params(self):
         super(SiestaCalculation, self)._init_internal_params()
@@ -46,11 +46,13 @@ class SiestaCalculation(JobCalculation):
         self._aiida_blocked_keywords.append('lattice-constant')
         self._aiida_blocked_keywords.append('atomic-coordinates-format')
         self._aiida_blocked_keywords.append('atomiccoordinatesformat')
+        self._aiida_blocked_keywords.append('use-tree-timer')
 
         # Default input and output files
         self._DEFAULT_INPUT_FILE = 'aiida.in'
         self._DEFAULT_OUTPUT_FILE = 'aiida.out'
         self._DEFAULT_XML_FILE = 'aiida.xml'
+        self._DEFAULT_JSON_FILE = 'time.json'
         self._DEFAULT_MESSAGES_FILE = 'MESSAGES'
         self._DEFAULT_BANDS_FILE = 'aiida.bands'
 
@@ -60,6 +62,7 @@ class SiestaCalculation(JobCalculation):
         self._INPUT_FILE_NAME = 'aiida.fdf'
         self._OUTPUT_FILE_NAME = 'aiida.out'
         self._XML_FILE_NAME = 'aiida.xml'
+        self._JSON_FILE_NAME = 'time.json'
         self._MESSAGES_FILE_NAME = 'MESSAGES'
         self._BANDS_FILE_NAME = 'aiida.bands'
 
@@ -293,6 +296,7 @@ class SiestaCalculation(JobCalculation):
 
         input_params.update({'system-name': self._PREFIX})
         input_params.update({'system-label': self._PREFIX})
+        input_params.update({'use-tree-timer': 'T'})
 
         input_params.update({'number-of-species': len(structure.kinds)})
         input_params.update({'number-of-atoms': len(structure.sites)})
@@ -522,6 +526,7 @@ class SiestaCalculation(JobCalculation):
         calcinfo.stdin_name = self._INPUT_FILE_NAME
         calcinfo.stdout_name = self._OUTPUT_FILE_NAME
         calcinfo.xml_name = self._XML_FILE_NAME
+        calcinfo.json_name = self._JSON_FILE_NAME
         calcinfo.messages_name = self._MESSAGES_FILE_NAME
 
         #
@@ -532,6 +537,7 @@ class SiestaCalculation(JobCalculation):
         codeinfo.stdin_name = self._INPUT_FILE_NAME
         codeinfo.stdout_name = self._OUTPUT_FILE_NAME
         codeinfo.xml_name = self._XML_FILE_NAME
+        codeinfo.json_name = self._JSON_FILE_NAME
         codeinfo.messages_name = self._MESSAGES_FILE_NAME
         codeinfo.code_uuid = code.uuid
         calcinfo.codes_info = [codeinfo]
@@ -545,6 +551,7 @@ class SiestaCalculation(JobCalculation):
         calcinfo.retrieve_list = []
         calcinfo.retrieve_list.append(self._OUTPUT_FILE_NAME)
         calcinfo.retrieve_list.append(self._XML_FILE_NAME)
+        calcinfo.retrieve_list.append(self._JSON_FILE_NAME)
         calcinfo.retrieve_list.append(self._MESSAGES_FILE_NAME)
         if flagbands:
             calcinfo.retrieve_list.append(self._BANDS_FILE_NAME)

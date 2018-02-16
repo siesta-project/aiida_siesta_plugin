@@ -143,18 +143,30 @@ functionality should be compiled in and active in the run!
 * **output_parameters** :py:class:`ParameterData <aiida.orm.data.parameter.ParameterData>` 
   (accessed by ``calculation.res``)
 
-A dictionary with metadata, scalar result values, and a warnings
-list.  Units are specified by means of an extra item with '_units'
+A dictionary with metadata, scalar result values, a warnings
+list, and possibly a timing section.
+Units are specified by means of an extra item with '_units'
 appended to the key::
 
     {
       "siesta:Version": "siesta-4.0-540",
       "E_fermi": -3.24,
-	  "E_fermi_units": "eV",
+      "E_fermi_units": "eV",
       "FreeE": -6656.2343
-	  "FreeE_units": "eV",
-	  "warnings": [ "INFO: Job Completed"]
-	}
+      "FreeE_units": "eV",
+      "global_time": 55.213,
+      "timing_decomposition": {
+        "compute_DM": 33.208, 
+        "nlefsm-1": 0.582, 
+        "nlefsm-2": 0.045, 
+        "post-SCF": 2.556, 
+        "setup_H": 16.531, 
+        "setup_H0": 2.351, 
+        "siesta": 55.213, 
+        "state_init": 0.171
+      }, 
+      "warnings": [ "INFO: Job Completed"]
+    }
 
 The scalar quantities to include are specified in a global-variable
 in the parser. Currently they are the Kohn-Sham, Free, Band, and Fermi
@@ -162,6 +174,9 @@ energies, and the total spin. These are converted to 'float'.
 As this dictionary is sorted, keys for program values and metadata are
 intermixed.
 
+The timing information (if present), includes the global walltime in
+seconds, and a decomposition by sections of the code. Most relevant
+are typically the `compute_DM` and `setup_H` sections.
 
 The 'warnings' list contains program messages, labeled as INFO,
 WARNING, or FATAL, read directly from a MESSAGES file produced by
@@ -256,7 +271,7 @@ Retrieving more files
 .....................
 
 If you know that your calculation is producing additional files that you want to
-retrieve (and preserve in the AiiDA repository in the long term), you can add
+retrieve (and preserve in the AiiDA repository), you can add
 those files as a list as follows::
 
 

@@ -7,7 +7,7 @@ from aiida.orm.data.parameter import ParameterData
 # TODO Get modules metadata from setup script.
 __copyright__ = u"Copyright (c), 2015, ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE (Theory and Simulation of Materials (THEOS) and National Centre for Computational Design and Discovery of Novel Materials (NCCR MARVEL)), Switzerland and ROBERT BOSCH LLC, USA. All rights reserved."
 __license__ = "MIT license, see LICENSE.txt file"
-__version__ = "0.9.8"
+__version__ = "0.11.5"
 __contributors__ = "Andrius Merkys, Giovanni Pizzi, Victor Garcia-Suarez, Alberto Garcia, Emanuele Bosoni"
 
 
@@ -243,15 +243,15 @@ class SiestaParser(Parser):
         if not isinstance(calc,SiestaCalculation):
             raise SiestaOutputParsingError("Input calc must be a SiestaCalculation")
 
-    def _get_output_nodes(self, output_path, messages_path, xml_path, bands_path):
+    def _get_output_nodes(self, output_path, messages_path, xml_path, json_path, bands_path):
         """
         Extracts output nodes from the standard output and standard error
-        files. (And XML file)
+        files. (And XML and JSON files)
         """
         from aiida.orm.data.array.trajectory import TrajectoryData
         import re
 
-        parser_version = 'aiida-0.9.X--plugin-0.6.3'
+        parser_version = 'aiida-0.11.0--plugin-0.11.5'
         parser_info = {}
         parser_info['parser_info'] = 'AiiDA Siesta Parser V. {}'.format(parser_version)
         parser_info['parser_warnings'] = []
@@ -263,7 +263,7 @@ class SiestaParser(Parser):
             self.logger.error("Could not find a CML file to parse")
             # NOTE aiida.xml is not there?
             raise SiestaOutputParsingError("Could not find a CML file to parse")
-        
+
         # We get everything from the CML file
 
         xmldoc = get_parsed_xml_doc(xml_path)
@@ -286,6 +286,19 @@ class SiestaParser(Parser):
 
         result_dict = get_dict_from_xml_doc(xmldoc)
 
+        # Add timing information
+
+        if json_path is None:
+            self.logger.info("Could not find a time.json file to parse")
+        else:
+             from json_time import get_timing_info
+             global_time, timing_decomp = get_timing_info(json_path)
+             if global_time is None:
+                  self.logger.info("Cannot fully parse the time.json file")
+             else:
+                  result_dict["global_time"] = global_time
+                  result_dict["timing_decomposition"] = timing_decomp
+        
         # Add warnings
         successful = True
         if messages_path is None:
@@ -348,9 +361,11 @@ class SiestaParser(Parser):
         output_path = None
         messages_path  = None
         xml_path  = None
+        json_path  = None
         bands_path = None
         try:
-            output_path, messages_path, xml_path, bands_path = self._fetch_output_files(retrieved)
+            output_path, messages_path, xml_path, json_path, bands_path = \
+                             self._fetch_output_files(retrieved)
         except InvalidOperation:
             raise
         except IOError as e:
@@ -362,6 +377,7 @@ class SiestaParser(Parser):
             return False, ()
 
         successful, out_nodes = self._get_output_nodes(output_path, messages_path, xml_path, bands_path)
+                                           json_path,
         
         return successful, out_nodes
 
@@ -394,6 +410,7 @@ class SiestaParser(Parser):
         output_path = None
         messages_path  = None
         xml_path  = None
+        json_path  = None
         bands_path = None
 
         if self._calc._DEFAULT_OUTPUT_FILE in list_of_files:
@@ -402,6 +419,9 @@ class SiestaParser(Parser):
         if self._calc._DEFAULT_XML_FILE in list_of_files:
             xml_path = os.path.join( out_folder.get_abs_path('.'),
                                         self._calc._DEFAULT_XML_FILE )
+        if self._calc._DEFAULT_JSON_FILE in list_of_files:
+            json_path = os.path.join( out_folder.get_abs_path('.'),
+                                        self._calc._DEFAULT_JSON_FILE )
         if self._calc._DEFAULT_MESSAGES_FILE in list_of_files:
             messages_path  = os.path.join( out_folder.get_abs_path('.'),
                                         self._calc._DEFAULT_MESSAGES_FILE )
@@ -409,7 +429,7 @@ class SiestaParser(Parser):
             bands_path  = os.path.join( out_folder.get_abs_path('.'),
                                         self._calc._DEFAULT_BANDS_FILE )
 
-        return output_path, messages_path, xml_path, bands_path
+        return output_path, messages_path, xml_path, json_path, bands_path
 
     def get_warnings_from_file(self,messages_path):
      """
