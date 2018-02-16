@@ -376,8 +376,8 @@ class SiestaParser(Parser):
             self.logger.error("No output files found")
             return False, ()
 
-        successful, out_nodes = self._get_output_nodes(output_path, messages_path, xml_path, bands_path)
-                                           json_path,
+        successful, out_nodes = self._get_output_nodes(output_path, messages_path,
+                                                       xml_path, json_path, bands_path)
         
         return successful, out_nodes
 
