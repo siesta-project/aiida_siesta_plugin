@@ -2,40 +2,70 @@ def get_timing_info(json_file):
     
     import json
 
+    timing_decomp = {}
+    global_time = None
+    
     try:
         data = json.load(open(json_file))
-        d1 = data["global_section"]["siesta"]
-        t0 = d1["_time"]
-        d2 = d1["IterGeom"]
-        t1 = d2["state_init"]["_time"]
-        t2 = d2["Setup_H0"]["_time"]
-        t3 = d2["Setup_H0"]["nlefsm"]["_time"]
-        t4 = d2["IterSCF"]["setup_H"]["_time"]
-        t5 = d2["IterSCF"]["compute_dm"]["_time"]
-        t6 = d2["PostSCF"]["_time"]
-        t7 = d2["PostSCF"]["nlefsm"]["_time"]
-        t8 = d1["siesta_analysis"]["_time"]
-
-        timing_decomp = {
-            "siesta": t0,
-            "state_init": t1,
-            "setup_H0": t2,
-            "nlefsm-1": t3,
-            "setup_H": t4,
-            "compute_DM": t5,
-            "post-SCF": t6,
-            "nlefsm-2": t7,
-            "siesta_analysis": t8
-        }
-
-        return t0, timing_decomp
     except:
         #
-        # Either the JSON file is corrupted, or some of the fields
-        # are not there. Pending a further polishing, this would happen
-        # if the calculation is not complete
-        #
-        return None, {}
+        # The JSON file is not parseable...
+        # Emit message
+        return global_time, timing_decomp
+
+    try:
+        d1 = data["global_section"]["siesta"]
+        global_time = d1["_time"]
+        timing_decomp["siesta"] = global_time
+    except:
+        # wrong structure
+        return global_time, timing_decomp
+        
+    try:
+        d2 = d1["IterGeom"]
+        timing_decomp["state_init"] = d2["state_init"]["_time"]
+    except:
+        # This might not be present in a calculation
+        pass
+
+    try:
+        timing_decomp["setup_H0"] = d2["Setup_H0"]["_time"]
+    except:
+        # This might not be present in a calculation
+        pass
+
+    try:
+        timing_decomp["nlefsm-1"] = d2["Setup_H0"]["nlefsm"]["_time"]
+    except:
+        # This might not be present in a calculation
+        pass
+    try:
+        timing_decomp["setup_H"] = d2["IterSCF"]["setup_H"]["_time"]
+    except:
+        # This might not be present in a calculation
+        pass
+    try:
+        timing_decomp["compute_DM"] = d2["IterSCF"]["compute_dm"]["_time"]
+    except:
+        # This might not be present in a calculation
+        pass
+    try:
+        timing_decomp["post-SCF"] = d2["PostSCF"]["_time"]
+    except:
+        # This might not be present in a calculation
+        pass
+    try:
+        timing_decomp["nlefsm-2"] = d2["PostSCF"]["nlefsm"]["_time"]
+    except:
+        # This might not be present in a calculation
+        pass
+    try:
+        timing_decomp["siesta_analysis"] = d1["siesta_analysis"]["_time"]
+    except:
+        # This might not be present in a calculation
+        pass
+
+    return global_time, timing_decomp
 
 
 
