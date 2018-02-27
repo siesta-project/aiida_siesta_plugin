@@ -91,6 +91,17 @@ def get_dict_from_xml_doc(xmldoc):
              scalar_dict[reduced_name+"_units"] = unit_name
 
      scalar_dict['variable_geometry'] = is_variable_geometry(xmldoc)
+     #
+     # Sizes of orbital set (and non-zero interactions), and mesh 
+     #
+     no_u, nnz, mesh = get_sizes_info(xmldoc)
+     if no_u is not None:
+         scalar_dict['no_u'] = no_u
+     if nnz is not None:
+         scalar_dict['nnz'] = nnz
+     if mesh is not None:
+         scalar_dict['mesh'] = mesh
+         
      return scalar_dict
 
 
@@ -112,6 +123,34 @@ def is_variable_geometry(xmldoc):
      # If we reach this point, something is very wrong
      return False
      
+def get_sizes_info(xmldoc):
+     """
+     Gets the number of orbitals and non-zero interactions
+     """
+     no_u = None
+     nnz = None
+     mesh = None
+     
+     itemlist = xmldoc.getElementsByTagName('module')
+     for m in itemlist:
+       # Process the first "step" module, which is a "geometry" one
+       if m.attributes.has_key('serial'):
+           # Get properties here
+           props_list = m.getElementsByTagName('property')
+           for p in props_list:
+               if p.attributes['dictRef'].value == "siesta:no_u":
+                   scalar = p.getElementsByTagName('scalar')[0]
+                   no_u = int(scalar.childNodes[0].data)
+               if p.attributes['dictRef'].value == "siesta:nnz":
+                   scalar = p.getElementsByTagName('scalar')[0]
+                   nnz = int(scalar.childNodes[0].data)
+               if p.attributes['dictRef'].value == "siesta:ntm":
+                   array = p.getElementsByTagName('array')[0]
+                   mesh = [int(s) for s in array.childNodes[0].data.split()]
+               
+
+           return no_u, nnz, mesh
+
 def get_last_structure(xmldoc, input_structure):
 
     from aiida.orm import DataFactory

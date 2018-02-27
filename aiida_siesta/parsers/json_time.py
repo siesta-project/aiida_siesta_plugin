@@ -64,6 +64,12 @@ def get_timing_info(json_file):
     except:
         # This might not be present in a calculation
         pass
+    # Alternate name
+    try:
+        timing_decomp["siesta_analysis"] = d1["Analysis"]["_time"]
+    except:
+        # This might not be present in a calculation
+        pass
 
     return global_time, timing_decomp
 
