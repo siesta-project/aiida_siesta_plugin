@@ -31,45 +31,46 @@ calc = load_node(int(calc_id))
 
 if isinstance(calc,SiestaCalc):
 
-    print "Calculation status: '{}'".format(calc.get_state())
-    print "Desc: {}".format(calc.description)
+    print >> sys.stderr, "Calculation status: '{}'".format(calc.get_state())
+    print >> sys.stderr, "Desc: {}".format(calc.description)
     d=calc.out.output_parameters.get_dict()
     
+    sys.stdout.write("{} ".format(int(calc_id)))
     try:
         no_u = d['no_u']
         nnz = d['nnz']
-        print "No of orbitals: {} nnz: {}".format(no_u,nnz)
-        sys.stderr.write("{} {}".format(no_u,nnz))
+        print >> sys.stderr, "No of orbitals: {} nnz: {}".format(no_u,nnz)
+        sys.stdout.write("{} {}".format(no_u,nnz))
     except:
         pass
     try:
         mesh = d['mesh']
         np = mesh[0]*mesh[1]*mesh[2]
-        print "Mesh points: {} (total {})".format(mesh,np)
-        sys.stderr.write(" {} {}".format(mesh,np))
+        print >> sys.stderr, "Mesh points: {} (total {})".format(mesh,np)
+        sys.stdout.write(" {} {}".format(mesh,np))
     except:
         pass
     try:
         nodes= d['siesta:Nodes']
-        print "Number of nodes {}".format(nodes)
-        sys.stderr.write(" {} ".format(int(nodes)))
+        print >> sys.stderr, "Number of nodes {}".format(nodes)
+        sys.stdout.write(" {} ".format(int(nodes)))
     except:
         pass
     try:
         code= str(calc.get_code()).split()[2]
-        print "Code: {}".format(code)
-        sys.stderr.write(" {} ".format(code))
+        print >> sys.stderr, "Code: {}".format(code)
+        sys.stdout.write(" {} ".format(code))
     except:
         pass
     try:
         computer= str(calc.get_computer()).split()[0]
-        print "Computer: {}".format(computer)
-        sys.stderr.write(" {} ".format(computer))
+        print >> sys.stderr, "Computer: {}".format(computer)
+        sys.stdout.write(" {} ".format(computer))
     except:
         pass
     try:
         t_global = d['global_time']
-        print "Total time: {}".format(t_global)
+        print >> sys.stderr, "Total time: {}".format(t_global)
     except:
         pass
 
@@ -77,12 +78,12 @@ if isinstance(calc,SiestaCalc):
         t_decomp = d['timing_decomposition']
         t_solver = t_decomp['compute_DM']
         t_H = t_decomp['setup_H']
-        print "Total time, solver, setup_H: {} {} {}".format(t_global,t_solver,t_H)
-        sys.stderr.write(" {} {} {}\n".format(t_global,t_solver,t_H))
+        print >> sys.stderr, "Total time, solver, setup_H: {} {} {}".format(t_global,t_solver,t_H)
+        sys.stdout.write(" {} {} {}\n".format(t_global,t_solver,t_H))
     except:
         pass
     
-        sys.stderr.flush()
+        sys.stdout.flush()
 
 else:
     print >> sys.stderr, ("Calculation should be a Siesta calculation.")
