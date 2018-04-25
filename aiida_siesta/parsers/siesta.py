@@ -62,7 +62,7 @@ def get_dict_from_xml_doc(xmldoc):
 
      scf_final = None
      for m in itemlist:
-       if m.attributes.has_key('title'):
+       if 'title' in m.attributes.keys():
           # Get last scf finalization module
           if m.attributes['title'].value == "SCF Finalization":
                scf_final = m
@@ -73,7 +73,7 @@ def get_dict_from_xml_doc(xmldoc):
       props = scf_final.getElementsByTagName('property')
      
       for s in props:
-        if s.attributes.has_key('dictRef'):
+        if 'dictRef' in s.attributes.keys():
           name = s.attributes['dictRef'].value
           if name in standard_output_list:
              data = s.getElementsByTagName('scalar')[0]
@@ -114,11 +114,12 @@ def is_variable_geometry(xmldoc):
      itemlist = xmldoc.getElementsByTagName('module')
      for m in itemlist:
        # Check the type of the first "step" module, which is a "geometry" one
-       if m.attributes.has_key('serial'):
-         if m.attributes['dictRef'].value == "Single-Point":
-              return False
-         else:
-              return True
+       if 'serial' in m.attributes.keys():
+           if 'dictRef' in m.attributes.keys():
+               if m.attributes['dictRef'].value == "Single-Point":
+                   return False
+               else:
+                   return True
 
      # If we reach this point, something is very wrong
      return False
@@ -134,19 +135,20 @@ def get_sizes_info(xmldoc):
      itemlist = xmldoc.getElementsByTagName('module')
      for m in itemlist:
        # Process the first "step" module, which is a "geometry" one
-       if m.attributes.has_key('serial'):
+       if 'serial' in m.attributes.keys():
            # Get properties here
            props_list = m.getElementsByTagName('property')
            for p in props_list:
-               if p.attributes['dictRef'].value == "siesta:no_u":
-                   scalar = p.getElementsByTagName('scalar')[0]
-                   no_u = int(scalar.childNodes[0].data)
-               if p.attributes['dictRef'].value == "siesta:nnz":
-                   scalar = p.getElementsByTagName('scalar')[0]
-                   nnz = int(scalar.childNodes[0].data)
-               if p.attributes['dictRef'].value == "siesta:ntm":
-                   array = p.getElementsByTagName('array')[0]
-                   mesh = [int(s) for s in array.childNodes[0].data.split()]
+               if 'dictRef' in p.attributes.keys():
+                   if p.attributes['dictRef'].value == "siesta:no_u":
+                       scalar = p.getElementsByTagName('scalar')[0]
+                       no_u = int(scalar.childNodes[0].data)
+                   if p.attributes['dictRef'].value == "siesta:nnz":
+                       scalar = p.getElementsByTagName('scalar')[0]
+                       nnz = int(scalar.childNodes[0].data)
+                   if p.attributes['dictRef'].value == "siesta:ntm":
+                       array = p.getElementsByTagName('array')[0]
+                       mesh = [int(s) for s in array.childNodes[0].data.split()]
                
 
            return no_u, nnz, mesh
@@ -163,9 +165,10 @@ def get_last_structure(xmldoc, input_structure):
     finalmodule = None
     for m in itemlist:
       # Get a "geometry" module by the criteria:
-      if m.attributes.has_key('serial'):
-         if m.attributes['dictRef'].value != "SCF":
-              finalmodule = m
+      if 'serial' in m.attributes.keys():
+          if 'dictRef' in m.attributes.keys():
+              if m.attributes['dictRef'].value != "SCF":
+                  finalmodule = m
 
     # In case there is no appropriate data, fall back and
     # at least return the initial structure
@@ -219,7 +222,7 @@ def get_final_forces_and_stress(xmldoc):
  
  scf_final = None
  for m in itemlist:
-     if m.attributes.has_key('title'):
+     if 'title' in m.attributes.keys():
           # Get last scf finalization module
           if m.attributes['title'].value == "SCF Finalization":
                scf_final = m
@@ -230,7 +233,7 @@ def get_final_forces_and_stress(xmldoc):
  if scf_final is not None:
       props = scf_final.getElementsByTagName('property')
       for p in props:
-        if p.attributes.has_key('dictRef'):
+        if 'dictRef' in p.attributes.keys():
 
            if p.attributes['dictRef'].value=='siesta:forces':
                 mat = p.getElementsByTagName('matrix')[0]
