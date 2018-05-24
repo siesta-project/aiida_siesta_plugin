@@ -142,7 +142,7 @@ class STMCalculation(JobCalculation):
         #
         # We do it right here, and hope that it will not be overriden
         #
-        self.set_withmpi(False)
+        # self.set_withmpi(False)
         #
         try:
             code = inputdict.pop(self.get_linkname('code'))
