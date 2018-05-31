@@ -177,6 +177,8 @@ for fname, kinds, in raw_pseudos:
 
 calc.set_max_wallclock_seconds(30*60) # 30 min
 
+####### Needed in new version??
+#####calc.set_resources({"parallel_env": 'mpi', "tot_num_mpiprocs": 1})
 calc.set_resources({"num_machines": 1, "num_mpiprocs_per_machine": 2})
 code_mpi_enabled =  False
 try:
