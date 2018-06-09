@@ -1,6 +1,6 @@
 {
     "version": "0.9.8",
-    "name": "aiida_siesta",
+    "name": "aiida-siesta",
     "url": "https://github.com/albgar/aiida_siesta_plugin",
     "download_url": "https://github.com/vdikan/aiida_siesta_plugin/archive/0.9.8.tar.gz",
     "keywords": ["aiida", "siesta", "dft"],
