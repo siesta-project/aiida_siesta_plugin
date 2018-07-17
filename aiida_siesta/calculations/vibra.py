@@ -31,7 +31,7 @@ class VibraCalculation(JobCalculation):
         super(VibraCalculation, self)._init_internal_params()
 
         # Default Siesta output parser provided by AiiDA
-        #self._default_parser = "vibra.parser"
+        self._default_parser = "siesta.vibra"
 
         # Keywords that cannot be set
         # We need to canonicalize this!
@@ -51,6 +51,7 @@ class VibraCalculation(JobCalculation):
         self._DEFAULT_OUTPUT_FILE = 'aiida.out'
         self._DEFAULT_FC_FILE = 'aiida.FC'
         self._DEFAULT_BANDS_FILE = 'aiida.bands'
+        self._DEFAULT_VECTORS_FILE = 'aiida.vectors'
 
         self._SFILES_SUBFOLDER = './'
         self._OUTPUT_SUBFOLDER = './'
@@ -59,6 +60,7 @@ class VibraCalculation(JobCalculation):
         self._OUTPUT_FILE_NAME = 'aiida.out'
         self._FC_FILE_NAME = 'aiida.FC'
         self._BANDS_FILE_NAME = 'aiida.bands'
+        self._VECTORS_FILE_NAME = 'aiida.vectors'
 
         # in restarts, it will copy from the parent the following
         self._restart_copy_from = os.path.join(self._OUTPUT_SUBFOLDER, '*.FC')
