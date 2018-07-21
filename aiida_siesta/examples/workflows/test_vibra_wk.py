@@ -15,9 +15,10 @@ from aiida.orm.data.base import Int, Str, Float
 from aiida.orm.data.parameter import ParameterData
 from aiida.orm.data.structure import StructureData
 from aiida.orm.data.array.kpoints import KpointsData
+from aiida.orm.data.array import ArrayData
 from aiida.work.run import run
-
 from aiida_siesta.workflows.vibrawf import SiestaVibraWorkChain
+import numpy as np
 
 
 def parser_setup():
@@ -69,24 +70,14 @@ def execute(args):
 
     protocol = Str(args.protocol)
     
-    # Structure and supercell. Bulk silicon
+    # Structure. Bulk silicon
 
     SuperCell_1=1
     SuperCell_2=1
     SuperCell_3=1
-
-    try:
-        lxmax=SuperCell_1
-    except:
-        lxmax=0
-    try:
-        lymax=SuperCell_2
-    except:
-        lymax=0
-    try:
-        lzmax=SuperCell_2
-    except:
-        lzmax=0
+    scnumbers=np.array([SuperCell_1,SuperCell_2,SuperCell_3])
+    scarray=ArrayData()
+    scarray.set_array('sca',scnumbers)
 
     alat=5.43 # Angstrom. Not passed to the fdf file (only for internal use)
     cell=[[0., alat/2, alat/2,],
@@ -97,34 +88,9 @@ def execute(args):
     x0=[[pf,pf,pf],
         [-pf,-pf,-pf]]
 
-    scell=[[0 for x in range(3)] for y in range(3)]
-    for i in range(3):
-        scell[i][0]=(2*lxmax+1)*cell[i][0]
-        scell[i][1]=(2*lymax+1)*cell[i][1]
-        scell[i][2]=(2*lzmax+1)*cell[i][2]
-
     s1=StructureData(cell=cell)
     for i in range(na):
         s1.append_atom(position=(x0[i][0],x0[i][1],x0[i][2]),symbols=['Si'])
-
-    nna=na*(2*lxmax+1)*(2*lymax+1)*(2*lzmax+1)
-    xa=[[0 for x in range(3)] for y in range(nna)]
-    iatm=-1
-    rr=[0 for x in range(3)]
-    for i in range(-lxmax,lxmax+1):
-        for j in range(-lymax,lymax+1):
-            for k in range(-lzmax,lzmax+1):
-                rr[0]=i*cell[0][0]+j*cell[0][1]+k*cell[0][2]
-                rr[1]=i*cell[1][0]+j*cell[1][1]+k*cell[1][2]
-                rr[2]=i*cell[2][0]+j*cell[2][1]+k*cell[2][2]
-                for ia in range(na):
-                    iatm=iatm+1
-                    for ix in range(3):
-                        xa[iatm][ix]=x0[ia][ix]+rr[ix]
-
-    s2=StructureData(cell=scell)
-    for i in range(nna):
-        s2.append_atom(position=(xa[i][0],xa[i][1],xa[i][2]),symbols=['Si'])
 
     bandskpoints = KpointsData()
     kpp = [(1,1.,1.,1.),
@@ -148,13 +114,12 @@ def execute(args):
         structure = load_node(args.structure)
     else:
         structure = s1
-    structure_sc = s2
 
     run(SiestaVibraWorkChain,
         code=code,
         vibra_code=vibra_code,
+        scarray=scarray,
         structure=structure,
-        structure_sc=structure_sc,
         protocol=protocol,
         bandskpoints=bandskpoints)
 

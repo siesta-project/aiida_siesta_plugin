@@ -4,6 +4,7 @@ from aiida.orm.data.base import Bool, Int, Str, Float
 from aiida.orm.data.parameter import ParameterData
 from aiida.orm.data.structure import StructureData
 from aiida.orm.data.array.kpoints import KpointsData
+from aiida.orm.data.array import ArrayData
 from aiida.orm.data.remote import RemoteData
 
 from aiida.work.run import submit
@@ -15,6 +16,8 @@ from aiida_siesta.data.psf import get_pseudos_from_structure
 
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
 from aiida_siesta.calculations.vibra import VibraCalculation
+
+from buildsc import buildsc
 
 __copyright__ = u"Copyright (c), 2015, ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE (Theory and Simulation of Materials (THEOS) and National Centre for Computational Design and Discovery of Novel Materials (NCCR MARVEL)), Switzerland and ROBERT BOSCH LLC, USA. All rights reserved."
 __license__ = "MIT license, see LICENSE.txt file"
@@ -34,8 +37,8 @@ class SiestaVibraWorkChain(WorkChain):
         super(SiestaVibraWorkChain, cls).define(spec)
         spec.input('code', valid_type=Code)
         spec.input('vibra_code', valid_type=Code)
+        spec.input('scarray', valid_type=ArrayData)
         spec.input('structure', valid_type=StructureData)
-        spec.input('structure_sc', valid_type=StructureData)
         spec.input('protocol', valid_type=Str, default=Str('standard'))
         spec.input('bandskpoints', valid_type=KpointsData)
         spec.outline(
@@ -59,7 +62,12 @@ class SiestaVibraWorkChain(WorkChain):
         self.report('Running setup_structure')
 
         self.ctx.structure_initial_primitive = self.inputs.structure
-        self.ctx.structure_supercell = self.inputs.structure_sc
+        scell, xasc, specsc = buildsc(self.inputs.scarray,self.inputs.structure)
+        nna=len(xasc)
+        self.ctx.structure_supercell = StructureData(cell=scell)
+        for i in range(nna):
+            self.ctx.structure_supercell.append_atom(position=(xasc[i][0],\
+                    xasc[i][1],xasc[i][2]),symbols=specsc[i])
 
     def setup_rsi_inputs(self):
         """

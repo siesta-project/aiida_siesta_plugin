@@ -12,6 +12,7 @@ import os
 from aiida.common.example_helpers import test_and_get_code
 from aiida.common.exceptions import NotExistent
 from aiida.orm import CalculationFactory
+from aiida.tools import get_explicit_kpoints_path
 
 ################################################################
 ParameterData = DataFactory('parameter')
@@ -35,7 +36,7 @@ except IndexError:
 try:
     codename = sys.argv[2]
 except IndexError:
-    codename = 'vib-4.0.2@cm135'
+    codename = 'vi-4.0.1@cm135'
 
 code = test_and_get_code(codename, expected_code_type='siesta.vibra')
 #
@@ -87,24 +88,30 @@ calc.use_parameters(parameters)
 
 #
 # K-points for bands --------------------
-bandskpoints = KpointsData()
+seekpath_parameters = ParameterData(dict={'reference_distance': float(0.02)})
+result=get_explicit_kpoints_path(s, **seekpath_parameters.get_dict())
+newstructure = result['primitive_structure']
+kpoints_path = result['explicit_kpoints']
 
-kpp = [(1,1.,1.,1.),
-       (15,0.,0.5,0.5),
-       (25,0.,0.,0.),
-       (20,0.5,0.5,0.5),
-       (20,0.,0.5,0.5),
-       (15,0.25,0.5,0.75),
-       (20,0.5,0.5,0.5)]
-lpp = [[0,'\Gamma'],
-       [1,'X'],
-       [2,'\Gamma'],
-       [3,'L'],
-       [4,'X'],
-       [5,'W'],
-       [6,'L']]
-bandskpoints.set_cell(s.cell, s.pbc)
-bandskpoints.set_kpoints(kpp,labels=lpp)
+bandskpoints = KpointsData()
+bandskpoints = kpoints_path
+
+#kpp = [(1,1.,1.,1.),
+#       (15,0.,0.5,0.5),
+#       (25,0.,0.,0.),
+#       (20,0.5,0.5,0.5),
+#       (20,0.,0.5,0.5),
+#       (15,0.25,0.5,0.75),
+#       (20,0.5,0.5,0.5)]
+#lpp = [[0,'\Gamma'],
+#       [1,'X'],
+#       [2,'\Gamma'],
+#       [3,'L'],
+#       [4,'X'],
+#       [5,'W'],
+#       [6,'L']]
+#bandskpoints.set_cell(s.cell, s.pbc)
+#bandskpoints.set_kpoints(kpp,labels=lpp)
 
 calc.use_bandskpoints(bandskpoints)
 

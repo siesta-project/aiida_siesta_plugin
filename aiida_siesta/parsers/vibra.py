@@ -31,7 +31,7 @@ class VibraParser(Parser):
         if not isinstance(calc,VibraCalculation):
             raise VibraOutputParsingError("Input calc must be a VibraCalculation")
 
-    def _get_output_nodes(self, output_path):
+    def _get_output_nodes(self, output_path, bands_path):
         """
         Extracts output nodes from the standard output and standard error
         files. (And XML and JSON files)
@@ -58,7 +58,7 @@ class VibraParser(Parser):
         # Add outuput data
         output_dict = self.get_output_from_file(output_path)
         result_dict.update(output_dict)
-        
+
         # Add parser info dictionary
         parser_info = {}
         parser_version = 'aiida-0.11.0--plugin-0.11.5'
@@ -72,6 +72,17 @@ class VibraParser(Parser):
         link_name = self.get_linkname_outparams()
         result_list.append((link_name,output_data))
 
+        # Parse band-structure information if available
+        if bands_path is not None:
+             bands, coords = self.get_bands(bands_path)
+             from aiida.orm.data.array.bands import BandsData
+             arraybands = BandsData()
+             arraybands.set_kpoints(self._calc.inp.bandskpoints.get_kpoints(cartesian=True))
+             arraybands.set_bands(bands,units="eV")
+             result_list.append((self.get_linkname_bandsarray(), arraybands))
+             bandsparameters = ParameterData(dict={"kp_coordinates": coords})
+             result_list.append((self.get_linkname_bandsparameters(), bandsparameters))
+
         return successful, result_list
 
     def parse_with_retrieved(self,retrieved):
@@ -84,8 +95,9 @@ class VibraParser(Parser):
         import os
 
         output_path = None
+        bands_path = None
         try:
-            output_path=\
+            output_path, bands_path=\
                 self._fetch_output_files(retrieved)
         except InvalidOperation:
             raise
@@ -93,11 +105,11 @@ class VibraParser(Parser):
             self.logger.error(e.message)
             return False, ()
 
-        if output_path is None:
+        if output_path is None and bands_path is None:
             self.logger.error("No output files found")
             return False, ()
 
-        successful, out_nodes = self._get_output_nodes(output_path)
+        successful, out_nodes = self._get_output_nodes(output_path, bands_path)
         
         return successful, out_nodes
 
@@ -122,12 +134,16 @@ class VibraParser(Parser):
         list_of_files = out_folder.get_folder_list()
 
         output_path = None
+        bands_path = None
 
         if self._calc._DEFAULT_OUTPUT_FILE in list_of_files:
             output_path = os.path.join( out_folder.get_abs_path('.'),
                                         self._calc._DEFAULT_OUTPUT_FILE )
+        if self._calc._DEFAULT_BANDS_FILE in list_of_files:
+            bands_path = os.path.join( out_folder.get_abs_path('.'),
+                                        self._calc._DEFAULT_BANDS_FILE )
 
-        return output_path
+        return output_path, bands_path
 
     def get_errors_from_file(self,output_path):
         """
@@ -221,35 +237,66 @@ class VibraParser(Parser):
      
         return output_dict
 
-    def get_transport_data(self,nd_path):
-        """
-        Parses the open channels and transmission
-        files to get an ArrayData object that can
-        be stored in the database
-        """
+    def get_bands(self, bands_path):
+        # The parsing is different depending on whether I have Bands or Points.
+        # I recognise these two situations by looking at bandskpoints.label
+        # (like I did in the plugin)
+        from aiida.common.exceptions import InputValidationError
+        from aiida.common.exceptions import ValidationError
+        tottx = []
+        f = open(bands_path)
+        tottx = f.read().split()
 
-        import numpy as np
-        from aiida.orm.data.array import ArrayData
+        ef = float(tottx[0])
+        if self._calc.inp.bandskpoints.labels == None:
+            minfreq, maxfreq = float(tottx[1]), float(tottx[2])
+            nbands, nspins, nkpoints = int(tottx[3]), int(tottx[4]), int(
+                tottx[5])
+            spinup = np.zeros((nkpoints, nbands))
+            spindown = np.zeros((nkpoints, nbands))
+            coords = np.zeros(nkpoints)
+            if (nspins == 2):
+                block_length = nbands * 2
+            else:
+                block_length = nbands
+            for i in range(nkpoints):
+                # coords[i] = float(tottx[i * (block_length + 3) + 6])
+                for j in range(nbands):
+                    spinup[i, j] = (
+                        float(tottx[i * (block_length + 3) + 6 + j + 3]))
+                    if (nspins == 2):
+                        # Probably wrong! - need to test!!!
+                        spindown[i, j] = (float(
+                            tottx[i * (nbands * 2 + 3) + 6 + j + 3 + nbands]))
+        else:
+            mink, maxk = float(tottx[1]), float(tottx[2])
+            minfreq, maxfreq = float(tottx[3]), float(tottx[4])
+            nbands, nspins, nkpoints = int(tottx[5]), int(tottx[6]), int(
+                tottx[7])
+            spinup = np.zeros((nkpoints, nbands))
+            spindown = np.zeros((nkpoints, nbands))
+            coords = np.zeros(nkpoints)
+            if (nspins == 2):
+                block_length = nbands * 2
+            else:
+                block_length = nbands
 
-        f = open(nd_path)
-        lines = f.readlines()
+            for i in range(nkpoints):
+                coords[i] = float(tottx[i * (block_length + 1) + 8])
 
-        x = []
-        y = []
-        for line in lines:
-            try:
-                c1 = float(line.split()[0])
-                x.append(c1)
-                c2 = float(line.split()[1])
-                y.append(c2)
-            except:
-                pass
+                for j in range(nbands):
+                    spinup[i, j] = (
+                        float(tottx[i * (block_length + 1) + 8 + j + 1]))
+                    if (nspins == 2):
+                        # Probably wrong! - need to test!!!
+                        spindown[i, j] = (float(
+                            tottx[i * (nbands * 2 + 1) + 8 + j + 1 + nbands]))
+        if (nspins == 2):
+            bands = (spinup, spindown)
+        elif (nspins == 1):
+            bands = spinup
+        else:
+            raise NotImplementedError(
+                'nspins=4: non collinear bands not implemented yet')
 
-        X = np.array(x,dtype=float)
-        Y = np.array(y,dtype=float)
-
-        arraydata = ArrayData()
-        arraydata.set_array('X', X)
-        arraydata.set_array('Y', Y)
-
-        return arraydata
+        return (bands, coords)
