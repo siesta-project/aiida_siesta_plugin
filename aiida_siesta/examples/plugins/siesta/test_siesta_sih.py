@@ -12,6 +12,9 @@ import os
 from aiida.common.example_helpers import test_and_get_code
 from aiida.common.exceptions import NotExistent
 
+# Another molecule
+# Pseudo families introduced
+
 ################################################################
 
 PsfData = DataFactory('siesta.psf')
@@ -35,16 +38,40 @@ except IndexError:
 try:
     codename = sys.argv[2]
 except IndexError:
-    codename = 'siesta@develop'
+    codename = 'siesta4.0.1@parsons'
 
-# If True, load the pseudos from the family specified below
-# Otherwise, use static files provided
-auto_pseudos = False
+
 
 queue = None
 settings = None
 
 code = test_and_get_code(codename, expected_code_type='siesta.siesta')
+## For remote codes, it is not necessary to manually set the computer,
+## since it is set automatically by new_calc
+#computer = code.get_remote_computer()
+#calc = code.new_calc(computer=computer)
+
+calc = code.new_calc()
+calc.label = "SiH_spin"
+calc.description = "Test calculation with the Siesta code. SiH spin"
+calc.set_max_wallclock_seconds(30*60) # 30 min
+
+#------------ clarify this
+# Valid only for Slurm and PBS (using default values for the
+# number_cpus_per_machine), change for SGE-like schedulers 
+## Otherwise, to specify a given # of cpus per machine, uncomment the following:
+# calc.set_resources({"num_machines": 1, "num_mpiprocs_per_machine": 8})
+#calc.set_resources({"parallel_env": 'openmpi',"tot_num_mpiprocs": 1,"num_machines": 1,"num_cpus": 2})
+#------------ clarify this
+calc.set_resources({"num_machines": 1})
+
+#calc.set_custom_scheduler_commands("#SBATCH --account=ch3")
+
+if queue is not None:
+    calc.set_queue_name(queue)
+
+
+##----Structure---
 
 alat = 5.430 # angstrom
 cell = [[2*alat, 0., 0.,],
@@ -122,8 +149,16 @@ s.append_atom(position=(1.500*alat,1.500*alat,1.000*alat),symbols=['Si'])
 s.append_atom(position=(1.750*alat,1.750*alat,1.250*alat),symbols=['Si'])
 s.append_atom(position=(1.125*alat,1.125*alat,1.125*alat),symbols=['H'])
 
-
 elements = list(s.get_symbols_set())
+
+calc.use_structure(s)
+
+
+###-----Pseudos------
+
+# If True, load the pseudos from the family specified below
+# Otherwise, use static files provided
+auto_pseudos = False
 
 if auto_pseudos:
     valid_pseudo_groups = PsfData.get_psf_groups(filter_elements=elements)
@@ -146,68 +181,6 @@ if auto_pseudos:
         print >> sys.stderr, ",".join(i.name for i in valid_pseudo_groups)
         sys.exit(1)
 
-parameters = ParameterData(dict={
-                'xc-functional': 'LDA',
-                'xc-authors': 'CA',
-                'spinpolarized': True,
-                'meshcutoff': '40.000 Ry',
-                'max-scfiterations': 50,
-                'dm-numberpulay': 4,
-                'dm-mixingweight': 0.3,
-                'dm-tolerance': 1.e-3,
-                'solution-method': 'diagon',
-                'electronic-temperature': '25 meV',
-                'md-typeofrun': 'cg',
-                'md-numcgsteps': 3,
-                'md-maxcgdispl': '0.1 Ang',
-                'md-maxforcetol': '0.04 eV/Ang',
-                'xml:write': True
-                })
-
-basis = ParameterData(dict={
-'pao-energy-shift': '300 meV',
-'%block pao-basis-sizes': """
-Si SZP
-H  DZP                    """,
-})
-
-kpoints = KpointsData()
-
-# method mesh
-kpoints_mesh = 1
-kpoints.set_kpoints_mesh([kpoints_mesh,kpoints_mesh,kpoints_mesh])
-
-# (the object settings is optional)
-settings_dict={'test_key': 'test_value'}
-settings = ParameterData(dict=settings_dict)
-
-## For remote codes, it is not necessary to manually set the computer,
-## since it is set automatically by new_calc
-#computer = code.get_remote_computer()
-#calc = code.new_calc(computer=computer)
-
-calc = code.new_calc()
-calc.label = "SiH_spin"
-calc.description = "Test calculation with the Siesta code. SiH spin"
-calc.set_max_wallclock_seconds(30*60) # 30 min
-
-#------------ clarify this
-# Valid only for Slurm and PBS (using default values for the
-# number_cpus_per_machine), change for SGE-like schedulers 
-## Otherwise, to specify a given # of cpus per machine, uncomment the following:
-# calc.set_resources({"num_machines": 1, "num_mpiprocs_per_machine": 8})
-#calc.set_resources({"parallel_env": 'openmpi',"tot_num_mpiprocs": 1,"num_machines": 1,"num_cpus": 2})
-#------------ clarify this
-calc.set_resources({"num_machines": 1})
-
-#calc.set_custom_scheduler_commands("#SBATCH --account=ch3")
-
-if queue is not None:
-    calc.set_queue_name(queue)
-
-calc.use_structure(s)
-calc.use_parameters(parameters)
-calc.use_basis(basis)
 
 if auto_pseudos:
     try:
@@ -229,11 +202,57 @@ else:
         print "Created the pseudo for {}".format(kinds)
       else:
         print "Using the pseudo for {} from DB: {}".format(kinds,pseudo.pk)
-        
+
       # Attach pseudo node to the calculation
       calc.use_pseudo(pseudo,kind=kinds)
 
+
+##-----Parameters-----------
+
+parameters = ParameterData(dict={
+                'xc-functional': 'LDA',
+                'xc-authors': 'CA',
+                'spinpolarized': True,
+                'meshcutoff': '40.000 Ry',
+                'max-scfiterations': 50,
+                'dm-numberpulay': 4,
+                'dm-mixingweight': 0.3,
+                'dm-tolerance': 1.e-3,
+                'solution-method': 'diagon',
+                'electronic-temperature': '25 meV',
+                'md-typeofrun': 'cg',
+                'md-numcgsteps': 3,
+                'md-maxcgdispl': '0.1 Ang',
+                'md-maxforcetol': '0.04 eV/Ang',
+                'xml:write': True
+                })
+calc.use_parameters(parameters)
+
+##-----Basis---------
+
+basis = ParameterData(dict={
+'pao-energy-shift': '300 meV',
+'%block pao-basis-sizes': """
+Si SZP
+H  DZP                    """,
+})
+calc.use_basis(basis)
+
+##-----k points ----------
+
+kpoints = KpointsData()
+# method mesh
+kpoints_mesh = 1
+kpoints.set_kpoints_mesh([kpoints_mesh,kpoints_mesh,kpoints_mesh])
 calc.use_kpoints(kpoints)
+
+
+##----------settings----------
+# (the object settings is optional)
+settings_dict={'test_key': 'test_value'}
+settings = ParameterData(dict=settings_dict)
+
+
 
 if settings is not None:
     calc.use_settings(settings)

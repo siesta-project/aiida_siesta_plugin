@@ -12,7 +12,7 @@ import os
 from aiida.common.example_helpers import test_and_get_code
 from aiida.common.exceptions import NotExistent
 
-#Siesta calculation on benzene molecule
+#Siesta calculation on benzene molecule, first to try
 
 ################################################################
 
