@@ -8,12 +8,14 @@ __contributors__ = "Andrea Cepellotti, Victor Garcia-Suarez, Alberto Garcia, Ema
 
 # This script will restart a calculation that ended in a FAILED state due
 # to lack of scf convergence in the allotted number of iterations.
-#
+# ISSUE: is it possible to increase the number of iteration from here???
 # Usage:
 #         ./test_siesta_restart.py {--send, --dont-send} PK_of_failed_calculation
 
 import sys, os
 from aiida.orm import load_node
+
+ParameterData = DataFactory('parameter')
 
 try:
     dontsend = sys.argv[1]
@@ -40,6 +42,10 @@ print "Restarting calculation (uuid='{}')".format(c.uuid)
 print "Calculation status: '{}'".format(c.get_state())
 print " "
 calc = c.create_restart(force_restart=True)
+
+new_input_dict = c.inp.parameters.get_dict()
+new_input_dict['max-scfiterations'] = 50
+calc.use_parameters(ParameterData(dict=new_input_dict))
 
 if submit_test:
     subfolder, script_filename = calc.submit_test()
