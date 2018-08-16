@@ -44,8 +44,8 @@ except IndexError:
 
 #
 ##----------Set calculation----------------------
-#For remote codes, it is not necessary to manually set the computer,
-#since it is set automatically by new_calc
+##For remote codes, it is not necessary to manually set the computer,
+##since it is set automatically by new_calc
 #computer = code.get_remote_computer()
 #calc = code.new_calc(computer=computer)
 code = test_and_get_code(codename, expected_code_type='siesta.siesta')
@@ -53,14 +53,7 @@ calc = code.new_calc()
 calc.label = "Si_bulk"
 calc.description = "Siesta test calculation. Si bulk + automatic bands"
 calc.set_max_wallclock_seconds(30*60) # 30 min
-#//////////// clarify this /////////////////////
-#Valid only for Slurm and PBS (using default values for the number_cpus_per_machine), change for SGE-like schedulers 
-#Otherwise, to specify a given # of cpus per machine, uncomment the following:
-#calc.set_resources({"num_machines": 1, "num_mpiprocs_per_machine": 8})
-#calc.set_resources({"parallel_env": 'openmpi',"tot_num_mpiprocs": 1,"num_machines": 1,"num_cpus": 2})
-#/////////////clarify this////////////////
 calc.set_resources({"num_machines": 1})
-#calc.set_custom_scheduler_commands("#SBATCH --account=ch3")
 
 queue = None
 if queue is not None:
@@ -68,18 +61,18 @@ if queue is not None:
 
 #
 ##--------------Settings------------------
-#The object settings is optional.
-#settings_dict={'test_key': 'test_value'}
-#settings = ParameterData(dict=settings_dict)
+##The object settings is optional.
+##settings_dict={'test_key': 'test_value'}
+##settings = ParameterData(dict=settings_dict)
 settings = None
 if settings is not None:
     calc.use_settings(settings)
 
 #
 ##-------------------Structure-----------------------------------
-#Manually set the structure, all the quantities must be in Ang.
-#Then, we pass through SeeK-path, to get the standardized cell,
-#necessary for the automatic choice of the bands path.
+##Manually set the structure, all the quantities must be in Ang.
+##Then, we pass through SeeK-path, to get the standardized cell,
+##necessary for the automatic choice of the bands path.
 
 alat = 5.430 # angstrom
 cell = [[0.5*alat, 0.5*alat, 0.,],
@@ -99,8 +92,8 @@ calc.use_structure(newstructure)
 
 #
 ##---------------------Pseudos---------------------------
-#If auto_pseudos = True, load the pseudos from the family specified
-#below. Otherwise, use static files provided
+##If auto_pseudos = True, load the pseudos from the family specified
+##below. Otherwise, use static files provided
 auto_pseudos = False
 if auto_pseudos:
     valid_pseudo_groups = PsfData.get_psf_groups(filter_elements=elements)
@@ -191,35 +184,39 @@ kpoints_mesh = 4
 kpoints.set_kpoints_mesh([kpoints_mesh,kpoints_mesh,kpoints_mesh])
 calc.use_kpoints(kpoints)
 
-
-#-------------------K-points for bands --------------------
+#
+##-------------------K-points for bands --------------------
 bandskpoints = KpointsData()
-#Uncomment your favourite, three options:
+##Uncomment your favourite, three options:
 
-#1)
+##1)
 ##.....Making use of SeeK-path for the automatic path......
 ##The choice of the distance between kpoints is in the call seekpath_parameters
 ##All high symmetry points included, labels already included
 #bandskpoints=result['explicit_kpoints']
 
-#2)
+##2)
 ##.....Only points, no labels.......
+##Mandatory to set cell and pbc
 #kpp = [(0.500,  0.250, 0.750), (0.500,  0.500, 0.500), (0., 0., 0.)]
+#bandskpoints.set_cell(newstructure.cell, newstructure.pbc)
 #bandskpoints.set_kpoints(kpp)
 
-#3)
+##3)
 ##.....Set a manual path.......
 ##Labels needed, 40 is number of kp between W-L and between L-G...
 ##With new version of aiida, the use of this functionality is a bit involved.
-##First we have to call a function in tools.data.array.kpoints.legacy,
+##First we have to call a function in tools.data.array.kpoints.legacy.
 ##The funcion is called get_explicit_kpoints_path, but is not the same
 ##function I used before.
 ##Second step is to assign the results of the funtion to a KpointsData()
+##Mandatory to set cell and pbc
 kpp = [('W',  (0.500,  0.250, 0.750), 'L', (0.500,  0.500, 0.500), 40),
         ('L', (0.500,  0.500, 0.500), 'G', (0., 0., 0.), 40)]
 from aiida.tools.data.array.kpoints import legacy
 fs=legacy.get_explicit_kpoints_path(kpp)
 bandskpoints=KpointsData()
+bandskpoints.set_cell(newstructure.cell, newstructure.pbc)
 bandskpoints.set_kpoints(fs[3])
 bandskpoints.labels=fs[4]
 

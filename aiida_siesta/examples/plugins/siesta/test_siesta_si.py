@@ -54,8 +54,14 @@ calc.label = "Si bulk"
 calc.description = "Test calculation with the Siesta code. Si bulk"
 calc.set_max_wallclock_seconds(30*60) # 30 min
 
-#------------ clarify this
+##//////////// clarify this /////////////////////
+##Valid only for Slurm and PBS (using default values for the number_cpus_per_machine), change for SGE-like schedulers 
+##Otherwise, to specify a given # of cpus per machine, uncomment the following:
+##calc.set_resources({"num_machines": 1, "num_mpiprocs_per_machine": 8})
+##calc.set_resources({"parallel_env": 'openmpi',"tot_num_mpiprocs": 1,"num_machines": 1,"num_cpus": 2})
+##/////////////clarify this////////////////
 calc.set_resources({"num_machines": 1})
+##calc.set_custom_scheduler_commands("#SBATCH --account=ch3")
 
 if settings is not None:
     calc.use_settings(settings)
