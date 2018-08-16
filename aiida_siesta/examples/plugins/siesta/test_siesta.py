@@ -12,6 +12,8 @@ import os
 from aiida.common.example_helpers import test_and_get_code
 from aiida.common.exceptions import NotExistent
 
+#Siesta calculation on benzene molecule
+
 ################################################################
 
 PsfData = DataFactory('siesta.psf')
@@ -35,26 +37,55 @@ except IndexError:
 try:
     codename = sys.argv[2]
 except IndexError:
-    codename = 'Siesta-4.0@rinaldo'
+    codename = 'siesta4.0.1@parsons'
 
 code = test_and_get_code(codename, expected_code_type='siesta.siesta')
+
 #
-#  Set up calculation object first
+#--------Set up calculation object first----------------
 #
+
+## For remote codes, it is not necessary to manually set the computer,
+## since it is set automatically by new_calc
+## Otherwise would be:
+#computer = code.get_remote_computer()
+#calc = code.new_calc(computer=computer)
+
 calc = code.new_calc()
 calc.label = "Test Siesta. Benzene molecule"
 calc.description = "Test calculation with the Siesta code. Benzene molecule"
 
+
+calc.set_max_wallclock_seconds(30*60) # 30 min
+
+calc.set_resources({"num_machines": 1, "num_mpiprocs_per_machine": 2})
+
+## Options to send serial
+
+#code_mpi_enabled =  False
+#try:
+#    code_mpi_enabled =  code.get_extra("mpi")
+#except AttributeError:
+#    pass
+#calc.set_withmpi(code_mpi_enabled)
+#------------------
+
+## Set a queue
+queue = None
+# calc.set_queue_name(queue)
+#---------------------------
+
+
 #
-#----Settings first  -----------------------------
+#--------- Settings ---------------------------------
 #
 settings_dict={'additional_retrieve_list': ['aiida.BONDS', 'aiida.EIG']}
 settings = ParameterData(dict=settings_dict)
 calc.use_settings(settings)
-#---------------------------------------------------
+#----------------------------------------------------
 
 #
-# Structure -----------------------------------------
+#--------- Structure --------------------------------
 #
 alat = 15. # angstrom
 cell = [[alat, 0., 0.,],
@@ -62,9 +93,8 @@ cell = [[alat, 0., 0.,],
         [0., 0., alat,],
        ]
 
-# Benzene molecule
 # Note an atom tagged (for convenience) with a different label
-#
+
 s = StructureData(cell=cell)
 s.append_atom(position=(0.000,0.000,0.468),symbols=['H'])
 s.append_atom(position=(0.000,0.000,1.620),symbols=['C'])
@@ -84,7 +114,7 @@ calc.use_structure(s)
 #-------------------------------------------------------------
 
 #
-# Parameters ---------------------------------------------------
+# -------------Parameters -------------------------------------
 #
 # Note the use of '.' in some entries. This will be fixed below.
 # Note also that some entries have ':' as separator. This is not
@@ -170,24 +200,6 @@ for fname, kinds, in raw_pseudos:
     calc.use_pseudo(pseudo,kind=kinds)
 #-------------------------------------------------------------------
 
-## For remote codes, it is not necessary to manually set the computer,
-## since it is set automatically by new_calc
-#computer = code.get_remote_computer()
-#calc = code.new_calc(computer=computer)
-
-calc.set_max_wallclock_seconds(30*60) # 30 min
-
-calc.set_resources({"num_machines": 1, "num_mpiprocs_per_machine": 2})
-code_mpi_enabled =  False
-try:
-    code_mpi_enabled =  code.get_extra("mpi")
-except AttributeError:
-    pass
-calc.set_withmpi(code_mpi_enabled)
-#------------------
-queue = None
-# calc.set_queue_name(queue)
-#------------------
 
 #from aiida.orm.data.remote import RemoteData
 #calc.set_outdir(remotedata)
