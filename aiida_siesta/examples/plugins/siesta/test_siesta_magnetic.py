@@ -12,6 +12,8 @@ import os
 from aiida.common.example_helpers import test_and_get_code
 from aiida.common.exceptions import NotExistent
 
+# Calculation on Iron, collinear spin polarizzation applied
+
 ################################################################
 
 PsfData = DataFactory('siesta.psf')
@@ -35,7 +37,7 @@ except IndexError:
 try:
     codename = sys.argv[2]
 except IndexError:
-    codename = 'Siesta-4.0@rinaldo'
+    codename = 'siesta4.0.1@parsons'
 
 code = test_and_get_code(codename, expected_code_type='siesta.siesta')
 #
