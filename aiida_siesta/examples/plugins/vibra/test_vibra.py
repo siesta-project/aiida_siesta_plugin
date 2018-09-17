@@ -96,23 +96,6 @@ kpoints_path = result['explicit_kpoints']
 bandskpoints = KpointsData()
 bandskpoints = kpoints_path
 
-#kpp = [(1,1.,1.,1.),
-#       (15,0.,0.5,0.5),
-#       (25,0.,0.,0.),
-#       (20,0.5,0.5,0.5),
-#       (20,0.,0.5,0.5),
-#       (15,0.25,0.5,0.75),
-#       (20,0.5,0.5,0.5)]
-#lpp = [[0,'\Gamma'],
-#       [1,'X'],
-#       [2,'\Gamma'],
-#       [3,'L'],
-#       [4,'X'],
-#       [5,'W'],
-#       [6,'L']]
-#bandskpoints.set_cell(s.cell, s.pbc)
-#bandskpoints.set_kpoints(kpp,labels=lpp)
-
 calc.use_bandskpoints(bandskpoints)
 
 #----------------------------------------------------------
