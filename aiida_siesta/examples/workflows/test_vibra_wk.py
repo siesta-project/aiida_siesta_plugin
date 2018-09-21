@@ -15,9 +15,10 @@ from aiida.orm.data.base import Int, Str, Float
 from aiida.orm.data.parameter import ParameterData
 from aiida.orm.data.structure import StructureData
 from aiida.orm.data.array.kpoints import KpointsData
+from aiida.orm.data.array import ArrayData
 from aiida.work.run import run
-
-from aiida_siesta.workflows.vibra import SiestaVibraWorkChain
+from aiida_siesta.workflows.vibrawf import SiestaVibraWorkChain
+import numpy as np
 
 
 def parser_setup():
@@ -29,20 +30,12 @@ def parser_setup():
         description='Run the SiestaVibraWorkChain for a given input structure',
     )
     parser.add_argument(
-        '-f', type=str, required=True, dest='fcbuild_codename',
-        help='the name of the AiiDA code that references siesta.fcbuild plugin'
-    )
-    parser.add_argument(
         '-c', type=str, required=True, dest='codename',
         help='the name of the AiiDA code that references siesta.siesta plugin'
     )
     parser.add_argument(
-        '-v', type=str, required=True, dest='vibrator_codename', 
-        help='the name of the AiiDA code that references siesta.vibrator plugin'
-    )
-    parser.add_argument(
-        '-l', nargs=3, type=int, default=[1, 1, 1], dest='scell', metavar='Q',
-        help='define the q-points mesh. (default: %(default)s)'
+        '-v', type=str, required=True, dest='vibra_codename', 
+        help='the name of the AiiDA code that references siesta.vibra plugin'
     )
     parser.add_argument(
         '-p', type=str, required=False, dest='protocol', default='standard',
@@ -62,13 +55,6 @@ def execute(args):
     line arguments before passing them to the workchain and running it
     """
     try:
-        fcbuild_code = Code.get_from_string(args.fcbuild_codename)
-    except NotExistent as exception:
-        print "Execution failed: could not retrieve the code '{}'".format(args.fcbuild_codename)
-        print "Exception report: {}".format(exception)
-        return
-
-    try:
         code = Code.get_from_string(args.codename)
     except NotExistent as exception:
         print "Execution failed: could not retrieve the code '{}'".format(args.codename)
@@ -76,7 +62,7 @@ def execute(args):
         return
 
     try:
-        vibrator_code = Code.get_from_string(args.vibrator_codename)
+        vibra_code = Code.get_from_string(args.vibra_codename)
     except NotExistent as exception:
         print "Execution failed: could not retrieve the code '{}'".format(args.stm_codename)
         print "Exception report: {}".format(exception)
@@ -84,28 +70,36 @@ def execute(args):
 
     protocol = Str(args.protocol)
     
-    # Bulk silicon
-    alat = 5.43 # Angstrom. Not passed to the fdf file (only for internal use)
-    cell = [[0., alat/2, alat/2,],
-            [alat/2, 0., alat/2,],
-            [alat/2, alat/2, 0.,],]
-    sicd = alat*0.125
-    s = StructureData(cell=cell)
-    s.append_atom(position=(sicd,sicd,sicd),symbols=['Si'])
-    s.append_atom(position=(-sicd,-sicd,-sicd),symbols=['Si'])
-    
-    fcbparams = {'SuperCell_1': args.scell[0],
-                 'SuperCell_2': args.scell[1],
-                 'SuperCell_3': args.scell[2]}
+    # Structure. Bulk silicon
+
+    SuperCell_1=1
+    SuperCell_2=1
+    SuperCell_3=1
+    scnumbers=np.array([SuperCell_1,SuperCell_2,SuperCell_3])
+    scarray=ArrayData()
+    scarray.set_array('sca',scnumbers)
+
+    alat=5.43 # Angstrom. Not passed to the fdf file (only for internal use)
+    cell=[[0., alat/2, alat/2,],
+          [alat/2, 0., alat/2,],
+          [alat/2, alat/2, 0.,]]
+    pf=alat*0.125
+    na=2
+    x0=[[pf,pf,pf],
+        [-pf,-pf,-pf]]
+
+    s1=StructureData(cell=cell)
+    for i in range(na):
+        s1.append_atom(position=(x0[i][0],x0[i][1],x0[i][2]),symbols=['Si'])
 
     bandskpoints = KpointsData()
-    kpp = [(1,2.,2.,2.),
-           (15,2.,0.,0.),
+    kpp = [(1,1.,1.,1.),
+           (15,0.,0.5,0.5),
            (25,0.,0.,0.),
-           (20,1.,1.,1.),
-           (20,2.,0.,0.),
-           (15,2.,1.,0.),
-           (20,1.,1.,1.)]
+           (20,0.5,0.5,0.5),
+           (20,0.,0.5,0.5),
+           (15,0.25,0.5,0.75),
+           (20,0.5,0.5,0.5)]
     lpp = [[0,'\Gamma'],
            [1,'X'],
            [2,'\Gamma'],
@@ -113,19 +107,18 @@ def execute(args):
            [4,'X'],
            [5,'W'],
            [6,'L']]
-    bandskpoints.set_cell(s.cell, s.pbc)
+    bandskpoints.set_cell(s1.cell, s1.pbc)
     bandskpoints.set_kpoints(kpp,labels=lpp)
 
     if args.structure > 0:
         structure = load_node(args.structure)
     else:
-        structure = s
+        structure = s1
 
     run(SiestaVibraWorkChain,
-        fcbuild_code=fcbuild_code,
         code=code,
-        vibrator_code=vibrator_code,
-        fcbparams=ParameterData(dict=fcbparams),
+        vibra_code=vibra_code,
+        scarray=scarray,
         structure=structure,
         protocol=protocol,
         bandskpoints=bandskpoints)

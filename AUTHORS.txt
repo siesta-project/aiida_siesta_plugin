@@ -9,5 +9,7 @@ Emanuele Bosoni contributed the band-structure support for the Siesta plugin.
 Vladimir Dikan and Alberto Garcia developed the workflows and
 refined the architecture of the package.
 
+Victor M. Garcia-Suarez developed the plugin and workflow for the Vibra package.
+
 We gratefully acknowledge the help and support of the AiiDA team in
 Lausanne.
