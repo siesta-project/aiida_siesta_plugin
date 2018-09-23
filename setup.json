@@ -22,7 +22,6 @@
             "siesta.siesta = aiida_siesta.calculations.siesta:SiestaCalculation",
             "siesta.stm = aiida_siesta.calculations.stm:STMCalculation",
             "siesta.vibra = aiida_siesta.calculations.vibra:VibraCalculation",
-            "siesta.gollum = aiida_siesta.calculations.gollum:GollumCalculation"
         ],
         "aiida.parsers": [
             "siesta.parser = aiida_siesta.parsers.siesta:SiestaParser",
