@@ -12,7 +12,7 @@ import os
 from aiida.common.example_helpers import test_and_get_code
 from aiida.common.exceptions import NotExistent
 
-# Calculation on Iron, collinear spin polarizzation applied
+# Calculation on Iron, collinear spin polarization applied
 
 ################################################################
 

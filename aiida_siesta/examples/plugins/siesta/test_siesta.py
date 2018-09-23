@@ -60,8 +60,17 @@ calc.set_max_wallclock_seconds(30*60) # 30 min
 
 calc.set_resources({"num_machines": 1, "num_mpiprocs_per_machine": 2})
 
-## Options to send serial
-
+# A Siesta executable compiled in serial mode might not work properly
+# on a computer set up for MPI operation.
+# This snippet can be used to check whether a code has been compiled
+# with mpi support, and act accordingly
+# For this to work, the user has to manually add the record in the
+# database. In the verdi shell:
+#
+# code = load_node(code_PK)
+# code.set_extra("mpi",True)
+#---------------------------------------------------
+#
 #code_mpi_enabled =  False
 #try:
 #    code_mpi_enabled =  code.get_extra("mpi")

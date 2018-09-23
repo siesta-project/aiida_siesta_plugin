@@ -97,7 +97,7 @@ bandskpoints.labels=fs[4]
 
 
 ## IN CASE WE WANT AUTOMATIC K POINT PATH.
-## SEEKPATH USES A STANDART STRUCTURE, CAN WE CHANGE THE STRUCTURE IN THE RESTART??????
+## SEEKPATH USES A STANDARD STRUCTURE, CAN WE CHANGE THE STRUCTURE IN THE RESTART??????
 ## IF WE COULD DO THAT, THEN:
 #from aiida.tools import get_explicit_kpoints_path
 #seekpath_parameters = ParameterData(dict={'reference_distance': 0.02,'symprec': 0.0001})
