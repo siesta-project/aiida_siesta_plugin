@@ -80,8 +80,8 @@ class SiestaVibraWorkChain(WorkChain):
             'settings': {},
             'options': ParameterData(dict={
                 'resources': {
-                    'parallel_env': 'mpi',
-                    'tot_num_mpiprocs':1
+                    #'parallel_env': 'mpi',
+                    'tot_num_mpiprocs':2
                 },
                 'max_wallclock_seconds': 1800,
             }),
@@ -95,7 +95,7 @@ class SiestaVibraWorkChain(WorkChain):
                 'dm_convergence_threshold': 1.0e-4,
                 'min_meshcutoff': 100, # In Rydberg (!)
                 'electronic_temperature': "25.0 meV",
-                'pseudo_familyname': 'si_ldapsf',
+                'pseudo_familyname': 'lda-ag',
                 'atomic_heuristics': {
                     'Si': { 'cutoff': 100 }
                 },
@@ -112,7 +112,7 @@ class SiestaVibraWorkChain(WorkChain):
                 'dm_convergence_threshold': 1.0e-3,
                 'min_meshcutoff': 80, # In Rydberg (!)
                 'electronic_temperature': "25.0 meV",
-                'pseudo_familyname': 'si_ldapsf',
+                'pseudo_familyname': 'lda-ag',
                 'atomic_heuristics': {
                     'Si': { 'cutoff': 50 }
                 },
@@ -234,8 +234,8 @@ class SiestaVibraWorkChain(WorkChain):
 
         vibra_inputs['_options'] = {
             'resources': {
-                'parallel_env': 'mpi',
-                'tot_num_mpiprocs':1
+                #'parallel_env': 'mpi',
+                'tot_num_mpiprocs':2
             },
             'max_wallclock_seconds': 600
         }
