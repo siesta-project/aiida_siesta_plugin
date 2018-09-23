@@ -729,7 +729,7 @@ class SiestaCalculation(JobCalculation):
         old_inp_dict['dm-use-save-dm'] = True
         c2.use_parameters(ParameterData(dict=old_inp_dict))
 
-        remote_folders = self.get_outputs(type=RemoteData)
+        remote_folders = self.get_outputs(node_type=RemoteData)
         if len(remote_folders) != 1:
             raise InputValidationError("More than one output RemoteData found "
                                        "in calculation {}".format(self.pk))
