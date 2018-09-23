@@ -96,7 +96,7 @@ kpoints_path = result['explicit_kpoints']
 bandskpoints = KpointsData()
 bandskpoints = kpoints_path
 
-calc.use_bandskpoints(bandskpoints)
+###### AG   calc.use_bandskpoints(bandskpoints)
 
 #----------------------------------------------------------
 #
@@ -108,8 +108,8 @@ calc.use_singlefile(filefc)
 #from aiida.orm.data.remote import RemoteData
 #calc.set_outdir(remotedata)
 
-#calc.set_resources({"num_machines": 1, "num_mpiprocs_per_machine": 2})
-calc.set_resources({"parallel_env": 'mpi', "tot_num_mpiprocs": 1})
+calc.set_resources({"num_machines": 1, "num_mpiprocs_per_machine": 2})
+#calc.set_resources({"parallel_env": 'mpi', "tot_num_mpiprocs": 1})
 code_mpi_enabled =  False
 try:
     code_mpi_enabled =  code.get_extra("mpi")
