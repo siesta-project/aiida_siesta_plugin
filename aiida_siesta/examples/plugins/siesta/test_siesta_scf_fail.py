@@ -47,7 +47,7 @@ except IndexError:
 try:
     codename = sys.argv[2]
 except IndexError:
-    codename = 'Siesta-4.0@rinaldo'
+    codename = 'siesta4.0.1@parsons'
 
 # If True, load the pseudos from the family specified below
 # Otherwise, use static files provided
@@ -140,12 +140,12 @@ calc.description = "Siesta scf non-convergence test"
 calc.set_max_wallclock_seconds(100) 
 
 calc.set_resources({"num_machines": 1})
-code_mpi_enabled =  False
-try:
-    code_mpi_enabled =  code.get_extra("mpi")
-except AttributeError:
-    pass
-calc.set_withmpi(code_mpi_enabled)
+#code_mpi_enabled =  False
+#try:
+#    code_mpi_enabled =  code.get_extra("mpi")
+#except AttributeError:
+#    pass
+#calc.set_withmpi(code_mpi_enabled)
 
 #calc.set_custom_scheduler_commands("#SBATCH --account=ch3")
 
@@ -181,16 +181,6 @@ else:
 
 calc.use_kpoints(kpoints)
 
-# K-points for bands
-# NOTE: bandskpoints.set_cell(s.cell, s.pbc) HAS TO BE SET ALWAYS ###
-bandskpoints = KpointsData()
-
-##..kp path automatically generated from structure (all high-simmetry point)..##
-##.....labels automatically included, 0.05 is the distance between kpoints....##
-bandskpoints.set_cell(s.cell, s.pbc)
-bandskpoints.set_kpoints_path(kpoint_distance = 0.05)
-
-calc.use_bandskpoints(bandskpoints)
 
 if settings is not None:
     calc.use_settings(settings)

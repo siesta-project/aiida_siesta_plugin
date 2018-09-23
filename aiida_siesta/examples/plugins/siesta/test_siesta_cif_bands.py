@@ -9,9 +9,15 @@ __contributors__ = "Andrea Cepellotti, Victor Garcia-Suarez, Alberto Garcia, Ema
 import sys
 import os
 import pymatgen as mg
-
+from aiida.tools import get_explicit_kpoints_path
 from aiida.common.example_helpers import test_and_get_code
 from aiida.common.exceptions import NotExistent
+
+
+# This script will send a Siesta calculation on a structure taken from
+# a cif file.
+# The band structure is calculated and the kpoint path is automatically 
+# generated using seekpath.
 
 ################################################################
 
@@ -36,7 +42,7 @@ except IndexError:
 try:
     codename = sys.argv[2]
 except IndexError:
-    codename = 'Siesta-4.0@rinaldo'
+    codename = 'siesta4.0.1@parsons'
 
 code = test_and_get_code(codename, expected_code_type='siesta.siesta')
 #
@@ -45,6 +51,15 @@ code = test_and_get_code(codename, expected_code_type='siesta.siesta')
 calc = code.new_calc()
 calc.label = "O_el_cell_spin"
 calc.description = "Band calculation with Siesta. O elementary cell spin polarized"
+calc.set_max_wallclock_seconds(30*60) # 30 min
+
+calc.set_resources({"num_machines": 1})
+#------------------
+queue = None
+# calc.set_queue_name(queue)
+#------------------
+
+
 print calc.description
 
 #
@@ -58,10 +73,16 @@ calc.use_settings(settings)
 #
 # Structure -----------------------------------------
 #
+#Passing through SeeK-path first, to get the standardized cell.
+#Necessary for the automatic choice of the bands path.
+#
 structure = mg.Structure.from_file("data/O2_ICSD_173933.cif", primitive=False)
 s = StructureData(pymatgen_structure=structure)
 elements = list(s.get_symbols_set())
-calc.use_structure(s)
+seekpath_parameters = ParameterData(dict={'reference_distance': 0.02,'symprec': 0.0001})
+result=get_explicit_kpoints_path(s, **seekpath_parameters.get_dict())
+newstructure = result['primitive_structure']
+calc.use_structure(newstructure)
 #-------------------------------------------------------------
 
 #
@@ -151,41 +172,17 @@ kpoints_mesh = 4
 kts.set_kpoints_mesh([kpoints_mesh,kpoints_mesh,kpoints_mesh])
 
 # K-points for bands, uncomment your favourite  --------------------
-# NOTE: bandskpoints.set_cell(s.cell, s.pbc) HAS TO BE SET ALWAYS ###
+# 
 bandskpoints = KpointsData()
 
-##..Set a path, label needed, 40 is number of kp between W-L and between L-G..##
-#kpp = [('W',  (0.500,  0.250, 0.750), 'L', (0.500,  0.500, 0.500), 40),
-#        ('L', (0.500,  0.500, 0.500), 'G', (0., 0., 0.), 40)]
-#bandskpoints.set_cell(s.cell, s.pbc)
-#bandskpoints.set_kpoints(kpp)
+##Making use of SeeK-path for the automatic path
+##The choice of the distance between kpoints is in the call seekpath_parameters
+##All high symmetry points included, labels already included
+bandskpoints=result['explicit_kpoints']
 
-
-##..........................Only points, no labels............................##
-kpp = [(0.500,  0.250, 0.750), (0.500,  0.500, 0.500), (0., 0., 0.)]
-bandskpoints.set_cell(s.cell, s.pbc)
-bandskpoints.set_kpoints(kpp)
-
-##..kp path automatically generated from structure (all high-simmetry point)..##
-##.....labels automatically included, 0.05 is the distance between kpoints....##
-#bandskpoints.set_cell(s.cell, s.pbc)
-#bandskpoints.set_kpoints_path(kpoint_distance = 0.05)
 
 calc.use_kpoints(kts)
 calc.use_bandskpoints(bandskpoints)
-
-## For remote codes, it is not necessary to manually set the computer,
-## since it is set automatically by new_calc
-#computer = code.get_remote_computer()
-#calc = code.new_calc(computer=computer)
-
-calc.set_max_wallclock_seconds(30*60) # 30 min
-
-calc.set_resources({"num_machines": 1})
-#------------------
-queue = None
-# calc.set_queue_name(queue)
-#------------------
 
 #from aiida.orm.data.remote import RemoteData
 #calc.set_outdir(remotedata)
