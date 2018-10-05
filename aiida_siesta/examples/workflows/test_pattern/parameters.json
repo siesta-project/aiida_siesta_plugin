@@ -1,11 +1,11 @@
 {
-    "xc:functional": "LDA",
-    "xc:authors": "CA",
+    "xc-functional": "LDA",
+    "xc-authors": "CA",
     "spinpolarized": true,
     "meshcutoff": "40.000 Ry",
-    "dm:numberpulay": 4,
-    "dm:mixingweight": 0.3,
-    "dm:tolerance": 1e-3,
+    "dm-numberpulay": 4,
+    "dm-mixingweight": 0.3,
+    "dm-tolerance": 1e-3,
     "max-scfiterations": 3,
     "scf-must-converge": true,
     "Solution-method": "diagon",
@@ -15,6 +15,5 @@
     "md-maxcgdispl": "0.1 Ang",
     "md-maxforcetol": "0.04 eV/Ang",
     "writeforces": true,
-    "writecoorstep": true,
-    "xml:write": true
+    "writecoorstep": true
 }

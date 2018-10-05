@@ -83,8 +83,7 @@ params_dict= {
 'dm-numberpulay': 4,
 'dm-mixingweight': 0.1,
 'dm-tolerance': 1.e-3,
-'electronic-temperature': '300.000 K',
-'xml-write': True
+'electronic-temperature': '300.000 K'
 }
 #
 # Sanitize, as '.' is not kosher for the database handlers

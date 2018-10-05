@@ -113,8 +113,7 @@ parameters = ParameterData(dict={
                 'md-maxcgdispl': '0.1 Ang',
                 'md-maxforcetol': '0.04 eV/Ang',
                 'writeforces': True,
-                'writecoorstep': True,
-                'xml:write': True
+                'writecoorstep': True
                 })
 
 basis = ParameterData(dict={

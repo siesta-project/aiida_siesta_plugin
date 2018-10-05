@@ -89,8 +89,7 @@ def execute(args):
         'md-typeofrun': 'CG',
         'md-numcgsteps': 6,
         'md-maxcgdispl': '0.1 Ang',
-        'md-maxforcetol': '0.03 eV/Ang',
-        'xml:write': True
+        'md-maxforcetol': '0.03 eV/Ang'
     }
     basis = {
         'pao-energy-shift': '300 meV',
