@@ -300,3 +300,17 @@ class VibraParser(Parser):
                 'nspins=4: non collinear bands not implemented yet')
 
         return (bands, coords)
+
+    def get_linkname_bandsarray(self):
+        """                                                                     
+        Returns the name of the link to the bands_array                        
+        """
+        return 'bands_array'
+
+    def get_linkname_bandsparameters(self):
+        """
+        Returns the name of the link to the bands_path.
+        X-axis data for bands. Maybe should use ArrayData (db-integrity?).
+        """
+        return 'bands_parameters'
+   

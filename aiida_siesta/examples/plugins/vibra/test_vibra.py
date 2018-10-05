@@ -96,7 +96,7 @@ kpoints_path = result['explicit_kpoints']
 bandskpoints = KpointsData()
 bandskpoints = kpoints_path
 
-###### AG   calc.use_bandskpoints(bandskpoints)
+calc.use_bandskpoints(bandskpoints)
 
 #----------------------------------------------------------
 #

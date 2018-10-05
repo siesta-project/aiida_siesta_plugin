@@ -310,15 +310,15 @@ class VibraCalculation(JobCalculation):
                 rawindex = 0
                 for s, m in bandskpoints.labels:
                     rawindex = rawindex + 1
-                    nkpnt, x, y, z, = listforbands[s]
+                    x, y, z = listforbands[s]
                     if rawindex == 1:
                         bandskpoints_card_list.append(
-                            "{0:2} {1:8.3f} {2:8.3f} {3:8.3f} {4:1}\n".format(
+                            "{0:3} {1:8.3f} {2:8.3f} {3:8.3f} {4:1}\n".format(
                                 1, x, y, z, m))
                     else:
                         bandskpoints_card_list.append(
-                            "{0:.0f} {1:8.3f} {2:8.3f} {3:8.3f} {4:1}\n".format(
-                                nkpnt, x, y, z, m))
+                            "{0:3} {1:8.3f} {2:8.3f} {3:8.3f} {4:1}\n".format(
+                                s - savs[rawindex - 2], x, y, z, m))
                 fbkpoints_card = "".join(bandskpoints_card_list)
                 fbkpoints_card += "%endblock BandLines\n"
             del bandskpoints_card_list
