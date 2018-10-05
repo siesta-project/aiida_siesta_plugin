@@ -96,8 +96,7 @@ parameters = ParameterData(dict={
                 'md-typeofrun': 'cg',
                 'md-numcgsteps': 20,
                 'md-variablecell': True,
-                'md-maxforcetol': '0.04 eV/Ang',
-                'xml-write': True
+                'md-maxforcetol': '0.04 eV/Ang'
                 })
 
 basis = ParameterData(dict={

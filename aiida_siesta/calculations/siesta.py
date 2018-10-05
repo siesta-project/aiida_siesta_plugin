@@ -47,6 +47,7 @@ class SiestaCalculation(JobCalculation):
         self._aiida_blocked_keywords.append('atomic-coordinates-format')
         self._aiida_blocked_keywords.append('atomiccoordinatesformat')
         self._aiida_blocked_keywords.append('use-tree-timer')
+        self._aiida_blocked_keywords.append('xml-write')
 
         # Default input and output files
         self._DEFAULT_INPUT_FILE = 'aiida.in'
@@ -297,6 +298,7 @@ class SiestaCalculation(JobCalculation):
         input_params.update({'system-name': self._PREFIX})
         input_params.update({'system-label': self._PREFIX})
         input_params.update({'use-tree-timer': 'T'})
+        input_params.update({'xml-write': 'T'})
 
         input_params.update({'number-of-species': len(structure.kinds)})
         input_params.update({'number-of-atoms': len(structure.sites)})

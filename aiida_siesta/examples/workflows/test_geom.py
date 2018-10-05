@@ -94,8 +94,7 @@ def execute(args):
     'md-numcgsteps': 8,
     'md-maxcgdispl': '0.200 bohr',
     'md-maxforcetol': '0.020 eV/Ang',
-    'geometry-must-converge': True,    
-    'xml-write': True
+    'geometry-must-converge': True
     }
 
     # default basis

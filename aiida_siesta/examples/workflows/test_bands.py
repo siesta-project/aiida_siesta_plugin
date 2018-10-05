@@ -117,8 +117,7 @@ def execute(args):
                 'md-typeofrun': 'cg',
                 'md-numcgsteps': 10,
                 'md-maxcgdispl': '0.1 Ang',
-                'md-maxforcetol': '0.04 eV/Ang',
-                'xml:write': True,
+                'md-maxforcetol': '0.04 eV/Ang'
     }
 
     # default basis

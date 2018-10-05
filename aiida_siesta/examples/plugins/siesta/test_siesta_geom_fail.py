@@ -95,8 +95,7 @@ params_dict= {
     'md-numcgsteps': 8,
     'md-maxcgdispl': '0.200 bohr',
     'md-maxforcetol': '0.020 eV/Ang',
-    'geometry-must-converge': True,    
-    'xml-write': True
+    'geometry-must-converge': True
 }
 #
 # Sanitize, as '.' is not kosher for the database handlers

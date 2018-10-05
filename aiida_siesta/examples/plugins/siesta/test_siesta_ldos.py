@@ -96,7 +96,6 @@ params_dict= {
 'dm-mixingweight': 0.050,
 'dm-tolerance': 1.e-4,
 'electronic-temperature': '100.000 K',
-'xml-write': True,
 '%block local-density-of-states': ldos_block_content,
 }
 parameters = ParameterData(dict=params_dict)

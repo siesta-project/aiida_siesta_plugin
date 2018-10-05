@@ -114,7 +114,6 @@ params_dict= {
 'md-maxforcetol': '0.050 eV/Ang',
 'writeforces': True,
 'writecoorstep': True,
-'xml-write': True,
 'write-mulliken-pop': 1
 }
 #

@@ -144,24 +144,23 @@ else:
 #
 ##----------Calculation parameters----------------
 parameters = ParameterData(dict={
-                'xc:functional': 'LDA',
-                'xc:authors': 'CA',
-                'spinpolarized': True,
+                'xc-functional': 'LDA',
+                'xc-authors': 'CA',
+                'spin-polarized': True,
                 'meshcutoff': '40.000 Ry',
                 'max-scfiterations': 50,
-                'dm:numberpulay': 4,
-                'dm:mixingweight': 0.3,
-                'dm:tolerance': 1.e-3,
+                'dm-numberpulay': 4,
+                'dm-mixingweight': 0.3,
+                'dm-tolerance': 1.e-3,
                 'Solution-method': 'diagon',
                 'electronic-temperature': '25 meV',
-                'md:typeofrun': 'cg',
-                'md:numcgsteps': 3,
-                'md:maxcgdispl': '0.1 Ang',
-                'md:maxforcetol': '0.04 eV/Ang',
+                'md-typeofrun': 'cg',
+                'md-numcgsteps': 3,
+                'md-maxcgdispl': '0.1 Ang',
+                'md-maxforcetol': '0.04 eV/Ang',
                 'writeforces': True,
                 'writecoorstep': True,
-                'xml:write': True,
-                'dm:usesavedm': True
+                'dm-usesavedm': True
                 })
 calc.use_parameters(parameters)
 
