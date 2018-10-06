@@ -235,7 +235,7 @@ class SiestaVibraWorkChain(WorkChain):
         vibra_inputs['_options'] = {
             'resources': {
                 #'parallel_env': 'mpi',
-                'tot_num_mpiprocs':2
+                'tot_num_mpiprocs':1
             },
             'max_wallclock_seconds': 600
         }
