@@ -62,9 +62,17 @@ class SiestaVibraWorkChain(WorkChain):
         self.report('Running setup_structure')
 
         self.ctx.structure_initial_primitive = self.inputs.structure
+        #
+        # Generate supercell structure
+        #
         scell, xasc, specsc = buildsc(self.inputs.scarray,self.inputs.structure)
         nna=len(xasc)
         self.ctx.structure_supercell = StructureData(cell=scell)
+        #
+        # ** check that we get the correct 'names' (more general) instead of just symbols
+        # e.g.: 'Cred' as name for a particular 'C' atom in the structure,
+        # as in the test_siesta.py example.
+        #
         for i in range(nna):
             self.ctx.structure_supercell.append_atom(position=(xasc[i][0],\
                     xasc[i][1],xasc[i][2]),symbols=specsc[i])
@@ -78,12 +86,15 @@ class SiestaVibraWorkChain(WorkChain):
             'code': self.inputs.code,
             'parameters': {},
             'settings': {},
+            #
+            # There should be a better way to specify options at launch time (for all workflows)
+            #
             'options': ParameterData(dict={
                 'resources': {
                     #'parallel_env': 'mpi',
                     'tot_num_mpiprocs':2
                 },
-                'max_wallclock_seconds': 1800,
+                'max_wallclock_seconds': 1800,       # This is currently hardwired
             }),
         }
 
@@ -91,7 +102,7 @@ class SiestaVibraWorkChain(WorkChain):
         if self.inputs.protocol == 'standard':
             self.report('running the workchain in the "{}" protocol'.format(self.inputs.protocol.value))
             self.ctx.protocol = {
-                'kpoints_mesh': 1,
+                'kpoints_mesh': 1,       # It is preferable to give a *density*, as in the bands workflow
                 'dm_convergence_threshold': 1.0e-4,
                 'min_meshcutoff': 100, # In Rydberg (!)
                 'electronic_temperature': "25.0 meV",
@@ -108,7 +119,7 @@ class SiestaVibraWorkChain(WorkChain):
         elif self.inputs.protocol == 'fast':
             self.report('running the workchain in the "{}" protocol'.format(self.inputs.protocol.value))
             self.ctx.protocol = {
-                'kpoints_mesh': 1,
+                'kpoints_mesh': 1,       # It is preferable to give a *density*, as in the bands workflow
                 'dm_convergence_threshold': 1.0e-3,
                 'min_meshcutoff': 80, # In Rydberg (!)
                 'electronic_temperature': "25.0 meV",
@@ -161,9 +172,9 @@ class SiestaVibraWorkChain(WorkChain):
             'electronic-temperature': self.ctx.protocol['electronic_temperature'],
             # Parameters for the FC run
             'md-typeofrun': 'FC',
-            'md-fcfirst': 27,
+            'md-fcfirst': 27,      # These numbers should NOT be hardwired
             'md-fclast': 28,
-            'md-fcdispl': '0.0211672 Ang'
+            'md-fcdispl': '0.0211672 Ang'  # same. At least make it a global parameter of the workflow
         }
 
     def setup_basis(self):
@@ -179,22 +190,23 @@ class SiestaVibraWorkChain(WorkChain):
         Define the k-point mesh for the Siesta calculation.
         """
         self.report('Running setup_kpoints')
+        #
+        #  We should check for the case of 'molecules', and avoid using k-points
+        #
         kpoints_mesh = KpointsData()
         kpmesh=self.ctx.protocol['kpoints_mesh']
-        kpoints_mesh.set_kpoints_mesh([kpmesh,kpmesh,kpmesh])
+        kpoints_mesh.set_kpoints_mesh([kpmesh,kpmesh,kpmesh])  # See above about density
         
         self.ctx.kpoints_mesh = kpoints_mesh
 
     def run_siesta(self):
         """
-        Run the SiestaBaseWorkChain to calculate the input structure
+        Run the SiestaBaseWorkChain to compute the force-constant matrix
+        Note that we do not relax the structure.
         """
-        self.report('Running run_siesta')
 
         rsi_inputs = {}
         rsi_inputs = dict(self.ctx.rsi_inputs)
-
-        # Get the remote folder of the last calculation in the previous workchain
 
         rsi_inputs['kpoints'] = self.ctx.kpoints_mesh
         rsi_inputs['basis'] = ParameterData(dict=rsi_inputs['basis'])
@@ -205,7 +217,7 @@ class SiestaVibraWorkChain(WorkChain):
         rsi_inputs['max_iterations'] = Int(20)
         
         running = submit(SiestaBaseWorkChain, **rsi_inputs)
-        self.report('launched SiestaBaseWorkChain<{}> in run-Siesta mode'.format(running.pid))
+        self.report('launched SiestaBaseWorkChain<{}> in run-Siesta (FC) mode'.format(running.pid))
         
         return ToContext(workchain_siesta=running)
 
@@ -252,6 +264,11 @@ class SiestaVibraWorkChain(WorkChain):
         Attach the relevant output nodes from the vibra calculation to the workchain outputs
         for convenience
         """
-        calculation_vibra = self.ctx.vibra_calc
+        vibra_results = self.ctx.vibra_calc
 
+        # Added outputs
         self.report('workchain succesfully completed'.format())
+        self.out('vibra_output_log', vibra_results.output_parameters)
+        self.out('vibra_phonon_dispersion', vibra_results.bands_array)
+        self.out('vibra_band_parameters', vibra_results.bands_parameters)
+
