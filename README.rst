@@ -19,7 +19,7 @@ funded by the `Swiss National Science Foundation <http://www.snf.ch/en>`_, as we
 European Centre of Excellence <http://www.max-centre.eu/>`_ funded by the Horizon 2020 EINFRA-5 program,
 Grant No. 676598.
 
-.. figure:: miscellaneous/logos/MARVEL.png
+.. figure:: aiida_siesta/docs/miscellaneous/logos/MARVEL.png
     :alt: MARVEL
-.. figure:: miscellaneous/logos/MaX.png
+.. figure:: aiida_siesta/docs/miscellaneous/logos/MaX.png
     :alt: MaX
