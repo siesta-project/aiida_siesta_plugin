@@ -8,7 +8,7 @@ from aiida.orm.data.singlefile import SinglefileData
 
 __copyright__ = u"Copyright (c), 2015, ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE (Theory and Simulation of Materials (THEOS) and National Centre for Computational Design and Discovery of Novel Materials (NCCR MARVEL)), Switzerland and ROBERT BOSCH LLC, USA. All rights reserved."
 __license__ = "MIT license, see LICENSE.txt file"
-__version__ = "0.9.0"
+__version__ = "0.9.10"
 __contributors__ = "Victor M. Garcia-Suarez, Andrea Cepellotti"
 
 PSFGROUP_TYPE = 'data.psf.family'
