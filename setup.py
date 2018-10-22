@@ -31,6 +31,6 @@ if __name__ == '__main__':
     setup(
         include_package_data=True,
         packages=find_packages(),
-        long_description=read('README.rst'),
+        long_description=read('PyPI-README.rst'),
         reentry_register=True,
         **kwargs)
