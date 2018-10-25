@@ -4,10 +4,7 @@ Standard Siesta plugin
 Description
 -----------
 
-A plugin for Siesta's basic functionality. There remain some details to address.
-
-These docs are for version: *aiida-0.9.0--plugin-0.7.0* of the plugin,
-which is compatible with the AiiDA v0.9.0
+A plugin for Siesta's basic functionality. 
 
 
 Supported Siesta versions
@@ -149,7 +146,7 @@ Units are specified by means of an extra item with '_units'
 appended to the key::
 
     {
-      "siesta:Version": "siesta-4.0-540",
+      "siesta:Version": "siesta-4.0.2",
       "E_fermi": -3.24,
       "E_fermi_units": "eV",
       "FreeE": -6656.2343
