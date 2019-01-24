@@ -34,7 +34,7 @@ def parser_setup():
         help='the name of the AiiDA code that references siesta.siesta plugin'
     )
     parser.add_argument(
-        '-v', type=str, required=True, dest='vibra_codename', 
+        '-v', type=str, required=True, dest='vibra_codename',
         help='the name of the AiiDA code that references siesta.vibra plugin'
     )
     parser.add_argument(
@@ -69,7 +69,7 @@ def execute(args):
         return
 
     protocol = Str(args.protocol)
-    
+
     # Structure. Bulk silicon
 
     SuperCell_1=1
@@ -93,22 +93,31 @@ def execute(args):
         s1.append_atom(position=(x0[i][0],x0[i][1],x0[i][2]),symbols=['Si'])
 
     bandskpoints = KpointsData()
-    kpp = [(1,1.,1.,1.),
-           (15,0.,0.5,0.5),
-           (25,0.,0.,0.),
-           (20,0.5,0.5,0.5),
-           (20,0.,0.5,0.5),
-           (15,0.25,0.5,0.75),
-           (20,0.5,0.5,0.5)]
-    lpp = [[0,'\Gamma'],
-           [1,'X'],
-           [2,'\Gamma'],
-           [3,'L'],
-           [4,'X'],
-           [5,'W'],
-           [6,'L']]
+    # kpp = [(1,1.,1.,1.),
+    #        (15,0.,0.5,0.5),
+    #        (25,0.,0.,0.),
+    #        (20,0.5,0.5,0.5),
+    #        (20,0.,0.5,0.5),
+    #        (15,0.25,0.5,0.75),
+    #        (20,0.5,0.5,0.5)]
+    # lpp = [[0,'\Gamma'],
+    #        [1,'X'],
+    #        [2,'\Gamma'],
+    #        [3,'L'],
+    #        [4,'X'],
+    #        [5,'W'],
+    #        [6,'L']]
     bandskpoints.set_cell(s1.cell, s1.pbc)
-    bandskpoints.set_kpoints(kpp,labels=lpp)
+    # bandskpoints.set_kpoints(kpp,labels=lpp)
+    bandskpoints.set_kpoints_path([
+        ('G', 'X', 20),
+        ('X', 'K', 10),
+        ('K', 'G', 20),
+        ('G', 'L', 20),
+        ('L', 'X', 20),
+        ('X', 'W', 5),
+        ('W', 'L', 10),
+    ])
 
     if args.structure > 0:
         structure = load_node(args.structure)

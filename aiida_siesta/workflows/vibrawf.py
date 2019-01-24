@@ -23,7 +23,7 @@ __copyright__ = u"Copyright (c), 2015, ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE 
 __license__ = "MIT license, see LICENSE.txt file"
 __version__ = "0.12.0"
 __contributors__ = "Victor M. Garcia-Suarez, ..."
-                        
+
 class SiestaVibraWorkChain(WorkChain):
     """
     Vibra Workchain. An example of workflow composition for phonons
@@ -54,7 +54,7 @@ class SiestaVibraWorkChain(WorkChain):
             cls.run_results,
         )
         spec.dynamic_output()
-                                         
+
     def setup_structures(self):
         """
         Very simple. Avoid seekpath for now
@@ -114,7 +114,7 @@ class SiestaVibraWorkChain(WorkChain):
                     'pao-energy-shift': '100 meV',
                     'pao-basis-size': 'DZP'
                 }
-                          
+
             }
         elif self.inputs.protocol == 'fast':
             self.report('running the workchain in the "{}" protocol'.format(self.inputs.protocol.value))
@@ -131,14 +131,14 @@ class SiestaVibraWorkChain(WorkChain):
                     'pao-energy-shift': '100 meV',
                     'pao-basis-size': 'SZ'
                 }
-                          
+
             }
         else:
             self.abort_nowait('Protocol {} not known'.format(self.ctx.protocol.value))
 
     def setup_pseudo_potentials(self):
         """
-        Based on the given input structure, get the 
+        Based on the given input structure, get the
         pseudo potentials for the different elements in the structure
         """
         self.report('Running setup_pseudo_potentials')
@@ -164,8 +164,8 @@ class SiestaVibraWorkChain(WorkChain):
                 pass    # No problem. No heuristics, no info
 
         # In case we did not get anything, set a minimum value
-        meshcutoff = max(self.ctx.protocol['min_meshcutoff'], meshcutoff)    
-                
+        meshcutoff = max(self.ctx.protocol['min_meshcutoff'], meshcutoff)
+
         self.ctx.rsi_inputs['parameters'] = {
             'dm-tolerance': self.ctx.protocol['dm_convergence_threshold'],
             'mesh-cutoff': "{} Ry".format(meshcutoff),
@@ -184,7 +184,7 @@ class SiestaVibraWorkChain(WorkChain):
         """
         self.report('Running setup_basis')
         self.ctx.rsi_inputs['basis'] = self.ctx.protocol['basis']
-        
+
     def setup_kpoints(self):
         """
         Define the k-point mesh for the Siesta calculation.
@@ -196,7 +196,7 @@ class SiestaVibraWorkChain(WorkChain):
         kpoints_mesh = KpointsData()
         kpmesh=self.ctx.protocol['kpoints_mesh']
         kpoints_mesh.set_kpoints_mesh([kpmesh,kpmesh,kpmesh])  # See above about density
-        
+
         self.ctx.kpoints_mesh = kpoints_mesh
 
     def run_siesta(self):
@@ -215,10 +215,10 @@ class SiestaVibraWorkChain(WorkChain):
         rsi_inputs['settings'] = ParameterData(dict=rsi_inputs['settings'])
         rsi_inputs['clean_workdir'] = Bool(False)
         rsi_inputs['max_iterations'] = Int(20)
-        
+
         running = submit(SiestaBaseWorkChain, **rsi_inputs)
         self.report('launched SiestaBaseWorkChain<{}> in run-Siesta (FC) mode'.format(running.pid))
-        
+
         return ToContext(workchain_siesta=running)
 
     def run_vibra(self):
@@ -245,6 +245,7 @@ class SiestaVibraWorkChain(WorkChain):
         vibra_inputs['parameters'] = ParameterData(dict=vibra_parameters_dict)
 
         vibra_inputs['_options'] = {
+            'withmpi': False,
             'resources': {
                 #'parallel_env': 'mpi',
                 'tot_num_mpiprocs':1
@@ -254,9 +255,9 @@ class SiestaVibraWorkChain(WorkChain):
 
         process = VibraCalculation.process()
         running = submit(process, **vibra_inputs)
-        
+
         self.report('launching VibraCalculation<{}>'.format(running.pid))
-        
+
         return ToContext(vibra_calc=running)
 
     def run_results(self):
@@ -264,11 +265,10 @@ class SiestaVibraWorkChain(WorkChain):
         Attach the relevant output nodes from the vibra calculation to the workchain outputs
         for convenience
         """
-        vibra_results = self.ctx.vibra_calc
+        vibra_results = self.ctx.vibra_calc.out
 
         # Added outputs
         self.report('workchain succesfully completed'.format())
         self.out('vibra_output_log', vibra_results.output_parameters)
         self.out('vibra_phonon_dispersion', vibra_results.bands_array)
         self.out('vibra_band_parameters', vibra_results.bands_parameters)
-
