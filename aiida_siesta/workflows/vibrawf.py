@@ -66,6 +66,8 @@ class SiestaVibraWorkChain(WorkChain):
         # Generate supercell structure
         #
         scell, xasc, specsc = buildsc(self.inputs.scarray,self.inputs.structure)
+##      Get also the indexes of the 1st and last unit cell atoms in the supercell        
+##        scell, xasc, specsc, sc_first, sc_last = buildsc(self.inputs.scarray,self.inputs.structure)
         nna=len(xasc)
         self.ctx.structure_supercell = StructureData(cell=scell)
         #
