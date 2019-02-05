@@ -50,7 +50,7 @@ def buildsc(scarray,struct):
 #                i_am_in_unit_cell = ( i==0 AND j==0 AND k==0)
 #                if (i_am_in_unit_cell):
 #                          sc_first = "iatm + 2"  # 1 to start, 1 for Python's 0-based arrays
-               for ia in range(nia):
+                for ia in range(nia):
                     iatm=iatm+1
                     specsc[iatm]=spec[ia]
                     for ix in range(3):
@@ -58,8 +58,6 @@ def buildsc(scarray,struct):
 
 #              if (i_am_in_unit_cell):
 #                          sc_last = "iatm + 1" # 1 for Python's 0-based arrays
- 
+
     return scell, xasc, specsc
 #    return scell, xasc, specsc, sc_first, sc_last
-
-

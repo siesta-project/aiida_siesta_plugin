@@ -66,7 +66,7 @@ class SiestaVibraWorkChain(WorkChain):
         # Generate supercell structure
         #
         scell, xasc, specsc = buildsc(self.inputs.scarray,self.inputs.structure)
-##      Get also the indexes of the 1st and last unit cell atoms in the supercell        
+##      Get also the indexes of the 1st and last unit cell atoms in the supercell
 ##        scell, xasc, specsc, sc_first, sc_last = buildsc(self.inputs.scarray,self.inputs.structure)
         nna=len(xasc)
         self.ctx.structure_supercell = StructureData(cell=scell)
@@ -179,6 +179,7 @@ class SiestaVibraWorkChain(WorkChain):
             'md-fcdispl': '0.0211672 Ang'  # same. At least make it a global parameter of the workflow
         }
 
+
     def setup_basis(self):
         """
         Setup the basis dictionary.
@@ -244,6 +245,18 @@ class SiestaVibraWorkChain(WorkChain):
                 'atomicdispl':  '0.0211672 Ang',
                 'eigenvectors': True
         }
+
+        vibra_scarray = self.inputs.scarray.get_array('sca')
+        for i in range(3):
+            try:
+                vibra_parameters_dict.update({
+                    "SuperCell_" + str(i+1) : vibra_scarray[i]
+                })
+            except:
+                vibra_parameters_dict.update({
+                    "SuperCell_" + str(i+1) : 0
+                })
+
         vibra_inputs['parameters'] = ParameterData(dict=vibra_parameters_dict)
 
         vibra_inputs['_options'] = {
