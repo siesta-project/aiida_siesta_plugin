@@ -72,9 +72,11 @@ def execute(args):
 
     # Structure. Bulk silicon
 
+    # Supercell Size
     SuperCell_1=1
     SuperCell_2=1
     SuperCell_3=1
+
     scnumbers=np.array([SuperCell_1,SuperCell_2,SuperCell_3])
     scarray=ArrayData()
     scarray.set_array('sca',scnumbers)

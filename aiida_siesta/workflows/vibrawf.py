@@ -64,10 +64,15 @@ class SiestaVibraWorkChain(WorkChain):
         self.ctx.structure_initial_primitive = self.inputs.structure
         #
         # Generate supercell structure
+        # Get also the indexes of the 1st and last unit cell atoms in the supercell
         #
-        scell, xasc, specsc = buildsc(self.inputs.scarray,self.inputs.structure)
-##      Get also the indexes of the 1st and last unit cell atoms in the supercell
-##        scell, xasc, specsc, sc_first, sc_last = buildsc(self.inputs.scarray,self.inputs.structure)
+        # scell, xasc, specsc = buildsc(self.inputs.scarray,self.inputs.structure)
+        scell, xasc, specsc, sc_first, sc_last = buildsc(self.inputs.scarray,self.inputs.structure)
+        self.ctx.unit_cell_limits = {
+            'first' : sc_first,
+            'last'  : sc_last,
+        }
+
         nna=len(xasc)
         self.ctx.structure_supercell = StructureData(cell=scell)
         #
@@ -167,6 +172,7 @@ class SiestaVibraWorkChain(WorkChain):
 
         # In case we did not get anything, set a minimum value
         meshcutoff = max(self.ctx.protocol['min_meshcutoff'], meshcutoff)
+        self.ctx.unit_cell_limits
 
         self.ctx.rsi_inputs['parameters'] = {
             'dm-tolerance': self.ctx.protocol['dm_convergence_threshold'],
@@ -174,8 +180,8 @@ class SiestaVibraWorkChain(WorkChain):
             'electronic-temperature': self.ctx.protocol['electronic_temperature'],
             # Parameters for the FC run
             'md-typeofrun': 'FC',
-            'md-fcfirst': 27,      # These numbers should NOT be hardwired
-            'md-fclast': 28,
+            'md-fcfirst': self.ctx.unit_cell_limits['first'],
+            'md-fclast':  self.ctx.unit_cell_limits['last'],
             'md-fcdispl': '0.0211672 Ang'  # same. At least make it a global parameter of the workflow
         }
 
