@@ -2,12 +2,8 @@
 # -*- coding: utf-8 -*-
 
 #
-# An example of Workchain to perform geometry relaxation
-# Note: The current input structure is non-optimal, in the
-# sense that the structure is pulled from the database, while
-# the parameters are set here. For example, the parameters are
-# taken from the 'test_siesta_geom_fail.py' legacy test, which
-# is for a water molecule.
+# Siesta+Vibra workflow.
+# It is advised to use this example as a template submission script.
 #
 import argparse
 from aiida.common.exceptions import NotExistent
@@ -126,13 +122,30 @@ def execute(args):
     else:
         structure = s1
 
+    global_parameters =  ParameterData(dict={
+        'atomicdispl': '0.0211672 Ang'
+        # 'atomicdispl': '0.02  Ang'
+    })
+
+    siesta_parameters =  ParameterData(dict={
+        # 'dm_convergence_threshold': 1.0e-5
+    })
+
+    vibra_parameters = ParameterData(dict={
+        'eigenvectors': False
+    })
+
     run(SiestaVibraWorkChain,
         code=code,
         vibra_code=vibra_code,
         scarray=scarray,
         structure=structure,
         protocol=protocol,
-        bandskpoints=bandskpoints)
+        bandskpoints=bandskpoints,
+        global_parameters=global_parameters,
+        siesta_parameters=siesta_parameters,
+        vibra_parameters=vibra_parameters,
+    )
 
 
 def main():
