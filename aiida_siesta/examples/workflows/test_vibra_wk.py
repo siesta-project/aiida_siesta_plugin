@@ -122,11 +122,15 @@ def execute(args):
     else:
         structure = s1
 
+    # **NOTE Siesta will use a default dx=0.04 Bohr if md-fcdispl
+    # is not present
     global_parameters =  ParameterData(dict={
         'atomicdispl': '0.0211672 Ang'
         # 'atomicdispl': '0.02  Ang'
     })
 
+    # **NOTE This should be encoded in the protocols, but it is OK
+    # to provide a fallback mechanism to override
     siesta_parameters =  ParameterData(dict={
         # 'dm_convergence_threshold': 1.0e-5
     })
