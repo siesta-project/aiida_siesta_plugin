@@ -41,6 +41,9 @@ class SiestaVibraWorkChain(WorkChain):
         spec.input('structure', valid_type=StructureData)
         spec.input('protocol', valid_type=Str, default=Str('standard'))
         spec.input('bandskpoints', valid_type=KpointsData)
+        spec.input('global_parameters', valid_type=ParameterData)
+        spec.input('siesta_parameters', valid_type=ParameterData)
+        spec.input('vibra_parameters', valid_type=ParameterData)
         spec.outline(
             cls.setup_structures,
             cls.setup_rsi_inputs,
@@ -64,10 +67,18 @@ class SiestaVibraWorkChain(WorkChain):
         self.ctx.structure_initial_primitive = self.inputs.structure
         #
         # Generate supercell structure
+        # Get also the indexes of the 1st and last unit cell atoms in the supercell
         #
-        scell, xasc, specsc = buildsc(self.inputs.scarray,self.inputs.structure)
-##      Get also the indexes of the 1st and last unit cell atoms in the supercell        
-##        scell, xasc, specsc, sc_first, sc_last = buildsc(self.inputs.scarray,self.inputs.structure)
+        # scell, xasc, specsc = buildsc(self.inputs.scarray,self.inputs.structure)
+        scell, xasc, specsc, sc_first, sc_last = buildsc(self.inputs.scarray,self.inputs.structure)
+        self.ctx.unit_cell_limits = {
+            'first' : sc_first,
+            'last'  : sc_last,
+        }
+        # Extract md-fcdispl as siesta-related parameter.
+        # Rebasing it as a global wf parameter might be more correct.
+        self.ctx.atomicdispl = self.inputs.global_parameters.get_dict()["atomicdispl"]
+
         nna=len(xasc)
         self.ctx.structure_supercell = StructureData(cell=scell)
         #
@@ -138,6 +149,10 @@ class SiestaVibraWorkChain(WorkChain):
         else:
             self.abort_nowait('Protocol {} not known'.format(self.ctx.protocol.value))
 
+        # Updating selected protocol with external parameters:
+        self.ctx.protocol.update(self.inputs.siesta_parameters.get_dict())
+
+
     def setup_pseudo_potentials(self):
         """
         Based on the given input structure, get the
@@ -174,10 +189,11 @@ class SiestaVibraWorkChain(WorkChain):
             'electronic-temperature': self.ctx.protocol['electronic_temperature'],
             # Parameters for the FC run
             'md-typeofrun': 'FC',
-            'md-fcfirst': 27,      # These numbers should NOT be hardwired
-            'md-fclast': 28,
-            'md-fcdispl': '0.0211672 Ang'  # same. At least make it a global parameter of the workflow
+            'md-fcfirst': self.ctx.unit_cell_limits['first'],
+            'md-fclast':  self.ctx.unit_cell_limits['last'],
+            'md-fcdispl': self.ctx.atomicdispl,
         }
+
 
     def setup_basis(self):
         """
@@ -237,15 +253,27 @@ class SiestaVibraWorkChain(WorkChain):
         vibra_inputs['structure'] = self.inputs.structure
         vibra_inputs['bandskpoints'] = self.inputs.bandskpoints
 
+        # I don't see any settings for vibra defined. Convention?
         vibra_settings_dict = {}
         vibra_inputs['settings'] = ParameterData(dict=vibra_settings_dict)
 
-        vibra_parameters_dict = {
-                'atomicdispl':  '0.0211672 Ang',
-                'eigenvectors': True
-        }
+        vibra_parameters_dict = self.inputs.vibra_parameters.get_dict()
+        vibra_parameters_dict.update({ "atomicdispl": self.ctx.atomicdispl })
+
+        vibra_scarray = self.inputs.scarray.get_array('sca')
+        for i in range(3):
+            try:
+                vibra_parameters_dict.update({
+                    "SuperCell_" + str(i+1) : vibra_scarray[i]
+                })
+            except:
+                vibra_parameters_dict.update({
+                    "SuperCell_" + str(i+1) : 0
+                })
+
         vibra_inputs['parameters'] = ParameterData(dict=vibra_parameters_dict)
 
+        # since vibra is a linear code, these hidden options are in place
         vibra_inputs['_options'] = {
             'withmpi': False,
             'resources': {

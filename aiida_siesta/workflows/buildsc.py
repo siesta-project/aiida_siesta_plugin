@@ -47,19 +47,20 @@ def buildsc(scarray,struct):
                 rr[0]=i*cell[0][0]+j*cell[0][1]+k*cell[0][2]
                 rr[1]=i*cell[1][0]+j*cell[1][1]+k*cell[1][2]
                 rr[2]=i*cell[2][0]+j*cell[2][1]+k*cell[2][2]
-#                i_am_in_unit_cell = ( i==0 AND j==0 AND k==0)
-#                if (i_am_in_unit_cell):
-#                          sc_first = "iatm + 2"  # 1 to start, 1 for Python's 0-based arrays
-               for ia in range(nia):
+
+                i_am_in_unit_cell = (i==0) and (j==0) and (k==0)
+
+                if (i_am_in_unit_cell):
+                    sc_first = iatm + 2  # 1 to start, 1 for Python's 0-based arrays
+
+                for ia in range(nia):
                     iatm=iatm+1
                     specsc[iatm]=spec[ia]
                     for ix in range(3):
                         xasc[iatm][ix]=xa[ia][ix]+rr[ix]
 
-#              if (i_am_in_unit_cell):
-#                          sc_last = "iatm + 1" # 1 for Python's 0-based arrays
- 
-    return scell, xasc, specsc
-#    return scell, xasc, specsc, sc_first, sc_last
+                if (i_am_in_unit_cell):
+                    sc_last = iatm + 1
 
 
+    return scell, xasc, specsc, sc_first, sc_last
