@@ -40,7 +40,9 @@ class SiestaVibraWorkChain(WorkChain):
         spec.input('scarray', valid_type=ArrayData)
         spec.input('structure', valid_type=StructureData)
         spec.input('protocol', valid_type=Str, default=Str('standard'))
+        spec.input('kpoints', valid_type=KpointsData)
         spec.input('bandskpoints', valid_type=KpointsData)
+        spec.input('options', valid_type=ParameterData)
         spec.input('global_parameters', valid_type=ParameterData)
         spec.input('siesta_parameters', valid_type=ParameterData)
         spec.input('vibra_parameters', valid_type=ParameterData)
@@ -102,20 +104,21 @@ class SiestaVibraWorkChain(WorkChain):
             #
             # There should be a better way to specify options at launch time (for all workflows)
             #
-            'options': ParameterData(dict={
-                'resources': {
-                    #'parallel_env': 'mpi',
-                    'tot_num_mpiprocs':2
-                },
-                'max_wallclock_seconds': 1800,       # This is currently hardwired
-            }),
+            # 'options': ParameterData(dict={
+            #     'resources': {
+            #         #'parallel_env': 'mpi',
+            #         'tot_num_mpiprocs':2
+            #     },
+            #     'max_wallclock_seconds': 3600,       # This is currently hardwired
+            # }),
+            'options': self.inputs.options,
         }
 
     def setup_protocol(self):
         if self.inputs.protocol == 'standard':
             self.report('running the workchain in the "{}" protocol'.format(self.inputs.protocol.value))
             self.ctx.protocol = {
-                'kpoints_mesh': 1,       # It is preferable to give a *density*, as in the bands workflow
+                # 'kpoints_mesh': 1,       # It is preferable to give a *density*, as in the bands workflow
                 'dm_convergence_threshold': 1.0e-4,
                 'min_meshcutoff': 100, # In Rydberg (!)
                 'electronic_temperature': "25.0 meV",
@@ -132,7 +135,7 @@ class SiestaVibraWorkChain(WorkChain):
         elif self.inputs.protocol == 'fast':
             self.report('running the workchain in the "{}" protocol'.format(self.inputs.protocol.value))
             self.ctx.protocol = {
-                'kpoints_mesh': 1,       # It is preferable to give a *density*, as in the bands workflow
+                # 'kpoints_mesh': 1,       # It is preferable to give a *density*, as in the bands workflow
                 'dm_convergence_threshold': 1.0e-3,
                 'min_meshcutoff': 80, # In Rydberg (!)
                 'electronic_temperature': "25.0 meV",
@@ -211,11 +214,11 @@ class SiestaVibraWorkChain(WorkChain):
         #
         #  We should check for the case of 'molecules', and avoid using k-points
         #
-        kpoints_mesh = KpointsData()
-        kpmesh=self.ctx.protocol['kpoints_mesh']
-        kpoints_mesh.set_kpoints_mesh([kpmesh,kpmesh,kpmesh])  # See above about density
+        # kpoints_mesh = KpointsData()
+        # kpmesh=self.ctx.protocol['kpoints_mesh']
+        # kpoints_mesh.set_kpoints_mesh([kpmesh,kpmesh,kpmesh])  # See above about density
 
-        self.ctx.kpoints_mesh = kpoints_mesh
+        self.ctx.kpoints_mesh = self.inputs.kpoints
 
     def run_siesta(self):
         """
