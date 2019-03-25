@@ -16,7 +16,7 @@ from aiida.common.exceptions import NotExistent
 
 # This script will send a Siesta calculation on a structure taken from
 # a cif file.
-# The band structure is calculated and the kpoint path is automatically 
+# The band structure is calculated and the kpoint path is automatically
 # generated using seekpath.
 
 ################################################################
@@ -97,7 +97,7 @@ calc.use_structure(newstructure)
 params_dict= {
 'xc.functional': 'LDA',
 'xc.authors': 'CA',
-'spin:polarized': True,
+'spin-polarized': True,
 'noncollinearspin': False,
 'mesh-cutoff': '200.000 Ry',
 'max-scfiterations': 1000,
@@ -160,7 +160,7 @@ for fname, kinds, in raw_pseudos:
         print "Created the pseudo for {}".format(kinds)
     else:
         print "Using the pseudo for {} from DB: {}".format(kinds,pseudo.pk)
-        
+
     # Attach pseudo node to the calculation
     calc.use_pseudo(pseudo,kind=kinds)
 #-------------------------------------------------------------------
@@ -171,7 +171,7 @@ kpoints_mesh = 4
 kts.set_kpoints_mesh([kpoints_mesh,kpoints_mesh,kpoints_mesh])
 
 # K-points for bands, uncomment your favourite  --------------------
-# 
+#
 bandskpoints = KpointsData()
 
 ##Making use of SeeK-path for the automatic path
@@ -201,4 +201,3 @@ else:
     calc.submit()
     print "submitted calculation; calc=Calculation(uuid='{}') # ID={}".format(
         calc.uuid,calc.dbnode.pk)
-
