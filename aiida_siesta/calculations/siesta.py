@@ -49,7 +49,7 @@ class SiestaCalculation(JobCalculation):
         self._aiida_blocked_keywords.append('atomic-coordinates-format')
         self._aiida_blocked_keywords.append('atomiccoordinatesformat')
         self._aiida_blocked_keywords.append('use-tree-timer')
-        self._aiida_blocked_keywords.append('xml-write')
+        # self._aiida_blocked_keywords.append('xml-write')
 
         # Default input and output files
         self._DEFAULT_INPUT_FILE = 'aiida.in'
