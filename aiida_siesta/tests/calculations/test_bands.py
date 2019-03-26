@@ -29,8 +29,9 @@ def test_bands(siesta_develop):
     ParameterData = DataFactory('parameter')
     KpointsData = DataFactory('array.kpoints')
 
-    codename = 'siesta@develop'
-    code = Code.get_from_string(codename)
+    # codename = 'siesta@develop'
+    # code = Code.get_from_string(codename)
+    code = siesta_develop['siesta_code']
 
     inputs = SiestaCalculation.process().get_inputs_template()
     inputs.code = code

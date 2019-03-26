@@ -13,7 +13,7 @@ def test_simple_submission(siesta_develop):
     ParameterData = DataFactory('parameter')
     KpointsData = DataFactory('array.kpoints')
 
-    code = test_and_get_code('siesta', expected_code_type='siesta.siesta')
+    code = siesta_develop['siesta_code']
     assert code is not None
 
     # Si diamond structure
