@@ -20,6 +20,6 @@ dist/
 
 # Test-related
 # test-submission folders
-*/submit_test/
+submit_test/
 # testing configuration
 testconfig.ini
