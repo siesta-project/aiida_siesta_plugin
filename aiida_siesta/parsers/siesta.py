@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
 import numpy as np
 from aiida.parsers.parser import Parser
 from aiida_siesta.calculations.siesta import SiestaCalculation
 from aiida.orm.data.parameter import ParameterData
+from six.moves import range
 
 # TODO Get modules metadata from setup script.
 __copyright__ = u"Copyright (c), 2015, ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE (Theory and Simulation of Materials (THEOS) and National Centre for Computational Design and Discovery of Novel Materials (NCCR MARVEL)), Switzerland and ROBERT BOSCH LLC, USA. All rights reserved."
@@ -62,7 +64,7 @@ def get_dict_from_xml_doc(xmldoc):
 
      scf_final = None
      for m in itemlist:
-       if 'title' in m.attributes.keys():
+       if 'title' in list(m.attributes.keys()):
           # Get last scf finalization module
           if m.attributes['title'].value == "SCF Finalization":
                scf_final = m
@@ -73,7 +75,7 @@ def get_dict_from_xml_doc(xmldoc):
       props = scf_final.getElementsByTagName('property')
      
       for s in props:
-        if 'dictRef' in s.attributes.keys():
+        if 'dictRef' in list(s.attributes.keys()):
           name = s.attributes['dictRef'].value
           if name in standard_output_list:
              data = s.getElementsByTagName('scalar')[0]
@@ -114,8 +116,8 @@ def is_variable_geometry(xmldoc):
      itemlist = xmldoc.getElementsByTagName('module')
      for m in itemlist:
        # Check the type of the first "step" module, which is a "geometry" one
-       if 'serial' in m.attributes.keys():
-           if 'dictRef' in m.attributes.keys():
+       if 'serial' in list(m.attributes.keys()):
+           if 'dictRef' in list(m.attributes.keys()):
                if m.attributes['dictRef'].value == "Single-Point":
                    return False
                else:
@@ -135,11 +137,11 @@ def get_sizes_info(xmldoc):
      itemlist = xmldoc.getElementsByTagName('module')
      for m in itemlist:
        # Process the first "step" module, which is a "geometry" one
-       if 'serial' in m.attributes.keys():
+       if 'serial' in list(m.attributes.keys()):
            # Get properties here
            props_list = m.getElementsByTagName('property')
            for p in props_list:
-               if 'dictRef' in p.attributes.keys():
+               if 'dictRef' in list(p.attributes.keys()):
                    if p.attributes['dictRef'].value == "siesta:no_u":
                        scalar = p.getElementsByTagName('scalar')[0]
                        no_u = int(scalar.childNodes[0].data)
@@ -165,8 +167,8 @@ def get_last_structure(xmldoc, input_structure):
     finalmodule = None
     for m in itemlist:
       # Get a "geometry" module by the criteria:
-      if 'serial' in m.attributes.keys():
-          if 'dictRef' in m.attributes.keys():
+      if 'serial' in list(m.attributes.keys()):
+          if 'dictRef' in list(m.attributes.keys()):
               if m.attributes['dictRef'].value != "SCF":
                   finalmodule = m
 
@@ -222,7 +224,7 @@ def get_final_forces_and_stress(xmldoc):
  
  scf_final = None
  for m in itemlist:
-     if 'title' in m.attributes.keys():
+     if 'title' in list(m.attributes.keys()):
           # Get last scf finalization module
           if m.attributes['title'].value == "SCF Finalization":
                scf_final = m
@@ -233,7 +235,7 @@ def get_final_forces_and_stress(xmldoc):
  if scf_final is not None:
       props = scf_final.getElementsByTagName('property')
       for p in props:
-        if 'dictRef' in p.attributes.keys():
+        if 'dictRef' in list(p.attributes.keys()):
 
            if p.attributes['dictRef'].value=='siesta:forces':
                 mat = p.getElementsByTagName('matrix')[0]
@@ -333,7 +335,7 @@ class SiestaParser(Parser):
         if json_path is None:
             self.logger.info("Could not find a time.json file to parse")
         else:
-             from json_time import get_timing_info
+             from .json_time import get_timing_info
              global_time, timing_decomp = get_timing_info(json_path)
              if global_time is None:
                   self.logger.info("Cannot fully parse the time.json file")
@@ -352,7 +354,7 @@ class SiestaParser(Parser):
         result_dict["warnings"] = warnings_list
         
         # Add parser info dictionary
-        parsed_dict = dict(result_dict.items() + parser_info.items())
+        parsed_dict = dict(list(result_dict.items()) + list(parser_info.items()))
 
         output_data = ParameterData(dict=parsed_dict)
         

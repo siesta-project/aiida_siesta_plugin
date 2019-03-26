@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
 import os
 
 from aiida.common.constants import elements
@@ -13,7 +14,8 @@ from aiida.orm.data.structure import StructureData
 from aiida.orm.data.singlefile import SinglefileData
 
 # Module with fdf-aware dictionary
-from tkdict import FDFDict
+from .tkdict import FDFDict
+import six
 
 __copyright__ = u"Copyright (c), 2015, ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE (Theory and Simulation of Materials (THEOS) and National Centre for Computational Design and Discovery of Novel Materials (NCCR MARVEL)), Switzerland and ROBERT BOSCH LLC, USA. All rights reserved."
 __license__ = "MIT license, see LICENSE.txt file"
@@ -197,7 +199,7 @@ class VibraCalculation(JobCalculation):
         if inputdict:
             raise InputValidationError(
                 "The following input data nodes are "
-                "unrecognized: {}".format(inputdict.keys()))
+                "unrecognized: {}".format(list(inputdict.keys())))
 
         ##############################
         # END OF INITIAL INPUT CHECK #
@@ -257,7 +259,7 @@ class VibraCalculation(JobCalculation):
         # Only the species index and the mass are necessary 
 
         # Dictionary to get the mass of a given element
-        datmn = dict([(v['symbol'],v['mass']) for k, v in elements.iteritems()])
+        datmn = dict([(v['symbol'],v['mass']) for k, v in six.iteritems(elements)])
 
         spind = {}
         spcount = 0
@@ -341,7 +343,7 @@ class VibraCalculation(JobCalculation):
         with open(input_filename, 'w') as infile:
             # here print keys and values tp file
 
-            for k, v in sorted(input_params.iteritems()):
+            for k, v in sorted(six.iteritems(input_params)):
                 infile.write(get_input_data_text(k, v))
                 # ,mapping=mapping_species))
 
@@ -468,7 +470,7 @@ def get_input_data_text(key, val, mapping=None):
                              "the 'mapping' parameter")
 
         list_of_strings = []
-        for elemk, itemval in val.iteritems():
+        for elemk, itemval in six.iteritems(val):
             try:
                 idx = mapping[elemk]
             except KeyError:
@@ -513,11 +515,11 @@ def my_conv_to_fortran(val):
             val_str = '.true.'
         else:
             val_str = '.false.'
-    elif (isinstance(val, (int, long))):
+    elif (isinstance(val, six.integer_types)):
         val_str = "{:d}".format(val)
     elif (isinstance(val, float)):
         val_str = ("{:18.10e}".format(val)).replace('e', 'd')
-    elif (isinstance(val, basestring)):
+    elif (isinstance(val, six.string_types)):
         val_str = "{!s}".format(val)
     else:
         raise ValueError("Invalid value passed, accepts only bools, ints, "
@@ -530,7 +532,7 @@ def _uppercase_dict(d, dict_name):
     from collections import Counter
 
     if isinstance(d, dict):
-        new_dict = dict((str(k).upper(), v) for k, v in d.iteritems())
+        new_dict = dict((str(k).upper(), v) for k, v in six.iteritems(d))
         if len(new_dict) != len(d):
 
             num_items = Counter(str(k).upper() for k in d.keys())

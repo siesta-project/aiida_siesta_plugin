@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
 from aiida.parsers.parser import Parser
 from aiida_siesta.calculations.siesta import SiestaCalculation
 from aiida_siesta.calculations.stm import STMCalculation
@@ -54,7 +55,7 @@ class STMParser(Parser):
              in_settings = None
 
         # Add parser info dictionary
-        parsed_dict = dict(result_dict.items() + parser_info.items())
+        parsed_dict = dict(list(result_dict.items()) + list(parser_info.items()))
 
         output_data = ParameterData(dict=parsed_dict)
         
