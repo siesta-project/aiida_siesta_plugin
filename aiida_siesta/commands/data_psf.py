@@ -3,6 +3,7 @@
 Verdi command definition for PSF pseudopotentials data.
 `verdi data psf`
 """
+from __future__ import absolute_import
 import click
 import sys
 

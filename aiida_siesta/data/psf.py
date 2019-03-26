@@ -3,8 +3,10 @@
 This module manages the PSF pseudopotentials in the local repository.
 """
 
+from __future__ import absolute_import
 from aiida.common.utils import classproperty
 from aiida.orm.data.singlefile import SinglefileData
+import six
 
 __copyright__ = u"Copyright (c), 2015, ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE (Theory and Simulation of Materials (THEOS) and National Centre for Computational Design and Discovery of Novel Materials (NCCR MARVEL)), Switzerland and ROBERT BOSCH LLC, USA. All rights reserved."
 __license__ = "MIT license, see LICENSE.txt file"
@@ -423,7 +425,7 @@ class PsfData(SinglefileData):
         if user is not None:
             group_query_params['user'] = user
 
-        if isinstance(filter_elements, basestring):
+        if isinstance(filter_elements, six.string_types):
             filter_elements = [filter_elements]
 
         if filter_elements is not None:
