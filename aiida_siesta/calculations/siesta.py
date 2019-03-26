@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
 import os
 
 from aiida.common.constants import elements
@@ -13,7 +14,8 @@ from aiida.orm.data.structure import StructureData
 
 from aiida_siesta.data.psf import PsfData, get_pseudos_from_structure
 # Module with fdf-aware dictionary
-from tkdict import FDFDict
+from .tkdict import FDFDict
+import six
 
 __copyright__ = u"Copyright (c), 2015, ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE (Theory and Simulation of Materials (THEOS) and National Centre for Computational Design and Discovery of Novel Materials (NCCR MARVEL)), Switzerland and ROBERT BOSCH LLC, USA. All rights reserved."
 __license__ = "MIT license, see LICENSE.txt file"
@@ -262,14 +264,14 @@ class SiestaCalculation(JobCalculation):
         if inputdict:
             raise InputValidationError(
                 "The following input data nodes are "
-                "unrecognized: {}".format(inputdict.keys()))
+                "unrecognized: {}".format(list(inputdict.keys())))
 
         # Check structure, get species, check peudos
         kindnames = [k.name for k in structure.kinds]
         if set(kindnames) != set(pseudos.keys()):
             err_msg = ("Mismatch between the defined pseudos and the list of "
                        "kinds of the structure. Pseudos: {}; kinds: {}".format(
-                           ",".join(pseudos.keys()),
+                           ",".join(list(pseudos.keys())),
                            ",".join(list(kindnames))))
             raise InputValidationError(err_msg)
 
@@ -338,7 +340,7 @@ class SiestaCalculation(JobCalculation):
         atomic_species_card_list = []
 
         # Dictionary to get the atomic number of a given element
-        datmn = dict([(v['symbol'], k) for k, v in elements.iteritems()])
+        datmn = dict([(v['symbol'], k) for k, v in six.iteritems(elements)])
 
         spind = {}
         spcount = 0
@@ -456,7 +458,7 @@ class SiestaCalculation(JobCalculation):
         with open(input_filename, 'w') as infile:
             # here print keys and values tp file
 
-            for k, v in sorted(input_params.iteritems()):
+            for k, v in sorted(six.iteritems(input_params)):
                 infile.write(get_input_data_text(k, v))
                 # ,mapping=mapping_species))
 
@@ -467,7 +469,7 @@ class SiestaCalculation(JobCalculation):
             #
             if basis is not None:
                 infile.write("#\n# -- Basis Set Info follows\n#\n")
-                for k, v in input_basis.iteritems():
+                for k, v in six.iteritems(input_basis):
                     infile.write(get_input_data_text(k, v))
 
             # Write previously generated cards now
@@ -596,7 +598,7 @@ class SiestaCalculation(JobCalculation):
 
         if isinstance(kind, (tuple, list)):
             suffix_string = "_".join(kind)
-        elif isinstance(kind, basestring):
+        elif isinstance(kind, six.string_types):
             suffix_string = kind
         else:
             raise TypeError("The parameter 'kind' of _get_linkname_pseudo can "
@@ -632,7 +634,7 @@ class SiestaCalculation(JobCalculation):
         # Will contain a list of all species of the pseudo with given PK
         pseudo_species = defaultdict(list)
 
-        for kindname, pseudo in kind_pseudo_dict.iteritems():
+        for kindname, pseudo in six.iteritems(kind_pseudo_dict):
             pseudo_dict[pseudo.pk] = pseudo
             pseudo_species[pseudo.pk].append(kindname)
 
@@ -858,7 +860,7 @@ def get_input_data_text(key, val, mapping=None):
                              "the 'mapping' parameter")
 
         list_of_strings = []
-        for elemk, itemval in val.iteritems():
+        for elemk, itemval in six.iteritems(val):
             try:
                 idx = mapping[elemk]
             except KeyError:
@@ -903,11 +905,11 @@ def my_conv_to_fortran(val):
             val_str = '.true.'
         else:
             val_str = '.false.'
-    elif (isinstance(val, (int, long))):
+    elif (isinstance(val, six.integer_types)):
         val_str = "{:d}".format(val)
     elif (isinstance(val, float)):
         val_str = ("{:18.10e}".format(val)).replace('e', 'd')
-    elif (isinstance(val, basestring)):
+    elif (isinstance(val, six.string_types)):
         val_str = "{!s}".format(val)
     else:
         raise ValueError("Invalid value passed, accepts only bools, ints, "
@@ -920,7 +922,7 @@ def _uppercase_dict(d, dict_name):
     from collections import Counter
 
     if isinstance(d, dict):
-        new_dict = dict((str(k).upper(), v) for k, v in d.iteritems())
+        new_dict = dict((str(k).upper(), v) for k, v in six.iteritems(d))
         if len(new_dict) != len(d):
 
             num_items = Counter(str(k).upper() for k in d.keys())

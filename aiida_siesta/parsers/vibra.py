@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
 import numpy as np
 from aiida.orm.data.parameter import ParameterData
 from aiida.parsers.parser import Parser
 from aiida.parsers.exceptions import OutputParsingError
 from aiida_siesta.calculations.vibra import VibraCalculation
+from six.moves import range
 
 __copyright__ = u"Copyright (c), 2015, ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE (Theory and Simulation of Materials (THEOS) and National Centre for Computational Design and Discovery of Novel Materials (NCCR MARVEL)), Switzerland and ROBERT BOSCH LLC, USA. All rights reserved."
 __license__ = "MIT license, see LICENSE.txt file"
@@ -65,7 +67,7 @@ class VibraParser(Parser):
         parser_info['parser_info'] =\
             'AiiDA Vibra Parser V. {}'.format(parser_version)
         parser_info['parser_warnings'] = []
-        parsed_dict = dict(result_dict.items() + parser_info.items())
+        parsed_dict = dict(list(result_dict.items()) + list(parser_info.items()))
 
         output_data = ParameterData(dict=parsed_dict)
         
