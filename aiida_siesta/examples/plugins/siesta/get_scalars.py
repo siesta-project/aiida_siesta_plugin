@@ -1,5 +1,7 @@
 #!/usr/bin/env runaiida
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
+from __future__ import print_function
 import sys
 import os
 
@@ -18,7 +20,7 @@ SiestaCalc = CalculationFactory('siesta.siesta')
 try:
     calc_id = sys.argv[1]
 except IndexError:
-    print >> sys.stderr, ("Must provide as parameter the calc ID")
+    print(("Must provide as parameter the calc ID"), file=sys.stderr)
     sys.exit(1)
 
 
@@ -33,30 +35,30 @@ calc = load_node(int(calc_id))
 
 if isinstance(calc,SiestaCalc):
 
-    print "Calculation status: '{}'".format(calc.get_state())
+    print("Calculation status: '{}'".format(calc.get_state()))
 ##??     print "Desc: {}".format(calc.description)
     d=calc.out.output_parameters.get_dict()
     
     try:
-        print "Total (free) energy: {} {}".format(d['FreeE'],d['FreeE_units'])
+        print("Total (free) energy: {} {}".format(d['FreeE'],d['FreeE_units']))
     except:
         pass
     try:
-        print "Band energy: {} {}".format(d['Ebs'],d['Ebs_units'])
+        print("Band energy: {} {}".format(d['Ebs'],d['Ebs_units']))
     except:
         pass
     try:
-        print "Fermi energy: {} {}".format(d['E_Fermi'],d['E_Fermi_units'])
+        print("Fermi energy: {} {}".format(d['E_Fermi'],d['E_Fermi_units']))
     except:
         pass
     try:
-        print "Total spin: {}".format(d['stot'])
+        print("Total spin: {}".format(d['stot']))
     except:
         pass
     
 
 else:
-    print >> sys.stderr, ("Calculation should be a Siesta calculation.")
+    print(("Calculation should be a Siesta calculation."), file=sys.stderr)
     sys.exit(1)
 
 
