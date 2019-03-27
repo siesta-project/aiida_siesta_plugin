@@ -31,10 +31,19 @@ Vladimir Dikan and Alberto Garcia developed the workflows and
 refined the architecture of the package.
 
 We acknowledge partial support from the Spanish MINECO (projects
-FIS2012-37549-C05-05 and FIS2015-64886-C5-4-P) and from the EU Centre
-of Excellence “MaX – Materials Design at the Exascale”
-(http://www.max-centre.eu). (Horizon 2020 EINFRA-5, Grant No. 676598)
-We also thank the AiiDA team for their help.
+FIS2012-37549-C05-05 and FIS2015-64886-C5-4-P) and  by the `MaX 
+European Centre of Excellence <http://www.max-centre.eu/>`_ funded by the Horizon 2020 EINFRA-5 program,
+Grant No. 676598.
+
+We thank the AiiDA team, who are also supported by the [MARVEL National Centre for Competency in Research](<http://nccr-marvel.ch>)
+funded by the `Swiss National Science Foundation <http://www.snf.ch/en>`_
+
+.. figure:: miscellaneous/logos/MINECO-AEI.png
+    :alt: MINECO-AEI
+.. figure:: miscellaneous/logos/MaX.png
+    :alt: MaX
+.. figure:: miscellaneous/logos/MARVEL.png
+    :alt: MARVEL
 
 Contents:
 ---------

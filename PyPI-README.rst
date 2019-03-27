@@ -21,15 +21,3 @@ European Centre of Excellence <http://www.max-centre.eu/>`_ funded by
 the Horizon 2020 EINFRA-5 program, Grant No. 676598, and by
 the Spanish MINECO (projects
 FIS2012-37549-C05-05 and FIS2015-64886-C5-4-P)
-
-.. figure:: aiida_siesta/docs/miscellaneous/logos/MARVEL.png
-    :alt: MARVEL
-    :target: http://nccr-marvel.ch
-
-.. figure:: aiida_siesta/docs/miscellaneous/logos/MaX.png
-    :alt: MaX
-    :target: http://www.max-centre.eu/
-
-.. figure:: aiida_siesta/docs/miscellaneous/logos/MINECO-AEI.png
-    :alt: MINECO-AEI
-    :target: http://www.mineco.gob.es/

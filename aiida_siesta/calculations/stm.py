@@ -17,7 +17,7 @@ import six
 
 __copyright__ = u"Copyright (c), 2015, ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE (Theory and Simulation of Materials (THEOS) and National Centre for Computational Design and Discovery of Novel Materials (NCCR MARVEL)), Switzerland and ROBERT BOSCH LLC, USA. All rights reserved."
 __license__ = "MIT license, see LICENSE.txt file"
-__version__ = "0.9.0"
+__version__ = "0.9.10"
 __contributors__ = "Victor M. Garcia-Suarez, Alberto Garcia"
 
 class STMCalculation(JobCalculation):
@@ -26,7 +26,7 @@ class STMCalculation(JobCalculation):
     takes and .LDOS or .RHO file and generates a plot file to simulate
     an STM image.
     """
-    _stm_plugin_version = 'aiida-0.9.X--stm-0.1'
+    _stm_plugin_version = 'aiida-0.12.0--stm-0.9.10'
     
     def _init_internal_params(self):
         super(STMCalculation, self)._init_internal_params()

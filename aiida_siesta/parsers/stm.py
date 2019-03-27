@@ -7,7 +7,7 @@ from aiida.orm.data.parameter import ParameterData
 
 __copyright__ = u"Copyright (c), 2015, ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE (Theory and Simulation of Materials (THEOS) and National Centre for Computational Design and Discovery of Novel Materials (NCCR MARVEL)), Switzerland and ROBERT BOSCH LLC, USA. All rights reserved."
 __license__ = "MIT license, see LICENSE.txt file"
-__version__ = "0.9.0"
+__version__ = "0.9.10"
 __contributors__ = "Alberto Garcia"
 
 # -*- coding: utf-8 -*-
@@ -39,7 +39,7 @@ class STMParser(Parser):
         Extracts output nodes from the standard output and standard error
         files. (and plot file)
         """
-        parser_version = 'aiida-0.9.0--stm-0.1'
+        parser_version = 'aiida-0.12.0--stm-0.9.10'
         parser_info = {}
         parser_info['parser_info'] = 'AiiDA STM(Siesta) Parser V. {}'.format(parser_version)
         parser_info['parser_warnings'] = []

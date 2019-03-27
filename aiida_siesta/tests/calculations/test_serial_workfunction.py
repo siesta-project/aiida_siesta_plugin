@@ -23,7 +23,7 @@ def test_serial_workfunction(siesta_develop):
     ParameterData = DataFactory('parameter')
     KpointsData = DataFactory('array.kpoints')
 
-    codename = 'siesta@develop'
+    # codename = 'siesta@develop'
     scale_facs = (0.96, 0.98, 1.0, 1.02, 1.04)
     labels = ["c1", "c2", "c3", "c4", "c5"]
 
@@ -71,7 +71,7 @@ def test_serial_workfunction(siesta_develop):
     def geninputs(structure):
         inputs = SiestaCalculation.process().get_inputs_template()
         inputs.structure = structure
-        inputs.code = Code.get_from_string(codename)
+        inputs.code = siesta_develop['siesta_code']
         inputs._options.resources = {
             "num_machines": 1,
             "num_mpiprocs_per_machine": 1,
@@ -162,5 +162,5 @@ def test_serial_workfunction(siesta_develop):
     assert eos_data is not None
     assert len(eos_data) == 5
     assert "{0:.4f}".format(eos_data[0][0]) == "35.4122"
-    assert "{0:.4f}".format(eos_data[4][1]) == "-215.0824"
+    assert "{0:.2f}".format(eos_data[4][1]) == "-215.08"
     assert eos_data[3][2] == "eV"

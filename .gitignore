@@ -18,4 +18,8 @@ dist/
 
 .cache/
 
-siesta_plugin_files/examples/submission/siesta/submit_test/
+# Test-related
+# test-submission folders
+submit_test/
+# testing configuration
+testconfig.ini

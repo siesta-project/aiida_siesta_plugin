@@ -19,7 +19,7 @@ import six
 
 __copyright__ = u"Copyright (c), 2015, ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE (Theory and Simulation of Materials (THEOS) and National Centre for Computational Design and Discovery of Novel Materials (NCCR MARVEL)), Switzerland and ROBERT BOSCH LLC, USA. All rights reserved."
 __license__ = "MIT license, see LICENSE.txt file"
-__version__ = "0.11.5"
+__version__ = "0.9.10"
 __contributors__ = "Victor M. Garcia-Suarez, Alberto Garcia, Emanuele Bosoni"
 
 
@@ -27,7 +27,7 @@ class SiestaCalculation(JobCalculation):
     """
     Siesta calculator class for AiiDA.
     """
-    _siesta_plugin_version = 'aiida-0.11.0--plugin-0.11.5'
+    _siesta_plugin_version = 'aiida-0.12.0--plugin-0.9.10'
 
     def _init_internal_params(self):
         super(SiestaCalculation, self)._init_internal_params()
@@ -49,7 +49,7 @@ class SiestaCalculation(JobCalculation):
         self._aiida_blocked_keywords.append('atomic-coordinates-format')
         self._aiida_blocked_keywords.append('atomiccoordinatesformat')
         self._aiida_blocked_keywords.append('use-tree-timer')
-        self._aiida_blocked_keywords.append('xml-write')
+        # self._aiida_blocked_keywords.append('xml-write')
 
         # Default input and output files
         self._DEFAULT_INPUT_FILE = 'aiida.in'
