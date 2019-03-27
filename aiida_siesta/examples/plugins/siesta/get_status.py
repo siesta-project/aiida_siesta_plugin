@@ -1,5 +1,7 @@
 #!/usr/bin/env runaiida
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
+from __future__ import print_function
 import sys
 import os
 
@@ -18,7 +20,7 @@ SiestaCalc = CalculationFactory('siesta.siesta')
 try:
     calc_id = sys.argv[1]
 except IndexError:
-    print >> sys.stderr, ("Must provide as parameter the calc ID")
+    print(("Must provide as parameter the calc ID"), file=sys.stderr)
     sys.exit(1)
 
 
@@ -33,17 +35,17 @@ calc = load_node(int(calc_id))
 
 if isinstance(calc,SiestaCalc):
 
-    print "Calculation status: '{}'".format(calc.get_state())
+    print("Calculation status: '{}'".format(calc.get_state()))
 ##??     print "Desc: {}".format(calc.description)
     d=calc.out.output_parameters.get_dict()
     
     try:
-        print "Warnings: {}".format(d['warnings'])
+        print("Warnings: {}".format(d['warnings']))
     except:
         pass
 
 else:
-    print >> sys.stderr, ("Calculation should be a Siesta calculation.")
+    print(("Calculation should be a Siesta calculation."), file=sys.stderr)
     sys.exit(1)
 
 
