@@ -1,18 +1,18 @@
 # -*- coding: utf-8 -*-
 from aiida.orm import Code
-from aiida.orm.data.base import Bool, Int, Str
-from aiida.orm.data.parameter import ParameterData
-from aiida.orm.data.structure import StructureData
-from aiida.orm.data.array.kpoints import KpointsData
-from aiida.work.run import submit, run
-from aiida.work.workchain import WorkChain, ToContext
-from aiida.work.workfunction import workfunction
+from aiida.orm.nodes.base import Bool, Int, Str
+from aiida.orm.nodes.parameter import Dict
+from aiida.orm.nodes.structure import StructureData
+from aiida.orm.nodes.array.kpoints import KpointsData
+from aiida.engine.run import submit, run
+from aiida.engine.workchain import WorkChain, ToContext
+from aiida.engine.workfunction import workfunction
 from aiida.common.links import LinkType
 
 from aiida_siesta.data.psf import get_pseudos_from_structure
 ##from aiida_siesta.calculations.siesta import SiestaCalculation
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
-from aiida.orm.data.array.kpoints import KpointsData
+from aiida.orm.nodes.array.kpoints import KpointsData
 
 class SiestaBandsWorkChain(WorkChain):
     """
@@ -52,7 +52,7 @@ class SiestaBandsWorkChain(WorkChain):
             'code': self.inputs.code,
             'parameters': {},
             'settings': {},
-            'options': ParameterData(dict={
+            'options': Dict(dict={
                 'resources': {
                     'num_machines': 1
                 },
@@ -184,10 +184,10 @@ class SiestaBandsWorkChain(WorkChain):
         # Pseudos was set above in 'ctx.inputs', and so it is in 'inputs' already
         
         inputs['kpoints'] = self.ctx.kpoints_mesh
-        inputs['basis'] = ParameterData(dict=inputs['basis'])
+        inputs['basis'] = Dict(dict=inputs['basis'])
         inputs['structure'] = self.ctx.structure_initial_primitive
-        inputs['parameters'] = ParameterData(dict=inputs['parameters'])
-        inputs['settings'] = ParameterData(dict=inputs['settings'])
+        inputs['parameters'] = Dict(dict=inputs['parameters'])
+        inputs['settings'] = Dict(dict=inputs['settings'])
         inputs['clean_workdir'] = Bool(False)
         inputs['max_iterations'] = Int(20)
         
@@ -229,9 +229,9 @@ class SiestaBandsWorkChain(WorkChain):
         inputs['bandskpoints'] = self.ctx.kpoints_path           
         inputs['kpoints'] = kpoints_mesh
         inputs['structure'] = self.ctx.structure_relaxed_primitive
-        inputs['parameters'] = ParameterData(dict=inputs['parameters'])
-        inputs['basis'] = ParameterData(dict=inputs['basis'])
-        inputs['settings'] = ParameterData(dict=inputs['settings'])
+        inputs['parameters'] = Dict(dict=inputs['parameters'])
+        inputs['basis'] = Dict(dict=inputs['basis'])
+        inputs['settings'] = Dict(dict=inputs['settings'])
         
         running = submit(SiestaBaseWorkChain, **inputs)
         

@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 import numpy as np
-from aiida.orm.data.parameter import ParameterData
+from aiida.orm.nodes.parameter import Dict
 from aiida.parsers.parser import Parser
-from aiida.parsers.exceptions import OutputParsingError
+from aiida.common.exceptions import OutputParsingError
 from aiida_siesta.calculations.vibra import VibraCalculation
 from six.moves import range
 
@@ -38,7 +38,7 @@ class VibraParser(Parser):
         Extracts output nodes from the standard output and standard error
         files. (And XML and JSON files)
         """
-        from aiida.orm.data.array.trajectory import TrajectoryData
+        from aiida.orm.nodes.array.trajectory import TrajectoryData
         import re
 
         result_list = []
@@ -69,7 +69,7 @@ class VibraParser(Parser):
         parser_info['parser_warnings'] = []
         parsed_dict = dict(list(result_dict.items()) + list(parser_info.items()))
 
-        output_data = ParameterData(dict=parsed_dict)
+        output_data = Dict(dict=parsed_dict)
         
         link_name = self.get_linkname_outparams()
         result_list.append((link_name,output_data))
@@ -77,12 +77,12 @@ class VibraParser(Parser):
         # Parse band-structure information if available
         if bands_path is not None:
              bands, coords = self.get_bands(bands_path)
-             from aiida.orm.data.array.bands import BandsData
+             from aiida.orm.nodes.array.bands import BandsData
              arraybands = BandsData()
              arraybands.set_kpoints(self._calc.inp.bandskpoints.get_kpoints(cartesian=True))
              arraybands.set_bands(bands,units="eV")
              result_list.append((self.get_linkname_bandsarray(), arraybands))
-             bandsparameters = ParameterData(dict={"kp_coordinates": coords})
+             bandsparameters = Dict(dict={"kp_coordinates": coords})
              result_list.append((self.get_linkname_bandsparameters(), bandsparameters))
 
         return successful, result_list

@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from aiida.parsers.parser import Parser
 from aiida_siesta.calculations.siesta import SiestaCalculation
 from aiida_siesta.calculations.stm import STMCalculation
-from aiida.orm.data.parameter import ParameterData
+from aiida.orm.nodes.parameter import Dict
 
 __copyright__ = u"Copyright (c), 2015, ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE (Theory and Simulation of Materials (THEOS) and National Centre for Computational Design and Discovery of Novel Materials (NCCR MARVEL)), Switzerland and ROBERT BOSCH LLC, USA. All rights reserved."
 __license__ = "MIT license, see LICENSE.txt file"
@@ -12,7 +12,7 @@ __contributors__ = "Alberto Garcia"
 
 # -*- coding: utf-8 -*-
 
-from aiida.parsers.exceptions import OutputParsingError
+from aiida.common.exceptions import OutputParsingError
 
 class STMOutputParsingError(OutputParsingError):
      pass
@@ -57,7 +57,7 @@ class STMParser(Parser):
         # Add parser info dictionary
         parsed_dict = dict(list(result_dict.items()) + list(parser_info.items()))
 
-        output_data = ParameterData(dict=parsed_dict)
+        output_data = Dict(dict=parsed_dict)
         
         link_name = self.get_linkname_outparams()
         result_list.append((link_name,output_data))
@@ -218,7 +218,7 @@ class STMParser(Parser):
         Y = np.array(yy,dtype=float).transpose()
         Z = np.array(zz,dtype=float).transpose()
         
-        from aiida.orm.data.array import ArrayData
+        from aiida.orm.nodes.array import ArrayData
         
         arraydata = ArrayData()
         arraydata.set_array('X', np.array(X))

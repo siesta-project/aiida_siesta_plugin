@@ -5,14 +5,14 @@ import os
 # Module with fdf-aware dictionary
 from .tkdict import FDFDict
 
-from aiida.orm.calculation.job import JobCalculation
+from aiida.engine.calculation.job import CalcJob
 from aiida.common.exceptions import InputValidationError
 from aiida.common.datastructures import CalcInfo
 from aiida.common.utils import classproperty
 from aiida.common.datastructures import CodeInfo
 
-from aiida.orm.data.parameter import ParameterData
-from aiida.orm.data.remote import RemoteData 
+from aiida.orm.nodes.parameter import Dict
+from aiida.orm.nodes.remote import RemoteData 
 import six
 
 __copyright__ = u"Copyright (c), 2015, ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE (Theory and Simulation of Materials (THEOS) and National Centre for Computational Design and Discovery of Novel Materials (NCCR MARVEL)), Switzerland and ROBERT BOSCH LLC, USA. All rights reserved."
@@ -20,7 +20,7 @@ __license__ = "MIT license, see LICENSE.txt file"
 __version__ = "0.9.10"
 __contributors__ = "Victor M. Garcia-Suarez, Alberto Garcia"
 
-class STMCalculation(JobCalculation):
+class STMCalculation(CalcJob):
     """
     Plugin for the "plstm" program in the Siesta distribution, which
     takes and .LDOS or .RHO file and generates a plot file to simulate

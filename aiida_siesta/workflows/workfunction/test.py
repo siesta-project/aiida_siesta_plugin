@@ -1,8 +1,8 @@
 from aiida import load_dbenv
 load_dbenv()
 
-from aiida.orm.data.base import Int
-from aiida.work.workfunction import workfunction as wf
+from aiida.orm.nodes.base import Int
+from aiida.engine.workfunction import workfunction as wf
 
 
 # Define the workfunction

@@ -7,13 +7,13 @@ from __future__ import absolute_import
 import click
 import sys
 
-from aiida.cmdline.commands import data_cmd
+from aiida.cmdline.commands.cmd_data import verdi_data
 from aiida.backends.utils import is_dbenv_loaded, load_dbenv
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
 
-@data_cmd.group('psf', context_settings=CONTEXT_SETTINGS)
+@verdi_data.group('psf', context_settings=CONTEXT_SETTINGS)
 def psfdata():
     """PSF pseudos command line interface for SIESTA plugin."""
     pass
@@ -76,12 +76,12 @@ def listfamilies(element, with_description):
     if not is_dbenv_loaded():
         load_dbenv()
 
-    from aiida.orm import DataFactory
+    from aiida.plugins import DataFactory
     from aiida_siesta.data.psf import PSFGROUP_TYPE
 
     PsfData = DataFactory('siesta.psf')
-    from aiida.orm.querybuilder import QueryBuilder
-    from aiida.orm.group import Group
+    from aiida.orm import QueryBuilder
+    from aiida.orm import Group
     qb = QueryBuilder()
     qb.append(PsfData, tag='psfdata')
 
@@ -92,9 +92,9 @@ def listfamilies(element, with_description):
         Group,
         group_of='psfdata',
         tag='group',
-        project=["name", "description"],
+        project=["label", "description"],
         filters={
-            "type": {
+            "type_string": {
                 '==': PSFGROUP_TYPE
             }
         })
@@ -141,7 +141,7 @@ def exportfamily(family, directory):
 
     import os
     from aiida.common.exceptions import NotExistent
-    from aiida.orm import DataFactory
+    from aiida.plugins import DataFactory
 
     PsfData = DataFactory('siesta.psf')
     try:

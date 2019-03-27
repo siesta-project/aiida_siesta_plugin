@@ -13,7 +13,7 @@
         "Development Status :: 3 - Alpha"
     ],
     "install_requires": [
-        "aiida_core[docs,atomic_tools]>=0.12.0,<1.0.0",
+        "aiida_core[docs,atomic_tools]>=1.0.0b1,<2.0.0",
         "pytest>=3.3.2"
     ],
     "entry_points": {

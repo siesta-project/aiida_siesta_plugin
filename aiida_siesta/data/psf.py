@@ -5,7 +5,9 @@ This module manages the PSF pseudopotentials in the local repository.
 
 from __future__ import absolute_import
 from aiida.common.utils import classproperty
-from aiida.orm.data.singlefile import SinglefileData
+from aiida.common.files import md5_file
+from aiida.orm.nodes import SinglefileData
+import io
 import six
 
 __copyright__ = u"Copyright (c), 2015, ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE (Theory and Simulation of Materials (THEOS) and National Centre for Computational Design and Discovery of Novel Materials (NCCR MARVEL)), Switzerland and ROBERT BOSCH LLC, USA. All rights reserved."
@@ -70,7 +72,7 @@ def upload_psf_family(folder,
     """
     import os
     import aiida.common
-    from aiida.common import aiidalogger
+    from aiida.engine.utils import LOGGER as aiidalogger
     from aiida.orm import Group
     from aiida.common.exceptions import UniquenessError, NotExistent
     from aiida.backends.utils import get_automatic_user
@@ -112,7 +114,7 @@ def upload_psf_family(folder,
     pseudo_and_created = []
 
     for f in files:
-        md5sum = aiida.common.utils.md5_file(f)
+        md5sum = md5_file(f)
         qb = QueryBuilder()
         qb.append(PsfData, filters={'attributes.md5': {'==': md5sum}})
         existing_psf = qb.first()
@@ -190,36 +192,126 @@ def parse_psf(fname, check_filename=True):
     import os
 
     from aiida.common.exceptions import ParsingError
+    from aiida.common import AIIDA_LOGGER
     # TODO: move these data in a 'chemistry' module
-    from aiida.orm.data.structure import _valid_symbols
+    from aiida.orm.nodes.data.structure import _valid_symbols
 
     parsed_data = {}
 
-    with open(fname) as f:
+    try:
+        psf_contents = fname.read()
+        fname = fname.name
+    except AttributeError:
+        with io.open(fname, encoding='utf8') as f:
+            psf_contents = f.read()
 
-        # Parse the element
-        element = None
-        for element in f.read().split():
-            break
+    # Parse the element
+    element = None
+    for element in psf_contents:
+        break
 
-        # Only first letter capitalized!
-        if element is None:
-            raise ParsingError(
-                "Unable to find the element of PSF {}".format(fname))
-        element = element.capitalize()
-        if element not in _valid_symbols:
-            raise ParsingError(
-                "Unknown element symbol {} for file {}".format(element, fname))
+    # Only first letter capitalized!
+    if element is None:
+        raise ParsingError(
+            "Unable to find the element of PSF {}".format(fname))
+    element = element.capitalize()
+    if element not in _valid_symbols:
+        raise ParsingError(
+            "Unknown element symbol {} for file {}".format(element, fname))
 
-        if check_filename:
-            if not os.path.basename(fname).lower().startswith(element.lower()):
-                raise ParsingError("Filename {0} was recognized for element "
-                                   "{1}, but the filename does not start "
-                                   "with {1}".format(fname, element))
+    if check_filename:
+        if not os.path.basename(fname).lower().startswith(element.lower()):
+            raise ParsingError("Filename {0} was recognized for element "
+                               "{1}, but the filename does not start "
+                               "with {1}".format(fname, element))
 
-        parsed_data['element'] = element
+    parsed_data['element'] = element
 
     return parsed_data
+
+
+    # match = _psfversion_regexp.search(psf_contents)
+    # if match:
+    #     version = match.group('version')
+    #     AIIDA_LOGGER.debug("Version found: {} for file {}".format(
+    #         version, fname))
+    # else:
+    #     AIIDA_LOGGER.debug("Assuming version 1 for file {}".format(fname))
+    #     version = "1"
+
+    # parsed_data['version'] = version
+    # try:
+    #     version_major = int(version.partition('.')[0])
+    # except ValueError:
+    #     # If the version string does not contain a dot, fallback
+    #     # to version 1
+    #     AIIDA_LOGGER.debug("Falling back to version 1 for file {}, "
+    #                        "version string '{}' unrecognized".format(
+    #         fname, version))
+    #     version_major = 1
+
+    # element = None
+    # if version_major == 1:
+    #     match = _element_v1_regexp.search(psf_contents)
+    #     if match:
+    #         element = match.group('element_name')
+    # else:  # all versions > 1
+    #     match = _element_v2_regexp.search(psf_contents)
+    #     if match:
+    #         element = match.group('element_name')
+
+    # if element is None:
+    #     raise ParsingError("Unable to find the element of PSF {}".format(
+    #         fname))
+    # element = element.capitalize()
+    # if element not in _valid_symbols:
+    #     raise ParsingError("Unknown element symbol {} for file {}".format(
+    #         element, fname))
+    # if check_filename:
+    #     if not os.path.basename(fname).lower().startswith(
+    #             element.lower()):
+    #         raise ParsingError("Filename {0} was recognized for element "
+    #                            "{1}, but the filename does not start "
+    #                            "with {1}".format(fname, element))
+
+    # parsed_data['element'] = element
+
+    # return parsed_data
+
+
+    # import os
+
+    # from aiida.common.exceptions import ParsingError
+    # # TODO: move these data in a 'chemistry' module
+    # from aiida.orm.nodes.data.structure import _valid_symbols
+
+    # parsed_data = {}
+
+    # with open(fname) as f:
+
+        # # Parse the element
+        # element = None
+        # for element in f.read().split():
+        #     break
+
+        # # Only first letter capitalized!
+        # if element is None:
+        #     raise ParsingError(
+        #         "Unable to find the element of PSF {}".format(fname))
+        # element = element.capitalize()
+        # if element not in _valid_symbols:
+        #     raise ParsingError(
+        #         "Unknown element symbol {} for file {}".format(element, fname))
+
+        # if check_filename:
+        #     if not os.path.basename(fname).lower().startswith(element.lower()):
+        #         raise ParsingError("Filename {0} was recognized for element "
+        #                            "{1}, but the filename does not start "
+        #                            "with {1}".format(fname, element))
+
+        # parsed_data['element'] = element
+
+    # return parsed_data
 
 
 class PsfData(SinglefileData):
@@ -248,7 +340,7 @@ class PsfData(SinglefileData):
 
         if not os.path.abspath(filename):
             raise ValueError("filename must be an absolute path")
-        md5 = aiida.common.utils.md5_file(filename)
+        md5 = md5_file(filename)
 
         pseudos = cls.from_md5(md5)
         if len(pseudos) == 0:
@@ -282,13 +374,26 @@ class PsfData(SinglefileData):
         """
         from aiida.common.exceptions import ParsingError, ValidationError
         import aiida.common.utils
+        from aiida.common.files import md5_from_filelike
 
-        psf_abspath = self.get_file_abs_path()
-        if not psf_abspath:
-            raise ValidationError("No valid PSF was passed!")
 
-        parsed_data = parse_psf(psf_abspath)
-        md5sum = aiida.common.utils.md5_file(psf_abspath)
+        # psf_abspath = self.get_file_abs_path()
+
+        if self.is_stored:
+            return self
+
+        # if not psf_abspath:
+        #     raise ValidationError("No valid PSF was passed!")
+
+        # parsed_data = parse_psf(psf_abspath)
+        # md5sum = md5_file(psf_abspath)
+
+        with self.open(mode='r') as handle:
+            parsed_data = parse_psf(handle)
+
+          # Open in binary mode which is required for generating the md5 checksum
+        with self.open(mode='rb') as handle:
+            md5sum = md5_from_filelike(handle)
 
         try:
             element = parsed_data['element']
@@ -296,10 +401,11 @@ class PsfData(SinglefileData):
             raise ParsingError("No 'element' parsed in the PSF file {};"
                                " unable to store".format(self.filename))
 
-        self._set_attr('element', str(element))
-        self._set_attr('md5', md5sum)
+        self.set_attribute('element', str(element))
+        self.set_attribute('md5', md5sum)
 
         return super(PsfData, self).store(*args, **kwargs)
+
 
     @classmethod
     def from_md5(cls, md5):
@@ -309,8 +415,11 @@ class PsfData(SinglefileData):
         Note that the hash has to be stored in a _md5 attribute, otherwise
         the pseudo will not be found.
         """
-        queryset = cls.query(dbattributes__key='md5', dbattributes__tval=md5)
-        return list(queryset)
+        from aiida.orm.querybuilder import QueryBuilder
+        qb = QueryBuilder()
+        qb.append(cls, filters={'attributes.md5': {'==': md5}})
+        return [_ for [_] in qb.all()]
+
 
     def set_file(self, filename):
         """
@@ -320,7 +429,7 @@ class PsfData(SinglefileData):
         import aiida.common.utils
 
         parsed_data = parse_psf(filename)
-        md5sum = aiida.common.utils.md5_file(filename)
+        md5sum = md5_file(filename)
 
         try:
             element = parsed_data['element']
@@ -330,8 +439,11 @@ class PsfData(SinglefileData):
 
         super(PsfData, self).set_file(filename)
 
-        self._set_attr('element', str(element))
-        self._set_attr('md5', md5sum)
+        # self._set_attr('element', str(element))
+        # self._set_attr('md5', md5sum)
+        self.set_attribute('element', str(element))
+        self.set_attribute('md5', md5sum)
+
 
     def get_psf_family_names(self):
         """
@@ -368,7 +480,7 @@ class PsfData(SinglefileData):
         except ParsingError:
             raise ValidationError("The file '{}' could not be "
                                   "parsed".format(psf_abspath))
-        md5 = aiida.common.utils.md5_file(psf_abspath)
+        md5 = md5_file(psf_abspath)
 
         try:
             element = parsed_data['element']

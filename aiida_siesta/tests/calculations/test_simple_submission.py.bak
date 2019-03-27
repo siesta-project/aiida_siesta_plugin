@@ -1,17 +1,16 @@
 #!/usr/bin/env runaiida
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from __future__ import print_function
 import os.path as op
 
 
 def test_simple_submission(siesta_develop):
     """Test that single calculation is submitted."""
-    from aiida.plugins import DataFactory
+    from aiida.orm import DataFactory
+    from aiida.common.example_helpers import test_and_get_code
 
     PsfData = DataFactory('siesta.psf')
     StructureData = DataFactory('structure')
-    Dict = DataFactory('dict')
+    ParameterData = DataFactory('parameter')
     KpointsData = DataFactory('array.kpoints')
 
     code = siesta_develop['siesta_code']
@@ -46,7 +45,7 @@ def test_simple_submission(siesta_develop):
     s.append_atom(
         position=(0.250 * alat, 0.250 * alat, 0.250 * alat), symbols=['Si'])
 
-    parameters = Dict(dict={
+    parameters = ParameterData(dict={
         'xc-functional': 'LDA',
         'xc-authors': 'CA',
         'max-scfiterations': 50,
@@ -62,7 +61,7 @@ def test_simple_submission(siesta_develop):
         'xml-write': True
     })
 
-    basis = Dict(dict={
+    basis = ParameterData(dict={
         'pao-energy-shift': '300 meV',
         '%block pao-basis-sizes': 'Si DZP',
     })
@@ -99,22 +98,22 @@ def test_simple_submission(siesta_develop):
         pseudo, created = PsfData.get_or_create(absname, use_first=True)
 
         if created:
-            print("\nCreated the pseudo for {}".format(kind))
+            print "\nCreated the pseudo for {}".format(kind)
         else:
-            print("\nUsing the pseudo for {} from DB: {}".format(
-                kind, pseudo.pk))
+            print "\nUsing the pseudo for {} from DB: {}".format(
+                kind, pseudo.pk)
 
     # Attach pseudo node to the calculation
     calc.use_pseudo(pseudo, kind=kind)
 
     calc.store_all()
-    print("created calculation with PK={}".format(calc.pk))
+    print "created calculation with PK={}".format(calc.pk)
     subfolder, script_filename = calc.submit_test()
-    print("Test_submit for calculation (uuid='{}')".format(calc.uuid))
+    print "Test_submit for calculation (uuid='{}')".format(calc.uuid)
 
     assert op.isfile(op.join(op.relpath(subfolder.abspath), script_filename))
-    print("Submit file in {}".format(
-        op.join(op.relpath(subfolder.abspath), script_filename)))
+    print "Submit file in {}".format(
+        op.join(op.relpath(subfolder.abspath), script_filename))
 
     assert op.isfile(op.join(op.relpath(subfolder.abspath), 'aiida.fdf'))
     assert op.isfile(op.join(op.relpath(subfolder.abspath), 'Si.psf'))

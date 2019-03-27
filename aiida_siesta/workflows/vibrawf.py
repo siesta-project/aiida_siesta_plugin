@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 from aiida.orm import Code
-from aiida.orm.data.base import Bool, Int, Str, Float
-from aiida.orm.data.parameter import ParameterData
-from aiida.orm.data.structure import StructureData
-from aiida.orm.data.array.kpoints import KpointsData
-from aiida.orm.data.array import ArrayData
-from aiida.orm.data.remote import RemoteData
+from aiida.orm.nodes.base import Bool, Int, Str, Float
+from aiida.orm.nodes.parameter import Dict
+from aiida.orm.nodes.structure import StructureData
+from aiida.orm.nodes.array.kpoints import KpointsData
+from aiida.orm.nodes.array import ArrayData
+from aiida.orm.nodes.remote import RemoteData
 
-from aiida.work.run import submit
-from aiida.work.workchain import WorkChain, ToContext
-from aiida.work.workfunction import workfunction
+from aiida.engine.run import submit
+from aiida.engine.workchain import WorkChain, ToContext
+from aiida.engine.workfunction import workfunction
 from aiida.common.links import LinkType
 
 from aiida_siesta.data.psf import get_pseudos_from_structure
@@ -230,10 +230,10 @@ class SiestaVibraWorkChain(WorkChain):
         rsi_inputs = dict(self.ctx.rsi_inputs)
 
         rsi_inputs['kpoints'] = self.ctx.kpoints_mesh
-        rsi_inputs['basis'] = ParameterData(dict=rsi_inputs['basis'])
+        rsi_inputs['basis'] = Dict(dict=rsi_inputs['basis'])
         rsi_inputs['structure'] = self.ctx.structure_supercell
-        rsi_inputs['parameters'] = ParameterData(dict=rsi_inputs['parameters'])
-        rsi_inputs['settings'] = ParameterData(dict=rsi_inputs['settings'])
+        rsi_inputs['parameters'] = Dict(dict=rsi_inputs['parameters'])
+        rsi_inputs['settings'] = Dict(dict=rsi_inputs['settings'])
         rsi_inputs['clean_workdir'] = Bool(False)
         rsi_inputs['max_iterations'] = Int(20)
 
@@ -258,7 +258,7 @@ class SiestaVibraWorkChain(WorkChain):
 
         # I don't see any settings for vibra defined. Convention?
         vibra_settings_dict = {}
-        vibra_inputs['settings'] = ParameterData(dict=vibra_settings_dict)
+        vibra_inputs['settings'] = Dict(dict=vibra_settings_dict)
 
         vibra_parameters_dict = self.inputs.vibra_parameters.get_dict()
         vibra_parameters_dict.update({ "atomicdispl": self.ctx.atomicdispl })
@@ -274,7 +274,7 @@ class SiestaVibraWorkChain(WorkChain):
                     "SuperCell_" + str(i+1) : 0
                 })
 
-        vibra_inputs['parameters'] = ParameterData(dict=vibra_parameters_dict)
+        vibra_inputs['parameters'] = Dict(dict=vibra_parameters_dict)
 
         # since vibra is a linear code, these hidden options are in place
         vibra_inputs['_options'] = {

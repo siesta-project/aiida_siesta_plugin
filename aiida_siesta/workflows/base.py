@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 from aiida.orm import Code
-from aiida.orm.data.base import Bool, Int, Str
-from aiida.orm.data.remote import RemoteData
-from aiida.orm.data.parameter import ParameterData
-from aiida.orm.data.structure import StructureData
-from aiida.orm.data.array.kpoints import KpointsData
+from aiida.orm.nodes.base import Bool, Int, Str
+from aiida.orm.nodes.remote import RemoteData
+from aiida.orm.nodes.parameter import Dict
+from aiida.orm.nodes.structure import StructureData
+from aiida.orm.nodes.array.kpoints import KpointsData
 from aiida.common.datastructures import calc_states
-from aiida.work.run import submit
-from aiida.work.workchain import WorkChain, ToContext, while_
+from aiida.engine.run import submit
+from aiida.engine.workchain import WorkChain, ToContext, while_
 
 from aiida_siesta.data.psf import PsfData, get_pseudos_from_structure
 from aiida_siesta.calculations.siesta import SiestaCalculation
@@ -194,10 +194,10 @@ class SiestaBaseWorkChain(WorkChain):
             self.report('Re-using previous DM')
 
         
-        local_inputs['parameters'] = ParameterData(dict=local_inputs['parameters'])
+        local_inputs['parameters'] = Dict(dict=local_inputs['parameters'])
 
-        local_inputs['basis'] = ParameterData(dict=local_inputs['basis'])
-        local_inputs['settings'] = ParameterData(dict=local_inputs['settings'])
+        local_inputs['basis'] = Dict(dict=local_inputs['basis'])
+        local_inputs['settings'] = Dict(dict=local_inputs['settings'])
 
         process = SiestaCalculation.process()
         running = submit(process, **local_inputs)

@@ -3,14 +3,14 @@ from __future__ import absolute_import
 import os
 
 from aiida.common.constants import elements
-from aiida.common.datastructures import CalcInfo, CodeInfo
-from aiida.common.exceptions import InputValidationError
+from aiida.common import CalcInfo, CodeInfo
+from aiida.common import InputValidationError
 from aiida.common.utils import classproperty
-from aiida.orm.calculation.job import JobCalculation
-from aiida.orm.data.array.kpoints import KpointsData
-from aiida.orm.data.parameter import ParameterData
-from aiida.orm.data.remote import RemoteData
-from aiida.orm.data.structure import StructureData
+from aiida.engine import CalcJob
+from aiida.orm import KpointsData
+from aiida.orm import Dict
+from aiida.orm import RemoteData
+from aiida.orm import StructureData
 
 from aiida_siesta.data.psf import PsfData, get_pseudos_from_structure
 # Module with fdf-aware dictionary
@@ -23,7 +23,7 @@ __version__ = "0.9.10"
 __contributors__ = "Victor M. Garcia-Suarez, Alberto Garcia, Emanuele Bosoni"
 
 
-class SiestaCalculation(JobCalculation):
+class SiestaCalculation(CalcJob):
     """
     Siesta calculator class for AiiDA.
     """
@@ -731,7 +731,7 @@ class SiestaCalculation(JobCalculation):
 
         old_inp_dict = FDFDict(calc_inp['parameters'].get_dict())
         old_inp_dict['dm-use-save-dm'] = True
-        c2.use_parameters(ParameterData(dict=old_inp_dict))
+        c2.use_parameters(Dict(dict=old_inp_dict))
 
         remote_folders = self.get_outputs(node_type=RemoteData)
         if len(remote_folders) != 1:
@@ -828,7 +828,7 @@ class SiestaCalculation(JobCalculation):
             old_settings_dict = {}
 
         if old_settings_dict:  # if not empty dictionary
-            settings = ParameterData(dict=old_settings_dict)
+            settings = Dict(dict=old_settings_dict)
             c2.use_settings(settings)
 
         return c2

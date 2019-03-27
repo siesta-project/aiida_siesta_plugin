@@ -6,12 +6,12 @@ from aiida.common.constants import elements
 from aiida.common.datastructures import CalcInfo, CodeInfo
 from aiida.common.exceptions import InputValidationError
 from aiida.common.utils import classproperty
-from aiida.orm.calculation.job import JobCalculation
-from aiida.orm.data.array.kpoints import KpointsData
-from aiida.orm.data.parameter import ParameterData
-from aiida.orm.data.remote import RemoteData
-from aiida.orm.data.structure import StructureData
-from aiida.orm.data.singlefile import SinglefileData
+from aiida.engine.calculation.job import CalcJob
+from aiida.orm.nodes.array.kpoints import KpointsData
+from aiida.orm.nodes.parameter import Dict
+from aiida.orm.nodes.remote import RemoteData
+from aiida.orm.nodes.structure import StructureData
+from aiida.orm.nodes.singlefile import SinglefileData
 
 # Module with fdf-aware dictionary
 from .tkdict import FDFDict
@@ -22,7 +22,7 @@ __license__ = "MIT license, see LICENSE.txt file"
 __version__ = "0.12.0"
 __contributors__ = "Victor M. Garcia-Suarez, ..."
 
-class VibraCalculation(JobCalculation):
+class VibraCalculation(CalcJob):
     """
     Plugin for the Vibra program in the Siesta-Vibra distribution, which
     computes the phonon spectrum from a Siesta calculation.

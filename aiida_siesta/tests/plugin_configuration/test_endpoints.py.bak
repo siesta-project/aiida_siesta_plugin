@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 def test_siesta_calculation_entry_point(siesta_develop):
     from aiida.plugins import CalculationFactory
     siesta_calculation = CalculationFactory('siesta.siesta')
@@ -6,7 +5,7 @@ def test_siesta_calculation_entry_point(siesta_develop):
 
 
 def test_siesta_parser_entry_point(siesta_develop):
-    from aiida.plugins import ParserFactory
+    from aiida.parsers import ParserFactory
     siesta_parser = ParserFactory('siesta.parser')
     assert siesta_parser is not None
 
