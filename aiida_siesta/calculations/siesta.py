@@ -331,13 +331,16 @@ class SiestaCalculation(CalcJob):
 
         # ================ Namelists and cards ===================
 
-        input_filename = self.inputs.metadata.options.input_filename
+        # input_filename = self.inputs.metadata.options.input_filename
+        input_filename = tempfolder.get_abs_path(self._DEFAULT_INPUT_FILE)
 
         with open(input_filename, 'w') as infile:
             # here print keys and values tp file
 
-            for k, v in sorted(six.iteritems(input_params)):
-                infile.write(get_input_data_text(k, v))
+            # for k, v in sorted(six.iteritems(input_params)):
+            for k, v in sorted(input_params.get_filtered_items()):
+                # infile.write(get_input_data_text(k, v))
+                infile.write("%s %s\n" % (k, v))
                 # ,mapping=mapping_species))
 
             # Basis set info is processed just like the general
@@ -348,7 +351,8 @@ class SiestaCalculation(CalcJob):
             if basis is not None:
                 infile.write("#\n# -- Basis Set Info follows\n#\n")
                 for k, v in six.iteritems(basis.get_dict()):
-                    infile.write(get_input_data_text(k, v))
+                    infile.write("%s %s\n" % (k, v))
+                    # infile.write(get_input_data_text(k, v))
 
             # Write previously generated cards now
             infile.write("#\n# -- Structural Info follows\n#\n")

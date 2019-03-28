@@ -41,6 +41,7 @@ class TKDict(MutableMapping):
         """ Return list of last key occurences. """
         # _storage keys are translated
         return [self.get_last_key(k) for k in self._storage.keys()]
+        # return(self._storage.keys())
 
     def iterkeys(self):
         'D.iterkeys() -> an iterator over the keys of D *** UPDATE'
@@ -86,6 +87,10 @@ class TKDict(MutableMapping):
         except KeyError:
             return None
 
+    def get_filtered_items(self):
+        for k, v in self._storage.items():
+            yield k, v[0]
+
     def __delitem__(self, key):
         """ Translate the key, purge value-tuple """
         self._storage.__delitem__(self.translate_key(key))
@@ -101,7 +106,6 @@ class TKDict(MutableMapping):
 
     def __str__(self):
         return self._storage.__str__()
-
 
 class FDFDict(TKDict):
     """ FDFDict class represents data from .fdf-file. """

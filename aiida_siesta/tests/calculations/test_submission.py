@@ -94,7 +94,7 @@ inputs = {
     'structure': structure,
     'parameters': parameters,
     'code': code,
-    'basis': basis,
+    # 'basis': basis,
     'kpoints': kpoints,
     'pseudos': {
         'Si': pseudos_list[0],
