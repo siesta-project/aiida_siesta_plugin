@@ -102,12 +102,12 @@ def listfamilies(element, with_description):
     qb.distinct()
     if qb.count() > 0:
         for res in qb.dict():
-            group_name = res.get("group").get("name")
+            group_name = res.get("group").get("label")
             group_desc = res.get("group").get("description")
             qb = QueryBuilder()
             qb.append(
                 Group, tag='thisgroup', filters={
-                    "name": {
+                    "label": {
                         'like': group_name
                     }
                 })
@@ -140,6 +140,7 @@ def exportfamily(family, directory):
         load_dbenv()
 
     import os
+    import io
     from aiida.common.exceptions import NotExistent
     from aiida.plugins import DataFactory
 
@@ -153,10 +154,12 @@ def exportfamily(family, directory):
         os.makedirs(directory)
         for pseudo in group.nodes:
             dest_path = os.path.join(directory, pseudo.filename)
-            with open(dest_path, 'w') as dest:
-                with pseudo._get_folder_pathsubfolder.open(
-                        pseudo.filename) as source:
-                    dest.write(source.read())
+            # with open(dest_path, 'w') as dest:
+            with io.open(dest_path, 'w', encoding='utf8') as handle:
+                # with pseudo._get_folder_pathsubfolder.open(
+                #         pseudo.filename) as source:
+                #     dest.write(source.read())
+                handle.write(pseudo.get_content())
     except OSError:
         click.echo(
             "Destination directory {} exists; aborted".format(directory),
