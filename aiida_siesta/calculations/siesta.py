@@ -63,10 +63,11 @@ class SiestaCalculation(CalcJob):
 
     # in restarts, it will copy from the parent the following
     # (fow now, just the density matrix file)
-    _restart_copy_from = os.path.join(self._OUTPUT_SUBFOLDER, '*.DM')
+    # _restart_copy_from = os.path.join(self._OUTPUT_SUBFOLDER, '*.DM')
+    _restart_copy_from = os.path.join(_OUTPUT_SUBFOLDER, '*.DM')
 
     # in restarts, it will copy the previous folder in the following one
-    _restart_copy_to = self._OUTPUT_SUBFOLDER
+    _restart_copy_to = _OUTPUT_SUBFOLDER
 
 
     @classmethod
@@ -82,15 +83,15 @@ class SiestaCalculation(CalcJob):
 
 
         spec.input('code', valid_type=orm.Code, help='Input code')
-        spec.input('structure', valid_type=orm.StuctureData, help='Input structure')
+        spec.input('structure', valid_type=orm.StructureData, help='Input structure')
         spec.input('kpoints', valid_type=orm.KpointsData, help='Input kpoints')
         spec.input('bandskpoints', valid_type=orm.KpointsData, help='Input kpoints for bands',required=False)
         spec.input('basis', valid_type=orm.Dict, help='Input basis',required=False)
         spec.input('settings', valid_type=orm.Dict, help='Input settings',required=False)
         spec.input('parameters', valid_type=orm.Dict, help='Input parameters')
         spec.input('parent_calc_folder', valid_type=orm.RemoteData, required=False, help='Parent folder')
-        spec.input_namespace('pseudos', valid_type=PsfData,help='Input pseudo potentials', dynamic=True)
-        
+        spec.input_namespace('pseudos', valid_type=PsfData, help='Input pseudo potentials', dynamic=True)
+
 #TO DO SOON: improve help for pseudo.
 #PARENT FOLDER???
 #Question: are the pre-defined input of calc job already usable??
@@ -107,7 +108,7 @@ class SiestaCalculation(CalcJob):
         ####################################
         # BEGINNING OF INITIAL INPUT CHECK #
         ####################################
-        
+
         code=self.inputs.code
         structure = self.inputs.structure
         kpoints = self.inputs.kpoints
@@ -122,7 +123,7 @@ class SiestaCalculation(CalcJob):
            settings = self.inputs.settings.get_dict()
            settings_dict = _uppercase_dict(settings, dict_name='settings')
         else:
-           settings ={}
+           settings_dict = {}
 
         if 'bandskpoints' in self.inputs:
            bandkpoints = self.inputs.bandskpoints
@@ -140,9 +141,9 @@ class SiestaCalculation(CalcJob):
         kinds = [kind.name for kind in structure.kinds]
         if set(kinds) != set(pseudos.keys()):
             raise exceptions.InputValidationError(
-                'Mismatch between the defined pseudos and the list of kinds of the structure.\n'
-                'Pseudos: {} \n'.format(', '.join(list(pseudos.keys())))
-                'Kinds: {}'.format(', '.join(list(kinds)))
+                'Mismatch between the defined pseudos and the list of kinds of the structure.\n',
+                'Pseudos: {} \n'.format(', '.join(list(pseudos.keys()))),
+                'Kinds: {}'.format(', '.join(list(kinds))),
             )
 
 
@@ -226,8 +227,9 @@ class SiestaCalculation(CalcJob):
 
             # I add this pseudo file to the list of files to copy,
             # with the appropiate name
-            local_copy_list.append((ps.get_file_abs_path(), os.path.join(
-                self._PSEUDO_SUBFOLDER, kind.name + ".psf")))
+            # local_copy_list.append((ps.get_file_abs_path(), os.path.join(
+            #     self._PSEUDO_SUBFOLDER, kind.name + ".psf")))
+            local_copy_list = [(ps.uuid, ps.filename, ps.filename)]
             spcount += 1
             spind[kind.name] = spcount
             atomic_species_card_list.append("{0:5} {1:5} {2:5}\n".format(
@@ -293,39 +295,39 @@ class SiestaCalculation(CalcJob):
         #BandsPoints if bandskpoints has no labels
         #BandLinesScale =pi/a is not supported at the moment because currently
         #a=1 always. BandLinesScale ReciprocalLatticeVectors is always set
-        if bandskpoints is not None:
-            bandskpoints_card_list = [
-                "BandLinesScale ReciprocalLatticeVectors\n"
-            ]
-            if bandskpoints.labels == None:
-                bandskpoints_card_list.append("%block BandPoints\n")
-                for s in bandskpoints.get_kpoints():
-                    bandskpoints_card_list.append(
-                        "{0:8.3f} {1:8.3f} {2:8.3f} \n".format(
-                            s[0], s[1], s[2]))
-                fbkpoints_card = "".join(bandskpoints_card_list)
-                fbkpoints_card += "%endblock BandPoints\n"
-            else:
-                bandskpoints_card_list.append("%block BandLines\n")
-                savs = []
-                listforbands = bandskpoints.get_kpoints()
-                for s, m in bandskpoints.labels:
-                    savs.append(s)
-                rawindex = 0
-                for s, m in bandskpoints.labels:
-                    rawindex = rawindex + 1
-                    x, y, z = listforbands[s]
-                    if rawindex == 1:
-                        bandskpoints_card_list.append(
-                            "{0:3} {1:8.3f} {2:8.3f} {3:8.3f} {4:1} \n".format(
-                                1, x, y, z, m))
-                    else:
-                        bandskpoints_card_list.append(
-                            "{0:3} {1:8.3f} {2:8.3f} {3:8.3f} {4:1} \n".format(
-                                s - savs[rawindex - 2], x, y, z, m))
-                fbkpoints_card = "".join(bandskpoints_card_list)
-                fbkpoints_card += "%endblock BandLines\n"
-            del bandskpoints_card_list
+        # if bandskpoints is not None:
+        #     bandskpoints_card_list = [
+        #         "BandLinesScale ReciprocalLatticeVectors\n"
+        #     ]
+        #     if bandskpoints.labels == None:
+        #         bandskpoints_card_list.append("%block BandPoints\n")
+        #         for s in bandskpoints.get_kpoints():
+        #             bandskpoints_card_list.append(
+        #                 "{0:8.3f} {1:8.3f} {2:8.3f} \n".format(
+        #                     s[0], s[1], s[2]))
+        #         fbkpoints_card = "".join(bandskpoints_card_list)
+        #         fbkpoints_card += "%endblock BandPoints\n"
+        #     else:
+        #         bandskpoints_card_list.append("%block BandLines\n")
+        #         savs = []
+        #         listforbands = bandskpoints.get_kpoints()
+        #         for s, m in bandskpoints.labels:
+        #             savs.append(s)
+        #         rawindex = 0
+        #         for s, m in bandskpoints.labels:
+        #             rawindex = rawindex + 1
+        #             x, y, z = listforbands[s]
+        #             if rawindex == 1:
+        #                 bandskpoints_card_list.append(
+        #                     "{0:3} {1:8.3f} {2:8.3f} {3:8.3f} {4:1} \n".format(
+        #                         1, x, y, z, m))
+        #             else:
+        #                 bandskpoints_card_list.append(
+        #                     "{0:3} {1:8.3f} {2:8.3f} {3:8.3f} {4:1} \n".format(
+        #                         s - savs[rawindex - 2], x, y, z, m))
+        #         fbkpoints_card = "".join(bandskpoints_card_list)
+        #         fbkpoints_card += "%endblock BandLines\n"
+        #     del bandskpoints_card_list
 
         # ================ Namelists and cards ===================
 
@@ -345,7 +347,7 @@ class SiestaCalculation(CalcJob):
             #
             if basis is not None:
                 infile.write("#\n# -- Basis Set Info follows\n#\n")
-                for k, v in six.iteritems(input_basis):
+                for k, v in six.iteritems(basis.get_dict()):
                     infile.write(get_input_data_text(k, v))
 
             # Write previously generated cards now
@@ -356,14 +358,14 @@ class SiestaCalculation(CalcJob):
             if kpoints is not None:
                 infile.write("#\n# -- K-points Info follows\n#\n")
                 infile.write(kpoints_card)
-            if flagbands:
-                infile.write("#\n# -- Bandlines/Bandpoints Info follows\n#\n")
-                infile.write(fbkpoints_card)
+            # if flagbands:
+            #     infile.write("#\n# -- Bandlines/Bandpoints Info follows\n#\n")
+            #     infile.write(fbkpoints_card)
 
             # Write max wall-clock time
             infile.write("#\n# -- Max wall-clock time block\n#\n")
             infile.write(
-                "max.walltime {}".format(self.get_max_wallclock_seconds()))
+                "max.walltime {}".format(self.metadata.options.max_wallclock_seconds))
 
         # ------------------------------------- END of fdf file creation
 
@@ -404,22 +406,22 @@ class SiestaCalculation(CalcJob):
         calcinfo.local_copy_list = local_copy_list
         calcinfo.remote_copy_list = remote_copy_list
 
-        calcinfo.stdin_name = self._INPUT_FILE_NAME
-        calcinfo.stdout_name = self._OUTPUT_FILE_NAME
-        calcinfo.xml_name = self._XML_FILE_NAME
-        calcinfo.json_name = self._JSON_FILE_NAME
-        calcinfo.messages_name = self._MESSAGES_FILE_NAME
+        calcinfo.stdin_name = self._DEFAULT_INPUT_FILE
+        calcinfo.stdout_name = self._DEFAULT_OUTPUT_FILE
+        calcinfo.xml_name = self._DEFAULT_XML_FILE
+        calcinfo.json_name = self._DEFAULT_JSON_FILE
+        calcinfo.messages_name = self._DEFAULT_MESSAGES_FILE
 
         #
         # Code information object
         #
         codeinfo = CodeInfo()
         codeinfo.cmdline_params = list(cmdline_params)
-        codeinfo.stdin_name = self._INPUT_FILE_NAME
-        codeinfo.stdout_name = self._OUTPUT_FILE_NAME
-        codeinfo.xml_name = self._XML_FILE_NAME
-        codeinfo.json_name = self._JSON_FILE_NAME
-        codeinfo.messages_name = self._MESSAGES_FILE_NAME
+        codeinfo.stdin_name = self._DEFAULT_INPUT_FILE
+        codeinfo.stdout_name = self._DEFAULT_OUTPUT_FILE
+        codeinfo.xml_name = self._DEFAULT_XML_FILE
+        codeinfo.json_name = self._DEFAULT_JSON_FILE
+        codeinfo.messages_name = self._DEFAULT_MESSAGES_FILE
         codeinfo.code_uuid = code.uuid
         calcinfo.codes_info = [codeinfo]
 
@@ -430,12 +432,12 @@ class SiestaCalculation(CalcJob):
         # only if aiida.bands is in the retrieve list!!
 
         calcinfo.retrieve_list = []
-        calcinfo.retrieve_list.append(self._OUTPUT_FILE_NAME)
-        calcinfo.retrieve_list.append(self._XML_FILE_NAME)
-        calcinfo.retrieve_list.append(self._JSON_FILE_NAME)
-        calcinfo.retrieve_list.append(self._MESSAGES_FILE_NAME)
-        if flagbands:
-            calcinfo.retrieve_list.append(self._BANDS_FILE_NAME)
+        calcinfo.retrieve_list.append(self._DEFAULT_OUTPUT_FILE)
+        calcinfo.retrieve_list.append(self._DEFAULT_XML_FILE)
+        calcinfo.retrieve_list.append(self._DEFAULT_JSON_FILE)
+        calcinfo.retrieve_list.append(self._DEFAULT_MESSAGES_FILE)
+        # if flagbands:
+        #     calcinfo.retrieve_list.append(self._BANDS_FILE_NAME)
 
         # Any other files specified in the settings dictionary
         settings_retrieve_list = settings_dict.pop('ADDITIONAL_RETRIEVE_LIST',
@@ -728,7 +730,7 @@ def get_input_data_text(key, val, mapping=None):
             ``magn(2) = 0.1``. This parameter is ignored if 'val'
             is not a dictionary.
     """
-    from aiida.common.utils import conv_to_fortran
+    # from aiida.common.utils import conv_to_fortran
     # I check first the dictionary, because it would also match
     # hasattr(__iter__)
     if isinstance(val, dict):
@@ -745,7 +747,8 @@ def get_input_data_text(key, val, mapping=None):
                                  "dictionary".format(elemk))
 
             list_of_strings.append((idx, "  {0}({2}) = {1}\n".format(
-                key, conv_to_fortran(itemval), idx)))
+                # key, conv_to_fortran(itemval), idx)))
+                key, my_conv_to_fortran(itemval), idx)))
 
         # I first have to resort, then to remove the index from the first
         # column, finally to join the strings
@@ -754,7 +757,8 @@ def get_input_data_text(key, val, mapping=None):
     elif hasattr(val, '__iter__'):
         # a list/array/tuple of values
         list_of_strings = [
-            "{0}({2})  {1}\n".format(key, conv_to_fortran(itemval), idx + 1)
+            # "{0}({2})  {1}\n".format(key, conv_to_fortran(itemval), idx + 1)
+            "{0}({2})  {1}\n".format(key, my_conv_to_fortran(itemval), idx + 1)
             for idx, itemval in enumerate(val)
         ]
         return "".join(list_of_strings)

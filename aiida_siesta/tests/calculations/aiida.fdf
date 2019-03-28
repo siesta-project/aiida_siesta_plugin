@@ -1,0 +1,109 @@
+Solution-method(1)  d
+Solution-method(2)  i
+Solution-method(3)  a
+Solution-method(4)  g
+Solution-method(5)  o
+Solution-method(6)  n
+atomic-coordinates-format(1)  A
+atomic-coordinates-format(2)  n
+atomic-coordinates-format(3)  g
+dm-mixingweight    3.0000000000d-01
+dm-numberpulay  4
+dm-tolerance    1.0000000000d-03
+electronic-temperature(1)  2
+electronic-temperature(2)  5
+electronic-temperature(3)   
+electronic-temperature(4)  m
+electronic-temperature(5)  e
+electronic-temperature(6)  V
+lattice-constant(1)  1
+lattice-constant(2)  .
+lattice-constant(3)  0
+lattice-constant(4)   
+lattice-constant(5)  A
+lattice-constant(6)  n
+lattice-constant(7)  g
+max-scfiterations  50
+md-maxcgdispl(1)  0
+md-maxcgdispl(2)  .
+md-maxcgdispl(3)  1
+md-maxcgdispl(4)   
+md-maxcgdispl(5)  A
+md-maxcgdispl(6)  n
+md-maxcgdispl(7)  g
+md-maxforcetol(1)  0
+md-maxforcetol(2)  .
+md-maxforcetol(3)  0
+md-maxforcetol(4)  4
+md-maxforcetol(5)   
+md-maxforcetol(6)  e
+md-maxforcetol(7)  V
+md-maxforcetol(8)  /
+md-maxforcetol(9)  A
+md-maxforcetol(10)  n
+md-maxforcetol(11)  g
+md-numcgsteps  3
+md-typeofrun(1)  c
+md-typeofrun(2)  g
+number-of-atoms  2
+number-of-species  1
+system-label(1)  a
+system-label(2)  i
+system-label(3)  i
+system-label(4)  d
+system-label(5)  a
+system-name(1)  a
+system-name(2)  i
+system-name(3)  i
+system-name(4)  d
+system-name(5)  a
+use-tree-timer(1)  T
+xc-authors(1)  C
+xc-authors(2)  A
+xc-functional(1)  L
+xc-functional(2)  D
+xc-functional(3)  A
+xml-write(1)  T
+#
+# -- Basis Set Info follows
+#
+%block pao-basis-sizes(1)  S
+%block pao-basis-sizes(2)  i
+%block pao-basis-sizes(3)   
+%block pao-basis-sizes(4)  D
+%block pao-basis-sizes(5)  Z
+%block pao-basis-sizes(6)  P
+pao-energy-shift(1)  3
+pao-energy-shift(2)  0
+pao-energy-shift(3)  0
+pao-energy-shift(4)   
+pao-energy-shift(5)  m
+pao-energy-shift(6)  e
+pao-energy-shift(7)  V
+#
+# -- Structural Info follows
+#
+%block chemicalspecieslabel
+    1    14     Si
+%endblock chemicalspecieslabel
+%block lattice-vectors
+      2.7150000000       2.7150000000       0.0000000000
+      0.0000000000       2.7150000000       2.7150000000
+      2.7150000000       0.0000000000       2.7150000000
+%endblock lattice-vectors
+%block atomiccoordinatesandatomicspecies
+      0.0000000000       0.0000000000       0.0000000000    1     Si      1
+      1.3575000000       1.3575000000       1.3575000000    1     Si      2
+%endblock atomiccoordinatesandatomicspecies
+#
+# -- K-points Info follows
+#
+%block kgrid_monkhorst_pack
+     4      0      0       0.0000000000
+     0      4      0       0.0000000000
+     0      0      4       0.0000000000
+%endblock kgrid_monkhorst_pack
+#
+# -- Max wall-clock time block
+#
+max.walltime 3600

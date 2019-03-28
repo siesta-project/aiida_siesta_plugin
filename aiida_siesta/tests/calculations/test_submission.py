@@ -30,7 +30,7 @@ structure.append_atom(position=(0.000 * alat, 0.000 * alat, 0.000 * alat),
 structure.append_atom(position=(0.250 * alat, 0.250 * alat, 0.250 * alat),
                       symbols=['Si'])
 
-code = load_code("siestampi@neu")
+code = load_code("siestampi@new")
 
 # def test_simple_submission(siesta_develop):
     # """test that single calculation is submitted."""
@@ -58,7 +58,7 @@ parameters = Dict(dict={
     'md-numcgsteps': 3,
     'md-maxcgdispl': '0.1 Ang',
     'md-maxforcetol': '0.04 eV/Ang',
-    'xml-write': True
+    # 'xml-write': True
 })
 
 basis = Dict(dict={
@@ -69,19 +69,17 @@ basis = Dict(dict={
 kpoints = KpointsData()
 kpoints.set_kpoints_mesh([4, 4, 4])
 
-
+pseudos_list = []
 raw_pseudos = [("Si.psf", 'Si')]
 for fname, kind in raw_pseudos:
     absname = op.realpath(op.join(op.dirname(__file__), "..", "pseudos", fname))
     pseudo, created = PsfData.get_or_create(absname, use_first=True)
-    print("\n\n\n\n")
-    print(absname)
-    print("\n\n\n\n")
     if created:
         print("\nCreated the pseudo for {}".format(kind))
     else:
         print("\nUsing the pseudo for {} from DB: {}".format(
             kind, pseudo.pk))
+    pseudos_list.append(pseudo)
 
 
 options = {
@@ -98,6 +96,9 @@ inputs = {
     'code': code,
     'basis': basis,
     'kpoints': kpoints,
+    'pseudos': {
+        'Si': pseudos_list[0],
+    },
     'metadata': {
         'options': options,
     }
