@@ -91,7 +91,7 @@ class SiestaCalculation(CalcJob):
         spec.input('parameters', valid_type=orm.Dict, help='Input parameters')
         spec.input('parent_calc_folder', valid_type=orm.RemoteData, required=False, help='Parent folder')
         spec.input_namespace('pseudos', valid_type=PsfData, help='Input pseudo potentials', dynamic=True)
-
+        spec.exit_code(100, 'ERROR_NO_RETRIEVED_FOLDER', message='The retrieved folder data node could not be accessed.')    
 #TO DO SOON: improve help for pseudo.
 #PARENT FOLDER???
 #Question: are the pre-defined input of calc job already usable??
