@@ -5,6 +5,7 @@ from aiida.parsers import Parser
 from aiida_siesta.calculations.siesta import SiestaCalculation
 from aiida.orm import Dict
 from six.moves import range
+from aiida.common import OutputParsingError
 
 # TODO Get modules metadata from setup script.
 __copyright__ = u"Copyright (c), 2015, ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE (Theory and Simulation of Materials (THEOS) and National Centre for Computational Design and Discovery of Novel Materials (NCCR MARVEL)), Switzerland and ROBERT BOSCH LLC, USA. All rights reserved."
@@ -287,7 +288,7 @@ class SiestaParser(Parser):
         if not isinstance(calc,SiestaCalculation):
             raise SiestaOutputParsingError("Input calc must be a SiestaCalculation")
 
-    def _get_output_nodes(self, output_path, messages_path, xml_path, json_path, bands_path):
+    def _get_output_nodes(self, output_path, messages_path, xml_path, json_path):
         """
         Extracts output nodes from the standard output and standard error
         files. (And XML and JSON files)
@@ -303,28 +304,28 @@ class SiestaParser(Parser):
 
         result_list = []
 
-        if xml_path is None:
-            self.logger.error("Could not find a CML file to parse")
-            # NOTE aiida.xml is not there?
-            raise SiestaOutputParsingError("Could not find a CML file to parse")
+#        if xml_path is None:
+#            self.logger.error("Could not find a CML file to parse")
+#            # NOTE aiida.xml is not there?
+#            raise SiestaOutputParsingError("Could not find a CML file to parse")
 
         # We get everything from the CML file
 
         xmldoc = get_parsed_xml_doc(xml_path)
-        if xmldoc is None:
-            self.logger.error("Malformed CML file: cannot parse")
-            raise SiestaCMLParsingError("Malformed CML file: cannot parse")
+#        if xmldoc is None:
+#            self.logger.error("Malformed CML file: cannot parse")
+#            raise SiestaCMLParsingError("Malformed CML file: cannot parse")
 
         # These are examples of how we can access input items
         #
         # Structure (mandatory)
         #
-        in_struc = self._calc.get_inputs_dict()['structure']
+        in_struc = self.node.inputs.structure
         #
         # Settings (optional)
         #
         try:
-             in_settings = self._calc.get_inputs_dict()['settings']
+             in_settings = self.node.inputs.settings
         except KeyError:
              in_settings = None
 
@@ -332,26 +333,26 @@ class SiestaParser(Parser):
 
         # Add timing information
 
-        if json_path is None:
-            self.logger.info("Could not find a time.json file to parse")
+#        if json_path is None:
+#            self.logger.info("Could not find a time.json file to parse")
+#        else:
+        from .json_time import get_timing_info
+        global_time, timing_decomp = get_timing_info(json_path)
+        if global_time is None:
+             raise OutputParsingError("Cannot fully parse the time.json file")
         else:
-             from .json_time import get_timing_info
-             global_time, timing_decomp = get_timing_info(json_path)
-             if global_time is None:
-                  self.logger.info("Cannot fully parse the time.json file")
-             else:
-                  result_dict["global_time"] = global_time
-                  result_dict["timing_decomposition"] = timing_decomp
+             result_dict["global_time"] = global_time
+             result_dict["timing_decomposition"] = timing_decomp
 
         # Add warnings
-        successful = True
-        if messages_path is None:
-             # Perhaps using an old version of Siesta
-             warnings_list = ['WARNING: No MESSAGES file...']
-        else:
-             successful, warnings_list = self.get_warnings_from_file(messages_path)
+        
+#        if messages_path is None:
+#             # Perhaps using an old version of Siesta
+#             warnings_list = ['WARNING: No MESSAGES file...']
+#        else:
+#             warnings_list = self.get_warnings_from_file(messages_path)
 
-        result_dict["warnings"] = warnings_list
+#        result_dict["warnings"] = warnings_list
 
         # Add parser info dictionary
         parsed_dict = dict(list(result_dict.items()) + list(parser_info.items()))
@@ -381,51 +382,58 @@ class SiestaParser(Parser):
              result_list.append((self.get_linkname_outarray(),arraydata))
 
         # Parse band-structure information if available
-        if bands_path is not None:
-             bands, coords = self.get_bands(bands_path)
-             from aiida.orm.nodes.array.bands import BandsData
-             arraybands = BandsData()
-             arraybands.set_kpoints(self._calc.inp.bandskpoints.get_kpoints(cartesian=True))
-             arraybands.set_bands(bands,units="eV")
-             result_list.append((self.get_linkname_bandsarray(), arraybands))
-             bandsparameters = Dict(dict={"kp_coordinates": coords})
-             result_list.append((self.get_linkname_bandsparameters(), bandsparameters))
+#        if bands_path is not None:
+#             bands, coords = self.get_bands(bands_path)
+#             from aiida.orm.nodes.array.bands import BandsData
+#             arraybands = BandsData()
+#             arraybands.set_kpoints(self._calc.inp.bandskpoints.get_kpoints(cartesian=True))
+#             arraybands.set_bands(bands,units="eV")
+#             result_list.append((self.get_linkname_bandsarray(), arraybands))
+#             bandsparameters = Dict(dict={"kp_coordinates": coords})
+#             result_list.append((self.get_linkname_bandsparameters(), bandsparameters))
 
-        return successful, result_list
+        return result_list
 
-    def parse_with_retrieved(self,retrieved):
+    def parse(self,retrieved_temporary_folder, **kwargs):
         """
         Receives in input a dictionary of retrieved nodes.
         Does all the logic here.
         """
+        from aiida.engine import ExitCode
 
-        from aiida.common.exceptions import InvalidOperation
-        import os
-
-        output_path = None
-        messages_path  = None
-        xml_path  = None
-        json_path  = None
-        bands_path = None
         try:
-            output_path, messages_path, xml_path, json_path, bands_path = \
-                             self._fetch_output_files(retrieved)
-        except InvalidOperation:
-            raise
-        except IOError as e:
-            self.logger.error(e.message)
-            return False, ()
+            output_folder = self.retrieved
+        except exceptions.NotExistent:
+            return self.exit_codes.ERROR_NO_RETRIEVED_FOLDER
 
-        if output_path is None and messages_path is None and xml_path is None:
-            self.logger.error("No output files found")
-            return False, ()
+#        from aiida.common.exceptions import InvalidOperation
+#        import os
+        output_path, messages_path, xml_path, json_path = \
+            self._fetch_output_files(output_folder)
+#        output_path = None
+#        messages_path  = None
+#        xml_path  = None
+#        json_path  = None
+#        bands_path = None
+#        try:
+#            output_path, messages_path, xml_path, json_path, bands_path = \
+#                             self._fetch_output_files(retrieved)
+#        except InvalidOperation:
+#            raise
+#        except IOError as e:
+#            self.logger.error(e.message)
+#            return False, ()
 
-        successful, out_nodes = self._get_output_nodes(output_path, messages_path,
-                                                       xml_path, json_path, bands_path)
+#        if output_path is None and messages_path is None and xml_path is None:
+#            self.logger.error("No output files found")
+#            return False, ()
 
-        return successful, out_nodes
+        out_nodes = self._get_output_nodes(output_path, messages_path, xml_path, json_path)
 
-    def _fetch_output_files(self, retrieved):
+        return ExitCode(0)
+#        return successful, out_nodes
+
+    def _fetch_output_files(self, out_folder):
         """
         Checks the output folder for standard output and standard error
         files, returns their absolute paths on success.
@@ -444,82 +452,89 @@ class SiestaParser(Parser):
 #                                    .format(calc_states.PARSING) )
 
         # Check that the retrieved folder is there
-        try:
-            out_folder = retrieved[self._calc._get_linkname_retrieved()]
-        except KeyError:
-            raise IOError("No retrieved folder found")
+#        try:
+#         out_folder = retrieved[self._calc._get_linkname_retrieved()]
+#        except KeyError:
+#            raise IOError("No retrieved folder found")
 
-        list_of_files = out_folder.get_folder_list()
+        list_of_files = out_folder._repository.list_object_names()
 
         output_path = None
         messages_path  = None
         xml_path  = None
         json_path  = None
-        bands_path = None
+#        bands_path = None
 
-        if self._calc._DEFAULT_OUTPUT_FILE in list_of_files:
+        if self.node.inputs.metadata.options.output_filename in list_of_files:
             output_path = os.path.join( out_folder.get_abs_path('.'),
-                                        self._calc._DEFAULT_OUTPUT_FILE )
-        if self._calc._DEFAULT_XML_FILE in list_of_files:
+                                        self.node.inputs.metadata.options.output_filename)
+        else
+            raise OutputParsingError("Output file not retrieved")
+
+        if self.node.inputs.metadata.options.xml_file in list_of_files:
             xml_path = os.path.join( out_folder.get_abs_path('.'),
-                                        self._calc._DEFAULT_XML_FILE )
-        if self._calc._DEFAULT_JSON_FILE in list_of_files:
+                                        self.node.inputs.metadata.options.xml_file )
+        else
+            raise OutputParsingError("Xml file not retrieved")
+
+        if self.node.inputs.metadata.options.json_file in list_of_files:
             json_path = os.path.join( out_folder.get_abs_path('.'),
-                                        self._calc._DEFAULT_JSON_FILE )
-        if self._calc._DEFAULT_MESSAGES_FILE in list_of_files:
+                                        self.node.inputs.metadata.options.json_file )
+
+        if self.node.inputs.metadata.options.messages_file in list_of_files:
             messages_path  = os.path.join( out_folder.get_abs_path('.'),
-                                        self._calc._DEFAULT_MESSAGES_FILE )
-        if self._calc._DEFAULT_BANDS_FILE in list_of_files:
-            bands_path  = os.path.join( out_folder.get_abs_path('.'),
-                                        self._calc._DEFAULT_BANDS_FILE )
+                                        self.node.inputs.metadata.options.messages_file )
+#        if self._calc._DEFAULT_BANDS_FILE in list_of_files:
+#            bands_path  = os.path.join( out_folder.get_abs_path('.'),
+#                                        self._calc._DEFAULT_BANDS_FILE )
 
-        return output_path, messages_path, xml_path, json_path, bands_path
+        return output_path, messages_path, xml_path, json_path#, bands_path
 
-    def get_warnings_from_file(self,messages_path):
-     """
-     Generates a list of warnings from the 'MESSAGES' file, which
-     contains a line per message, prefixed with 'INFO',
-     'WARNING' or 'FATAL'.
-
-     :param messages_path:
-
-     Returns a boolean indicating success (True) or failure (False)
-     and a list of strings.
-     """
-     f=open(messages_path)
-     lines=f.read().split('\n')   # There will be a final '' element
-
-     import re
-
-     # Search for 'FATAL:' messages, log them, and return immediately
-     there_are_fatals = False
-     for line in lines:
-          if re.match('^FATAL:.*$',line):
-               self.logger.error(line)
-               there_are_fatals = True
-
-     if there_are_fatals:
-          return False, lines[:-1]  # Remove last (empty) element
-
-     # Make sure that the job did finish (and was not interrupted
-     # externally)
-
-     normal_end = False
-     for line in lines:
-          if re.match('^INFO: Job completed.*$',line):
-               normal_end = True
-
-     if normal_end == False:
-          lines[-1] = 'FATAL: ABNORMAL_EXTERNAL_TERMINATION'
-          self.logger.error("Calculation interrupted externally")
-          return False, lines
-
-     # (Insert any other "non-success" conditions before next section)
-     # (e.g.: be very picky about (some) 'WARNING:' messages)
-
-     # Return with success flag
-
-     return True, lines[:-1]  # Remove last (empty) element
+#    def get_warnings_from_file(self,messages_path):
+#     """
+#     Generates a list of warnings from the 'MESSAGES' file, which
+#     contains a line per message, prefixed with 'INFO',
+#     'WARNING' or 'FATAL'.
+#
+#     :param messages_path:
+#
+#     Returns a boolean indicating success (True) or failure (False)
+#     and a list of strings.
+#     """
+#     f=open(messages_path)
+#     lines=f.read().split('\n')   # There will be a final '' element
+#
+#     import re
+#
+#     # Search for 'FATAL:' messages, log them, and return immediately
+#     there_are_fatals = False
+#     for line in lines:
+#          if re.match('^FATAL:.*$',line):
+#               self.logger.error(line)
+#               there_are_fatals = True
+#
+#     if there_are_fatals:
+#          return False, lines[:-1]  # Remove last (empty) element
+#
+#     # Make sure that the job did finish (and was not interrupted
+#     # externally)
+#
+#     normal_end = False
+#     for line in lines:
+#          if re.match('^INFO: Job completed.*$',line):
+#               normal_end = True
+#
+#     if normal_end == False:
+#          lines[-1] = 'FATAL: ABNORMAL_EXTERNAL_TERMINATION'
+#          self.logger.error("Calculation interrupted externally")
+#          return False, lines
+#
+#     # (Insert any other "non-success" conditions before next section)
+#     # (e.g.: be very picky about (some) 'WARNING:' messages)
+#
+#     # Return with success flag
+#
+#     return True, lines[:-1]  # Remove last (empty) element
 
     def get_bands(self, bands_path):
         # The parsing is different depending on whether I have Bands or Points.
