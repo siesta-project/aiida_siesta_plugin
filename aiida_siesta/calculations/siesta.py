@@ -2,10 +2,11 @@
 from __future__ import absolute_import
 import os
 
+from aiida import orm
 from aiida.common.constants import elements
 from aiida.common import CalcInfo, CodeInfo
 from aiida.common import InputValidationError
-from aiida.common.utils import classproperty
+#from aiida.common.utils import classproperty
 from aiida.engine import CalcJob
 from aiida.orm import KpointsData
 from aiida.orm import Dict
@@ -27,253 +28,128 @@ class SiestaCalculation(CalcJob):
     """
     Siesta calculator class for AiiDA.
     """
-    _siesta_plugin_version = 'aiida-0.12.0--plugin-0.9.10'
+    _siesta_plugin_version = 'aiida-1.0.0b--plugin-1.0-migration'
 
-    def _init_internal_params(self):
-        super(SiestaCalculation, self)._init_internal_params()
+#Here we have to make a choice, what to put in the clssmethod
+#(could be modified)
+#and what just standard parameters to be used internally only!
 
-        # Default Siesta output parser provided by AiiDA
-        self._default_parser = "siesta.parser"
+#Parameters
+    # Keywords that cannot be set
+    # We need to canonicalize this!
 
-        # Keywords that cannot be set
-        # We need to canonicalize this!
+    _aiida_blocked_keywords = ['system-name', 'system-label']
 
-        self._aiida_blocked_keywords = ['system-name', 'system-label']
+    _aiida_blocked_keywords.append('number-of-species')
+    _aiida_blocked_keywords.append('number-of-atoms')
+    _aiida_blocked_keywords.append('latticeconstant')
+    _aiida_blocked_keywords.append('lattice-constant')
+    _aiida_blocked_keywords.append('atomic-coordinates-format')
+    _aiida_blocked_keywords.append('atomiccoordinatesformat')
+    _aiida_blocked_keywords.append('use-tree-timer')
+    _aiida_blocked_keywords.append('xml-write')
+    _PSEUDO_SUBFOLDER = './'
+    _OUTPUT_SUBFOLDER = './'
+    _PREFIX = 'aiida'
 
-        self._aiida_blocked_keywords.append('number-of-species')
-        self._aiida_blocked_keywords.append('number-of-atoms')
-        #
-        #
-        self._aiida_blocked_keywords.append('latticeconstant')
-        self._aiida_blocked_keywords.append('lattice-constant')
-        self._aiida_blocked_keywords.append('atomic-coordinates-format')
-        self._aiida_blocked_keywords.append('atomiccoordinatesformat')
-        self._aiida_blocked_keywords.append('use-tree-timer')
-        # self._aiida_blocked_keywords.append('xml-write')
+#Go in classmethod
+    _DEFAULT_INPUT_FILE = 'aiida.fdf'
+    _DEFAULT_OUTPUT_FILE = 'aiida.out'
+    _DEFAULT_XML_FILE = 'aiida.xml'
+    _DEFAULT_JSON_FILE = 'time.json'
+    _DEFAULT_MESSAGES_FILE = 'MESSAGES'
+    _DEFAULT_BANDS_FILE = 'aiida.bands'
 
-        # Default input and output files
-        self._DEFAULT_INPUT_FILE = 'aiida.in'
-        self._DEFAULT_OUTPUT_FILE = 'aiida.out'
-        self._DEFAULT_XML_FILE = 'aiida.xml'
-        self._DEFAULT_JSON_FILE = 'time.json'
-        self._DEFAULT_MESSAGES_FILE = 'MESSAGES'
-        self._DEFAULT_BANDS_FILE = 'aiida.bands'
 
-        self._PSEUDO_SUBFOLDER = './'
-        self._OUTPUT_SUBFOLDER = './'
-        self._PREFIX = 'aiida'
-        self._INPUT_FILE_NAME = 'aiida.fdf'
-        self._OUTPUT_FILE_NAME = 'aiida.out'
-        self._XML_FILE_NAME = 'aiida.xml'
-        self._JSON_FILE_NAME = 'time.json'
-        self._MESSAGES_FILE_NAME = 'MESSAGES'
-        self._BANDS_FILE_NAME = 'aiida.bands'
+    # in restarts, it will copy from the parent the following
+    # (fow now, just the density matrix file)
+    _restart_copy_from = os.path.join(self._OUTPUT_SUBFOLDER, '*.DM')
 
-        # in restarts, it will copy from the parent the following
-        # (fow now, just the density matrix file)
-        self._restart_copy_from = os.path.join(self._OUTPUT_SUBFOLDER, '*.DM')
+    # in restarts, it will copy the previous folder in the following one
+    _restart_copy_to = self._OUTPUT_SUBFOLDER
 
-        # in restarts, it will copy the previous folder in the following one
-        self._restart_copy_to = self._OUTPUT_SUBFOLDER
 
-    @classproperty
-    def _use_methods(cls):
+    @classmethod
+    def define(cls, spec):
+        super(SiestaCalculation, cls).define(spec)
+        spec.input('metadata.options.input_filename', valid_type=six.string_types, default=cls._DEFAULT_INPUT_FILE)
+        spec.input('metadata.options.output_filename', valid_type=six.string_types, default=cls._DEFAULT_OUTPUT_FILE)
+        spec.input('metadata.options.xml_file', valid_type=six.string_types, default=cls._DEFAULT_XML_FILE)
+        spec.input('metadata.options.bands_file', valid_type=six.string_types, default=cls._DEFAULT_BANDS_FILE)
+        spec.input('metadata.options.messages_file', valid_type=six.string_types, default=cls._DEFAULT_MESSAGES_FILE)
+        spec.input('metadata.options.json_file', valid_type=six.string_types, default=cls._DEFAULT_JSON_FILE)
+        spec.input('metadata.options.parser_name', valid_type=six.string_types, default='siesta.parser')
+
+
+        spec.input('code', valid_type=orm.Code, help='Input code')
+        spec.input('structure', valid_type=orm.StuctureData, help='Input structure')
+        spec.input('kpoints', valid_type=orm.KpointsData, help='Input kpoints')
+        spec.input('bandskpoints', valid_type=orm.KpointsData, help='Input kpoints for bands',required=False)
+        spec.input('basis', valid_type=orm.Dict, help='Input basis',required=False)
+        spec.input('settings', valid_type=orm.Dict, help='Input settings',required=False)
+        spec.input('parameters', valid_type=orm.Dict, help='Input parameters')
+        spec.input('parent_calc_folder', valid_type=orm.RemoteData, required=False, help='Parent folder')
+        spec.input_namespace('pseudos', valid_type=PsfData,help='Input pseudo potentials', dynamic=True)
+        
+#TO DO SOON: improve help for pseudo.
+#PARENT FOLDER???
+#Question: are the pre-defined input of calc job already usable??
+
+
+    def prepare_for_submission(self, tempfolder):
         """
-        Extend the parent _use_methods with further keys.
-        """
-        retdict = JobCalculation._use_methods
+        Create the input files from the input nodes passed to this instance of the `CalcJob`.
 
-        retdict['kpoints'] = {
-            'valid_types': KpointsData,
-            'additional_parameter': None,
-            'linkname': 'kpoints',
-            'docstring': "Use the node defining the kpoint sampling to use",
-        }
-        retdict["structure"] = {
-            'valid_types': StructureData,
-            'additional_parameter': None,
-            'linkname': 'structure',
-            'docstring': "Choose the input structure to use",
-        }
-        retdict["basis"] = {
-            'valid_types': ParameterData,
-            'additional_parameter': None,
-            'linkname': 'basis',
-            'docstring': "Choose the input basis to use",
-        }
-        retdict["settings"] = {
-            'valid_types': ParameterData,
-            'additional_parameter': None,
-            'linkname': 'settings',
-            'docstring': "Use an additional node for special settings",
-        }
-        retdict["parameters"] = {
-            'valid_types': ParameterData,
-            'additional_parameter': None,
-            'linkname': 'parameters',
-            'docstring': ("Use a node that specifies the input parameters "
-                          "for the namelists"),
-        }
-        retdict["parent_folder"] = {
-            'valid_types': RemoteData,
-            'additional_parameter': None,
-            'linkname': 'parent_calc_folder',
-            'docstring': ("Use a remote folder as parent folder (for "
-                          "restarts and similar"),
-        }
-        retdict["pseudo"] = {
-            'valid_types': PsfData,
-            'additional_parameter': "kind",
-            'linkname': cls._get_linkname_pseudo,
-            'docstring': ("Use a node for the PSF pseudopotential of one of "
-                          "the elements in the structure. You have to pass "
-                          "an additional parameter ('kind') specifying the "
-                          "name of the structure kind (i.e., the name of "
-                          "the species) for which you want to use this "
-                          "pseudo. You can pass either a string, or a "
-                          "list of strings if more than one kind uses the "
-                          "same pseudo"),
-        }
-        retdict['bandskpoints'] = {
-            'valid_types': KpointsData,
-            'additional_parameter': None,
-            'linkname': 'bandskpoints',
-            'docstring': ("Use the node defining the kpoint sampling"
-                          "to use for bands calculation"),
-        }
-        return retdict
-
-    def _prepare_for_submission(self, tempfolder, inputdict):
+        :param folder: an `aiida.common.folders.Folder` to temporarily write files on disk
+        :return: `aiida.common.datastructures.CalcInfo` instance
         """
-        This is the routine to be called when you want to create
-        the input files and related stuff with a plugin.
 
-        :param tempfolder: a aiida.common.folders.Folder subclass where
-                           the plugin should put all its files.
-        :param inputdict: a dictionary with the input nodes, as they would
-                be returned by get_inputdata_dict (without the Code!)
-        """
+        ####################################
+        # BEGINNING OF INITIAL INPUT CHECK #
+        ####################################
+        
+        code=self.inputs.code
+        structure = self.inputs.structure
+        kpoints = self.inputs.kpoints
+        parameters = self.inputs.parameters
+
+        if 'basis' in self.inputs:
+           basis = self.inputs.basis
+        else:
+           basis = None
+
+        if 'settings' in self.inputs:
+           settings = self.inputs.settings.get_dict()
+           settings_dict = _uppercase_dict(settings, dict_name='settings')
+        else:
+           settings ={}
+
+        if 'bandskpoints' in self.inputs:
+           bandkpoints = self.inputs.bandskpoints
+        else:
+           bandkpoints = None
+
+        if 'parent_calc_folder' in self.inputs:
+           parent_calc_folder = self.inputs.parent_calc_folder
+        else:
+           parent_calc_folder = None
+
+
+#Not sure about the check on pseudos
+        pseudos=self.inputs.pseudos
+        kinds = [kind.name for kind in structure.kinds]
+        if set(kinds) != set(pseudos.keys()):
+            raise exceptions.InputValidationError(
+                'Mismatch between the defined pseudos and the list of kinds of the structure.\n'
+                'Pseudos: {} \n'.format(', '.join(list(pseudos.keys())))
+                'Kinds: {}'.format(', '.join(list(kinds)))
+            )
+
 
         local_copy_list = []
         remote_copy_list = []
 
-        # Process the settings dictionary first
-        # Settings can be undefined, and defaults to an empty dictionary
-        settings = inputdict.pop(self.get_linkname('settings'), None)
-        if settings is None:
-            settings_dict = {}
-        else:
-            if not isinstance(settings, ParameterData):
-                raise InputValidationError(
-                    "settings, if specified, must be of "
-                    "type ParameterData")
 
-            # Settings converted to UPPERCASE
-            # Presumably to standardize the usage and avoid
-            # ambiguities
-            settings_dict = _uppercase_dict(
-                settings.get_dict(), dict_name='settings')
-
-        try:
-            parameters = inputdict.pop(self.get_linkname('parameters'))
-        except KeyError:
-            raise InputValidationError("No parameters specified for this "
-                                       "calculation")
-        if not isinstance(parameters, ParameterData):
-            raise InputValidationError("parameters is not of type "
-                                       "ParameterData")
-
-        # Basis can be undefined, and defaults to an empty dictionary,
-        # Siesta will use default parameters
-        basis = inputdict.pop(self.get_linkname('basis'), None)
-        if basis is None:
-            input_basis = {}
-        else:
-            if not isinstance(basis, ParameterData):
-                raise InputValidationError("basis not of type ParameterData")
-
-#            input_basis=FDFDict(basis.get_dict())
-            input_basis = basis.get_dict()
-
-        try:
-            structure = inputdict.pop(self.get_linkname('structure'))
-        except KeyError:
-            raise InputValidationError("No structure specified for this "
-                                       "calculation")
-        if not isinstance(structure, StructureData):
-            raise InputValidationError(
-                "structure is not of type StructureData")
-
-        # k-points
-        # It is now possible to elide the kpoints node.
-        #
-        # Note also that a *different* set of k-points is needed if a band
-        # calculation is carried out. This should be specified somehow in
-        # the 'settings' dictionary (see QE example...)
-
-        kpoints = inputdict.pop(self.get_linkname('kpoints'), None)
-        if kpoints is None:
-            # Do nothing. Assume it is a gamma-point calculation
-            pass
-        else:
-            if not isinstance(kpoints, KpointsData):
-                raise InputValidationError("kpoints, if specified, must be of "
-                                           "type KpointsData")
-
-        bandskpoints = inputdict.pop(self.get_linkname('bandskpoints'), None)
-        if bandskpoints is None:
-            flagbands = False
-        else:
-            flagbands = True
-            if not isinstance(bandskpoints, KpointsData):
-                raise InputValidationError(
-                    "kpoints for bands is not of type KpointsData")
-
-        pseudos = {}
-        # I create here a dictionary that associates each kind name to a pseudo
-        for link in inputdict.keys():
-            if link.startswith(self._get_linkname_pseudo_prefix()):
-                kindstring = link[len(self._get_linkname_pseudo_prefix()):]
-                kinds = kindstring.split('_')
-                the_pseudo = inputdict.pop(link)
-                if not isinstance(the_pseudo, PsfData):
-                    raise InputValidationError(
-                        "Pseudo for kind(s) {} is not "
-                        " of type PsfData".format(",".join(kinds)))
-                #
-                # Note that we can associate the same pseudo object to different
-                # atom kinds
-                #
-                for kind in kinds:
-                    pseudos[kind] = the_pseudo
-
-        parent_calc_folder = inputdict.pop(
-            self.get_linkname('parent_folder'), None)
-        if parent_calc_folder is not None:
-            if not isinstance(parent_calc_folder, RemoteData):
-                raise InputValidationError("parent_calc_folder, if specified,"
-                                           "must be of type RemoteData")
-
-        try:
-            code = inputdict.pop(self.get_linkname('code'))
-        except KeyError:
-            raise InputValidationError(
-                "No code specified for this calculation")
-
-        # Here, there should be no more parameters...
-        if inputdict:
-            raise InputValidationError(
-                "The following input data nodes are "
-                "unrecognized: {}".format(list(inputdict.keys())))
-
-        # Check structure, get species, check peudos
-        kindnames = [k.name for k in structure.kinds]
-        if set(kindnames) != set(pseudos.keys()):
-            err_msg = ("Mismatch between the defined pseudos and the list of "
-                       "kinds of the structure. Pseudos: {}; kinds: {}".format(
-                           ",".join(list(pseudos.keys())),
-                           ",".join(list(kindnames))))
-            raise InputValidationError(err_msg)
 
         ##############################
         # END OF INITIAL INPUT CHECK #
@@ -417,7 +293,7 @@ class SiestaCalculation(CalcJob):
         #BandsPoints if bandskpoints has no labels
         #BandLinesScale =pi/a is not supported at the moment because currently
         #a=1 always. BandLinesScale ReciprocalLatticeVectors is always set
-        if flagbands:
+        if bandskpoints is not None:
             bandskpoints_card_list = [
                 "BandLinesScale ReciprocalLatticeVectors\n"
             ]
@@ -453,7 +329,7 @@ class SiestaCalculation(CalcJob):
 
         # ================ Namelists and cards ===================
 
-        input_filename = tempfolder.get_abs_path(self._INPUT_FILE_NAME)
+        input_filename = self.inputs.metadata.options.input_filename
 
         with open(input_filename, 'w') as infile:
             # here print keys and values tp file
@@ -508,7 +384,7 @@ class SiestaCalculation(CalcJob):
 
         calcinfo = CalcInfo()
 
-        calcinfo.uuid = self.uuid
+        calcinfo.uuid = str(self.uuid)
         #
         # Empty command line by default
         # Why use 'pop' ?
@@ -524,6 +400,7 @@ class SiestaCalculation(CalcJob):
 
         if cmdline_params:
             calcinfo.cmdline_params = list(cmdline_params)
+
         calcinfo.local_copy_list = local_copy_list
         calcinfo.remote_copy_list = remote_copy_list
 
