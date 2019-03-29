@@ -6,6 +6,7 @@ from aiida_siesta.calculations.siesta import SiestaCalculation
 from aiida.orm import Dict
 from six.moves import range
 from aiida.common import OutputParsingError
+from aiida.common import exceptions
 
 # TODO Get modules metadata from setup script.
 __copyright__ = u"Copyright (c), 2015, ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE (Theory and Simulation of Materials (THEOS) and National Centre for Computational Design and Discovery of Novel Materials (NCCR MARVEL)), Switzerland and ROBERT BOSCH LLC, USA. All rights reserved."
@@ -203,7 +204,8 @@ def get_last_structure(xmldoc, input_structure):
     # the CML file (at least not in Siesta versions <= 4.0)
     #
 
-    s = input_structure.copy()
+    # s = input_structure.copy()
+    s = input_structure.clone()
     s.reset_cell(cell)
     new_pos = [atom[1] for atom in atomlist]
     s.reset_sites_positions(new_pos)
@@ -276,27 +278,27 @@ class SiestaParser(Parser):
     """
     Parser for the output of Siesta.
     """
-    def __init__(self,calc):
-        """
-        Initialize the instance of SiestaParser
-        """
-        # check for valid input
-        self._check_calc_compatibility(calc)
-        super(SiestaParser, self).__init__(calc)
+    # def __init__(self,calc):
+    #     """
+    #     Initialize the instance of SiestaParser
+    #     """
+    #     # check for valid input
+    #     self._check_calc_compatibility(calc)
+    #     super(SiestaParser, self).__init__(calc)
 
-    def _check_calc_compatibility(self,calc):
-        if not isinstance(calc,SiestaCalculation):
-            raise SiestaOutputParsingError("Input calc must be a SiestaCalculation")
+    # def _check_calc_compatibility(self,calc):
+    #     if not isinstance(calc,SiestaCalculation):
+    #         raise SiestaOutputParsingError("Input calc must be a SiestaCalculation")
 
     def _get_output_nodes(self, output_path, messages_path, xml_path, json_path):
         """
         Extracts output nodes from the standard output and standard error
         files. (And XML and JSON files)
         """
-        from aiida.orm.nodes.array.trajectory import TrajectoryData
+        from aiida.orm import TrajectoryData
         import re
 
-        parser_version = 'aiida-0.12.0--plugin-0.9.10'
+        parser_version = 'aiida-1.0.0--plugin-1.0.0'
         parser_info = {}
         parser_info['parser_info'] = 'AiiDA Siesta Parser V. {}'.format(parser_version)
         parser_info['parser_warnings'] = []
@@ -326,7 +328,8 @@ class SiestaParser(Parser):
         #
         try:
              in_settings = self.node.inputs.settings
-        except KeyError:
+        # except KeyError:
+        except exceptions.NotExistent:
              in_settings = None
 
         result_dict = get_dict_from_xml_doc(xmldoc)
@@ -345,7 +348,7 @@ class SiestaParser(Parser):
              result_dict["timing_decomposition"] = timing_decomp
 
         # Add warnings
-        
+
 #        if messages_path is None:
 #             # Perhaps using an old version of Siesta
 #             warnings_list = ['WARNING: No MESSAGES file...']
@@ -359,8 +362,9 @@ class SiestaParser(Parser):
 
         output_data = Dict(dict=parsed_dict)
 
-        link_name = self.get_linkname_outparams()
-        result_list.append((link_name,output_data))
+        # link_name = self.get_linkname_outparams()
+        self.out('output_parameters', output_data)
+        # result_list.append((link_name,output_data))
 
         # If the structure has changed, save it
         if is_variable_geometry(xmldoc):
@@ -369,17 +373,20 @@ class SiestaParser(Parser):
              # atomic symbols.
              #
              struc = get_last_structure(xmldoc,in_struc)
-             result_list.append((self.get_linkname_outstructure(),struc))
+             # result_list.append((self.get_linkname_outstructure(),struc))
+             self.out(self.get_linkname_outstructure(), struc)
 
         # Save forces and stress in an ArrayData object
         forces, stress = get_final_forces_and_stress(xmldoc)
 
         if forces is not None and stress is not None:
-             from aiida.orm.nodes.array import ArrayData
+             # from aiida.orm.nodes.array import ArrayData
+             from aiida.orm import ArrayData
              arraydata = ArrayData()
              arraydata.set_array('forces', np.array(forces))
              arraydata.set_array('stress', np.array(stress))
-             result_list.append((self.get_linkname_outarray(),arraydata))
+             # result_list.append((self.get_linkname_outarray(),arraydata))
+             self.out(self.get_linkname_outarray(),arraydata)
 
         # Parse band-structure information if available
 #        if bands_path is not None:
@@ -394,7 +401,8 @@ class SiestaParser(Parser):
 
         return result_list
 
-    def parse(self,retrieved_temporary_folder, **kwargs):
+    # def parse(self,retrieved_temporary_folder, **kwargs):
+    def parse(self, **kwargs):
         """
         Receives in input a dictionary of retrieved nodes.
         Does all the logic here.
@@ -441,7 +449,7 @@ class SiestaParser(Parser):
         :param retrieved: A dictionary of retrieved nodes, as obtained from the
           parser.
         """
-        from aiida.common.datastructures import calc_states
+        # from aiida.common.datastructures import calc_states
         from aiida.common.exceptions import InvalidOperation
         import os
 
@@ -465,25 +473,26 @@ class SiestaParser(Parser):
         json_path  = None
 #        bands_path = None
 
-        if self.node.inputs.metadata.options.output_filename in list_of_files:
-            output_path = os.path.join( out_folder.get_abs_path('.'),
-                                        self.node.inputs.metadata.options.output_filename)
-        else
+        if self.node.get_option('output_filename') in list_of_files:
+            output_path = os.path.join(out_folder._repository._get_base_folder().abspath,
+                                       self.node.get_option('output_filename'))
+        else:
             raise OutputParsingError("Output file not retrieved")
 
-        if self.node.inputs.metadata.options.xml_file in list_of_files:
-            xml_path = os.path.join( out_folder.get_abs_path('.'),
-                                        self.node.inputs.metadata.options.xml_file )
-        else
+        if self.node.get_option('xml_file') in list_of_files:
+            xml_path = os.path.join(out_folder._repository._get_base_folder().abspath,
+                                    self.node.get_option('xml_file'))
+        else:
             raise OutputParsingError("Xml file not retrieved")
 
-        if self.node.inputs.metadata.options.json_file in list_of_files:
-            json_path = os.path.join( out_folder.get_abs_path('.'),
-                                        self.node.inputs.metadata.options.json_file )
+        if self.node.get_option('json_file') in list_of_files:
+            json_path = os.path.join(out_folder._repository._get_base_folder().abspath,
+                                     self.node.get_option('json_file'))
 
-        if self.node.inputs.metadata.options.messages_file in list_of_files:
-            messages_path  = os.path.join( out_folder.get_abs_path('.'),
-                                        self.node.inputs.metadata.options.messages_file )
+        if self.node.get_option('messages_file') in list_of_files:
+            messages_path = os.path.join(out_folder._repository._get_base_folder().abspath,
+                                         self.node.get_option('messages_file'))
+
 #        if self._calc._DEFAULT_BANDS_FILE in list_of_files:
 #            bands_path  = os.path.join( out_folder.get_abs_path('.'),
 #                                        self._calc._DEFAULT_BANDS_FILE )
