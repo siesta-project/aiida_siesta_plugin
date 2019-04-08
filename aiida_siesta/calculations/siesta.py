@@ -1,22 +1,21 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
+
 import os
 
-from aiida import orm
-from aiida.common.constants import elements
-from aiida.common import CalcInfo, CodeInfo
-from aiida.common import InputValidationError
-#from aiida.common.utils import classproperty
-from aiida.engine import CalcJob
-from aiida.orm import KpointsData
-from aiida.orm import Dict
-from aiida.orm import RemoteData
-from aiida.orm import StructureData
-
-from aiida_siesta.data.psf import PsfData, get_pseudos_from_structure
-# Module with fdf-aware dictionary
-from .tkdict import FDFDict
 import six
+from aiida import orm
+from aiida.common import CalcInfo, CodeInfo, InputValidationError
+from aiida.common.constants import elements
+from aiida.engine import CalcJob
+from aiida.orm import Dict, RemoteData, StructureData, BandsData, ArrayData
+
+from .tkdict import FDFDict
+from aiida_siesta.data.psf import PsfData, get_pseudos_from_structure
+
+
+#from aiida.common.utils import classproperty
+# Module with fdf-aware dictionary
 
 __copyright__ = u"Copyright (c), 2015, ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE (Theory and Simulation of Materials (THEOS) and National Centre for Computational Design and Discovery of Novel Materials (NCCR MARVEL)), Switzerland and ROBERT BOSCH LLC, USA. All rights reserved."
 __license__ = "MIT license, see LICENSE.txt file"
@@ -93,11 +92,13 @@ class SiestaCalculation(CalcJob):
         spec.input_namespace('pseudos', valid_type=PsfData, help='Input pseudo potentials', dynamic=True)
         spec.exit_code(100, 'ERROR_NO_RETRIEVED_FOLDER', message='The retrieved folder data node could not be accessed.')
 
-        # XXX output nodes
-        # spec.output('results', valid_type=Dict)
-        # spec.default_output_node = 'results'  #should be existing output node and a Dict
+        spec.output('output_parameters', valid_type=Dict, required=True, help='The calculation results')
+        spec.output('output_structure', valid_type=StructureData, required=False, help='Optional relaxed structure')
+        # TODO: Bandstructure probably should be BandsData instanses -> parser
+        spec.output('output_array', valid_type=ArrayData, required=False, help='Optional band structure')
+        spec.default_output_node = 'output_parameters'  #should be existing output node and a Dict
 
-#TO DO SOON: improve help for pseudo.
+#to DO SOON: improve help for pseudo.
 #PARENT FOLDER???
 #Question: are the pre-defined input of calc job already usable??
 
