@@ -6,15 +6,12 @@ from aiida import orm
 from aiida.common.constants import elements
 from aiida.common import CalcInfo, CodeInfo
 from aiida.common import InputValidationError
-#from aiida.common.utils import classproperty
 from aiida.engine import CalcJob
-from aiida.orm import KpointsData
-from aiida.orm import Dict
-from aiida.orm import RemoteData
-from aiida.orm import StructureData
-
+#from aiida.orm import KpointsData
+#from aiida.orm import Dict
+#from aiida.orm import RemoteData
+#from aiida.orm import StructureData
 from aiida_siesta.data.psf import PsfData, get_pseudos_from_structure
-# Module with fdf-aware dictionary
 from .tkdict import FDFDict
 import six
 
@@ -24,22 +21,29 @@ __version__ = "0.9.10"
 __contributors__ = "Victor M. Garcia-Suarez, Alberto Garcia, Emanuele Bosoni"
 
 
+###################################################################
+## Few comments about aiida 1.0:                                 ##
+## There is now a clear distinction between Nodes and Processes  ##
+## A calculation is now a process and it is treated as a Process ##
+## class similar to the WorkChains. Use of class variables &     ##
+## the input spec is necessary                                   ##
+###################################################################
+
 class SiestaCalculation(CalcJob):
     """
     Siesta calculator class for AiiDA.
     """
     _siesta_plugin_version = 'aiida-1.0.0b--plugin-1.0-migration'
 
-#Here we have to make a choice, what to put in the clssmethod
-#(could be modified)
-#and what just standard parameters to be used internally only!
+    ###########################################################
+    ## Important distinction between input.spec of the class ##
+    ## (can be modified) and pure parameters                 ##
+    ###########################################################
 
-#Parameters
+    # Parameters
     # Keywords that cannot be set
     # We need to canonicalize this!
-
     _aiida_blocked_keywords = ['system-name', 'system-label']
-
     _aiida_blocked_keywords.append('number-of-species')
     _aiida_blocked_keywords.append('number-of-atoms')
     _aiida_blocked_keywords.append('latticeconstant')
@@ -52,7 +56,8 @@ class SiestaCalculation(CalcJob):
     _OUTPUT_SUBFOLDER = './'
     _PREFIX = 'aiida'
 
-#Go in classmethod
+    # Default of the input.spec, it's just default, but user
+    # could change the name
     _DEFAULT_INPUT_FILE = 'aiida.fdf'
     _DEFAULT_OUTPUT_FILE = 'aiida.out'
     _DEFAULT_XML_FILE = 'aiida.xml'
@@ -84,7 +89,7 @@ class SiestaCalculation(CalcJob):
 
         spec.input('code', valid_type=orm.Code, help='Input code')
         spec.input('structure', valid_type=orm.StructureData, help='Input structure')
-        spec.input('kpoints', valid_type=orm.KpointsData, help='Input kpoints')
+        spec.input('kpoints', valid_type=orm.KpointsData, help='Input kpoints',required=False)
         spec.input('bandskpoints', valid_type=orm.KpointsData, help='Input kpoints for bands',required=False)
         spec.input('basis', valid_type=orm.Dict, help='Input basis',required=False)
         spec.input('settings', valid_type=orm.Dict, help='Input settings',required=False)
@@ -99,25 +104,31 @@ class SiestaCalculation(CalcJob):
 
 #TO DO SOON: improve help for pseudo.
 #PARENT FOLDER???
-#Question: are the pre-defined input of calc job already usable??
 
 
     def prepare_for_submission(self, tempfolder):
         """
         Create the input files from the input nodes passed to this instance of the `CalcJob`.
 
-        :param folder: an `aiida.common.folders.Folder` to temporarily write files on disk
+        :param tempfolder: an `aiida.common.folders.Folder` to temporarily write files on disk
         :return: `aiida.common.datastructures.CalcInfo` instance
         """
 
-        ####################################
-        # BEGINNING OF INITIAL INPUT CHECK #
-        ####################################
+        ######################################## 
+        # BEGINNING OF INITIAL INPUT CHECK     #
+        # All input ports that are defined via #
+        # spec.input are required by default,  #
+        # no need to check them                # 
+        ########################################
 
         code=self.inputs.code
         structure = self.inputs.structure
-        kpoints = self.inputs.kpoints
         parameters = self.inputs.parameters
+
+        if 'kpoints' in self.inputs:
+           kpoints = self.inputs.kpoints
+        else:
+           kpoints = None
 
         if 'basis' in self.inputs:
            basis = self.inputs.basis
@@ -141,7 +152,6 @@ class SiestaCalculation(CalcJob):
            parent_calc_folder = None
 
 
-#Not sure about the check on pseudos
         pseudos=self.inputs.pseudos
         kinds = [kind.name for kind in structure.kinds]
         if set(kinds) != set(pseudos.keys()):
@@ -151,17 +161,20 @@ class SiestaCalculation(CalcJob):
                 'Kinds: {}'.format(', '.join(list(kinds))),
             )
 
-
+        # List of the file to copy in the folder where the calculation
+        # runs, for instance pseudo files 
         local_copy_list = []
+   
+        # List of files ??
         remote_copy_list = []
-
 
 
         ##############################
         # END OF INITIAL INPUT CHECK #
         ##############################
 
-        #
+
+        # ============== Preprocess of input parameters ===============        
         # There should be a warning for duplicated (canonicalized) keys
         # in the original dictionary in the script
 
@@ -186,6 +199,7 @@ class SiestaCalculation(CalcJob):
 
         input_params.update({'number-of-species': len(structure.kinds)})
         input_params.update({'number-of-atoms': len(structure.sites)})
+
         #
         # Regarding the lattice-constant parameter:
         # -- The variable "alat" is not typically kept anywhere, and
@@ -203,17 +217,18 @@ class SiestaCalculation(CalcJob):
         # and reset.
         input_params.update({'atomic-coordinates-format': 'Ang'})
 
-        # ============== Preparation of input data ===============
-        #
 
-        # ------------ CELL_PARAMETERS -----------
+
+        # ============== Preparation of input data ===============
+
+        # ---------------- CELL_PARAMETERS ------------------------
         cell_parameters_card = "%block lattice-vectors\n"
         for vector in structure.cell:
             cell_parameters_card += ("{0:18.10f} {1:18.10f} {2:18.10f}"
                                      "\n".format(*vector))
         cell_parameters_card += "%endblock lattice-vectors\n"
 
-        # ------------- ATOMIC_SPECIES ------------
+        # --------------ATOMIC_SPECIES & PSEUDOS-------------------
         # I create the subfolder that will contain the pseudopotentials
         tempfolder.get_subfolder(self._PSEUDO_SUBFOLDER, create=True)
         # I create the subfolder with the output data
@@ -232,8 +247,6 @@ class SiestaCalculation(CalcJob):
 
             # I add this pseudo file to the list of files to copy,
             # with the appropiate name
-            # local_copy_list.append((ps.get_file_abs_path(), os.path.join(
-            #     self._PSEUDO_SUBFOLDER, kind.name + ".psf")))
             local_copy_list = [(ps.uuid, ps.filename, ps.filename)]
             spcount += 1
             spind[kind.name] = spcount
@@ -247,7 +260,7 @@ class SiestaCalculation(CalcJob):
         # Free memory
         del atomic_species_card_list
 
-        # ------------ ATOMIC_POSITIONS -----------
+        # --------------------- ATOMIC_POSITIONS -----------------------
         atomic_positions_card_list = [
             "%block atomiccoordinatesandatomicspecies\n"
         ]
@@ -262,7 +275,9 @@ class SiestaCalculation(CalcJob):
         del atomic_positions_card_list  # Free memory
         atomic_positions_card += "%endblock atomiccoordinatesandatomicspecies\n"
 
-        # --------------- K-POINTS ----------------
+        # -------------------- K-POINTS ----------------------------
+        # It is optional, if not specified, gamma point only is performed,
+        # this is default of siesta
         if kpoints is not None:
             #
             # Get a mesh for sampling
@@ -292,8 +307,7 @@ class SiestaCalculation(CalcJob):
             kpoints_card += "%endblock kgrid_monkhorst_pack\n"
             del kpoints_card_list
 
-        # --------------- K-POINTS-FOR-BANDS ----------------!
-        #This part is computed only if flagbands=True
+        # ----------------- K-POINTS-FOR-BANDS ----------------------
         #Two possibility are supported in Siesta: BandLines ad BandPoints
         #At the moment the user can't choose directly one of the two options
         #BandsLine is set automatically if bandskpoints has labels,
@@ -334,10 +348,16 @@ class SiestaCalculation(CalcJob):
         #         fbkpoints_card += "%endblock BandLines\n"
         #     del bandskpoints_card_list
 
-        # ================ Namelists and cards ===================
+
+
+
+        # ====================== FDF file creation ========================
+
+        # To have easy access to inputs metadata options
+        metadataoption=self.inputs.metadata.options
 
         # input_filename = self.inputs.metadata.options.input_filename
-        input_filename = tempfolder.get_abs_path(self._DEFAULT_INPUT_FILE)
+        input_filename=tempfolder.get_abs_path(metadataoption.input_filename)
 
         with open(input_filename, 'w') as infile:
             # here print keys and values tp file
@@ -373,12 +393,10 @@ class SiestaCalculation(CalcJob):
 
             # Write max wall-clock time
             infile.write("#\n# -- Max wall-clock time block\n#\n")
-            infile.write(
-                "max.walltime {}".format(self.metadata.options.max_wallclock_seconds))
+            infile.write("max.walltime {}".format(metadataoption.max_wallclock_seconds))
 
-        # ------------------------------------- END of fdf file creation
 
-        # operations for restart
+        # ================ Operations for restart =======================
 
         # The presence of a 'parent_calc_folder' input node signals
         # that we want to get something from there, as indicated in the
@@ -393,46 +411,46 @@ class SiestaCalculation(CalcJob):
                     parent_calc_folder.get_remote_path(),
                     self._restart_copy_from), self._restart_copy_to))
 
-        calcinfo = CalcInfo()
 
-        calcinfo.uuid = str(self.uuid)
-        #
-        # Empty command line by default
-        # Why use 'pop' ?
         cmdline_params = settings_dict.pop('CMDLINE', [])
-
-        # Comment this paragraph better, if applicable to Siesta
-        #
-        #we commented calcinfo.stin_name and added it here in cmdline_params
-        #in this way the mpirun ... pw.x ... < aiida.in
-        #is replaced by mpirun ... pw.x ... -in aiida.in
-        # in the scheduler, _get_run_line, if cmdline_params is empty, it
-        # simply uses < calcinfo.stin_name
-
-        if cmdline_params:
-            calcinfo.cmdline_params = list(cmdline_params)
-
-        calcinfo.local_copy_list = local_copy_list
-        calcinfo.remote_copy_list = remote_copy_list
-
-        calcinfo.stdin_name = self._DEFAULT_INPUT_FILE
-        calcinfo.stdout_name = self._DEFAULT_OUTPUT_FILE
-        calcinfo.xml_name = self._DEFAULT_XML_FILE
-        calcinfo.json_name = self._DEFAULT_JSON_FILE
-        calcinfo.messages_name = self._DEFAULT_MESSAGES_FILE
-
         #
         # Code information object
         #
         codeinfo = CodeInfo()
         codeinfo.cmdline_params = list(cmdline_params)
-        codeinfo.stdin_name = self._DEFAULT_INPUT_FILE
-        codeinfo.stdout_name = self._DEFAULT_OUTPUT_FILE
-        codeinfo.xml_name = self._DEFAULT_XML_FILE
-        codeinfo.json_name = self._DEFAULT_JSON_FILE
-        codeinfo.messages_name = self._DEFAULT_MESSAGES_FILE
+        codeinfo.stdin_name = metadataoption.input_filename
+        codeinfo.stdout_name = metadataoption.output_filename
+        codeinfo.xml_name = metadataoption.xml_file
+        codeinfo.json_name = metadataoption.json_file
+        codeinfo.messages_name = metadataoption.messages_file
         codeinfo.code_uuid = code.uuid
+        #
+        # Calc information object
+        #
+        calcinfo = CalcInfo()
+        calcinfo.uuid = str(self.uuid)
+        if cmdline_params:
+            calcinfo.cmdline_params = list(cmdline_params)
+        calcinfo.local_copy_list = local_copy_list
+        calcinfo.remote_copy_list = remote_copy_list
+        calcinfo.stdin_name = metadataoption.input_filename
+        calcinfo.stdout_name = metadataoption.output_filename
+        calcinfo.xml_name = metadataoption.xml_file
+        calcinfo.json_name = metadataoption.json_file
+        calcinfo.messages_name = metadataoption.messages_file
         calcinfo.codes_info = [codeinfo]
+        #
+        # Code information object
+        #
+        #codeinfo = CodeInfo()
+        #codeinfo.cmdline_params = list(cmdline_params)
+        #codeinfo.stdin_name = self._DEFAULT_INPUT_FILE
+        #codeinfo.stdout_name = self._DEFAULT_OUTPUT_FILE
+        #codeinfo.xml_name = self._DEFAULT_XML_FILE
+        #codeinfo.json_name = self._DEFAULT_JSON_FILE
+        #codeinfo.messages_name = self._DEFAULT_MESSAGES_FILE
+        #codeinfo.code_uuid = code.uuid
+        #calcinfo.codes_info = [codeinfo]
 
         # Retrieve by default: the output file, the xml file, and the
         # messages file.
@@ -441,10 +459,14 @@ class SiestaCalculation(CalcJob):
         # only if aiida.bands is in the retrieve list!!
 
         calcinfo.retrieve_list = []
-        calcinfo.retrieve_list.append(self._DEFAULT_OUTPUT_FILE)
-        calcinfo.retrieve_list.append(self._DEFAULT_XML_FILE)
-        calcinfo.retrieve_list.append(self._DEFAULT_JSON_FILE)
-        calcinfo.retrieve_list.append(self._DEFAULT_MESSAGES_FILE)
+        calcinfo.retrieve_list.append(metadataoption.output_filename)
+        calcinfo.retrieve_list.append(metadataoption.xml_file)
+        calcinfo.retrieve_list.append(metadataoption.json_file)
+        calcinfo.retrieve_list.append(metadataoption.messages_file)
+        #calcinfo.retrieve_list.append(self._DEFAULT_OUTPUT_FILE)
+        #calcinfo.retrieve_list.append(self._DEFAULT_XML_FILE)
+        #calcinfo.retrieve_list.append(self._DEFAULT_JSON_FILE)
+        #calcinfo.retrieve_list.append(self._DEFAULT_MESSAGES_FILE)
         # if flagbands:
         #     calcinfo.retrieve_list.append(self._BANDS_FILE_NAME)
 
