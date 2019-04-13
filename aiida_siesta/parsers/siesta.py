@@ -277,7 +277,7 @@ class SiestaParser(Parser):
     """
     Parser for the output of Siesta.
     """
-    def _get_output_nodes(self, output_path, messages_path, xml_path, json_path):
+    def _get_output_nodes(self, output_path, messages_path, xml_path, json_path, bands_path):
         """
         Extracts output nodes from the standard output and standard error
         files. (And XML and JSON files)
@@ -306,12 +306,11 @@ class SiestaParser(Parser):
         result_dict = get_dict_from_xml_doc(xmldoc)
 
         # Add timing information
-        if json_path is None:
+        #if json_path is None:
         ###TODO###
         #Not sure how to implement what once was logger.info
         #Also not sure I understood the purpose of this file
-             json_path = json_path
-        else:
+        if json_path is not None:
              from .json_time import get_timing_info
              global_time, timing_decomp = get_timing_info(json_path)
              if global_time is None:
@@ -362,15 +361,18 @@ class SiestaParser(Parser):
              self.out(self.get_linkname_outarray(),arraydata)
 
         # Parse band-structure information if available
-#        if bands_path is not None:
-#             bands, coords = self.get_bands(bands_path)
-#             from aiida.orm.nodes.array.bands import BandsData
-#             arraybands = BandsData()
-#             arraybands.set_kpoints(self._calc.inp.bandskpoints.get_kpoints(cartesian=True))
-#             arraybands.set_bands(bands,units="eV")
-#             result_list.append((self.get_linkname_bandsarray(), arraybands))
-#             bandsparameters = Dict(dict={"kp_coordinates": coords})
-#             result_list.append((self.get_linkname_bandsparameters(), bandsparameters))
+        if bands_path is not None:
+             bands, coords = self.get_bands(bands_path)
+             from aiida.orm import BandsData
+             arraybands = BandsData()
+             f=self.node.inputs.bandskpoints  #Temporary workaround due to a bug
+             f._set_reciprocal_cell()         #in KpointData (issue #2749)
+             arraybands.set_kpoints(f.get_kpoints(cartesian=True))
+             arraybands.labels=f.labels
+             arraybands.set_bands(bands,units="eV")             
+             self.out(self.get_linkname_bandsarray(), arraybands)
+             bandsparameters = Dict(dict={"kp_coordinates": coords})
+             self.out(self.get_linkname_bandsparameters(), bandsparameters)
 
         return result_list
 
@@ -387,10 +389,10 @@ class SiestaParser(Parser):
         except exceptions.NotExistent:
             return self.exit_codes.ERROR_NO_RETRIEVED_FOLDER
 
-        output_path, messages_path, xml_path, json_path = \
+        output_path, messages_path, xml_path, json_path,bands_path = \
             self._fetch_output_files(output_folder)
 
-        out_nodes = self._get_output_nodes(output_path, messages_path, xml_path, json_path)
+        out_nodes = self._get_output_nodes(output_path, messages_path, xml_path, json_path, bands_path)
 
         return ExitCode(0)
 
@@ -409,11 +411,13 @@ class SiestaParser(Parser):
 
         list_of_files = out_folder._repository.list_object_names()
 
+        print("w {}".format(list_of_files))
+
         output_path = None
         messages_path  = None
         xml_path  = None
         json_path  = None
-#        bands_path = None
+        bands_path = None
 
         if self.node.get_option('output_filename') in list_of_files:
             output_path = os.path.join(out_folder._repository._get_base_folder().abspath,
@@ -438,11 +442,17 @@ class SiestaParser(Parser):
                                          self.node.get_option('messages_file'))
 #        else:
 #            raise OutputParsingError("message file not retrieved")
-#        if self._calc._DEFAULT_BANDS_FILE in list_of_files:
-#            bands_path  = os.path.join( out_folder.get_abs_path('.'),
-#                                        self._calc._DEFAULT_BANDS_FILE )
 
-        return output_path, messages_path, xml_path, json_path#, bands_path
+        if self.node.get_option('bands_file') in list_of_files:
+            bands_path = os.path.join(out_folder._repository._get_base_folder().abspath,
+                                         self.node.get_option('bands_file'))
+
+        if bands_path is None:
+           if self.node.inputs.bandskpoints is not None:
+               raise OutputParsingError("bands file not retrieved")
+
+        return output_path, messages_path, xml_path, json_path, bands_path
+
 
     def get_warnings_from_file(self,messages_path):
      """
@@ -501,7 +511,7 @@ class SiestaParser(Parser):
         tottx = f.read().split()
 
         ef = float(tottx[0])
-        if self._calc.inp.bandskpoints.labels == None:
+        if self.node.inputs.bandskpoints.labels == None:
             minfreq, maxfreq = float(tottx[1]), float(tottx[2])
             nbands, nspins, nkpoints = int(tottx[3]), int(tottx[4]), int(
                 tottx[5])

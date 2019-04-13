@@ -142,9 +142,9 @@ class SiestaCalculation(CalcJob):
            settings_dict = {}
 
         if 'bandskpoints' in self.inputs:
-           bandkpoints = self.inputs.bandskpoints
+           bandskpoints = self.inputs.bandskpoints
         else:
-           bandkpoints = None
+           bandskpoints = None
 
         if 'parent_calc_folder' in self.inputs:
            parent_calc_folder = self.inputs.parent_calc_folder
@@ -165,7 +165,7 @@ class SiestaCalculation(CalcJob):
         # runs, for instance pseudo files 
         local_copy_list = []
    
-        # List of files ??
+        # List of files for restart
         remote_copy_list = []
 
 
@@ -242,12 +242,11 @@ class SiestaCalculation(CalcJob):
         spind = {}
         spcount = 0
         for kind in structure.kinds:
-
             ps = pseudos[kind.name]
 
             # I add this pseudo file to the list of files to copy,
             # with the appropiate name
-            local_copy_list = [(ps.uuid, ps.filename, ps.filename)]
+            local_copy_list.append((ps.uuid, ps.filename, ps.filename))
             spcount += 1
             spind[kind.name] = spcount
             atomic_species_card_list.append("{0:5} {1:5} {2:5}\n".format(
@@ -314,39 +313,37 @@ class SiestaCalculation(CalcJob):
         #BandsPoints if bandskpoints has no labels
         #BandLinesScale =pi/a is not supported at the moment because currently
         #a=1 always. BandLinesScale ReciprocalLatticeVectors is always set
-        # if bandskpoints is not None:
-        #     bandskpoints_card_list = [
-        #         "BandLinesScale ReciprocalLatticeVectors\n"
-        #     ]
-        #     if bandskpoints.labels == None:
-        #         bandskpoints_card_list.append("%block BandPoints\n")
-        #         for s in bandskpoints.get_kpoints():
-        #             bandskpoints_card_list.append(
-        #                 "{0:8.3f} {1:8.3f} {2:8.3f} \n".format(
-        #                     s[0], s[1], s[2]))
-        #         fbkpoints_card = "".join(bandskpoints_card_list)
-        #         fbkpoints_card += "%endblock BandPoints\n"
-        #     else:
-        #         bandskpoints_card_list.append("%block BandLines\n")
-        #         savs = []
-        #         listforbands = bandskpoints.get_kpoints()
-        #         for s, m in bandskpoints.labels:
-        #             savs.append(s)
-        #         rawindex = 0
-        #         for s, m in bandskpoints.labels:
-        #             rawindex = rawindex + 1
-        #             x, y, z = listforbands[s]
-        #             if rawindex == 1:
-        #                 bandskpoints_card_list.append(
-        #                     "{0:3} {1:8.3f} {2:8.3f} {3:8.3f} {4:1} \n".format(
-        #                         1, x, y, z, m))
-        #             else:
-        #                 bandskpoints_card_list.append(
-        #                     "{0:3} {1:8.3f} {2:8.3f} {3:8.3f} {4:1} \n".format(
-        #                         s - savs[rawindex - 2], x, y, z, m))
-        #         fbkpoints_card = "".join(bandskpoints_card_list)
-        #         fbkpoints_card += "%endblock BandLines\n"
-        #     del bandskpoints_card_list
+        if bandskpoints is not None:
+             bandskpoints_card_list = [
+                 "BandLinesScale ReciprocalLatticeVectors\n"
+             ]
+             if bandskpoints.labels == None:
+                 bandskpoints_card_list.append("%block BandPoints\n")
+                 for s in bandskpoints.get_kpoints():
+                     bandskpoints_card_list.append(
+                      "{0:8.3f} {1:8.3f} {2:8.3f} \n".format(s[0], s[1], s[2]))
+                 fbkpoints_card = "".join(bandskpoints_card_list)
+                 fbkpoints_card += "%endblock BandPoints\n"
+             else:
+                 bandskpoints_card_list.append("%block BandLines\n")
+                 savs = []
+                 listforbands = bandskpoints.get_kpoints()
+                 for s, m in bandskpoints.labels:
+                     savs.append(s)
+                 rawindex = 0
+                 for s, m in bandskpoints.labels:
+                     rawindex = rawindex + 1
+                     x, y, z = listforbands[s]
+                     if rawindex == 1:
+                         bandskpoints_card_list.append(
+                          "{0:3} {1:8.3f} {2:8.3f} {3:8.3f} {4:1} \n".format(1,x,y,z,m))
+                     else:
+                         bandskpoints_card_list.append(
+                             "{0:3} {1:8.3f} {2:8.3f} {3:8.3f} {4:1} \n".format(
+                                 s - savs[rawindex - 2], x, y, z, m))
+                 fbkpoints_card = "".join(bandskpoints_card_list)
+                 fbkpoints_card += "%endblock BandLines\n"
+             del bandskpoints_card_list
 
 
 
@@ -387,9 +384,9 @@ class SiestaCalculation(CalcJob):
             if kpoints is not None:
                 infile.write("#\n# -- K-points Info follows\n#\n")
                 infile.write(kpoints_card)
-            # if flagbands:
-            #     infile.write("#\n# -- Bandlines/Bandpoints Info follows\n#\n")
-            #     infile.write(fbkpoints_card)
+            if bandskpoints is not None:
+                infile.write("#\n# -- Bandlines/Bandpoints Info follows\n#\n")
+                infile.write(fbkpoints_card)
 
             # Write max wall-clock time
             infile.write("#\n# -- Max wall-clock time block\n#\n")
@@ -452,6 +449,7 @@ class SiestaCalculation(CalcJob):
         #codeinfo.code_uuid = code.uuid
         #calcinfo.codes_info = [codeinfo]
 
+
         # Retrieve by default: the output file, the xml file, and the
         # messages file.
         # If flagbands=True we also add the bands file to the retrieve list!
@@ -467,8 +465,8 @@ class SiestaCalculation(CalcJob):
         #calcinfo.retrieve_list.append(self._DEFAULT_XML_FILE)
         #calcinfo.retrieve_list.append(self._DEFAULT_JSON_FILE)
         #calcinfo.retrieve_list.append(self._DEFAULT_MESSAGES_FILE)
-        # if flagbands:
-        #     calcinfo.retrieve_list.append(self._BANDS_FILE_NAME)
+        if bandskpoints is not None:
+             calcinfo.retrieve_list.append(metadataoption.bands_file)
 
         # Any other files specified in the settings dictionary
         settings_retrieve_list = settings_dict.pop('ADDITIONAL_RETRIEVE_LIST',
