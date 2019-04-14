@@ -15,7 +15,7 @@ __authors__ = "The AiiDA team."
 #
 
 # Used to test the parent calculation
-SiestaCalc = CalculationFactory('siesta.siesta') 
+from aiida_siesta.calculations.siesta import SiestaCalculation
 
 try:
     calc_id = sys.argv[1]
@@ -33,13 +33,13 @@ except ValueError:
 calc = load_node(int(calc_id))
 #####
 
-if isinstance(calc,SiestaCalc):
+if (calc.process_class==SiestaCalculation):
 
-    print("Calculation status: '{}'".format(calc.get_state()))
+    print("Calculation status: '{}'".format(calc.process_state.name))
 
-    d=calc.out.output_parameters.get_dict()
+    d=calc.outputs.output_parameters.get_dict()
    
-    sin=calc.inp.structure
+    sin=calc.inputs.structure
     print("Input structure:")
     print(" Cell lengths: {}".format(sin.cell_lengths))
     print(" Cell angles: {}".format(sin.cell_angles))
@@ -47,7 +47,7 @@ if isinstance(calc,SiestaCalc):
     
     if d['variable_geometry']:
       try:
-        sout=calc.out.output_structure
+        sout=calc.output.output_structure
         print("Output structure:")
         print(" Cell lengths: {}".format(sout.cell_lengths))
         print(" Cell angles: {}".format(sout.cell_angles))

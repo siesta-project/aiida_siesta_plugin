@@ -389,7 +389,7 @@ class SiestaParser(Parser):
         except exceptions.NotExistent:
             return self.exit_codes.ERROR_NO_RETRIEVED_FOLDER
 
-        output_path, messages_path, xml_path, json_path,bands_path = \
+        output_path, messages_path, xml_path, json_path, bands_path = \
             self._fetch_output_files(output_folder)
 
         out_nodes = self._get_output_nodes(output_path, messages_path, xml_path, json_path, bands_path)
@@ -410,8 +410,6 @@ class SiestaParser(Parser):
 
 
         list_of_files = out_folder._repository.list_object_names()
-
-        print("w {}".format(list_of_files))
 
         output_path = None
         messages_path  = None
@@ -443,13 +441,19 @@ class SiestaParser(Parser):
 #        else:
 #            raise OutputParsingError("message file not retrieved")
 
+
         if self.node.get_option('bands_file') in list_of_files:
             bands_path = os.path.join(out_folder._repository._get_base_folder().abspath,
                                          self.node.get_option('bands_file'))
 
         if bands_path is None:
-           if self.node.inputs.bandskpoints is not None:
-               raise OutputParsingError("bands file not retrieved")
+            supposed_to_have_bandsfile=True
+            try:
+                self.node.inputs.bandskpoints
+            except:
+                supposed_to_have_bandsfile=False
+        if supposed_to_have_bandsfile:
+            raise OutputParsingError("bands file not retrieved")
 
         return output_path, messages_path, xml_path, json_path, bands_path
 
