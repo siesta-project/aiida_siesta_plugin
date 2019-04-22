@@ -15,7 +15,8 @@ __authors__ = "The AiiDA team."
 #
 
 # Used to test the parent calculation
-SiestaCalc = CalculationFactory('siesta.siesta') 
+from aiida_siesta.calculations.siesta import SiestaCalculation
+#SiestaCalc = CalculationFactory('siesta.siesta') 
 
 try:
     calc_id = sys.argv[1]
@@ -33,12 +34,11 @@ except ValueError:
 calc = load_node(int(calc_id))
 #####
 
-if isinstance(calc,SiestaCalc):
+if (calc.process_class == SiestaCalculation):
 
-    print("Calculation status: '{}'".format(calc.get_state()))
+    print("Calculation status: '{}'".format(calc.process_state.name))
 ##??     print "Desc: {}".format(calc.description)
-    d=calc.out.output_parameters.get_dict()
-    
+    d=calc.outputs.output_parameters.get_dict()    
     try:
         print("Warnings: {}".format(d['warnings']))
     except:
