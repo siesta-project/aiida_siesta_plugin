@@ -26,7 +26,7 @@ from aiida.plugins import DataFactory
 ##########################################################
 
 PsfData = DataFactory('siesta.psf')
-ParameterData = DataFactory('parameter')
+Dict = DataFactory('dict')
 KpointsData = DataFactory('array.kpoints')
 StructureData = DataFactory('structure')
 
@@ -53,7 +53,7 @@ StructureData = DataFactory('structure')
 try:
     codename = sys.argv[1]
 except IndexError:
-    codename = 'Siesta4.0.1@parsons'
+    codename = 'Siesta4.0.1@kelvin'
 
 code=load_code(codename)
 
@@ -219,9 +219,10 @@ inputs = {
     'parameters': parameters,
     'code': code,
     'basis': basis,
-    'kpoints': kpoints,
     'pseudos': {
-        'Si': pseudos_list[0],
+        'C': pseudos_list[0],
+        'Cred': pseudos_list[0],
+        'H': pseudos_list[1],
     },
     'metadata': {
         'options': options,
