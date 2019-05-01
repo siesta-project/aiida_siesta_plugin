@@ -115,11 +115,11 @@ class SiestaCalculation(CalcJob):
         :return: `aiida.common.datastructures.CalcInfo` instance
         """
 
-        ######################################## 
+        ########################################
         # BEGINNING OF INITIAL INPUT CHECK     #
         # All input ports that are defined via #
         # spec.input are required by default,  #
-        # no need to check them                # 
+        # no need to check them                #
         ########################################
 
         code=self.inputs.code
@@ -163,9 +163,9 @@ class SiestaCalculation(CalcJob):
             )
 
         # List of the file to copy in the folder where the calculation
-        # runs, for instance pseudo files 
+        # runs, for instance pseudo files
         local_copy_list = []
-   
+
         # List of files for restart
         remote_copy_list = []
 
@@ -175,7 +175,7 @@ class SiestaCalculation(CalcJob):
         ##############################
 
 
-        # ============== Preprocess of input parameters ===============        
+        # ============== Preprocess of input parameters ===============
         # There should be a warning for duplicated (canonicalized) keys
         # in the original dictionary in the script
 
@@ -247,7 +247,8 @@ class SiestaCalculation(CalcJob):
 
             # I add this pseudo file to the list of files to copy,
             # with the appropiate name
-            local_copy_list.append((ps.uuid, ps.filename, ps.filename))
+            local_copy_list.append((ps.uuid, ps.filename, kind.name + ".psf"))
+            #here introduced a bug-^
             spcount += 1
             spind[kind.name] = spcount
             atomic_species_card_list.append("{0:5} {1:5} {2:5}\n".format(
