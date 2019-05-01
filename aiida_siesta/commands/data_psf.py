@@ -8,7 +8,7 @@ import click
 import sys
 
 from aiida.cmdline.commands.cmd_data import verdi_data
-from aiida.backends.utils import is_dbenv_loaded, load_dbenv
+from aiida.cmdline.utils import decorators
 
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
@@ -36,6 +36,7 @@ def psfdata():
 @click.argument(
     'directory',
     type=click.Path(exists=True, file_okay=False, resolve_path=True))
+@decorators.with_dbenv()
 def uploadfamily(name, description, stop_if_existing, directory):
     """
     Upload a collection of *.psf files from specified directory
@@ -43,9 +44,6 @@ def uploadfamily(name, description, stop_if_existing, directory):
 
     Returns the numbers of files found and the number of nodes uploaded.
     """
-    from aiida import is_dbenv_loaded, load_dbenv
-    if not is_dbenv_loaded():
-        load_dbenv()
 
     import aiida_siesta.data.psf as psf
 
@@ -68,14 +66,11 @@ def uploadfamily(name, description, stop_if_existing, directory):
     '--with-description',
     is_flag=True,
     help="OPTIONAL: Print families\' description.")
+@decorators.with_dbenv()
 def listfamilies(element, with_description):
     """
     Print on screen the list of installed PSF-pseudo families.
     """
-    from aiida import is_dbenv_loaded, load_dbenv
-    if not is_dbenv_loaded():
-        load_dbenv()
-
     from aiida.plugins import DataFactory
     from aiida_siesta.data.psf import PSFGROUP_TYPE
 
@@ -131,14 +126,11 @@ def listfamilies(element, with_description):
 @click.argument(
     'directory',
     type=click.Path(exists=False, file_okay=False, resolve_path=True))
+@decorators.with_dbenv()
 def exportfamily(family, directory):
     """
     Export a pseudopotential family into a new directory.
     """
-    from aiida import is_dbenv_loaded, load_dbenv
-    if not is_dbenv_loaded():
-        load_dbenv()
-
     import os
     import io
     from aiida.common.exceptions import NotExistent

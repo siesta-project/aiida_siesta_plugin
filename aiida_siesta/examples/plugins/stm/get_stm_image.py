@@ -24,11 +24,13 @@
 # Example script to load an stm_array from a Siesta STM calculation and
 # generate a contour plot
 
-# Note that we are not using "aiidaenv" in the first line. We need 
+# Note that we are not using "aiidaenv" in the first line. We need
 # the following two lines before any other AiiDA loads:
 #
-from aiida import load_dbenv
-load_dbenv()
+
+# Load_dbenv wiped-out after aiida_v.1.0.0b2
+#from aiida import load_dbenv
+#load_dbenv()
 
 from aiida.orm import load_node
 
@@ -42,7 +44,7 @@ try:
 except:
     print >> sys.stderr, ("Must provide as parameter the stm_array ID")
     sys.exit(1)
-    
+
 arraydata = load_node(stm_id)
 
 X = arraydata.get_array("X")
@@ -56,7 +58,3 @@ plt.title('Contour Plot')
 plt.xlabel('x (bohr)')
 plt.ylabel('y (bohr)')
 plt.show()
-
-        
-        
-                
