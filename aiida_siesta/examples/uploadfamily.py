@@ -7,9 +7,11 @@ import sys
 #from aiida import load_dbenv
 #load_dbenv()
 import aiida_siesta.data.psf as psf
+from aiida.cmdline.utils import decorators
 
 #Check needed on the --stop-if-existing option
 
+@decorators.with_dbenv()
 def uploadfamily(*args):
     """
     Upload a new PSF-pseudopotential family.
@@ -17,7 +19,7 @@ def uploadfamily(*args):
     Call without parameters to get some help.
     """
     print(args)
-    
+
     if not len(args) == 3 and not len(args) == 4:
         print(("Usage:"), file=sys.stderr)
         print(("./uploadfamily.py FOLDER_NAME <group_name>  <group_description> "

@@ -3,9 +3,6 @@
 
 import pytest
 import configparser
-from aiida import load_dbenv
-
-load_dbenv()
 
 testconfig = configparser.ConfigParser()
 testconfig.read("testconfig.ini")
