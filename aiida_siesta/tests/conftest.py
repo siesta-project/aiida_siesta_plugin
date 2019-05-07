@@ -6,7 +6,6 @@ from aiida.cmdline.utils import decorators
 testconfig = configparser.ConfigParser()
 testconfig.read("testconfig.ini")
 
-
 @pytest.fixture(scope="session")
 @decorators.with_dbenv()
 def siesta_develop():
