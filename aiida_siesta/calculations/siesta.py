@@ -51,6 +51,8 @@ class SiestaCalculation(CalcJob):
     _aiida_blocked_keywords.append('atomiccoordinatesformat')
     _aiida_blocked_keywords.append('use-tree-timer')
     _aiida_blocked_keywords.append('xml-write')
+    _aiida_blocked_keywords.append('dm-use-save-dm')
+    _aiida_blocked_keywords.append('dmusesavedm')
     _PSEUDO_SUBFOLDER = './'
     _OUTPUT_SUBFOLDER = './'
     _PREFIX = 'aiida'
@@ -104,7 +106,6 @@ class SiestaCalculation(CalcJob):
         spec.default_output_node = 'output_parameters'  #should be existing output node and a Dict
 
 #to DO SOON: improve help for pseudo.
-#PARENT FOLDER???
 
 
     def prepare_for_submission(self, tempfolder):
@@ -348,6 +349,23 @@ class SiestaCalculation(CalcJob):
              del bandskpoints_card_list
 
 
+        # ================ Operations for restart =======================
+
+        # The presence of a 'parent_calc_folder' input node signals
+
+        # that we want to get something from there, as indicated in the
+        # self._restart_copy_from attribute.
+        # In Siesta's case, for now, it is just the density-matrix file
+        #
+        # It will be copied to the current calculation's working folder.
+
+        if parent_calc_folder is not None:
+            remote_copy_list.append(
+                (parent_calc_folder.computer.uuid, os.path.join(
+                    parent_calc_folder.get_remote_path(),
+                    self._restart_copy_from), self._restart_copy_to))
+            input_params.update({'dm-use-save-dm': "T"})
+
 
 
         # ====================== FDF file creation ========================
@@ -395,20 +413,6 @@ class SiestaCalculation(CalcJob):
             infile.write("max.walltime {}".format(metadataoption.max_wallclock_seconds))
 
 
-        # ================ Operations for restart =======================
-
-        # The presence of a 'parent_calc_folder' input node signals
-        # that we want to get something from there, as indicated in the
-        # self._restart_copy_from attribute.
-        # In Siesta's case, for now, it is just the density-matrix file
-        #
-        # It will be copied to the current calculation's working folder.
-
-        if parent_calc_folder is not None:
-            remote_copy_list.append(
-                (parent_calc_folder.get_computer().uuid, os.path.join(
-                    parent_calc_folder.get_remote_path(),
-                    self._restart_copy_from), self._restart_copy_to))
 
 
         cmdline_params = settings_dict.pop('CMDLINE', [])

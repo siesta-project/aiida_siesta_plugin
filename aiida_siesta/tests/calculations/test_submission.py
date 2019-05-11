@@ -86,7 +86,6 @@ def test_submission(siesta_develop):
      }
      
      inputs = {
-     #    'label' : "TestSilicon",
          'structure': structure,
          'parameters': parameters,
          'code': code,
@@ -96,6 +95,7 @@ def test_submission(siesta_develop):
              'Si': pseudos_list[0],
          },
          'metadata': {
+             "label":"TestOnSilicon",
              "dry_run": True,
              "store_provenance": False,
              'options': options,
