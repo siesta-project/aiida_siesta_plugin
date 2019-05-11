@@ -134,7 +134,7 @@ calc.use_structure(s)
 params_dict= {
 'xc.functional': 'LDA',
 'xc.authors': 'CA',
-'spin:polarized': True,
+'spin-polarized': True,
 'noncollinearspin': False,
 'mesh-cutoff': '200.000 Ry',
 'max-scfiterations': 1000,
