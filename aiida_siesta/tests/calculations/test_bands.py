@@ -118,6 +118,8 @@ inputs = {
      'O': pseudos_list[1],
  },
  'metadata': {
+     "dry_run": True,
+     "store_provenance": False,
      'options': options,
  }
 }

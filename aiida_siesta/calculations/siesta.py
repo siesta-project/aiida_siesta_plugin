@@ -101,8 +101,10 @@ class SiestaCalculation(CalcJob):
 
         spec.output('output_parameters', valid_type=Dict, required=True, help='The calculation results')
         spec.output('output_structure', valid_type=StructureData, required=False, help='Optional relaxed structure')
-        # TODO: Bandstructure probably should be BandsData instanses -> parser
-        spec.output('output_array', valid_type=ArrayData, required=False, help='Optional band structure')
+        spec.output('bands_array', valid_type=BandsData, required=False, help='Optional band structure')
+        #I don't know why the bands parameters are parsed as BandsData alseady contains the kpoints (Emanuele)
+        spec.output('bands_parameters', valid_type=Dict, required=False, help='Optional parameters of bands')
+        spec.output('output_array', valid_type=ArrayData, required=False, help='Optional forces and stress')
         spec.default_output_node = 'output_parameters'  #should be existing output node and a Dict
 
 #to DO SOON: improve help for pseudo.

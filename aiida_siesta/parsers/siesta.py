@@ -366,7 +366,7 @@ class SiestaParser(Parser):
              from aiida.orm import BandsData
              arraybands = BandsData()
              f=self.node.inputs.bandskpoints  #Temporary workaround due to a bug
-             f._set_reciprocal_cell()         #in KpointData (issue #2749)
+             #f._set_reciprocal_cell()         #in KpointData (issue #2749)
              arraybands.set_kpoints(f.get_kpoints(cartesian=True))
              arraybands.labels=f.labels
              arraybands.set_bands(bands,units="eV")             
@@ -452,8 +452,8 @@ class SiestaParser(Parser):
                 self.node.inputs.bandskpoints
             except:
                 supposed_to_have_bandsfile=False
-        if supposed_to_have_bandsfile:
-            raise OutputParsingError("bands file not retrieved")
+            if supposed_to_have_bandsfile:
+                raise OutputParsingError("bands file not retrieved")
 
         return output_path, messages_path, xml_path, json_path, bands_path
 
