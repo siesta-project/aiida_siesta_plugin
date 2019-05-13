@@ -20,7 +20,7 @@ from aiida_siesta.calculations.siesta import SiestaCalculation
 from aiida.plugins import DataFactory
 
 ##########################################################
-#                                                        # 
+#                                                        #
 #  Siesta calculation on benzene molecule, first to try  #
 #                                                        #
 ##########################################################
@@ -156,9 +156,6 @@ params_dict= {
 'writeforces': True,
 'writecoorstep': True,
 'write-mulliken-pop': 1,
-'%block example-block': """
-first line
-second line    """,
 }
 #
 # Sanitize, as '.' is not kosher for the database handlers
@@ -179,7 +176,8 @@ basis_dict = {
 '%block pao-basis-sizes' :"""
 C    SZP
 Cred SZ
-H    SZP  """,
+H    SZP
+%endblock pao-basis-sizes""",
 }
 #
 basis_dict = { k.replace('.','-') :v for k,v in  six.iteritems(basis_dict) }
@@ -214,7 +212,6 @@ for fname, kinds, in raw_pseudos:
 
 
 inputs = {
-    'label' : Str("Benzene molecule"),
     'structure': s,
     'parameters': parameters,
     'code': code,
@@ -226,6 +223,7 @@ inputs = {
     },
     'metadata': {
         'options': options,
+        'label' : "Benzene molecule",
     }
 }
 
