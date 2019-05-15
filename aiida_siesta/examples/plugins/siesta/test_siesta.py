@@ -136,8 +136,8 @@ elements = list(s.get_symbols_set())
 # be used in modern scripts.
 #
 params_dict= {
-'xc.functional': 'LDA',
-'xc.authors': 'CA',
+'xc-functional': 'LDA',
+'xc-authors': 'CA',
 'spin-polarized': True,
 'noncollinearspin': False,
 'mesh-cutoff': '200.000 Ry',
@@ -158,10 +158,6 @@ params_dict= {
 'write-mulliken-pop': 1,
 }
 #
-# Sanitize, as '.' is not kosher for the database handlers
-#
-params_dict = { k.replace('.','-') :v for k,v in six.iteritems(params_dict) }
-#
 parameters = Dict(dict=params_dict)
 #
 #----------------------------------------------------------
@@ -180,7 +176,7 @@ H    SZP
 %endblock pao-basis-sizes""",
 }
 #
-basis_dict = { k.replace('.','-') :v for k,v in  six.iteritems(basis_dict) }
+# basis_dict = { k.replace('.','-') :v for k,v in  six.iteritems(basis_dict) }
 #
 basis = Dict(dict=basis_dict)
 #--------------------------------------------------------------

@@ -290,14 +290,12 @@ class SiestaParser(Parser):
         parser_info['parser_info'] = 'AiiDA Siesta Parser V. {}'.format(parser_version)
         parser_info['parser_warnings'] = []
 
-        #No need for checks anymore        
-
-        result_list = []
+        #No need for checks anymore
 
         xmldoc = get_parsed_xml_doc(xml_path)
 
         in_struc = self.node.inputs.structure
-        
+
         try:
              in_settings = self.node.inputs.settings
         except exceptions.NotExistent:
@@ -369,12 +367,13 @@ class SiestaParser(Parser):
              #f._set_reciprocal_cell()         #in KpointData (issue #2749)
              arraybands.set_kpoints(f.get_kpoints(cartesian=True))
              arraybands.labels=f.labels
-             arraybands.set_bands(bands,units="eV")             
+             arraybands.set_bands(bands,units="eV")
              self.out(self.get_linkname_bandsarray(), arraybands)
              bandsparameters = Dict(dict={"kp_coordinates": coords})
              self.out(self.get_linkname_bandsparameters(), bandsparameters)
 
-        return result_list
+        return result_dict
+
 
     # def parse(self,retrieved_temporary_folder, **kwargs):
     def parse(self, **kwargs):
@@ -392,9 +391,14 @@ class SiestaParser(Parser):
         output_path, messages_path, xml_path, json_path, bands_path = \
             self._fetch_output_files(output_folder)
 
-        out_nodes = self._get_output_nodes(output_path, messages_path, xml_path, json_path, bands_path)
+        out_results = self._get_output_nodes(output_path, messages_path, xml_path, json_path, bands_path)
+
+        for line in out_results["warnings"]:
+            if u'GEOM_NOT_CONV' in line:
+                return(self.exit_codes.GEOM_NOT_CONV)
 
         return ExitCode(0)
+
 
     def _fetch_output_files(self, out_folder):
         """

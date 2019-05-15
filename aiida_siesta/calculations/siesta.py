@@ -7,7 +7,7 @@ import six
 from aiida import orm
 from aiida.common import CalcInfo, CodeInfo, InputValidationError
 from aiida.common.constants import elements
-from aiida.engine import CalcJob
+from aiida.engine import CalcJob, exceptions
 from aiida.orm import Dict, RemoteData, StructureData, BandsData, ArrayData
 
 from .tkdict import FDFDict
@@ -107,6 +107,9 @@ class SiestaCalculation(CalcJob):
         spec.output('output_array', valid_type=ArrayData, required=False, help='Optional forces and stress')
         spec.default_output_node = 'output_parameters'  #should be existing output node and a Dict
 
+        spec.exit_code(130, 'GEOM_NOT_CONV', message='Calculation did not reach geometry convergence!')
+
+
 #to DO SOON: improve help for pseudo.
 
 
@@ -159,7 +162,7 @@ class SiestaCalculation(CalcJob):
         pseudos=self.inputs.pseudos
         kinds = [kind.name for kind in structure.kinds]
         if set(kinds) != set(pseudos.keys()):
-            raise exceptions.InputValidationError(
+            raise ValueError(
                 'Mismatch between the defined pseudos and the list of kinds of the structure.\n',
                 'Pseudos: {} \n'.format(', '.join(list(pseudos.keys()))),
                 'Kinds: {}'.format(', '.join(list(kinds))),

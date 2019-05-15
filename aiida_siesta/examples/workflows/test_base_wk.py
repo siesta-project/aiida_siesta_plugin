@@ -1,15 +1,24 @@
 #!/usr/bin/env runaiida
 # -*- coding: utf-8 -*-
 
+
+from __future__ import absolute_import
+from __future__ import print_function
+import six
+
 import argparse
 from aiida.common.exceptions import NotExistent
-from aiida.orm.data.base import Int, Str
-from aiida.orm.data.parameter import ParameterData
-from aiida.orm.data.structure import StructureData
-from aiida.orm.data.array.kpoints import KpointsData
-from aiida.work.run import run
+from aiida.orm import Int, Str
+from aiida.plugins import DataFactory
+from aiida.engine import run
 
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
+
+
+PsfData = DataFactory('siesta.psf')
+Dict = DataFactory('dict')
+KpointsData = DataFactory('array.kpoints')
+StructureData = DataFactory('structure')
 
 
 def parser_setup():
@@ -21,7 +30,7 @@ def parser_setup():
         description='Run the SiestaBaseWorkChain for a given input structure',
     )
     parser.add_argument(
-        '-m', type=int, default=20, dest='max_iterations',
+        '-m', type=int, default=8, dest='max_iterations',
         help='the maximum number of iterations to allow in the Workflow. (default: %(default)d)'
     )
     parser.add_argument(
@@ -49,12 +58,14 @@ def execute(args):
     The main execution of the script, which will run some preliminary checks on the command
     line arguments before passing them to the workchain and running it
     """
-    try:
-        code = Code.get_from_string(args.codename)
-    except NotExistent as exception:
-        print "Execution failed: could not retrieve the code '{}'".format(args.codename)
-        print "Exception report: {}".format(exception)
-        return
+    # try:
+    #     code = load_code(args.codename)
+    # except NotExistent as exception:
+    #     print("Execution failed: could not retrieve the code {}".format(args.codename))
+    #     print("Exception report: {}".format(exception))
+    #     return
+
+    code = load_code(args.codename)
 
     alat = 10.0 # angstrom
     cell = [[alat, 0., 0.,],
@@ -109,10 +120,10 @@ def execute(args):
         structure=structure,
         pseudo_family=Str(args.pseudo_family),
         kpoints=kpoints,
-        parameters=ParameterData(dict=parameters),
-        settings=ParameterData(dict=settings),
-        options=ParameterData(dict=options),
-        basis=ParameterData(dict=basis),
+        parameters=Dict(dict=parameters),
+        settings=Dict(dict=settings),
+        options=Dict(dict=options),
+        basis=Dict(dict=basis),
         max_iterations=Int(args.max_iterations),
     )
 
