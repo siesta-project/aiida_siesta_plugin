@@ -247,6 +247,12 @@ class SiestaBaseWorkChain(WorkChain):
         self.report("Running Siesta Base Workflow")
 
         self.ctx.iteration += 1
+ 
+        if self.ctx.restart_calc:
+            calculation = self.submit(self.ctx.restart_calc)
+            self.report('launching {}<{}> iteration #{}'
+                        .format(self.ctx.calc_name, calculation.pk, self.ctx.iteration))
+            return ToContext(calculations=append_(calculation))
 
         # wrapping inputs to Dict if they are dicts, or returning raw
         try:
@@ -445,6 +451,35 @@ def _handle_error_geom_not_conv(self, calculation):
     We need to restart from the previous calculation without changing any of the input parameters.
     """
     # if 'The scf cycle did not reach convergence.' in calculation.res.warnings:
-        # self.ctx.restart_calc = calculation
     self.report('SiestaCalculation<{}> did not converge, needs to restart from previous calculation'.format(calculation.pk))
-    return ErrorHandlerReport(True, True, self.exit_codes.ERROR_WORKFLOW_FAILED)
+
+    g = calculation
+    #Set up the a new calculation with all
+    #the inputs of the old one (we use the builder)
+    restart=g.get_builder_restart()
+
+    #The inputs of old_calc attched to restart are
+    #already stored!!! Can't modify them straight away
+    #If you want to change something you make a clone
+    #and reassign it to the builder.
+    #Here we change dm-tollerance for example
+    newpar=restart.parameters.clone()
+    newpar.attributes["use-save-dm"]=True
+    restart.parameters=newpar
+
+
+    #We need to take care here of passing the
+    #output geometry of old_calc to the new calculation
+    if g.outputs.output_parameters.attributes["variable_geometry"]:
+        restart.structure=g.outputs.output_structure
+
+    #The most important line. The presence of
+    #parent_calc_folder triggers the real restart
+    #meaning the copy of the .DM and the
+    #addition of use-saved-dm to the parameters
+    restart.parent_calc_folder=g.outputs.remote_folder
+
+    self.ctx.restart_calc = restart
+
+    #return ErrorHandlerReport(True, True, self.exit_codes.ERROR_WORKFLOW_FAILED)
+    return ErrorHandlerReport(True, False)
