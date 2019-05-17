@@ -107,6 +107,7 @@ class SiestaCalculation(CalcJob):
         spec.output('output_array', valid_type=ArrayData, required=False, help='Optional forces and stress')
         spec.default_output_node = 'output_parameters'  #should be existing output node and a Dict
 
+        spec.exit_code(120, 'SCF_NOT_CONV', message='Calculation did not reach scf convergence!')
         spec.exit_code(130, 'GEOM_NOT_CONV', message='Calculation did not reach geometry convergence!')
 
 

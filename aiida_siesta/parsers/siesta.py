@@ -396,6 +396,8 @@ class SiestaParser(Parser):
         for line in out_results["warnings"]:
             if u'GEOM_NOT_CONV' in line:
                 return(self.exit_codes.GEOM_NOT_CONV)
+            if u'SCF_NOT_CONV' in line:
+                return(self.exit_codes.SCF_NOT_CONV)
 
         return ExitCode(0)
 
