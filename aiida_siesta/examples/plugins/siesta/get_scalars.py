@@ -33,11 +33,10 @@ except ValueError:
 calc = load_node(int(calc_id))
 #####
 
-if isinstance(calc,SiestaCalc):
-
-    print("Calculation status: '{}'".format(calc.get_state()))
+if calc.process_class==SiestaCalc:
+    print("Calculation is '{0}' with exit code '{1}'".format(calc.process_state.name,calc.exit_status))
 ##??     print "Desc: {}".format(calc.description)
-    d=calc.out.output_parameters.get_dict()
+    d=calc.outputs.output_parameters.get_dict()
     
     try:
         print("Total (free) energy: {} {}".format(d['FreeE'],d['FreeE_units']))
