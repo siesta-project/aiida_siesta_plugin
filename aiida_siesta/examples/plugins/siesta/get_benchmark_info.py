@@ -31,11 +31,11 @@ except ValueError:
 
 calc = load_node(int(calc_id))
 
-if isinstance(calc,SiestaCalc):
+if calc.process_class==SiestaCalc:
 
-    print("Calculation status: '{}'".format(calc.get_state()), file=sys.stderr)
-    print("Desc: {}".format(calc.description), file=sys.stderr)
-    d=calc.out.output_parameters.get_dict()
+    print("Calculation is '{0}' with exit code '{1}'".format(calc.process_state.name,calc.exit_status), file=sys.stderr)
+    print("Label: {}".format(calc.label), file=sys.stderr)
+    d=calc.outputs.output_parameters.get_dict()
     
     sys.stdout.write("{} ".format(int(calc_id)))
     try:
@@ -59,13 +59,13 @@ if isinstance(calc,SiestaCalc):
     except:
         pass
     try:
-        code= str(calc.get_code()).split()[2]
+        code= str(calc.inputs.code.get_full_text_info()[2][1]).split()[0]
         print("Code: {}".format(code), file=sys.stderr)
         sys.stdout.write(" {} ".format(code))
     except:
         pass
     try:
-        computer= str(calc.get_computer()).split()[0]
+        computer= str(calc.computer.name).split()[0]
         print("Computer: {}".format(computer), file=sys.stderr)
         sys.stdout.write(" {} ".format(computer))
     except:

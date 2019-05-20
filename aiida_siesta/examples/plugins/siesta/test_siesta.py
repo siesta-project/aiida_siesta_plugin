@@ -13,7 +13,7 @@ import sys
 import os
 
 import os.path as op
-from aiida.engine import run
+from aiida.engine import run,submit
 from aiida.orm import load_code
 from aiida.common import NotExistent
 from aiida_siesta.calculations.siesta import SiestaCalculation
@@ -30,46 +30,40 @@ Dict = DataFactory('dict')
 KpointsData = DataFactory('array.kpoints')
 StructureData = DataFactory('structure')
 
-##########################################################
-# Unfortunately I'm not aware of any way to submit tests #
-# that only create the folder, but don't store in the    #
-# database. In other words, I don't think there is any-  #
-# thing similar to the old submit test                   #
-##########################################################
-
-#try:
-#    dontsend = sys.argv[1]
-#    if dontsend == "--dont-send":
-#        submit_test = True
-#    elif dontsend == "--send":
-#        submit_test = False
-#    else:
-#        raise IndexError
-#except IndexError:
-#    print(("The first parameter can only be either "
-#                          "--send or --dont-send"), file=sys.stderr)
-#    sys.exit(1)
+try:
+    dontsend = sys.argv[1]
+    if dontsend == "--dont-send":
+        submit_test = True
+    elif dontsend == "--send":
+        submit_test = False
+    else:
+        raise IndexError
+except IndexError:
+    print(("The first parameter can only be either "
+                          "--send or --dont-send"), file=sys.stderr)
+    sys.exit(1)
 #
 try:
-    codename = sys.argv[1]
+    codename = sys.argv[2]
 except IndexError:
     codename = 'Siesta4.0.1@kelvin'
 
+
+#
+#------------------Code and computer options ---------------------------
+#
 code=load_code(codename)
-
-
 
 options = {
     "queue_name" : "debug",
-    "max_wallclock_seconds" : 360,
+    "max_wallclock_seconds" : 1700,
     "resources" : {
         "num_machines": 1,
         "num_mpiprocs_per_machine": 1,
     }
 }
 
-
-
+#TO DO:
 # A Siesta executable compiled in serial mode might not work properly
 # on a computer set up for MPI operation.
 # This snippet can be used to check whether a code has been compiled
@@ -79,27 +73,24 @@ options = {
 #
 # code = load_node(code_PK)
 # code.set_extra("mpi",True)
-#---------------------------------------------------
-#
 #code_mpi_enabled =  False
 #try:
 #    code_mpi_enabled =  code.get_extra("mpi")
 #except AttributeError:
 #    pass
 #calc.set_withmpi(code_mpi_enabled)
-#------------------
-
+#-----------------------------------------------------------------------
 
 
 #
-#--------- Settings ---------------------------------
+#-------------------------- Settings ---------------------------------
 #
 settings_dict={'additional_retrieve_list': ['aiida.BONDS', 'aiida.EIG']}
 settings = Dict(dict=settings_dict)
-#----------------------------------------------------
+#---------------------------------------------------------------------
 
 #
-#--------- Structure --------------------------------
+#-------------------------- Structure --------------------------------
 #
 alat = 15. # angstrom
 cell = [[alat, 0., 0.,],
@@ -124,10 +115,10 @@ s.append_atom(position=(0.000,0.000,4.442),symbols=['C'])
 s.append_atom(position=(0.000,0.000,5.604),symbols=['H'])
 
 elements = list(s.get_symbols_set())
-#-------------------------------------------------------------
+#-----------------------------------------------------------------------
 
 #
-# -------------Parameters -------------------------------------
+# ----------------------Parameters -------------------------------------
 #
 # Note the use of '.' in some entries. This will be fixed below.
 # Note also that some entries have ':' as separator. This is not
@@ -157,12 +148,12 @@ params_dict= {
 'writecoorstep': True,
 'write-mulliken-pop': 1,
 }
-#
+
 parameters = Dict(dict=params_dict)
+#------------------------------------------------------------------------
+
 #
-#----------------------------------------------------------
-#
-# Basis Set Info ------------------------------------------
+# ---------------------Basis Set Info -----------------------------------
 # The basis dictionary follows the 'parameters' convention
 #
 basis_dict = {
@@ -175,14 +166,12 @@ Cred SZ
 H    SZP
 %endblock pao-basis-sizes""",
 }
-#
-# basis_dict = { k.replace('.','-') :v for k,v in  six.iteritems(basis_dict) }
-#
+
 basis = Dict(dict=basis_dict)
-#--------------------------------------------------------------
+#------------------------------------------------------------------------
 
 
-# Pseudopotentials ----------------------------------------------
+#--------------------- Pseudopotentials ---------------------------------
 #
 # This exemplifies the handling of pseudos for different species
 # Those sharing the same pseudo should be indicated.
@@ -201,12 +190,12 @@ for fname, kinds, in raw_pseudos:
         print("Using the pseudo for {} from DB: {}".format(kinds,pseudo.pk))
     pseudos_list.append(pseudo)
 
-#-------------------------------------------------------------------
-
-####### Needed in new version??
-#####calc.set_resources({"parallel_env": 'mpi', "tot_num_mpiprocs": 1})
+#-----------------------------------------------------------------------
 
 
+#
+#--All the inputs of a Siesta calculations are listed in a dictionary--
+#
 inputs = {
     'structure': s,
     'parameters': parameters,
@@ -223,20 +212,20 @@ inputs = {
     }
 }
 
-run(SiestaCalculation, **inputs)
 
-#if submit_test:
+
+if submit_test:
+     inputs["metadata"]["dry_run"]=True
+     inputs["metadata"]["store_provenance"]=False
+     process=submit(SiestaCalculation, **inputs)
 #    subfolder, script_filename = calc.submit_test()
-#    print("Test_submit for calculation (uuid='{}')".format(
-#        calc.uuid))
-#    print("Submit file in {}".format(os.path.join(
-#        os.path.relpath(subfolder.abspath),
-#        script_filename
-#        )))
-#else:
-#    calc.store_all()
-#    print("created calculation; calc=Calculation(uuid='{}') # ID={}".format(
-#        calc.uuid,calc.dbnode.pk))
-#    calc.submit()
-#    print("submitted calculation; calc=Calculation(uuid='{}') # ID={}".format(
-#        calc.uuid,calc.dbnode.pk))
+     print("Submited test for calculation (uuid='{}')".format(process.uuid))
+     print("Check the folder submit_test for the result of the test")
+# I could't find a way to access the actual folder (subfolder of submit_test)
+# from the calculation node. So I can't print the exact location
+
+else:
+    process=submit(SiestaCalculation, **inputs)
+    print("Submitted calculation; ID={}".format(process.pk))
+    print("For information about this calculation type: verdi process show {}".format(process.pk))
+    print("For a list of running processes type: verdi process list")

@@ -30,14 +30,11 @@ try:
 except ValueError:
     raise ValueError('Calc_id not an integer: {}'.format(calc_id))
 
-#calc = Calculation.get_subclass_from_pk(calc_id)
 calc = load_node(int(calc_id))
-#####
 
 if (calc.process_class == SiestaCalculation):
 
-    print("Calculation status: '{}'".format(calc.process_state.name))
-##??     print "Desc: {}".format(calc.description)
+    print("Calculation is '{0}' with exit code '{1}'".format(calc.process_state.name,calc.exit_status))
     d=calc.outputs.output_parameters.get_dict()    
     try:
         print("Warnings: {}".format(d['warnings']))

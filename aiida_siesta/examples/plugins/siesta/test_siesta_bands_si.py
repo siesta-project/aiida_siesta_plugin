@@ -5,6 +5,14 @@ from __future__ import print_function
 
 import os.path as op
 import sys
+from aiida.tools import get_explicit_kpoints_path
+
+#In this example we will calculate the band structure of Si.
+#Thanks to SeeK-path we can automatically generate the 
+#high symmetry points path where to calculate the bands.
+#Alternatively, a manual list of k-points can be set.
+
+################################################################
 
 from aiida.engine import run,submit
 from aiida.orm import load_code
@@ -33,20 +41,28 @@ try:
 except IndexError:
     codename = 'Siesta4.0.1@kelvin'
 
-# Si diamond structure
-alat = 5.430  # angstrom
-cell = [[0.5 * alat, 0.5 * alat, 0.,],
-        [0., 0.5 * alat, 0.5 * alat,],
-        [0.5 * alat, 0., 0.5 * alat,],]
+##-------------------Structure-----------------------------------
+##Manually set the structure, all the quantities must be in Ang.
+##Then, we pass through SeeK-path, to get the standardized cell,
+##necessary for the automatic choice of the bands path.
 
-# Si
-# This was originally given in the "ScaledCartesian" format
-#
-structure = StructureData(cell=cell)
-structure.append_atom(position=(0.000 * alat, 0.000 * alat, 0.000 * alat),
-                      symbols=['Si'])
-structure.append_atom(position=(0.250 * alat, 0.250 * alat, 0.250 * alat),
-                      symbols=['Si'])
+alat = 5.430 # angstrom
+cell = [[0.5*alat, 0.5*alat, 0.,],
+        [0., 0.5*alat, 0.5*alat,],
+        [0.5*alat, 0., 0.5*alat,],
+       ]
+
+s = StructureData(cell=cell)
+s.append_atom(position=(0.000*alat,0.000*alat,0.000*alat),symbols=['Si'])
+s.append_atom(position=(0.250*alat,0.250*alat,0.250*alat),symbols=['Si'])
+
+elements = list(s.get_symbols_set())
+
+seekpath_parameters = Dict(dict={'reference_distance': 0.02,'symprec': 0.0001})
+result=get_explicit_kpoints_path(s, **seekpath_parameters.get_dict())
+structure = result['primitive_structure']
+
+
 
 code = load_code(codename)
 
@@ -79,6 +95,32 @@ Si DZP
 kpoints = KpointsData()
 kpoints.set_kpoints_mesh([4, 4, 4])
 
+
+##-------------------K-points for bands --------------------
+bandskpoints = KpointsData()
+##Uncomment your favourite, two options:
+
+##1)
+##.....Making use of SeeK-path for the automatic path......
+##The choice of the distance between kpoints is in the call seekpath_parameters
+##All high symmetry points included, labels already included
+##This calls BandLine in siesta
+bandskpoints=result['explicit_kpoints']
+
+##2)
+##.....Only points, no labels.......
+##Mandatory to set cell and pbc
+##This calls BandsPoint
+#kpp = [(0.500,  0.250, 0.750), (0.500,  0.500, 0.500), (0., 0., 0.)]
+#bandskpoints.set_cell(structure.cell, structure.pbc)
+#bandskpoints.set_kpoints(kpp)
+
+#Note: The option to define a path touching specific kpoints
+#for instance:
+#kpp = [('W',  (0.500,  0.250, 0.750), 'L', (0.500,  0.500, 0.500), 40),
+#        ('L', (0.500,  0.500, 0.500), 'G', (0., 0., 0.), 40)]
+#Now is not easy to set. I'll study more on that
+
 pseudos_list = []
 raw_pseudos = [("Si.psf", 'Si')]
 for fname, kind in raw_pseudos:
@@ -93,7 +135,7 @@ for fname, kind in raw_pseudos:
 
 
 options = {
-    "max_wallclock_seconds" : 360,
+    "max_wallclock_seconds" : 600,
     "resources" : {
         "num_machines": 1,
         "num_mpiprocs_per_machine": 1,
@@ -106,11 +148,12 @@ inputs = {
     'code': code,
     'basis': basis,
     'kpoints': kpoints,
+    'bandskpoints' : bandskpoints,
     'pseudos': {
         'Si': pseudos_list[0],
     },
     'metadata': {
-        "label":"TestOnSiliconBulk",
+        "label":"TestOnSiliconBandsLines",
         'options': options,
     }
 }

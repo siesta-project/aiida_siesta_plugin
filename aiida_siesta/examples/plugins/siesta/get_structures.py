@@ -47,7 +47,7 @@ if (calc.process_class==SiestaCalculation):
     
     if d['variable_geometry']:
       try:
-        sout=calc.output.output_structure
+        sout=calc.outputs.output_structure
         print("Output structure:")
         print(" Cell lengths: {}".format(sout.cell_lengths))
         print(" Cell angles: {}".format(sout.cell_angles))
