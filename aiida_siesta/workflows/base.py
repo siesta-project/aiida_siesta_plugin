@@ -213,14 +213,17 @@ class SiestaBaseWorkChain(WorkChain):
 
     def prepare_process_inputs(self, inputs):
         """
-        Prepare the inputs for submission for the given process, according to its spec. That is to say that
-        when an input is found in the inputs that corresponds to an input port in the spec of the process that
-        expects a Dict, yet the value in the inputs is a plain dictionary, the value will be wrapped
-        in by the Dict class to create a valid input.
+        Prepare the inputs for submission for the given process, according
+        to its spec. That is to say that when an input is found in the
+        inputs that corresponds to an input port in the spec of the
+        process that expects a Dict, yet the value in the inputs is a
+        plain dictionary, the value will be wrapped in by the Dict
+        class to create a valid input.
 
         :param process: sub class of Process for which to prepare the inputs dictionary
         :param inputs: a dictionary of inputs intended for submission of the process
         :return: a dictionary with all bare dictionaries wrapped in Dict if dictated by process spec
+
         """
         prepared_inputs = AttributeDict()
         process_spec = SiestaCalculation.spec()
@@ -248,21 +251,17 @@ class SiestaBaseWorkChain(WorkChain):
 
         self.ctx.iteration += 1
  
-        if self.ctx.restart_calc:
-            calculation = self.submit(self.ctx.restart_calc)
-            self.report('launching {}<{}> iteration #{}'
-                        .format(self.ctx.calc_name, calculation.pk, self.ctx.iteration))
-            return ToContext(calculations=append_(calculation))
-
         # wrapping inputs to Dict if they are dicts, or returning raw
         try:
             wrapped_inputs = self.ctx.inputs
         except AttributeError:
-            raise ValueError('no calculation input dictionary was defined in self.ctx.inputs')
+            raise ValueError(
+                  'no calculation input dictionary was defined in self.ctx.inputs')
 
         inputs = self.prepare_process_inputs(wrapped_inputs)
         calculation = self.submit(SiestaCalculation, **inputs)
-        self.report('launching {}<{}> iteration #{}'.format(self.ctx.calc_name, calculation.pk, self.ctx.iteration))
+        self.report('launching {}<{}> iteration #{}'
+                     .format(self.ctx.calc_name, calculation.pk, self.ctx.iteration))
 
         return ToContext(calculations=append_(calculation))
 
@@ -278,14 +277,16 @@ class SiestaBaseWorkChain(WorkChain):
         try:
             calculation = self.ctx.calculations[self.ctx.iteration - 1]
         except IndexError:
-            self.report('iteration {} finished without returning a {}'.format(self.ctx.iteration, self.ctx.calc_name))
+            self.report('iteration {} finished without returning a {}'
+                        .format(self.ctx.iteration, self.ctx.calc_name))
             return self.exit_codes.ERROR_ITERATION_RETURNED_NO_CALCULATION
 
         exit_code = None
 
         # Done: successful completion of last calculation
         if calculation.is_finished_ok:
-            self.report('{}<{}> completed successfully'.format(self.ctx.calc_name, calculation.pk))
+            self.report('{}<{}> completed successfully'
+                        .format(self.ctx.calc_name, calculation.pk))
             self.ctx.restart_calc = calculation
             self.ctx.is_finished = True
 
@@ -313,7 +314,9 @@ class SiestaBaseWorkChain(WorkChain):
 
     def run_results(self):
         """
-        Attach the output parameters and retrieved folder of the last calculation to the outputs
+        Attach the output parameters and retrieved folder of the last
+        calculation to the outputs
+
         """
         self.report('workchain completed after {} iterations'.format(self.ctx.iteration))
 
@@ -327,7 +330,8 @@ class SiestaBaseWorkChain(WorkChain):
                         .format(name, self.ctx.calc_name, self.ctx.restart_calc.pk))
             else:
                 self.out(name, node)
-                self.report("attaching the node {}<{}> as '{}'".format(node.__class__.__name__, node.pk, name))
+                self.report("attaching the node {}<{}> as '{}'"
+                            .format(node.__class__.__name__, node.pk, name))
 
         # self.report('workchain completed after {} iterations'.format(self.ctx.iteration))
         # self.out('output_parameters', self.ctx.restart_calc.out.output_parameters)
@@ -342,8 +346,11 @@ class SiestaBaseWorkChain(WorkChain):
 
     def on_terminated(self):
         """
-        If the clean_workdir input was set to True, recursively collect all called Calculations by
-        ourselves and our called descendants, and clean the remote folder for the CalcJobNode instances
+        If the clean_workdir input was set to True, recursively collect
+        all called Calculations by ourselves and our called
+        descendants, and clean the remote folder for the CalcJobNode
+        instances
+
         """
         super(SiestaBaseWorkChain, self).on_terminated()
 
@@ -362,13 +369,17 @@ class SiestaBaseWorkChain(WorkChain):
                     pass
 
         if cleaned_calcs:
-            self.report('cleaned remote folders of calculations: {}'.format(' '.join(map(str, cleaned_calcs))))
+            self.report('cleaned remote folders of calculations: {}'
+                        .format(' '.join(map(str, cleaned_calcs))))
 
 
     def _handle_submission_failure(self, calculation):
         """
-        The submission of the calculation has failed. If the submission_failure flag is set to true, this
-        is the second consecutive submission failure and we abort the workchain Otherwise we restart once more.
+        The submission of the calculation has failed. If the
+        submission_failure flag is set to true, this is the second
+        consecutive submission failure and we abort the workchain
+        Otherwise we restart once more.
+
         """
         if self.ctx.submission_failure:
             self.report('submission for {}<{}> failed for the second consecutive time'
@@ -382,15 +393,17 @@ class SiestaBaseWorkChain(WorkChain):
 
     def _handle_unexpected_failure(self, calculation, exception=None):
         """
-        The calculation has failed for an unknown reason and could not be handled. If the unexpected_failure
-        flag is true, this is the second consecutive unexpected failure and we abort the workchain.
-        Otherwise we restart once more.
+        The calculation has failed for an unknown reason and could not be
+        handled. If the unexpected_failure flag is true, this is the
+        second consecutive unexpected failure and we abort the
+        workchain.  Otherwise we restart once more.
+
         """
         if exception:
             self.report('{}'.format(exception))
 
         if self.ctx.unexpected_failure:
-            self.report('failure of {}<{}> could not be handled for the second consecutive time'
+            self.report('failure of {}<{}> could not be handled for a second consecutive time'
                 .format(self.ctx.calc_name, calculation.pk))
             return self.exit_codes.ERROR_SECOND_CONSECUTIVE_UNHANDLED_FAILURE
 
@@ -401,9 +414,12 @@ class SiestaBaseWorkChain(WorkChain):
 
     def _handle_calculation_failure(self, calculation):
         """
-        The calculation has failed so we try to analyze the reason and change the inputs accordingly
-       for the next calculation. If the calculation failed, but did so cleanly, we set it as the
-        restart_calc, in all other cases we do not replace the restart_calc
+        The calculation has failed so we try to analyze the reason and
+        change the inputs accordingly for the next calculation. If the
+        calculation failed, but did so cleanly, we set it as the
+        restart_calc, in all other cases we do not replace the
+        restart_calc
+
         """
         try:
             outputs = calculation.outputs.output_parameters.get_dict()['warnings']
@@ -419,25 +435,30 @@ class SiestaBaseWorkChain(WorkChain):
         handlers = sorted(self._error_handlers, key=lambda x: x.priority, reverse=True)
 
         if not handlers:
-            raise UnexpectedCalculationFailure('no calculation error handlers were registered')
+            raise UnexpectedCalculationFailure(
+                'no calculation error handlers were registered')
 
         for handler in handlers:
             # print(handler)
             handler_report = handler.method(self, calculation)
 
-            # If at least one error is handled, we consider the calculation failure handled
+            # If at least one error is handled, we consider the
+            # calculation failure handled
             if handler_report and handler_report.is_handled:
                 is_handled = True
 
-            # After certain error handlers, we may want to skip all other error handling
+            # After certain error handlers, we may want to skip all
+            # other error handling
             if handler_report and handler_report.do_break:
                 break
 
-        # If none of the executed error handlers reported that they handled an error, the failure reason is unknown
+        # If none of the executed error handlers reported that they
+        # handled an error, the failure reason is unknown
         if not is_handled:
             raise UnexpectedCalculationFailure('calculation failure was not handled')
 
-        # The last called error handler may not necessarily have returned a handler report
+        # The last called error handler may not necessarily have
+        # returned a handler report
         if handler_report:
             return handler_report.exit_code
 
@@ -447,39 +468,30 @@ class SiestaBaseWorkChain(WorkChain):
 @register_error_handler(SiestaBaseWorkChain, 130)
 def _handle_error_geom_not_conv(self, calculation):
     """
-    At the end of the scf cycle, the geometry convergence was not reached.
-    We need to restart from the previous calculation without changing any of the input parameters.
+    At the end of the scf cycle, the geometry convergence was not
+    reached.  We need to restart from the previous calculation without
+    changing any of the input parameters.
+
     """
     # if 'The scf cycle did not reach convergence.' in calculation.res.warnings:
-    self.report('SiestaCalculation<{}> did not converge, needs to restart from previous calculation'.format(calculation.pk))
+    self.report('SiestaCalculation<{}> did not converge. Will restart from previous one'
+                .format(calculation.pk))
 
     g = calculation
-    #Set up the a new calculation with all
-    #the inputs of the old one (we use the builder)
-    restart=g.get_builder_restart()
-
-    #The inputs of old_calc attched to restart are
-    #already stored!!! Can't modify them straight away
-    #If you want to change something you make a clone
-    #and reassign it to the builder.
-    #Here we change dm-tollerance for example
-    newpar=restart.parameters.clone()
-    newpar.attributes["use-save-dm"]=True
-    restart.parameters=newpar
-
-
-    #We need to take care here of passing the
-    #output geometry of old_calc to the new calculation
+    # We need to take care here of passing the
+    # output geometry of old_calc to the new calculation
     if g.outputs.output_parameters.attributes["variable_geometry"]:
-        restart.structure=g.outputs.output_structure
+        self.ctx.inputs['structure']=g.outputs.output_structure
+
 
     #The most important line. The presence of
     #parent_calc_folder triggers the real restart
     #meaning the copy of the .DM and the
     #addition of use-saved-dm to the parameters
-    restart.parent_calc_folder=g.outputs.remote_folder
+#    restart.parent_calc_folder=g.outputs.remote_folder
+    self.ctx.inputs['parent_calc_folder']=g.outputs.remote_folder
 
-    self.ctx.restart_calc = restart
+    self.ctx.restart_calc = calculation
 
     #return ErrorHandlerReport(True, True, self.exit_codes.ERROR_WORKFLOW_FAILED)
     return ErrorHandlerReport(True, False)
