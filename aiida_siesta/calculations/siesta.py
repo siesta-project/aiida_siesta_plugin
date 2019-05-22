@@ -89,6 +89,7 @@ class SiestaCalculation(CalcJob):
         spec.input_namespace('pseudos', valid_type=PsfData, help='Input pseudo potentials', dynamic=True)
 
         # These are optional, since a default is specified
+        # But they should not be set by the user...
         spec.input('metadata.options.input_filename', valid_type=six.string_types, default=cls._DEFAULT_INPUT_FILE)
         spec.input('metadata.options.output_filename', valid_type=six.string_types, default=cls._DEFAULT_OUTPUT_FILE)
         spec.input('metadata.options.xml_file', valid_type=six.string_types, default=cls._DEFAULT_XML_FILE)
@@ -251,16 +252,26 @@ class SiestaCalculation(CalcJob):
         spind = {}
         spcount = 0
         for kind in structure.kinds:
-            ps = pseudos[kind.name]
 
-            # I add this pseudo file to the list of files to copy,
-            # with the appropiate name
-            local_copy_list.append((ps.uuid, ps.filename, kind.name + ".psf"))
-            #here introduced a bug-^
-            spcount += 1
+            spcount += 1      # species count
             spind[kind.name] = spcount
             atomic_species_card_list.append("{0:5} {1:5} {2:5}\n".format(
                 spind[kind.name], datmn[kind.symbol], kind.name.rjust(6)))
+
+            ps = pseudos[kind.name]
+
+            # Add this pseudo file to the list of files to copy, with
+            # the appropiate name. In the case of sub-species
+            # (different kind.name but same kind.symbol, e.g.,
+            # 'C_surf', sharing the same pseudo with 'C'), we will
+            # copy the file ('C.psf') twice, once as 'C.psf', and once
+            # as 'C_surf.psf'.  This is required by Siesta.
+            
+            # ... list of tuples with format ('node_uuid', 'filename', relativedestpath')
+            # We probably should be pre-pending 'self._PSEUDO_SUBFOLDER' in the
+            # last slot, for generality...
+            local_copy_list.append((ps.uuid, ps.filename, kind.name + ".psf"))
+
 
         atomic_species_card_list = (
             ["%block chemicalspecieslabel\n"] + list(atomic_species_card_list))
@@ -365,11 +376,15 @@ class SiestaCalculation(CalcJob):
         #
         # It will be copied to the current calculation's working folder.
 
+        # NOTE: This mechanism is not flexible enough.
+        # Maybe we should pass the information about which file(s) to
+        # copy in the metadata 'options' dictionary
         if parent_calc_folder is not None:
             remote_copy_list.append(
                 (parent_calc_folder.computer.uuid, os.path.join(
                     parent_calc_folder.get_remote_path(),
                     self._restart_copy_from), self._restart_copy_to))
+
             input_params.update({'dm-use-save-dm': "T"})
 
 
@@ -387,9 +402,7 @@ class SiestaCalculation(CalcJob):
 
             # for k, v in sorted(six.iteritems(input_params)):
             for k, v in sorted(input_params.get_filtered_items()):
-                # infile.write(get_input_data_text(k, v))
                 infile.write("%s %s\n" % (k, v))
-                # ,mapping=mapping_species))
 
             # Basis set info is processed just like the general
             # parameters section. Some discipline is needed to
@@ -400,7 +413,6 @@ class SiestaCalculation(CalcJob):
                 infile.write("#\n# -- Basis Set Info follows\n#\n")
                 for k, v in six.iteritems(basis.get_dict()):
                     infile.write("%s %s\n" % (k, v))
-                    # infile.write(get_input_data_text(k, v))
 
             # Write previously generated cards now
             infile.write("#\n# -- Structural Info follows\n#\n")
@@ -470,44 +482,6 @@ class SiestaCalculation(CalcJob):
         calcinfo.retrieve_list += settings_retrieve_list
 
         return calcinfo
-
-    @classmethod
-    def _get_linkname_pseudo_prefix(cls):
-        """
-        The prefix for the name of the link used for the pseudo for kind 'kind'
-
-        :param kind: a string for the atomic kind for which we want
-          to get the link name
-        """
-        return "pseudo_"
-
-    @classmethod
-    def _get_linkname_pseudo(cls, kind):
-        """
-        The name of the link used for the pseudo for kind 'kind'.
-        It appends the pseudo name to the pseudo_prefix, as returned by the
-        _get_linkname_pseudo_prefix() method.
-
-        :note: if a list of strings is given, the elements are appended
-          in the same order, separated by underscores
-
-        :param kind: a string (or list of strings) for the atomic kind(s) for
-            which we want to get the link name
-        """
-        # If it is a list of strings, and not a single string: join them
-        # by underscore
-        #
-        # It might be better to use another character instead of '_'. As it
-        # is now, it conflicts with species names of the form Symbol_extra.
-
-        if isinstance(kind, (tuple, list)):
-            suffix_string = "_".join(kind)
-        elif isinstance(kind, six.string_types):
-            suffix_string = kind
-        else:
-            raise TypeError("The parameter 'kind' of _get_linkname_pseudo can "
-                            "only be a string or a list of strings")
-        return "{}{}".format(cls._get_linkname_pseudo_prefix(), suffix_string)
 
 
 def _uppercase_dict(d, dict_name):
