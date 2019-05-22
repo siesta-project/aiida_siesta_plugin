@@ -8,12 +8,9 @@ from six.moves import range
 from aiida.common import OutputParsingError
 from aiida.common import exceptions
 
-# TODO Get modules metadata from setup script.
-__copyright__ = u"Copyright (c), 2015, ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE (Theory and Simulation of Materials (THEOS) and National Centre for Computational Design and Discovery of Novel Materials (NCCR MARVEL)), Switzerland and ROBERT BOSCH LLC, USA. All rights reserved."
-__license__ = "MIT license, see LICENSE.txt file"
-__version__ = "1.0.0"
-__contributors__ = "Andrius Merkys, Giovanni Pizzi, Victor Garcia-Suarez, Alberto Garcia, Emanuele Bosoni"
+# See the LICENSE.txt and AUTHORS.txt files.
 
+# TODO Get modules metadata from setup script.
 
 # These auxiliary functions should be put in another module...
 # List of scalar values from CML to be transferred to AiiDA
@@ -355,8 +352,8 @@ class SiestaParser(Parser):
              arraydata = ArrayData()
              arraydata.set_array('forces', np.array(forces))
              arraydata.set_array('stress', np.array(stress))
-             # result_list.append((self.get_linkname_outarray(),arraydata))
-             self.out(self.get_linkname_outarray(),arraydata)
+             # result_list.append((self.get_linkname_fs_and_stress(),arraydata))
+             self.out(self.get_linkname_fs_and_stress(),arraydata)
 
         # Parse band-structure information if available
         if bands_path is not None:
@@ -582,13 +579,13 @@ class SiestaParser(Parser):
         """
         return 'output_structure'
 
-    def get_linkname_outarray(self):
+    def get_linkname_fs_and_stress(self):
         """
         Returns the name of the link to the output_array
         In Siesta, Node exists to hold the final forces and stress,
         pending the implementation of trajectory data.
         """
-        return 'output_array'
+        return 'forces_and_stress'
 
     def get_linkname_bandsarray(self):
         """

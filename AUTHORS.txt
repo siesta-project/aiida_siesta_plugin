@@ -1,5 +1,4 @@
-The Siesta input plugin was originally developed by Victor
-M. Garcia-Suarez.
+The Siesta input plugin was originally developed by Victor M. Garcia-Suarez.
 
 Alberto Garcia further improved the Siesta input plugin and wrote the parser
 for Siesta and the STM plugin.
@@ -10,6 +9,10 @@ Vladimir Dikan and Alberto Garcia developed the workflows and
 refined the architecture of the package.
 
 Victor M. Garcia-Suarez developed the plugin and workflow for the Vibra package.
+
+Vladimir Dikan and Emanuele Bosoni ported the plugin and the base workflow to AiiDA 1.0.
+
+Alberto Garcia futher refined the 1.0-compatible functionality.
 
 We gratefully acknowledge the help and support of the AiiDA team in
 Lausanne.

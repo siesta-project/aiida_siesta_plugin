@@ -14,10 +14,7 @@ from .tkdict import FDFDict
 from aiida_siesta.data.psf import PsfData, get_pseudos_from_structure
 
 
-__copyright__ = u"Copyright (c), 2015, ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE (Theory and Simulation of Materials (THEOS) and National Centre for Computational Design and Discovery of Novel Materials (NCCR MARVEL)), Switzerland and ROBERT BOSCH LLC, USA. All rights reserved."
-__license__ = "MIT license, see LICENSE.txt file"
-__version__ = "1.0.0"
-__contributors__ = "Victor M. Garcia-Suarez, Alberto Garcia, Emanuele Bosoni"
+# See the LICENSE.txt and AUTHORS.txt files.
 
 
 ###################################################################
@@ -42,6 +39,7 @@ class SiestaCalculation(CalcJob):
     # Parameters
     # Keywords that cannot be set
     # We need to canonicalize this!
+
     _aiida_blocked_keywords = ['system-name', 'system-label']
     _aiida_blocked_keywords.append('number-of-species')
     _aiida_blocked_keywords.append('number-of-atoms')
@@ -79,15 +77,7 @@ class SiestaCalculation(CalcJob):
     @classmethod
     def define(cls, spec):
         super(SiestaCalculation, cls).define(spec)
-        spec.input('metadata.options.input_filename', valid_type=six.string_types, default=cls._DEFAULT_INPUT_FILE)
-        spec.input('metadata.options.output_filename', valid_type=six.string_types, default=cls._DEFAULT_OUTPUT_FILE)
-        spec.input('metadata.options.xml_file', valid_type=six.string_types, default=cls._DEFAULT_XML_FILE)
-        spec.input('metadata.options.bands_file', valid_type=six.string_types, default=cls._DEFAULT_BANDS_FILE)
-        spec.input('metadata.options.messages_file', valid_type=six.string_types, default=cls._DEFAULT_MESSAGES_FILE)
-        spec.input('metadata.options.json_file', valid_type=six.string_types, default=cls._DEFAULT_JSON_FILE)
-        spec.input('metadata.options.parser_name', valid_type=six.string_types, default='siesta.parser')
-
-
+    
         spec.input('code', valid_type=orm.Code, help='Input code')
         spec.input('structure', valid_type=orm.StructureData, help='Input structure')
         spec.input('kpoints', valid_type=orm.KpointsData, help='Input kpoints',required=False)
@@ -97,16 +87,27 @@ class SiestaCalculation(CalcJob):
         spec.input('parameters', valid_type=orm.Dict, help='Input parameters')
         spec.input('parent_calc_folder', valid_type=orm.RemoteData, required=False, help='Parent folder')
         spec.input_namespace('pseudos', valid_type=PsfData, help='Input pseudo potentials', dynamic=True)
-        spec.exit_code(100, 'ERROR_NO_RETRIEVED_FOLDER', message='The retrieved folder data node could not be accessed.')
+
+        # These are optional, since a default is specified
+        spec.input('metadata.options.input_filename', valid_type=six.string_types, default=cls._DEFAULT_INPUT_FILE)
+        spec.input('metadata.options.output_filename', valid_type=six.string_types, default=cls._DEFAULT_OUTPUT_FILE)
+        spec.input('metadata.options.xml_file', valid_type=six.string_types, default=cls._DEFAULT_XML_FILE)
+        spec.input('metadata.options.bands_file', valid_type=six.string_types, default=cls._DEFAULT_BANDS_FILE)
+        spec.input('metadata.options.messages_file', valid_type=six.string_types, default=cls._DEFAULT_MESSAGES_FILE)
+        spec.input('metadata.options.json_file', valid_type=six.string_types, default=cls._DEFAULT_JSON_FILE)
+        spec.input('metadata.options.parser_name', valid_type=six.string_types, default='siesta.parser')
+
 
         spec.output('output_parameters', valid_type=Dict, required=True, help='The calculation results')
         spec.output('output_structure', valid_type=StructureData, required=False, help='Optional relaxed structure')
         spec.output('bands_array', valid_type=BandsData, required=False, help='Optional band structure')
         #I don't know why the bands parameters are parsed as BandsData alseady contains the kpoints (Emanuele)
         spec.output('bands_parameters', valid_type=Dict, required=False, help='Optional parameters of bands')
-        spec.output('output_array', valid_type=ArrayData, required=False, help='Optional forces and stress')
+        spec.output('forces_and_stress', valid_type=ArrayData, required=False, help='Optional forces and stress')
+
         spec.default_output_node = 'output_parameters'  #should be existing output node and a Dict
 
+        spec.exit_code(100, 'ERROR_NO_RETRIEVED_FOLDER', message='The retrieved folder data node could not be accessed.')
         spec.exit_code(120, 'SCF_NOT_CONV', message='Calculation did not reach scf convergence!')
         spec.exit_code(130, 'GEOM_NOT_CONV', message='Calculation did not reach geometry convergence!')
 
@@ -358,7 +359,6 @@ class SiestaCalculation(CalcJob):
         # ================ Operations for restart =======================
 
         # The presence of a 'parent_calc_folder' input node signals
-
         # that we want to get something from there, as indicated in the
         # self._restart_copy_from attribute.
         # In Siesta's case, for now, it is just the density-matrix file
@@ -449,21 +449,9 @@ class SiestaCalculation(CalcJob):
         calcinfo.messages_name = metadataoption.messages_file
         calcinfo.codes_info = [codeinfo]
         #
-        # Code information object
-        #
-        #codeinfo = CodeInfo()
-        #codeinfo.cmdline_params = list(cmdline_params)
-        #codeinfo.stdin_name = self._DEFAULT_INPUT_FILE
-        #codeinfo.stdout_name = self._DEFAULT_OUTPUT_FILE
-        #codeinfo.xml_name = self._DEFAULT_XML_FILE
-        #codeinfo.json_name = self._DEFAULT_JSON_FILE
-        #codeinfo.messages_name = self._DEFAULT_MESSAGES_FILE
-        #codeinfo.code_uuid = code.uuid
-        #calcinfo.codes_info = [codeinfo]
 
-
-        # Retrieve by default: the output file, the xml file, and the
-        # messages file.
+        # Retrieve by default: the output file, the xml file, the
+        # messages file, and the json timing file.
         # If flagbands=True we also add the bands file to the retrieve list!
         # This is extremely important because the parser parses the bands
         # only if aiida.bands is in the retrieve list!!
@@ -473,10 +461,6 @@ class SiestaCalculation(CalcJob):
         calcinfo.retrieve_list.append(metadataoption.xml_file)
         calcinfo.retrieve_list.append(metadataoption.json_file)
         calcinfo.retrieve_list.append(metadataoption.messages_file)
-        #calcinfo.retrieve_list.append(self._DEFAULT_OUTPUT_FILE)
-        #calcinfo.retrieve_list.append(self._DEFAULT_XML_FILE)
-        #calcinfo.retrieve_list.append(self._DEFAULT_JSON_FILE)
-        #calcinfo.retrieve_list.append(self._DEFAULT_MESSAGES_FILE)
         if bandskpoints is not None:
              calcinfo.retrieve_list.append(metadataoption.bands_file)
 
@@ -566,7 +550,7 @@ class SiestaCalculation(CalcJob):
 
     def _set_parent_remotedata(self, remotedata):
         """
-        Used to set a parent remotefolder in the restart of ph.
+        Used to set a parent remotefolder
         """
         from aiida.common.exceptions import ValidationError
 
@@ -581,178 +565,6 @@ class SiestaCalculation(CalcJob):
                 "{} calculation".format(self.__class__.__name__))
 
         self.use_parent_folder(remotedata)
-
-    def create_restart(self, use_output_structure=True, force_restart=True):
-        """
-        Simple Function to restart a calculation that was not completed
-        (for example, due to max walltime reached, or lack of convergence)
-
-        This version effectively requests that the density-matrix file be copied
-        from the old calculation's output folder, and sets an fdf option to
-        read it upon start. Other possibilites might be given by extra arguments
-        in the future (for example, start from scratch)
-
-        Returns a calculation c2, with all links prepared but not stored in DB.
-        To submit it simply:
-        c2.store_all()
-        c2.submit()
-
-        :param bool force_restart: restart also if parent is not in
-           FINISHED state (e.g. FAILED, IMPORTED, etc.). Default=True.
-
-        :param bool use_output_structure: if True, the output
-           structure of the restarted calculation is used if
-           available, rather than its input structure.
-           Default=True.
-
-        """
-        from aiida.common.datastructures import calc_states
-
-        # Check the calculation's state using ``from_attribute=True`` to
-        # correctly handle IMPORTED calculations (so far this applies really only
-        # to QE, but it is kept here for future use)
-
-        # In the Siesta plugin, the parser marks non-converged calculations as FAILED
-        # when the 'scf-must-converge' and/or 'geometry-must-converge' fdf flags
-        # are set.
-        # So in practice we will always need to use the force_restart=True
-        #
-        if self.get_state(from_attribute=True) != calc_states.FINISHED:
-            if force_restart:
-                pass
-            else:
-                raise InputValidationError(
-                    "Calculation to be restarted must "
-                    "be in the {} state. Otherwise, use the force_restart "
-                    "flag".format(calc_states.FINISHED))
-
-        # We start here the creation of the new calculation object, using
-        # information from the current one
-        # What exactly is involved in this 'copy'?
-        #
-        c2 = self.copy()
-
-        calc_inp = self.get_inputs_dict()
-
-        # The philosophy here is different from that of QE.
-
-        # There is no 'restart' calculation mode in Siesta.
-        # We can set the option to read and re-use the DM, if
-        # the restart is due to lack of convergence.
-        # There is no direct way to read a structure from the working folder
-        # and restart a relaxation from it, so in practice we pick up
-        # the latest structure from the output node list of the previous calculation.
-
-        # As 'old_inp_dict' is a FDFDict object we can be sure that fdf options are effectively
-        # canonicalized, so the following assignment will override any other values
-        # for the re-use of DM flag, even if they are in mixed case, etc.
-        # Note that options with aliases need to be handled with more care, by
-        # setting all possible aliases.
-
-        old_inp_dict = FDFDict(calc_inp['parameters'].get_dict())
-        old_inp_dict['dm-use-save-dm'] = True
-        c2.use_parameters(Dict(dict=old_inp_dict))
-
-        remote_folders = self.get_outputs(node_type=RemoteData)
-        if len(remote_folders) != 1:
-            raise InputValidationError("More than one output RemoteData found "
-                                       "in calculation {}".format(self.pk))
-        remote_folder = remote_folders[0]
-        c2._set_parent_remotedata(remote_folder)
-
-        # Note that the items to copy from the parent folder are already specified
-        # elsewhere in the plugin. We might re-define them here:
-        #
-        # c2._restart_copy_from = os.path.join(c2._OUTPUT_SUBFOLDER, '*.DM Rho.grid.nc')
-
-        # Could we want to try with a new version of the code?
-        c2.use_code(calc_inp['code'])
-
-        # Pseudopotentials
-        # This section could be done more cleanly with the following idiom
-        # taken from a recent version of the QE plugin:
-        #
-        #   for linkname, input_node in calc_inp.iteritems():
-        #         if isinstance(input_node, UpfData):
-        #            c2.add_link_from(input_node, label=linkname)
-        #
-        # For Siesta, we need to use PsfData (or 'SiestaPseudoData' or similar
-        # umbrella class, if we ever allow PsmlData as another kind of pseudo.
-        #
-        # But we need to make sure that the 'kinds' support is correctly handled
-        # (it would be: for example, pseudo_C_Cred is the linkname that assigns
-        # the pseudo to the C and Cred kinds).
-
-        for link in calc_inp.keys():
-            # Is it a pseudo node?
-            if link.startswith(self._get_linkname_pseudo_prefix()):
-                # Process the kinds associated to this pseudo
-                kindstring = link[len(self._get_linkname_pseudo_prefix()):]
-                kinds = kindstring.split('_')
-
-                # Add the pseudo to the new calculation
-                the_pseudo = calc_inp[link]
-                c2.use_pseudo(the_pseudo, kind=kinds)
-
-        # As explained above, by default we use the latest structure generated
-        # by a possibly FAILED relaxation calculation, if available
-
-        if use_output_structure:
-            calc_out = self.get_outputs_dict()
-            try:
-                new_structure = calc_out['output_structure']
-                c2.use_structure(new_structure)
-            except KeyError:
-                c2.use_structure(calc_inp['structure'])
-        else:
-            c2.use_structure(calc_inp[self.get_linkname('structure')])
-
-        # These are optional...
-
-        # But we could allow an optional argument 'new_basis' (in the form of
-        # a basis (ParameterData) object, that would replace the old one. In
-        # this case, DM re-use would not be possible.
-        # Same for the k-points...
-        #
-        # In practice, this is probably better done in a workflow, and keep
-        # this basic mechanism simple.
-
-        try:
-            old_basis = calc_inp['basis']
-        except KeyError:
-            old_basis = None
-        if old_basis is not None:
-            c2.use_basis(old_basis)
-
-        try:
-            old_kpoints = calc_inp['kpoints']
-        except KeyError:
-            old_kpoints = None
-        if old_kpoints is not None:
-            c2.use_kpoints(old_kpoints)
-
-        # If the calculation needs to be restarted, it has probably not reached
-        # the 'siesta_analysis' stage, so this link needs to be present.
-        # ** Study the workflow implications
-
-        try:
-            old_bandskpoints = calc_inp['bandskpoints']
-        except KeyError:
-            old_bandskpoints = None
-        if old_bandskpoints is not None:
-            c2.use_bandskpoints(old_bandskpoints)
-
-        try:
-            old_settings_dict = calc_inp['settings'].get_dict()
-        except KeyError:
-            old_settings_dict = {}
-
-        if old_settings_dict:  # if not empty dictionary
-            settings = Dict(dict=old_settings_dict)
-            c2.use_settings(settings)
-
-        return c2
-
 
 def get_input_data_text(key, val, mapping=None):
     """
