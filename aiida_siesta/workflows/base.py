@@ -89,7 +89,7 @@ class SiestaBaseWorkChain(WorkChain):
         # commented out, since it's more clear to provide list of outputs explicitly:
         # spec.dynamic_output()
 
-        spec.output('output_array', valid_type=orm.ArrayData, required=False)
+        spec.output('forces_and_stress', valid_type=orm.ArrayData, required=False)
         spec.output('output_band', valid_type=orm.BandsData, required=False)
         spec.output('output_structure', valid_type=orm.StructureData, required=False)
         spec.output('output_parameters', valid_type=orm.Dict)
@@ -330,8 +330,8 @@ class SiestaBaseWorkChain(WorkChain):
                         .format(name, self.ctx.calc_name, self.ctx.restart_calc.pk))
             else:
                 self.out(name, node)
-                self.report("attaching the node {}<{}> as '{}'"
-                            .format(node.__class__.__name__, node.pk, name))
+                #self.report("attaching the node {}<{}> as '{}'"
+                #            .format(node.__class__.__name__, node.pk, name))
 
         # self.report('workchain completed after {} iterations'.format(self.ctx.iteration))
         # self.out('output_parameters', self.ctx.restart_calc.out.output_parameters)
@@ -469,12 +469,10 @@ class SiestaBaseWorkChain(WorkChain):
 def _handle_error_geom_not_conv(self, calculation):
     """
     At the end of the scf cycle, the geometry convergence was not
-    reached.  We need to restart from the previous calculation without
-    changing any of the input parameters.
-
+    reached.  We need to restart from the previous calculation
     """
-    # if 'The scf cycle did not reach convergence.' in calculation.res.warnings:
-    self.report('SiestaCalculation<{}> did not converge. Will restart from previous one'
+    
+    self.report('SiestaCalculation<{}> did not reach geometry convergence. Will restart.'
                 .format(calculation.pk))
 
     g = calculation
@@ -488,10 +486,31 @@ def _handle_error_geom_not_conv(self, calculation):
     #parent_calc_folder triggers the real restart
     #meaning the copy of the .DM and the
     #addition of use-saved-dm to the parameters
-#    restart.parent_calc_folder=g.outputs.remote_folder
+
     self.ctx.inputs['parent_calc_folder']=g.outputs.remote_folder
 
     self.ctx.restart_calc = calculation
 
-    #return ErrorHandlerReport(True, True, self.exit_codes.ERROR_WORKFLOW_FAILED)
+    return ErrorHandlerReport(True, False)
+
+
+@register_error_handler(SiestaBaseWorkChain, 120)
+def _handle_error_scf_not_conv(self, calculation):
+    """
+    SCF convergence was not reached.  We need to restart from the
+    previous calculation without changing any of the input parameters.
+    """
+    
+    self.report('SiestaCalculation<{}> did not achieve scf convergence. Will restart.'
+                .format(calculation.pk))
+
+    # The most important line. The presence of
+    # parent_calc_folder triggers the real restart
+    # meaning the copy of the .DM and the
+    # addition of use-saved-dm to the parameters
+
+    self.ctx.inputs['parent_calc_folder']=calculation.outputs.remote_folder
+
+    self.ctx.restart_calc = calculation
+
     return ErrorHandlerReport(True, False)
