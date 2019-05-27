@@ -50,7 +50,8 @@
             "siesta.base = aiida_siesta.workflows.base:SiestaBaseWorkChain"
         ],
         "aiida.data": [
-            "siesta.psf = aiida_siesta.data.psf:PsfData"
+            "siesta.psf = aiida_siesta.data.psf:PsfData",
+            "siesta.psml = aiida_siesta.data.psml:PsmlData"
         ],
         "aiida.cmdline.data": [
             "psf = aiida_siesta.commands.data_psf:psfdata"
