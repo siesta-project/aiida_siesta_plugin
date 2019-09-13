@@ -85,7 +85,7 @@ def listfamilies(element, with_description):
 
     qb.append(
         Group,
-        group_of='psfdata',
+        with_node='psfdata',
         tag='group',
         project=["label", "description"],
         filters={
