@@ -1,6 +1,8 @@
 #!/usr/bin/env runaiida
 # -*- coding: utf-8 -*-
 
+from __future__ import absolute_import
+from __future__ import print_function
 import os, sys
 import numpy as np
 from aiida.work.workfunction import workfunction as wf
@@ -10,6 +12,7 @@ from aiida.orm.calculation.job.siesta import SiestaCalculation
 from aiida.work.process_registry import ProcessRegistry
 # from aiida.work.run import run
 from aiida.work.run import async
+from six.moves import zip
 
 PsfData = DataFactory('psf')
 StructureData = DataFactory('structure')
@@ -115,9 +118,9 @@ def geninputs(structure):
       pseudo, created = PsfData.get_or_create(absname, use_first=True)
 
       if created:
-        print "Created the pseudo for {}".format(kind)
+        print("Created the pseudo for {}".format(kind))
       else:
-        print "Using the pseudo for {} from DB: {}".format(kind, pseudo.pk)
+        print("Using the pseudo for {} from DB: {}".format(kind, pseudo.pk))
       # Attach pseudo node to the calculation
       pseudo_dict[kind] = pseudo
 
@@ -134,7 +137,7 @@ def geninputs(structure):
 
 @wf
 def run_wf():
-  print "Workfunction node identifiers: {}".format(ProcessRegistry().current_calc_node)
+  print("Workfunction node identifiers: {}".format(ProcessRegistry().current_calc_node))
   #Instantiate a JobCalc process and create basic structure
   JobCalc = SiestaCalculation.process()
   s0 = create_structure()
@@ -142,7 +145,7 @@ def run_wf():
   for label, factor in zip(labels, scale_facs):
     s = rescale(s0,Float(factor))
     inputs = geninputs(s)
-    print "Running a scf for Si with scale factor {}".format(factor)
+    print("Running a scf for Si with scale factor {}".format(factor))
     # result = run(JobCalc,**inputs)
     result = async(JobCalc,**inputs)
 

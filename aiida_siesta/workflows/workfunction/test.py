@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+from __future__ import print_function
 from aiida.orm.nodes.base import Int
 from aiida.engine.workfunction import workfunction as wf
 from aiida.cmdline.utils import decorators

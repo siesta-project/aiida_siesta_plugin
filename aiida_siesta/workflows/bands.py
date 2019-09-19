@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
 from aiida.orm import Code
 from aiida.orm.nodes.base import Bool, Int, Str
 from aiida.orm.nodes.parameter import Dict

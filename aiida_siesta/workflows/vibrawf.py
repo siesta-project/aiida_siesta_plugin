@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
 from aiida.orm import Code
 from aiida.orm.nodes.base import Bool, Int, Str, Float
 from aiida.orm.nodes.parameter import Dict
@@ -17,7 +18,8 @@ from aiida_siesta.data.psf import get_pseudos_from_structure
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
 from aiida_siesta.calculations.vibra import VibraCalculation
 
-from buildsc import buildsc
+from .buildsc import buildsc
+from six.moves import range
 
 __copyright__ = u"Copyright (c), 2015, ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE (Theory and Simulation of Materials (THEOS) and National Centre for Computational Design and Discovery of Novel Materials (NCCR MARVEL)), Switzerland and ROBERT BOSCH LLC, USA. All rights reserved."
 __license__ = "MIT license, see LICENSE.txt file"

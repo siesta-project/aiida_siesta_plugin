@@ -32,6 +32,8 @@
 #from aiida import load_dbenv
 #load_dbenv()
 
+from __future__ import absolute_import
+from __future__ import print_function
 from aiida.orm import load_node
 
 import matplotlib
@@ -42,7 +44,7 @@ import sys
 try:
     stm_id = int(sys.argv[1])
 except:
-    print >> sys.stderr, ("Must provide as parameter the stm_array ID")
+    print(("Must provide as parameter the stm_array ID"), file=sys.stderr)
     sys.exit(1)
 
 arraydata = load_node(stm_id)

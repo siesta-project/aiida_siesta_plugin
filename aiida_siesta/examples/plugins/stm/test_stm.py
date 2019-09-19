@@ -18,6 +18,8 @@
 #  the LDOS box) at which the "image" is going to be computed.
 #
 #
+from __future__ import absolute_import
+from __future__ import print_function
 import sys
 import os
 
@@ -37,15 +39,15 @@ try:
     else:
         raise IndexError
 except IndexError:
-    print >> sys.stderr, ("The first parameter can only be either "
-                          "--send or --dont-send")
+    print(("The first parameter can only be either "
+                          "--send or --dont-send"), file=sys.stderr)
     sys.exit(1)
 
 #–-------------
 try:
     codename = sys.argv[2]
 except IndexError:
-    print >> sys.stderr, ("Need a second parameter for the code name")
+    print(("Need a second parameter for the code name"), file=sys.stderr)
     sys.exit(1)
 
 code = test_and_get_code(codename, expected_code_type='siesta.stm')
@@ -53,7 +55,7 @@ code = test_and_get_code(codename, expected_code_type='siesta.stm')
 try:
     remotedata_pk = int(sys.argv[3])
 except IndexError:
-    print >> sys.stderr, ("Need a third parameter for the remotedata pk (LDOS)")
+    print(("Need a third parameter for the remotedata pk (LDOS)"), file=sys.stderr)
     sys.exit(1)
 #–-------------
 try:
@@ -94,17 +96,17 @@ calc.set_resources({"num_machines": 1, "num_mpiprocs_per_machine": 1})
 
 if submit_test:
     subfolder, script_filename = calc.submit_test()
-    print "Test_submit for calculation (uuid='{}')".format(
-        calc.uuid)
-    print "Submit file in {}".format(os.path.join(
+    print("Test_submit for calculation (uuid='{}')".format(
+        calc.uuid))
+    print("Submit file in {}".format(os.path.join(
         os.path.relpath(subfolder.abspath),
         script_filename
-        ))
+        )))
 else:
     calc.store_all()
-    print "created calculation; calc=Calculation(uuid='{}') # ID={}".format(
-        calc.uuid,calc.dbnode.pk)
+    print("created calculation; calc=Calculation(uuid='{}') # ID={}".format(
+        calc.uuid,calc.dbnode.pk))
     calc.submit()
-    print "submitted calculation; calc=Calculation(uuid='{}') # ID={}".format(
-        calc.uuid,calc.dbnode.pk)
+    print("submitted calculation; calc=Calculation(uuid='{}') # ID={}".format(
+        calc.uuid,calc.dbnode.pk))
 

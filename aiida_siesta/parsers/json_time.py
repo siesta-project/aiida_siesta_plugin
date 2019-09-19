@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 def get_timing_info(json_file):
     
     import json

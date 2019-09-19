@@ -1,6 +1,9 @@
 #!/usr/bin/env runaiida
 # -*- coding: utf-8 -*-
 
+from __future__ import absolute_import
+from __future__ import print_function
+import six
 __copyright__ = u"Copyright (c), 2015, ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE (Theory and Simulation of Materials (THEOS) and National Centre for Computational Design and Discovery of Novel Materials (NCCR MARVEL)), Switzerland and ROBERT BOSCH LLC, USA. All rights reserved."
 __license__ = "MIT license, see LICENSE.txt file"
 __version__ = "0.7.0"
@@ -35,8 +38,8 @@ try:
     else:
         raise IndexError
 except IndexError:
-    print >> sys.stderr, ("The first parameter can only be either "
-                          "--send or --dont-send")
+    print(("The first parameter can only be either "
+                          "--send or --dont-send"), file=sys.stderr)
     sys.exit(1)
 
 try:
@@ -60,7 +63,7 @@ queue = None
 #------------------
 
 
-print calc.description
+print(calc.description)
 
 #
 #----Settings first  -----------------------------
@@ -119,7 +122,7 @@ params_dict= {
 #
 # Sanitize, as '.' is not kosher for the database handlers
 #
-params_dict = { k.replace('.','-') :v for k,v in params_dict.iteritems() }
+params_dict = { k.replace('.','-') :v for k,v in six.iteritems(params_dict) }
 #
 parameters = ParameterData(dict=params_dict)
 calc.use_parameters(parameters)
@@ -137,7 +140,7 @@ basis_dict = {
 O    SZP  """,
 }
 #
-basis_dict = { k.replace('.','-') :v for k,v in  basis_dict.iteritems() }
+basis_dict = { k.replace('.','-') :v for k,v in  six.iteritems(basis_dict) }
 #
 basis = ParameterData(dict=basis_dict)
 calc.use_basis(basis)
@@ -157,9 +160,9 @@ for fname, kinds, in raw_pseudos:
                                             "data",fname))
     pseudo, created = PsfData.get_or_create(absname,use_first=True)
     if created:
-        print "Created the pseudo for {}".format(kinds)
+        print("Created the pseudo for {}".format(kinds))
     else:
-        print "Using the pseudo for {} from DB: {}".format(kinds,pseudo.pk)
+        print("Using the pseudo for {} from DB: {}".format(kinds,pseudo.pk))
 
     # Attach pseudo node to the calculation
     calc.use_pseudo(pseudo,kind=kinds)
@@ -188,16 +191,16 @@ calc.use_bandskpoints(bandskpoints)
 
 if submit_test:
     subfolder, script_filename = calc.submit_test()
-    print "Test_submit for calculation (uuid='{}')".format(
-        calc.uuid)
-    print "Submit file in {}".format(os.path.join(
+    print("Test_submit for calculation (uuid='{}')".format(
+        calc.uuid))
+    print("Submit file in {}".format(os.path.join(
         os.path.relpath(subfolder.abspath),
         script_filename
-        ))
+        )))
 else:
     calc.store_all()
-    print "created calculation; calc=Calculation(uuid='{}') # ID={}".format(
-        calc.uuid,calc.dbnode.pk)
+    print("created calculation; calc=Calculation(uuid='{}') # ID={}".format(
+        calc.uuid,calc.dbnode.pk))
     calc.submit()
-    print "submitted calculation; calc=Calculation(uuid='{}') # ID={}".format(
-        calc.uuid,calc.dbnode.pk)
+    print("submitted calculation; calc=Calculation(uuid='{}') # ID={}".format(
+        calc.uuid,calc.dbnode.pk))

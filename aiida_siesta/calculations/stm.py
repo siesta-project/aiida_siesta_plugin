@@ -14,6 +14,7 @@ from aiida.common.datastructures import CodeInfo
 from aiida.orm.nodes.parameter import Dict
 from aiida.orm.nodes.remote import RemoteData 
 import six
+from six.moves import zip
 
 __copyright__ = u"Copyright (c), 2015, ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE (Theory and Simulation of Materials (THEOS) and National Centre for Computational Design and Discovery of Novel Materials (NCCR MARVEL)), Switzerland and ROBERT BOSCH LLC, USA. All rights reserved."
 __license__ = "MIT license, see LICENSE.txt file"
@@ -299,7 +300,7 @@ def get_input_data_text(key,val, mapping=None):
         
         # I first have to resort, then to remove the index from the first
         # column, finally to join the strings
-        list_of_strings = zip(*sorted(list_of_strings))[1]
+        list_of_strings = list(zip(*sorted(list_of_strings)))[1]
         return "".join(list_of_strings)                          
     elif hasattr(val,'__iter__'):
         # a list/array/tuple of values

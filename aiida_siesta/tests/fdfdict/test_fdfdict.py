@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 
+from __future__ import absolute_import
 def test_fdfdict():
     from aiida_siesta.calculations.tkdict import FDFDict
 

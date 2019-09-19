@@ -1,9 +1,12 @@
 #!/usr/bin/env runaiida
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
+from __future__ import print_function
 import os
 import sys
 
 import numpy as np
+from six.moves import zip
 
 
 def test_serial_workfunction(siesta_develop):
@@ -112,9 +115,9 @@ def test_serial_workfunction(siesta_develop):
             pseudo, created = PsfData.get_or_create(absname, use_first=True)
 
             if created:
-                print "Created the pseudo for {}".format(kind)
+                print("Created the pseudo for {}".format(kind))
             else:
-                print "Using the pseudo for {} from DB: {}".format(kind, pseudo.pk)
+                print("Using the pseudo for {} from DB: {}".format(kind, pseudo.pk))
             # Attach pseudo node to the calculation
             pseudo_dict[kind] = pseudo
 
@@ -137,7 +140,7 @@ def test_serial_workfunction(siesta_develop):
     def run_wf():
         # print "Workfunction node identifiers: {}".format(ProcessRegistry().current_calc_node)
         wcalc_uuid = ProcessRegistry().current_calc_node.uuid
-        print "Workfunction node: {}".format(wcalc_uuid)
+        print("Workfunction node: {}".format(wcalc_uuid))
         #Instantiate a JobCalc process and create basic structure
         JobCalc = SiestaCalculation.process()
         s0 = create_structure()
@@ -145,7 +148,7 @@ def test_serial_workfunction(siesta_develop):
         for label, factor in zip(labels, scale_facs):
             s = rescale(s0, Float(factor))
             inputs = geninputs(s)
-            print "Running a scf for Si with scale factor {}".format(factor)
+            print("Running a scf for Si with scale factor {}".format(factor))
             result = run(JobCalc, **inputs)
             calcs[label] = get_info(result, s)
 
