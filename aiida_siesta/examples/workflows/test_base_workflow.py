@@ -1,6 +1,8 @@
 #!/usr/bin/env runaiida
 # -*- coding: utf-8 -*-
 
+from __future__ import absolute_import
+from __future__ import print_function
 import argparse
 from aiida.common.exceptions import NotExistent
 from aiida.orm.data.base import Int, Str
@@ -56,19 +58,19 @@ def execute(args):
     try:
         code = Code.get_from_string(args.codename)
     except NotExistent as exception:
-        print "Execution failed: could not retrieve the code '{}'".format(args.codename)
-        print "Exception report: {}".format(exception)
+        print("Execution failed: could not retrieve the code '{}'".format(args.codename))
+        print("Exception report: {}".format(exception))
         return
 
     try:
         structure = load_node(args.structure)
     except NotExistent as exception:
-        print "Execution failed: failed to load the node for the given structure pk '{}'".format(args.structure)
-        print "Exception report: {}".format(exception)
+        print("Execution failed: failed to load the node for the given structure pk '{}'".format(args.structure))
+        print("Exception report: {}".format(exception))
         return
 
     if not isinstance(structure, StructureData):
-        print "The provided pk {} for the structure does not correspond to StructureData, aborting...".format(args.parent_calc)
+        print("The provided pk {} for the structure does not correspond to StructureData, aborting...".format(args.parent_calc))
         return
 
     kpoints = KpointsData()

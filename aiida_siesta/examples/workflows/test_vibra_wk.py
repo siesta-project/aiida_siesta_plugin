@@ -5,6 +5,8 @@
 # Siesta+Vibra workflow.
 # It is advised to use this example as a template submission script.
 #
+from __future__ import absolute_import
+from __future__ import print_function
 import argparse
 from aiida.common.exceptions import NotExistent
 from aiida.orm.data.base import Int, Str, Float
@@ -15,6 +17,7 @@ from aiida.orm.data.array import ArrayData
 from aiida.work.run import run
 from aiida_siesta.workflows.vibrawf import SiestaVibraWorkChain
 import numpy as np
+from six.moves import range
 
 
 def parser_setup():
@@ -53,15 +56,15 @@ def execute(args):
     try:
         code = Code.get_from_string(args.codename)
     except NotExistent as exception:
-        print "Execution failed: could not retrieve the code '{}'".format(args.codename)
-        print "Exception report: {}".format(exception)
+        print("Execution failed: could not retrieve the code '{}'".format(args.codename))
+        print("Exception report: {}".format(exception))
         return
 
     try:
         vibra_code = Code.get_from_string(args.vibra_codename)
     except NotExistent as exception:
-        print "Execution failed: could not retrieve the code '{}'".format(args.stm_codename)
-        print "Exception report: {}".format(exception)
+        print("Execution failed: could not retrieve the code '{}'".format(args.stm_codename))
+        print("Exception report: {}".format(exception))
         return
 
     protocol = Str(args.protocol)

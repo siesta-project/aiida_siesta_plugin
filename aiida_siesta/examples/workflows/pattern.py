@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import absolute_import
+from __future__ import print_function
 from aiida.work.workchain import while_, if_
 
 from base import SiestaBaseWorkChain
@@ -36,8 +38,8 @@ class SiestaWorkChain(SiestaBaseWorkChain):
 
     def ready(self):
         if  self.ctx.ready > 0:
-            print 'Not Ready'
+            print('Not Ready')
             return True
 
-        print 'Ready'
+        print('Ready')
         return False

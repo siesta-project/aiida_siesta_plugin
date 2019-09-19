@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import absolute_import
 from aiida.work.workchain import while_, if_
 
 from base import SiestaBaseWorkChain

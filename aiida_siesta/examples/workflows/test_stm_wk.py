@@ -9,6 +9,8 @@
 # taken from the 'test_siesta_geom_fail.py' legacy test, which
 # is for a water molecule.
 #
+from __future__ import absolute_import
+from __future__ import print_function
 import argparse
 from aiida.common.exceptions import NotExistent
 from aiida.orm.data.base import Int, Str, Float
@@ -66,15 +68,15 @@ def execute(args):
     try:
         code = Code.get_from_string(args.codename)
     except NotExistent as exception:
-        print "Execution failed: could not retrieve the code '{}'".format(args.codename)
-        print "Exception report: {}".format(exception)
+        print("Execution failed: could not retrieve the code '{}'".format(args.codename))
+        print("Exception report: {}".format(exception))
         return
 
     try:
         stm_code = Code.get_from_string(args.stm_codename)
     except NotExistent as exception:
-        print "Execution failed: could not retrieve the code '{}'".format(args.stm_codename)
-        print "Exception report: {}".format(exception)
+        print("Execution failed: could not retrieve the code '{}'".format(args.stm_codename))
+        print("Exception report: {}".format(exception))
         return
 
 
