@@ -138,7 +138,8 @@ pseudos_list = []
 raw_pseudos = [("Si.psf", 'Si')]
 for fname, kinds, in raw_pseudos:
     absname = os.path.realpath(
-        os.path.join(os.path.dirname(__file__), "data", fname))
+        os.path.join(os.path.dirname(__file__), "data/sample-psf-family",
+                     fname))
     pseudo, created = PsfData.get_or_create(absname, use_first=True)
     if created:
         print("Created the pseudo for {}".format(kinds))

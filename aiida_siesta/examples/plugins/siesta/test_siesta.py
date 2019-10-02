@@ -3,27 +3,16 @@
 
 from __future__ import absolute_import
 from __future__ import print_function
-import six
-__copyright__ = u"Copyright (c), 2015, ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE (Theory and Simulation of Materials (THEOS) and National Centre for Computational Design and Discovery of Novel Materials (NCCR MARVEL)), Switzerland and ROBERT BOSCH LLC, USA. All rights reserved."
-__license__ = "MIT license, see LICENSE.txt file"
-__version__ = "0.7.0"
-__contributors__ = "Andrea Cepellotti, Victor Garcia-Suarez, Alberto Garcia, Emanuele Bosoni"
 
 import sys
 import os
 
-import os.path as op
-from aiida.engine import run,submit
+from aiida.engine import submit
 from aiida.orm import load_code
-from aiida.common import NotExistent
 from aiida_siesta.calculations.siesta import SiestaCalculation
 from aiida.plugins import DataFactory
 
-##########################################################
-#                                                        #
-#  Siesta calculation on benzene molecule, first to try  #
-#                                                        #
-##########################################################
+#  Siesta calculation on benzene molecule
 
 PsfData = DataFactory('siesta.psf')
 Dict = DataFactory('dict')
@@ -40,7 +29,8 @@ try:
         raise IndexError
 except IndexError:
     print(("The first parameter can only be either "
-                          "--send or --dont-send"), file=sys.stderr)
+           "--send or --dont-send"),
+          file=sys.stderr)
     sys.exit(1)
 #
 try:
@@ -48,16 +38,15 @@ try:
 except IndexError:
     codename = 'Siesta4.0.1@kelvin'
 
-
 #
 #------------------Code and computer options ---------------------------
 #
-code=load_code(codename)
+code = load_code(codename)
 
 options = {
-    "queue_name" : "debug",
-    "max_wallclock_seconds" : 1700,
-    "resources" : {
+    "queue_name": "debug",
+    "max_wallclock_seconds": 1700,
+    "resources": {
         "num_machines": 1,
         "num_mpiprocs_per_machine": 1,
     }
@@ -81,38 +70,50 @@ options = {
 #calc.set_withmpi(code_mpi_enabled)
 #-----------------------------------------------------------------------
 
-
 #
 #-------------------------- Settings ---------------------------------
 #
-settings_dict={'additional_retrieve_list': ['aiida.BONDS', 'aiida.EIG']}
+settings_dict = {'additional_retrieve_list': ['aiida.BONDS', 'aiida.EIG']}
 settings = Dict(dict=settings_dict)
 #---------------------------------------------------------------------
 
 #
 #-------------------------- Structure --------------------------------
 #
-alat = 15. # angstrom
-cell = [[alat, 0., 0.,],
-        [0., alat, 0.,],
-        [0., 0., alat,],
-       ]
+alat = 15.  # angstrom
+cell = [
+    [
+        alat,
+        0.,
+        0.,
+    ],
+    [
+        0.,
+        alat,
+        0.,
+    ],
+    [
+        0.,
+        0.,
+        alat,
+    ],
+]
 
 # Note an atom tagged (for convenience) with a different label
 
 s = StructureData(cell=cell)
-s.append_atom(position=(0.000,0.000,0.468),symbols=['H'])
-s.append_atom(position=(0.000,0.000,1.620),symbols=['C'])
-s.append_atom(position=(0.000,-2.233,1.754),symbols=['H'])
-s.append_atom(position=(0.000,2.233,1.754),symbols=['H'])
-s.append_atom(position=(0.000,-1.225,2.327),symbols='C',name="Cred")
-s.append_atom(position=(0.000,1.225,2.327),symbols=['C'])
-s.append_atom(position=(0.000,-1.225,3.737),symbols=['C'])
-s.append_atom(position=(0.000,1.225,3.737),symbols=['C'])
-s.append_atom(position=(0.000,-2.233,4.311),symbols=['H'])
-s.append_atom(position=(0.000,2.233,4.311),symbols=['H'])
-s.append_atom(position=(0.000,0.000,4.442),symbols=['C'])
-s.append_atom(position=(0.000,0.000,5.604),symbols=['H'])
+s.append_atom(position=(0.000, 0.000, 0.468), symbols=['H'])
+s.append_atom(position=(0.000, 0.000, 1.620), symbols=['C'])
+s.append_atom(position=(0.000, -2.233, 1.754), symbols=['H'])
+s.append_atom(position=(0.000, 2.233, 1.754), symbols=['H'])
+s.append_atom(position=(0.000, -1.225, 2.327), symbols='C', name="Cred")
+s.append_atom(position=(0.000, 1.225, 2.327), symbols=['C'])
+s.append_atom(position=(0.000, -1.225, 3.737), symbols=['C'])
+s.append_atom(position=(0.000, 1.225, 3.737), symbols=['C'])
+s.append_atom(position=(0.000, -2.233, 4.311), symbols=['H'])
+s.append_atom(position=(0.000, 2.233, 4.311), symbols=['H'])
+s.append_atom(position=(0.000, 0.000, 4.442), symbols=['C'])
+s.append_atom(position=(0.000, 0.000, 5.604), symbols=['H'])
 
 elements = list(s.get_symbols_set())
 #-----------------------------------------------------------------------
@@ -126,27 +127,27 @@ elements = list(s.get_symbols_set())
 # latter case is an unfortunate historical choice. It should not
 # be used in modern scripts.
 #
-params_dict= {
-'xc-functional': 'LDA',
-'xc-authors': 'CA',
-'spin-polarized': True,
-'noncollinearspin': False,
-'mesh-cutoff': '200.000 Ry',
-'max-scfiterations': 1000,
-'dm-numberpulay': 5,
-'dm-mixingweight': 0.050,
-'dm-tolerance': 1.e-4,
-'dm-mixscf1': True,
-'negl-nonoverlap-int': False,
-'solution-method': 'diagon',
-'electronic-temperature': '100.000 K',
-'md-typeofrun': 'cg',
-'md-numcgsteps': 2,
-'md-maxcgdispl': '0.200 bohr',
-'md-maxforcetol': '0.050 eV/Ang',
-'writeforces': True,
-'writecoorstep': True,
-'write-mulliken-pop': 1,
+params_dict = {
+    'xc-functional': 'LDA',
+    'xc-authors': 'CA',
+    'spin-polarized': True,
+    'noncollinearspin': False,
+    'mesh-cutoff': '200.000 Ry',
+    'max-scfiterations': 1000,
+    'dm-numberpulay': 5,
+    'dm-mixingweight': 0.050,
+    'dm-tolerance': 1.e-4,
+    'dm-mixscf1': True,
+    'negl-nonoverlap-int': False,
+    'solution-method': 'diagon',
+    'electronic-temperature': '100.000 K',
+    'md-typeofrun': 'cg',
+    'md-numcgsteps': 2,
+    'md-maxcgdispl': '0.200 bohr',
+    'md-maxforcetol': '0.050 eV/Ang',
+    'writeforces': True,
+    'writecoorstep': True,
+    'write-mulliken-pop': 1,
 }
 
 parameters = Dict(dict=params_dict)
@@ -157,10 +158,14 @@ parameters = Dict(dict=params_dict)
 # The basis dictionary follows the 'parameters' convention
 #
 basis_dict = {
-'pao-basistype': 'split',
-'pao-splitnorm': 0.150,
-'pao-energyshift': '0.020 Ry',
-'%block pao-basis-sizes' :"""
+    'pao-basistype':
+    'split',
+    'pao-splitnorm':
+    0.150,
+    'pao-energyshift':
+    '0.020 Ry',
+    '%block pao-basis-sizes':
+    """
 C    SZP
 Cred SZ
 H    SZP
@@ -170,28 +175,26 @@ H    SZP
 basis = Dict(dict=basis_dict)
 #------------------------------------------------------------------------
 
-
 #--------------------- Pseudopotentials ---------------------------------
 #
 # This exemplifies the handling of pseudos for different species
 # Those sharing the same pseudo should be indicated.
 #
 pseudos_list = []
-raw_pseudos = [ ("C.psf", ['C', 'Cred']),
-                ("H.psf", 'H')]
+raw_pseudos = [("C.psf", ['C', 'Cred']), ("H.psf", 'H')]
 
 for fname, kinds, in raw_pseudos:
-    absname = os.path.realpath(os.path.join(os.path.dirname(__file__),
-                                            "data",fname))
-    pseudo, created = PsfData.get_or_create(absname,use_first=True)
+    absname = os.path.realpath(
+        os.path.join(os.path.dirname(__file__), "data/sample-psf-family",
+                     fname))
+    pseudo, created = PsfData.get_or_create(absname, use_first=True)
     if created:
         print("Created the pseudo for {}".format(kinds))
     else:
-        print("Using the pseudo for {} from DB: {}".format(kinds,pseudo.pk))
+        print("Using the pseudo for {} from DB: {}".format(kinds, pseudo.pk))
     pseudos_list.append(pseudo)
 
 #-----------------------------------------------------------------------
-
 
 #
 #--All the inputs of a Siesta calculations are listed in a dictionary--
@@ -208,24 +211,23 @@ inputs = {
     },
     'metadata': {
         'options': options,
-        'label' : "Benzene molecule",
+        'label': "Benzene molecule",
     }
 }
 
-
-
 if submit_test:
-     inputs["metadata"]["dry_run"]=True
-     inputs["metadata"]["store_provenance"]=False
-     process=submit(SiestaCalculation, **inputs)
-#    subfolder, script_filename = calc.submit_test()
-     print("Submited test for calculation (uuid='{}')".format(process.uuid))
-     print("Check the folder submit_test for the result of the test")
+    inputs["metadata"]["dry_run"] = True
+    inputs["metadata"]["store_provenance"] = False
+    process = submit(SiestaCalculation, **inputs)
+    #    subfolder, script_filename = calc.submit_test()
+    print("Submited test for calculation (uuid='{}')".format(process.uuid))
+    print("Check the folder submit_test for the result of the test")
 # I could't find a way to access the actual folder (subfolder of submit_test)
 # from the calculation node. So I can't print the exact location
 
 else:
-    process=submit(SiestaCalculation, **inputs)
+    process = submit(SiestaCalculation, **inputs)
     print("Submitted calculation; ID={}".format(process.pk))
-    print("For information about this calculation type: verdi process show {}".format(process.pk))
+    print("For information about this calculation type: verdi process show {}".
+          format(process.pk))
     print("For a list of running processes type: verdi process list")

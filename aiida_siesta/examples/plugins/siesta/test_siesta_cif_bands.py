@@ -124,7 +124,7 @@ basis = Dict(dict=basis_dict)
 #
 # FIXME: The family name is hardwired
 #
-pseudos_dict = get_pseudos_from_structure(s, 'lda-ag')
+pseudos_dict = get_pseudos_from_structure(s, 'sample_psf_family')
 print(pseudos_dict)
 #-----------------------------------------------------------------------
 

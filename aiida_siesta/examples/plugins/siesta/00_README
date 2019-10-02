@@ -1,0 +1,12 @@
+Some of the examples use explicitly pseudopotential files contained in the
+data/sample-psf-family folder.
+
+Other examples set up automatically the pseudopotential dictionary by searching for
+the appropriate PsfData nodes in a "pseudopotential family", named 'sample_psf_family'.
+Before they can be run, the family's .psf files have to be uploaded to the database by executing:
+
+  verdi data psf uploadfamily /path/to/data/sample-psf-family sample_psf_family "Sample PSF family"
+
+
+                                    
+
