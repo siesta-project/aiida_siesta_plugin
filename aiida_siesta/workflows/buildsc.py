@@ -1,7 +1,9 @@
-from six.moves import range
 #!/usr/bin/env python
 # Written by Victor M. Garcia-Suarez. Based on the fcbuild.f program
 # of the Siesta/Util/Vibra package. July 2018
+
+from __future__ import absolute_import
+from six.moves import range
 
 def buildsc(scarray,struct):
 

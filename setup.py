@@ -7,6 +7,7 @@ https://packaging.python.org/en/latest/distributing.html
 https://github.com/pypa/sampleproject
 """
 
+from __future__ import absolute_import
 import codecs
 import json
 import os
