@@ -3,7 +3,9 @@
 from __future__ import absolute_import
 from aiida.work.workchain import while_, if_
 
-from base import SiestaBaseWorkChain
+from aiida.engine.processes.workchains import while_, if_
+from aiida_siesta.workflows.base import SiestaBaseWorkChain
+
 
 
 class SiestaWorkChain(SiestaBaseWorkChain):

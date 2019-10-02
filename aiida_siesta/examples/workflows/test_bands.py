@@ -19,7 +19,6 @@ from aiida.orm.nodes.data.dict import Dict
 from aiida.orm.nodes.data.structure import StructureData
 from aiida.orm.nodes.data.array.kpoints import KpointsData
 from aiida.engine.launch import run
-#from aiida.work.run import run
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
 
 

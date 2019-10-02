@@ -13,9 +13,10 @@ from __future__ import absolute_import
 from __future__ import print_function
 import argparse
 from aiida.common.exceptions import NotExistent
-from aiida.orm.data.base import Int, Str
-from aiida.orm.data.structure import StructureData
-from aiida.work.run import run
+from aiida.orm.nodes.data.int import Int
+from aiida.orm.nodes.data.str import Str
+from aiida.orm.nodes.data.structure import StructureData
+from aiida.engine.launch import run
 
 from aiida_siesta.workflows.bands import SiestaBandsWorkChain
 

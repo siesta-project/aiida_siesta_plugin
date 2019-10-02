@@ -13,6 +13,8 @@ import sys
 import os
 
 import os.path as op
+import aiida
+aiida.load_profile()
 from aiida.engine import run,submit
 from aiida.orm import load_code
 from aiida.common import NotExistent

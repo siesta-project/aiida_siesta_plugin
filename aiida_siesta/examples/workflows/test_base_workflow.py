@@ -4,12 +4,15 @@
 from __future__ import absolute_import
 from __future__ import print_function
 import argparse
+
 from aiida.common.exceptions import NotExistent
-from aiida.orm.data.base import Int, Str
-from aiida.orm.data.parameter import ParameterData
-from aiida.orm.data.structure import StructureData
-from aiida.orm.data.array.kpoints import KpointsData
-from aiida.work.run import run
+from aiida.orm.nodes.data.int import Int
+from aiida.orm.nodes.data.str import Str
+from aiida.orm.nodes.data.dict import Dict
+from aiida.orm.nodes.data.structure import StructureData
+from aiida.orm.nodes.data.array.kpoints import KpointsData
+from aiida.engine.launch import run
+
 
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
 
@@ -114,10 +117,10 @@ def execute(args):
         structure=structure,
         pseudo_family=Str(args.pseudo_family),
         kpoints=kpoints,
-        parameters=ParameterData(dict=parameters),
-        settings=ParameterData(dict=settings),
-        options=ParameterData(dict=options),
-        basis=ParameterData(dict=basis),
+        parameters=Dict(dict=parameters),
+        settings=Dict(dict=settings),
+        options=Dict(dict=options),
+        basis=Dict(dict=basis),
         max_iterations=Int(args.max_iterations),
     )
 

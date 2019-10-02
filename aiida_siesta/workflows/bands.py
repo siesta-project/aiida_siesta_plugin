@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 from aiida.orm import Code
-from aiida.orm.nodes.base import Bool, Int, Str
-from aiida.orm.nodes.parameter import Dict
-from aiida.orm.nodes.structure import StructureData
-from aiida.orm.nodes.array.kpoints import KpointsData
-from aiida.engine.run import submit, run
-from aiida.engine.workchain import WorkChain, ToContext
-from aiida.engine.workfunction import workfunction
+from aiida.orm.nodes.data.int import Int
+from aiida.orm.nodes.data.str import Str
+from aiida.orm.nodes.data.bool import Bool
+from aiida.orm.nodes.data.dict import Dict
+from aiida.orm.nodes.data.structure import StructureData
+from aiida.orm.nodes.data.array.kpoints import KpointsData
+from aiida.engine.launch import submit, run
+from aiida.engine.processes.workchains.workchain import WorkChain, ToContext
+from aiida.engine.processes.functions import workfunction
 from aiida.common.links import LinkType
 
 from aiida_siesta.data.psf import get_pseudos_from_structure

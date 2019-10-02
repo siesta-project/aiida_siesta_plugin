@@ -13,6 +13,8 @@ from aiida.tools import get_explicit_kpoints_path
 #Alternatively, a manual list of k-points can be set.
 
 ################################################################
+import aiida
+aiida.load_profile()
 
 from aiida.engine import run,submit
 from aiida.orm import load_code
