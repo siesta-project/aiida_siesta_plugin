@@ -8,8 +8,7 @@ import six
 
 import argparse
 from aiida.common.exceptions import NotExistent
-from aiida.orm.nodes.data.int import Int
-from aiida.orm.nodes.data.str import Str
+from aiida.orm import Int, Str
 from aiida.plugins import DataFactory
 from aiida.engine import run
 

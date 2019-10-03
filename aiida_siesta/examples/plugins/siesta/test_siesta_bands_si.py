@@ -1,7 +1,7 @@
 #!/usr/bin/env runaiida
 # -*- coding: utf-8 -*-
-
-
+from __future__ import absolute_import
+from __future__ import print_function
 
 import os.path as op
 import sys
@@ -13,8 +13,6 @@ from aiida.tools import get_explicit_kpoints_path
 #Alternatively, a manual list of k-points can be set.
 
 ################################################################
-import aiida
-aiida.load_profile()
 
 from aiida.engine import submit
 from aiida.orm import load_code

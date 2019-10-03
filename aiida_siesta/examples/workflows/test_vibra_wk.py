@@ -9,12 +9,8 @@ from __future__ import absolute_import
 from __future__ import print_function
 import argparse
 from aiida.common.exceptions import NotExistent
-from aiida.orm.data.base import Int, Str, Float
-from aiida.orm.data.parameter import ParameterData
-from aiida.orm.data.structure import StructureData
-from aiida.orm.data.array.kpoints import KpointsData
-from aiida.orm.data.array import ArrayData
-from aiida.work.run import run
+from aiida.orm import Int, Str, Float, Dict, StructureData, KpointsData, ArrayData
+from aiida.engine.launch import run
 from aiida_siesta.workflows.vibrawf import SiestaVibraWorkChain
 import numpy as np
 from six.moves import range
@@ -125,16 +121,16 @@ def execute(args):
     else:
         structure = s1
 
-    global_parameters =  ParameterData(dict={
+    global_parameters =  Dict(dict={
         'atomicdispl': '0.0211672 Ang'
         # 'atomicdispl': '0.02  Ang'
     })
 
-    siesta_parameters =  ParameterData(dict={
+    siesta_parameters =  Dict(dict={
         # 'dm_convergence_threshold': 1.0e-5
     })
 
-    vibra_parameters = ParameterData(dict={
+    vibra_parameters = Dict(dict={
         'eigenvectors': False
     })
 

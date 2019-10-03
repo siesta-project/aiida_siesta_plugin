@@ -14,11 +14,7 @@ from __future__ import print_function
 import argparse
 
 from aiida.common.exceptions import NotExistent
-from aiida.orm.nodes.data.int import Int
-from aiida.orm.nodes.data.str import Str
-from aiida.orm.nodes.data.dict import Dict
-from aiida.orm.nodes.data.structure import StructureData
-from aiida.orm.nodes.data.array.kpoints import KpointsData
+from aiida.orm import Int, Str, Dict, StructureData, KpointsData
 from aiida.engine.launch import run
 
 
