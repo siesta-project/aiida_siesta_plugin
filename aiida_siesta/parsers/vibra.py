@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 import numpy as np
-from aiida.orm.nodes.parameter import Dict
+from aiida.orm import Dict
 from aiida.parsers.parser import Parser
 from aiida.common.exceptions import OutputParsingError
 from aiida_siesta.calculations.vibra import VibraCalculation

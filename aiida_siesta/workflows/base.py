@@ -15,7 +15,7 @@ from aiida.common  import AttributeDict, AiidaException
 from aiida_siesta.data.psf import PsfData, get_pseudos_from_structure
 from aiida_siesta.calculations.siesta import SiestaCalculation
 
-from .utils import register_error_handler, ErrorHandlerReport, ErrorHandler
+from aiida_siesta.workflows.utils import register_error_handler, ErrorHandlerReport, ErrorHandler
 
 
 class UnexpectedCalculationFailure(AiidaException):

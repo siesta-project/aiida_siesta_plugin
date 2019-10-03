@@ -14,15 +14,20 @@ __contributors__ = "Alberto Garcia"
 
 from aiida.common.exceptions import OutputParsingError
 
+
 class STMOutputParsingError(OutputParsingError):
-     pass
+    pass
+
+
 #---------------------------
+
 
 class STMParser(Parser):
     """
     Parser for the output of the "plstm" program in the Siesta distribution.
     """
-    def __init__(self,calc):
+
+    def __init__(self, calc):
         """
         Initialize the instance of STMParser
         """
@@ -30,8 +35,8 @@ class STMParser(Parser):
         self._check_calc_compatibility(calc)
         super(STMParser, self).__init__(calc)
 
-    def _check_calc_compatibility(self,calc):
-        if not isinstance(calc,STMCalculation):
+    def _check_calc_compatibility(self, calc):
+        if not isinstance(calc, STMCalculation):
             raise STMOutputParsingError("Input calc must be a STMCalculation")
 
     def _get_output_nodes(self, output_path, plot_path):
@@ -41,7 +46,8 @@ class STMParser(Parser):
         """
         parser_version = 'aiida-0.12.0--stm-0.9.10'
         parser_info = {}
-        parser_info['parser_info'] = 'AiiDA STM(Siesta) Parser V. {}'.format(parser_version)
+        parser_info['parser_info'] = 'AiiDA STM(Siesta) Parser V. {}'.format(
+            parser_version)
         parser_info['parser_warnings'] = []
 
         result_dict = {}
@@ -50,33 +56,33 @@ class STMParser(Parser):
         # Settings (optional)
         #
         try:
-             in_settings = self._calc.get_inputs_dict()['settings']
+            in_settings = self._calc.get_inputs_dict()['settings']
         except KeyError:
-             in_settings = None
+            in_settings = None
 
         # Add parser info dictionary
-        parsed_dict = dict(list(result_dict.items()) + list(parser_info.items()))
+        parsed_dict = dict(
+            list(result_dict.items()) + list(parser_info.items()))
 
         output_data = Dict(dict=parsed_dict)
-        
+
         link_name = self.get_linkname_outparams()
-        result_list.append((link_name,output_data))
+        result_list.append((link_name, output_data))
 
         # Save X, Y, and Z arrays in an ArrayData object
         stm_data = self.get_stm_data(plot_path)
 
         if stm_data is not None:
-             result_list.append((self.get_linkname_outarray(),stm_data))
+            result_list.append((self.get_linkname_outarray(), stm_data))
 
         successful = True
         return successful, result_list
 
-    def parse_with_retrieved(self,retrieved):
+    def parse_with_retrieved(self, retrieved):
         """
         Receives in input a dictionary of retrieved nodes.
         Does all the logic here.
         """
-        
         from aiida.common.exceptions import InvalidOperation
         import os
 
@@ -95,7 +101,7 @@ class STMParser(Parser):
             return False, ()
 
         successful, out_nodes = self._get_output_nodes(output_path, plot_path)
-        
+
         return successful, out_nodes
 
     def _fetch_output_files(self, retrieved):
@@ -111,10 +117,10 @@ class STMParser(Parser):
         import os
 
         # check in order not to overwrite anything
-#         state = self._calc.get_state()
-#         if state != calc_states.PARSING:
-#             raise InvalidOperation("Calculation not in {} state"
-#                                    .format(calc_states.PARSING) )
+        #         state = self._calc.get_state()
+        #         if state != calc_states.PARSING:
+        #             raise InvalidOperation("Calculation not in {} state"
+        #                                    .format(calc_states.PARSING) )
 
         # Check that the retrieved folder is there
         try:
@@ -125,26 +131,26 @@ class STMParser(Parser):
         list_of_files = out_folder.get_folder_list()
 
         output_path = None
-	plot_path = None
+        plot_path = None
 
         if self._calc._DEFAULT_OUTPUT_FILE in list_of_files:
-            output_path = os.path.join( out_folder.get_abs_path('.'),
-                                        self._calc._DEFAULT_OUTPUT_FILE )
+            output_path = os.path.join(
+                out_folder.get_abs_path('.'), self._calc._DEFAULT_OUTPUT_FILE)
         if self._calc._DEFAULT_PLOT_FILE in list_of_files:
-            plot_path  = os.path.join( out_folder.get_abs_path('.'),
-                                        self._calc._DEFAULT_PLOT_FILE )
+            plot_path = os.path.join(
+                out_folder.get_abs_path('.'), self._calc._DEFAULT_PLOT_FILE)
 
         return output_path, plot_path
 
     def get_linkname_outarray(self):
-        """                                                                     
-        Returns the name of the link to the output_array                        
+        """
+        Returns the name of the link to the output_array
         In Siesta, Node exists to hold the final forces and stress,
         pending the implementation of trajectory data.
         """
         return 'stm_array'
 
-    def get_stm_data(self,plot_path):
+    def get_stm_data(self, plot_path):
         """
         Parses the STM plot file to get an Array object with
         X, Y, and Z arrays in the 'meshgrid'
@@ -176,16 +182,16 @@ class STMParser(Parser):
 
         These can then be used in matplotlib to get a contour plot.
         """
-        
+
         import numpy as np
         from itertools import groupby
 
         from aiida.common.exceptions import InputValidationError
         from aiida.common.exceptions import ValidationError
 
-        file=open(plot_path,"r")  # aiida.CH.STM or aiida.CC.STM...
+        file = open(plot_path, "r")  # aiida.CH.STM or aiida.CC.STM...
         data = file.read().split('\n')
-        data = [ i.split() for i in data]
+        data = [i.split() for i in data]
 
         # The data in the file is organized in "lines" parallel to the Y axes
         # (that is, for constant X) separated by blank lines.
@@ -194,32 +200,32 @@ class STMParser(Parser):
 
         # I am not sure about the mechanics of groupby,
         # so repeat
-        xx=[]
-        yy=[]
-        zz=[]
+        xx = []
+        yy = []
+        zz = []
         #
         # Function to separate the blocks
-        h = lambda x: len(x)==0
+        h = lambda x: len(x) == 0
         #
-        for k,g in groupby(data, h):
-             if not k:
-                  xx.append([i[0] for i in g])
-        for k,g in groupby(data, h):
-             if not k:
-                  yy.append([i[1] for i in g])
-        for k,g in groupby(data, h):
-             if not k:
-                  zz.append([i[2] for i in g])
+        for k, g in groupby(data, h):
+            if not k:
+                xx.append([i[0] for i in g])
+        for k, g in groupby(data, h):
+            if not k:
+                yy.append([i[1] for i in g])
+        for k, g in groupby(data, h):
+            if not k:
+                zz.append([i[2] for i in g])
 
         # Now, transpose, since x runs fastest in our fortran code,
         # the opposite convention of the meshgrid paradigm.
 
-        X = np.array(xx,dtype=float).transpose()
-        Y = np.array(yy,dtype=float).transpose()
-        Z = np.array(zz,dtype=float).transpose()
-        
+        X = np.array(xx, dtype=float).transpose()
+        Y = np.array(yy, dtype=float).transpose()
+        Z = np.array(zz, dtype=float).transpose()
+
         from aiida.orm.nodes.array import ArrayData
-        
+
         arraydata = ArrayData()
         arraydata.set_array('X', np.array(X))
         arraydata.set_array('Y', np.array(Y))

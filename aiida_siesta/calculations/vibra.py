@@ -6,13 +6,9 @@ from aiida.common.constants import elements
 from aiida.common.datastructures import CalcInfo, CodeInfo
 from aiida.common.exceptions import InputValidationError
 from aiida.common.utils import classproperty
-from aiida.engine.calculation.job import CalcJob
-from aiida.orm.nodes.array.kpoints import KpointsData
-from aiida.orm.nodes.parameter import Dict
-from aiida.orm.nodes.remote import RemoteData
-from aiida.orm.nodes.structure import StructureData
-from aiida.orm.nodes.singlefile import SinglefileData
+from aiida.engine import CalcJob
 
+from aiida.orm import (Dict, StructureData, KpointsData, RemoteData, SinglefileData)
 # Module with fdf-aware dictionary
 from .tkdict import FDFDict
 import six

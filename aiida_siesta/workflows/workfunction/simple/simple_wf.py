@@ -7,11 +7,11 @@ import os, sys
 import numpy as np
 from aiida.work.workfunction import workfunction as wf
 from aiida.common.example_helpers import test_and_get_code
-from aiida.orm.data.base import Float, Str
+from aiida.orm import Float, Str
 from aiida.orm.calculation.job.siesta import SiestaCalculation
 from aiida.work.process_registry import ProcessRegistry
-# from aiida.work.run import run
 from aiida.work.run import async
+#from aiida.work.run import run
 from six.moves import zip
 
 PsfData = DataFactory('psf')

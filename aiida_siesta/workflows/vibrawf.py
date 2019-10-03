@@ -1,16 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
-from aiida.orm import Code
-from aiida.orm.nodes.base import Bool, Int, Str, Float
-from aiida.orm.nodes.parameter import Dict
-from aiida.orm.nodes.structure import StructureData
-from aiida.orm.nodes.array.kpoints import KpointsData
-from aiida.orm.nodes.array import ArrayData
-from aiida.orm.nodes.remote import RemoteData
+from aiida.orm import (Code, Bool, Int, Str, Float, Dict, StructureData, KpointsData, ArrayData, RemoteData)
+from aiida.engine import submit, WorkChain, ToContext, workfunction
 
-from aiida.engine.run import submit
-from aiida.engine.workchain import WorkChain, ToContext
-from aiida.engine.workfunction import workfunction
 from aiida.common.links import LinkType
 
 from aiida_siesta.data.psf import get_pseudos_from_structure
@@ -18,7 +10,7 @@ from aiida_siesta.data.psf import get_pseudos_from_structure
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
 from aiida_siesta.calculations.vibra import VibraCalculation
 
-from .buildsc import buildsc
+from aiida_siesta.workflows.buildsc import buildsc
 from six.moves import range
 
 __copyright__ = u"Copyright (c), 2015, ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE (Theory and Simulation of Materials (THEOS) and National Centre for Computational Design and Discovery of Novel Materials (NCCR MARVEL)), Switzerland and ROBERT BOSCH LLC, USA. All rights reserved."

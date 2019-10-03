@@ -1,23 +1,15 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
-from aiida.orm import Code
-from aiida.orm.nodes.base import Bool, Int, Str, Float
-from aiida.orm.nodes.parameter import Dict
-from aiida.orm.nodes.structure import StructureData
-from aiida.orm.nodes.array.kpoints import KpointsData
-from aiida.orm.nodes.remote import RemoteData
-
-from aiida.engine.run import submit
-from aiida.engine.workchain import WorkChain, ToContext
-from aiida.engine.workfunction import workfunction
+from aiida.orm import (Code, Bool, Int, Str, Float, Dict, StructureData,
+                       KpointsData, RemoteData)
+from aiida.engine import (submit, WorkChain, ToContext, workfunction)
 from aiida.common.links import LinkType
-
 from aiida_siesta.data.psf import get_pseudos_from_structure
 
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
 from aiida_siesta.calculations.stm import STMCalculation
 
-                        
+
 class SiestaSTMWorkChain(WorkChain):
     """
     STM Workchain. An example of workflow composition.
@@ -44,25 +36,31 @@ class SiestaSTMWorkChain(WorkChain):
             cls.setup_parameters,
             cls.setup_basis,
             cls.run_relax_and_analyze,
-            cls.run_stm,   # We can run this directly, a combined scf+bands
+            cls.run_stm,  # We can run this directly, a combined scf+bands
             cls.run_results,
         )
         spec.dynamic_output()
-                                         
+
     def setup_protocol(self):
         """
         Setup of context variables and inputs for the SiestaBaseWorkChain. Based on the specified
         protocol, we define values for variables that affect the execution of the calculations
         """
         self.ctx.inputs = {
-            'code': self.inputs.code,
-            'stm_code': self.inputs.stm_code,
-            'height': self.inputs.height,
-            'e1': self.inputs.e1,
-            'e2': self.inputs.e2,
+            'code':
+            self.inputs.code,
+            'stm_code':
+            self.inputs.stm_code,
+            'height':
+            self.inputs.height,
+            'e1':
+            self.inputs.e1,
+            'e2':
+            self.inputs.e2,
             'parameters': {},
             'settings': {},
-            'options': Dict(dict={
+            'options':
+            Dict(dict={
                 'resources': {
                     'num_machines': 1
                 },
@@ -71,53 +69,62 @@ class SiestaSTMWorkChain(WorkChain):
         }
 
         if self.inputs.protocol == 'standard':
-            self.report('running the workchain in the "{}" protocol'.format(self.inputs.protocol.value))
+            self.report('running the workchain in the "{}" protocol'.format(
+                self.inputs.protocol.value))
             self.ctx.protocol = {
                 'kpoints_mesh_offset': [0., 0., 0.],
                 'kpoints_mesh_density': 0.2,
                 'dm_convergence_threshold': 1.0e-4,
                 'forces_convergence_threshold': "0.02 eV/Ang",
-                'min_meshcutoff': 100, # In Rydberg (!)
+                'min_meshcutoff': 100,  # In Rydberg (!)
                 'electronic_temperature': "25.0 meV",
                 'md-type-of-run': "cg",
                 'md-num-cg-steps': 10,
                 'pseudo_familyname': 'lda-ag',
                 # Future expansion. Add basis info, caveats, etc
                 'atomic_heuristics': {
-                    'H': { 'cutoff': 100 },
-                    'Si': { 'cutoff': 100 }
+                    'H': {
+                        'cutoff': 100
+                    },
+                    'Si': {
+                        'cutoff': 100
+                    }
                 },
                 'basis': {
                     'pao-energy-shift': '100 meV',
                     'pao-basis-size': 'DZP'
                 }
-                          
             }
         elif self.inputs.protocol == 'fast':
-            self.report('running the workchain in the "{}" protocol'.format(self.inputs.protocol.value))
+            self.report('running the workchain in the "{}" protocol'.format(
+                self.inputs.protocol.value))
             self.ctx.protocol = {
                 'kpoints_mesh_offset': [0., 0., 0.],
                 'kpoints_mesh_density': 0.25,
                 'dm_convergence_threshold': 1.0e-3,
                 'forces_convergence_threshold': "0.2 eV/Ang",
-                'min_meshcutoff': 80, # In Rydberg (!)
+                'min_meshcutoff': 80,  # In Rydberg (!)
                 'electronic_temperature': "25.0 meV",
                 'md-type-of-run': "cg",
                 'md-num-cg-steps': 8,
                 'pseudo_familyname': 'lda-ag',
                 # Future expansion. Add basis info, caveats, etc
                 'atomic_heuristics': {
-                    'H': { 'cutoff': 50 },
-                    'Si': { 'cutoff': 50 }
+                    'H': {
+                        'cutoff': 50
+                    },
+                    'Si': {
+                        'cutoff': 50
+                    }
                 },
                 'basis': {
                     'pao-energy-shift': '100 meV',
                     'pao-basis-size': 'SZP'
                 }
-                          
             }
         else:
-            self.abort_nowait('Protocol {} not known'.format(self.ctx.protocol.value))
+            self.abort_nowait('Protocol {} not known'.format(
+                self.ctx.protocol.value))
 
     def setup_structure(self):
         """
@@ -133,23 +140,24 @@ class SiestaSTMWorkChain(WorkChain):
         """
         self.report('Running setup_kpoints')
         kpoints_mesh = KpointsData()
-        kpoints_mesh.set_cell_from_structure(self.ctx.structure_initial_primitive)
+        kpoints_mesh.set_cell_from_structure(
+            self.ctx.structure_initial_primitive)
         kpoints_mesh.set_kpoints_mesh_from_density(
             distance=self.ctx.protocol['kpoints_mesh_density'],
-            offset=self.ctx.protocol['kpoints_mesh_offset']
-        )
-        
+            offset=self.ctx.protocol['kpoints_mesh_offset'])
+
         self.ctx.kpoints_mesh = kpoints_mesh
-        
+
     def setup_pseudo_potentials(self):
         """
-        Based on the given input structure, get the 
+        Based on the given input structure, get the
         pseudo potentials for the different elements in the structure
         """
         self.report('Running setup_pseudo_potentials')
         structure = self.ctx.structure_initial_primitive
         pseudo_familyname = self.ctx.protocol['pseudo_familyname']
-        self.ctx.inputs['pseudos'] = get_pseudos_from_structure(structure, pseudo_familyname)
+        self.ctx.inputs['pseudos'] = get_pseudos_from_structure(
+            structure, pseudo_familyname)
 
     def setup_parameters(self):
         """
@@ -164,18 +172,20 @@ class SiestaSTMWorkChain(WorkChain):
         for kind in structure.get_kind_names():
             try:
                 cutoff = self.ctx.protocol['atom_heuristics'][kind]['cutoff']
-                meshcutoff = max(meshcutoff,cutoff)
+                meshcutoff = max(meshcutoff, cutoff)
             except:
-                pass    # No problem. No heuristics, no info
+                pass  # No problem. No heuristics, no info
 
         # In case we did not get anything, set a minimum value
-        meshcutoff = max(self.ctx.protocol['min_meshcutoff'], meshcutoff)    
-                
+        meshcutoff = max(self.ctx.protocol['min_meshcutoff'], meshcutoff)
+
         self.ctx.inputs['parameters'] = {
             'dm-tolerance': self.ctx.protocol['dm_convergence_threshold'],
-            'md-max-force-tol': self.ctx.protocol['forces_convergence_threshold'],
+            'md-max-force-tol':
+            self.ctx.protocol['forces_convergence_threshold'],
             'mesh-cutoff': "{} Ry".format(meshcutoff),
-            'electronic-temperature': self.ctx.protocol['electronic_temperature'],
+            'electronic-temperature':
+            self.ctx.protocol['electronic_temperature'],
             'md-type-of-run': self.ctx.protocol['md-type-of-run'],
             'md-num-cg-steps': self.ctx.protocol['md-num-cg-steps']
         }
@@ -187,23 +197,22 @@ class SiestaSTMWorkChain(WorkChain):
         """
         self.report('Running setup_basis')
         self.ctx.inputs['basis'] = self.ctx.protocol['basis']
-        
+
     def run_relax_and_analyze(self):
         """
         Run the SiestaBaseWorkChain to (relax) and analyze the input structure
         """
         self.report('Running run_relax_and_analyze')
-        
-        inputs = dict(self.ctx.inputs)
-        
-        ldos_e = "\n {e1} {e2} eV".format(e1=self.inputs.e1,e2=self.inputs.e2)
-        inputs['parameters']['%block local-density-of-states'] = ldos_e
 
+        inputs = dict(self.ctx.inputs)
+
+        ldos_e = "\n {e1} {e2} eV".format(e1=self.inputs.e1, e2=self.inputs.e2)
+        inputs['parameters']['%block local-density-of-states'] = ldos_e
 
         # Final input preparation, wrapping dictionaries in ParameterData nodes
         # The code and options were set above
         # Pseudos was set above in ctx.inputs, and so in inputs
-        
+
         inputs['kpoints'] = self.ctx.kpoints_mesh
         inputs['basis'] = Dict(dict=inputs['basis'])
         inputs['structure'] = self.ctx.structure_initial_primitive
@@ -211,10 +220,12 @@ class SiestaSTMWorkChain(WorkChain):
         inputs['settings'] = Dict(dict=inputs['settings'])
         inputs['clean_workdir'] = Bool(False)
         inputs['max_iterations'] = Int(20)
-        
+
         running = submit(SiestaBaseWorkChain, **inputs)
-        self.report('launched SiestaBaseWorkChain<{}> in relax+ldos mode'.format(running.pid))
-        
+        self.report(
+            'launched SiestaBaseWorkChain<{}> in relax+ldos mode'.format(
+                running.pid))
+
         return ToContext(workchain_relax=running)
 
     def run_stm(self):
@@ -223,19 +234,20 @@ class SiestaSTMWorkChain(WorkChain):
         """
         self.report('Running stm calculation')
         # Get the remote folder of the last calculation in the previous workchain
-        remote_folder = self.ctx.workchain_relax.get_outputs_dict()['remote_folder']
+        remote_folder = self.ctx.workchain_relax.get_outputs_dict()[
+            'remote_folder']
 
         stm_inputs = {}
         stm_inputs['code'] = self.ctx.inputs['stm_code']
         stm_inputs['parent_folder'] = remote_folder
 
         # Height of image plane, in Ang
-        stm_inputs['parameters'] = Dict(dict={ 'z': self.ctx.inputs['height']})
-        
+        stm_inputs['parameters'] = Dict(dict={'z': self.ctx.inputs['height']})
+
         # Dummy dict
         settings_dict = {'a': 'b'}
-        stm_inputs['settings'] = Dict(dict= settings_dict)
-        
+        stm_inputs['settings'] = Dict(dict=settings_dict)
+
         # This should be just a dictionary!
         stm_inputs['_options'] = {
             'resources': {
@@ -246,9 +258,9 @@ class SiestaSTMWorkChain(WorkChain):
 
         process = STMCalculation.process()
         running = submit(process, **stm_inputs)
-        
+
         self.report('launching STMCalculation<{}>'.format(running.pid))
-        
+
         return ToContext(stm_calc=running)
 
     def run_results(self):
@@ -257,7 +269,8 @@ class SiestaSTMWorkChain(WorkChain):
         for convenience
         """
         calculation_stm = self.ctx.stm_calc
-        output_structure = self.ctx.workchain_relax.get_outputs_dict()['output_structure']
+        output_structure = self.ctx.workchain_relax.get_outputs_dict()[
+            'output_structure']
 
         self.report('workchain succesfully completed'.format())
         self.out('stm_array', calculation_stm.out.stm_array)

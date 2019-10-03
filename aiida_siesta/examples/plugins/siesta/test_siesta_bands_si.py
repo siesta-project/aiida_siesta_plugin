@@ -1,7 +1,7 @@
 #!/usr/bin/env runaiida
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from __future__ import print_function
+
+
 
 import os.path as op
 import sys
@@ -34,8 +34,8 @@ try:
     else:
         raise IndexError
 except IndexError:
-    print >> sys.stderr, ("The first parameter can only be either "
-                          "--send or --dont-send")
+    print("The first parameter can only be either "
+                          "--send or --dont-send", file=sys.stderr )
     sys.exit(1)
 
 try:
