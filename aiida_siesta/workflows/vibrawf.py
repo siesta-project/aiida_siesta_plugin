@@ -22,7 +22,7 @@ from buildsc import buildsc
 __copyright__ = u"Copyright (c), 2015, ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE (Theory and Simulation of Materials (THEOS) and National Centre for Computational Design and Discovery of Novel Materials (NCCR MARVEL)), Switzerland and ROBERT BOSCH LLC, USA. All rights reserved."
 __license__ = "MIT license, see LICENSE.txt file"
 __version__ = "0.12.0"
-__contributors__ = "Victor M. Garcia-Suarez, ..."
+__contributors__ = "Victor M. Garcia-Suarez, Vladimir Dikan, Alberto Garcia"
 
 class SiestaVibraWorkChain(WorkChain):
     """
@@ -79,12 +79,13 @@ class SiestaVibraWorkChain(WorkChain):
         }
         # Extract md-fcdispl as siesta-related parameter.
         # Rebasing it as a global wf parameter might be more correct.
+        # **NOTE Provide a default if not specified
         self.ctx.atomicdispl = self.inputs.global_parameters.get_dict()["atomicdispl"]
 
         nna=len(xasc)
         self.ctx.structure_supercell = StructureData(cell=scell)
         #
-        # ** check that we get the correct 'names' (more general) instead of just symbols
+        # **NOTE check that we get the correct 'names' (more general) instead of just symbols
         # e.g.: 'Cred' as name for a particular 'C' atom in the structure,
         # as in the test_siesta.py example.
         #
@@ -260,9 +261,11 @@ class SiestaVibraWorkChain(WorkChain):
         vibra_settings_dict = {}
         vibra_inputs['settings'] = Dict(dict=vibra_settings_dict)
 
+        # **NOTE vibra itself does not need the atomic displacement
         vibra_parameters_dict = self.inputs.vibra_parameters.get_dict()
         vibra_parameters_dict.update({ "atomicdispl": self.ctx.atomicdispl })
 
+        # **NOTE Shouldn't the exception below be triggered here?
         vibra_scarray = self.inputs.scarray.get_array('sca')
         for i in range(3):
             try:
@@ -276,7 +279,7 @@ class SiestaVibraWorkChain(WorkChain):
 
         vibra_inputs['parameters'] = Dict(dict=vibra_parameters_dict)
 
-        # since vibra is a linear code, these hidden options are in place
+        # since vibra is a serial code, these hidden options are in place
         vibra_inputs['_options'] = {
             'withmpi': False,
             'resources': {
