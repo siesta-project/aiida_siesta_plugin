@@ -1,10 +1,11 @@
-#!/usr/bin/env python
+#!/usr/bin/env runaiida
 # -*- coding: utf-8 -*-
 #
 # This script might need to be run with a "framework enabled" python, since it
 # uses matplotlib. See: https://matplotlib.org/faq/osx_framework.html
+# (Note: it seems to work with python 3)
 #
-# If you are using a virtualenv with AiiDA, your best bet is to define a shell
+# If you are using a virtualenv with AiiDA, you could define a shell
 # function:
 #
 # function frameworkpython {
@@ -20,17 +21,12 @@
 #   frameworkpython get_stm_image.py [ id of stm_array ]
 #
 #
-
 # Example script to load an stm_array from a Siesta STM calculation and
 # generate a contour plot
 
-# Note that we are not using "aiidaenv" in the first line. We need
-# the following two lines before any other AiiDA loads:
-#
 
-# Load_dbenv wiped-out after aiida_v.1.0.0b2
-#from aiida import load_dbenv
-#load_dbenv()
+from __future__ import absolute_import
+from __future__ import print_function
 
 from __future__ import absolute_import
 from __future__ import print_function
@@ -44,7 +40,7 @@ import sys
 try:
     stm_id = int(sys.argv[1])
 except:
-    print(("Must provide as parameter the stm_array ID"), file=sys.stderr)
+    print("Must provide as parameter the stm_array ID", sys.stderr)
     sys.exit(1)
 
 arraydata = load_node(stm_id)

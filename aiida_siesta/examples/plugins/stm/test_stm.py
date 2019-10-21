@@ -9,7 +9,7 @@
 #
 #  The codename argument is mandatory (the code is typically 'plstm', conforming to
 #  the 'siesta.stm' plugin spec)
-# 
+#
 #  The remotedata_pk argument is mandatory, and holds the PK of the object
 #  representing the remote folder in which a LDOS file has been generated
 #  (typically by a "relax+ldos" run of the SiestaBaseWorkchain workflow)
@@ -17,18 +17,18 @@
 #  The height argument is optional. It is the height (in the z coordinate of
 #  the LDOS box) at which the "image" is going to be computed.
 #
-#
+
 from __future__ import absolute_import
 from __future__ import print_function
+
 import sys
-import os
 
-from aiida.common.example_helpers import test_and_get_code
-from aiida.common.exceptions import NotExistent
-
-################################################################
-
-ParameterData = DataFactory('parameter')
+from aiida.engine import submit
+from aiida.orm import load_code
+from aiida.orm import load_node
+from aiida.orm import Dict
+from aiida_siesta.calculations.stm import STMCalculation
+from aiida.plugins import DataFactory
 
 try:
     dontsend = sys.argv[1]
@@ -40,73 +40,79 @@ try:
         raise IndexError
 except IndexError:
     print(("The first parameter can only be either "
-                          "--send or --dont-send"), file=sys.stderr)
+           "--send or --dont-send"),
+          file=sys.stderr)
     sys.exit(1)
-
-#–-------------
+#
+#------------------Code and computer options ---------------------------
+#
 try:
     codename = sys.argv[2]
 except IndexError:
-    print(("Need a second parameter for the code name"), file=sys.stderr)
-    sys.exit(1)
+    codename = 'Siesta4.0.1@kelvin'
 
-code = test_and_get_code(codename, expected_code_type='siesta.stm')
+code = load_code(codename)
+#
 #–-------------
 try:
     remotedata_pk = int(sys.argv[3])
 except IndexError:
-    print(("Need a third parameter for the remotedata pk (LDOS)"), file=sys.stderr)
+    print(("Need a third parameter for the remotedata pk (LDOS)"),
+          file=sys.stderr)
     sys.exit(1)
+
+remotedata = load_node(remotedata_pk)
+
 #–-------------
 try:
     height = float(sys.argv[4])
 except IndexError:
     height = 7.5
-    
-from aiida.orm.data.remote import RemoteData
-remotedata = load_node(remotedata_pk)
-#
-#  Set up calculation object first
-#
-calc = code.new_calc()
-calc.label = "Test STM"
-calc.description = "STM calculation test"
-#
-#---- Attach remote data folder containing the LDOS
-#
-calc.use_parent_folder(remotedata)
-#
-#----Settings  -----------------------------
-#
-settings_dict={'additional_retrieve_list': []}
-settings = ParameterData(dict=settings_dict)
-calc.use_settings(settings)
-#---------------------------------------------------
 
-# Parameters ---------------------------------------------------
-params_dict= {
-    'z': height     # In Angstrom
+#
+options = {
+    "queue_name": "debug",
+    "max_wallclock_seconds": 1700,
+    "resources": {
+        "num_machines": 1,
+        "num_mpiprocs_per_machine": 1,
+    }
 }
-parameters = ParameterData(dict=params_dict)
-calc.use_parameters(parameters)
 #
-calc.set_max_wallclock_seconds(30*60) # 30 min
-calc.set_resources({"num_machines": 1, "num_mpiprocs_per_machine": 1})
-
+# Parameters ---------------------------------------------------
+params_dict = {
+    'z': height  # In Angstrom
+}
+parameters = Dict(dict=params_dict)
+#
+#-------------------------- Settings ---------------------------------
+#
+settings_dict = {}
+settings = Dict(dict=settings_dict)
+#
+#--All the inputs of a Siesta calculations are listed in a dictionary--
+#
+inputs = {
+    'settings': settings,
+    'parameters': parameters,
+    'code': code,
+    'ldos_folder': remotedata,
+    'metadata': {
+        'options': options,
+        'label': "STM test",
+    }
+}
 
 if submit_test:
-    subfolder, script_filename = calc.submit_test()
-    print("Test_submit for calculation (uuid='{}')".format(
-        calc.uuid))
-    print("Submit file in {}".format(os.path.join(
-        os.path.relpath(subfolder.abspath),
-        script_filename
-        )))
-else:
-    calc.store_all()
-    print("created calculation; calc=Calculation(uuid='{}') # ID={}".format(
-        calc.uuid,calc.dbnode.pk))
-    calc.submit()
-    print("submitted calculation; calc=Calculation(uuid='{}') # ID={}".format(
-        calc.uuid,calc.dbnode.pk))
+    inputs["metadata"]["dry_run"] = True
+    inputs["metadata"]["store_provenance"] = False
+    process = submit(STMCalculation, **inputs)
+    print("Submited test for calculation (uuid='{}')".format(process.uuid))
+    print("Check the folder submit_test for the result of the test")
 
+else:
+    process = submit(STMCalculation, **inputs)
+    print("Submitted calculation; ID={}".format(process.pk))
+    print("For information about this calculation type: verdi process show {}".
+          format(process.pk))
+    print("For a list of running processes type: verdi process list")
