@@ -9,13 +9,11 @@
     a setting operation.
 
     Vladimir Dikan and Alberto Garcia, 2017
-   
-"""
-# Not compatible with python3 due to string-specific translation.
-# TODO: use regular expressions for key translation
 
-from string import maketrans
+"""
+from __future__ import absolute_import
 from collections import MutableMapping
+import six
 
 
 class TKDict(MutableMapping):
@@ -43,13 +41,14 @@ class TKDict(MutableMapping):
         """ Return list of last key occurences. """
         # _storage keys are translated
         return [self.get_last_key(k) for k in self._storage.keys()]
+        # return(self._storage.keys())
 
     def iterkeys(self):
         'D.iterkeys() -> an iterator over the keys of D *** UPDATE'
         for key in self:
             value, last_key = self._storage[key]
             yield last_key
-                                    
+
     def __setitem__(self, key, value):
         """ Store a (value, initial_key) tuple under translated key. """
         trans_key = self.translate_key(key)
@@ -76,7 +75,7 @@ class TKDict(MutableMapping):
     def items(self):
         "D.items() -> list of D's (key, value) pairs, as 2-tuples"
         return [(self._storage[key][1],self._storage[key][0]) for key in self]
-    
+
     def get_last_key(self, key):
         """ Translate the key, unpack value-tuple and return
         the corresponding initial key if exists or None.
@@ -87,6 +86,10 @@ class TKDict(MutableMapping):
             return last_key
         except KeyError:
             return None
+
+    def get_filtered_items(self):
+        for k, v in self._storage.items():
+            yield k, v[0]
 
     def __delitem__(self, key):
         """ Translate the key, purge value-tuple """
@@ -104,30 +107,27 @@ class TKDict(MutableMapping):
     def __str__(self):
         return self._storage.__str__()
 
-
-class FDict(TKDict):
-    """ FDict class represents data from .fdf-file. """
-    @classmethod
-    def translate_key(self, key):
-        # This will not work for unicode strings. See below
-        return key.strip('-_')\
-                  .translate(maketrans('_.', '--'), '')\
-                  .lower()
-
 class FDFDict(TKDict):
     """ FDFDict class represents data from .fdf-file. """
+    # This class follows a boilerplate raw python3-compatible translation rule
+    # suitable for py2-py3 unicode- and non-unicode strings.
+    #
+    # Behavior: drop dashes/dots/colons from key -> lowercase.
+    # (that keeps other special characters including underscores untouched)
     @classmethod
     def translate_key(self, key):
         # There are incompatible 'translate'
-        # methods for str and unicode objects... 
-        
-        if isinstance(key, unicode):
+        # methods for python2 str and unicode objects.
+        to_remove = "-.:"
+
+        if isinstance(key, six.text_type):
             # Unicode uses a single dictionary for translation
-            to_remove = "-."
             table = {ord(char): None for char in to_remove}
             return key.translate(table).lower()
-        else:
+        elif six.PY2:
             # str accepts a translation map and an optional list of chars
             # to remove
-            return key.translate(None, '-.').lower()
-        
+            return key.translate(None, to_remove).lower()
+        else:
+            # and that should cover it all. Argue if not:
+            raise Exception("Key name error in FDFDict")

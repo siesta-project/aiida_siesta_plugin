@@ -5,14 +5,14 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 import sys
-import os
 
 from aiida.engine import submit
 from aiida.orm import load_code
 from aiida_siesta.calculations.siesta import SiestaCalculation
+from aiida_siesta.data.psf import get_pseudos_from_structure
 from aiida.plugins import DataFactory
 
-#  Siesta calculation on benzene molecule
+#----------------- Example of the use of a pseudopotential family
 
 PsfData = DataFactory('siesta.psf')
 Dict = DataFactory('dict')
@@ -51,27 +51,6 @@ options = {
         "num_mpiprocs_per_machine": 1,
     }
 }
-
-#TO DO:
-# A Siesta executable compiled in serial mode might not work properly
-# on a computer set up for MPI operation.
-# This snippet can be used to check whether a code has been compiled
-# with mpi support, and act accordingly
-# For this to work, the user has to manually add the record in the
-# database. In the verdi shell:
-#
-# code = load_node(code_PK)
-# code.set_extra("mpi",True)
-#code_mpi_enabled =  False
-#try:
-#    code_mpi_enabled =  code.get_extra("mpi")
-#except AttributeError:
-#    pass
-#calc.set_withmpi(code_mpi_enabled)
-#-----------------------------------------------------------------------
-
-#
-#-------------------------- Settings ---------------------------------
 #
 settings_dict = {'additional_retrieve_list': ['aiida.BONDS', 'aiida.EIG']}
 settings = Dict(dict=settings_dict)
@@ -115,17 +94,10 @@ s.append_atom(position=(0.000, 2.233, 4.311), symbols=['H'])
 s.append_atom(position=(0.000, 0.000, 4.442), symbols=['C'])
 s.append_atom(position=(0.000, 0.000, 5.604), symbols=['H'])
 
-elements = list(s.get_symbols_set())
 #-----------------------------------------------------------------------
 
 #
 # ----------------------Parameters -------------------------------------
-#
-# Note the use of '.' in some entries. This will be fixed below.
-# Note also that some entries have ':' as separator. This is not
-# allowed in Siesta, and will be fixed by the plugin itself. The
-# latter case is an unfortunate historical choice. It should not
-# be used in modern scripts.
 #
 params_dict = {
     'xc-functional': 'LDA',
@@ -177,23 +149,10 @@ basis = Dict(dict=basis_dict)
 
 #--------------------- Pseudopotentials ---------------------------------
 #
-# This exemplifies the handling of pseudos for different species
-# Those sharing the same pseudo should be indicated.
+# FIXME: The family name is hardwired
 #
-pseudos_list = []
-raw_pseudos = [("C.psf", ['C', 'Cred']), ("H.psf", 'H')]
-
-for fname, kinds, in raw_pseudos:
-    absname = os.path.realpath(
-        os.path.join(os.path.dirname(__file__), "data/sample-psf-family",
-                     fname))
-    pseudo, created = PsfData.get_or_create(absname, use_first=True)
-    if created:
-        print("Created the pseudo for {}".format(kinds))
-    else:
-        print("Using the pseudo for {} from DB: {}".format(kinds, pseudo.pk))
-    pseudos_list.append(pseudo)
-
+pseudos_dict = get_pseudos_from_structure(s, 'sample_psf_family')
+print(pseudos_dict)
 #-----------------------------------------------------------------------
 
 #
@@ -204,14 +163,10 @@ inputs = {
     'parameters': parameters,
     'code': code,
     'basis': basis,
-    'pseudos': {
-        'C': pseudos_list[0],
-        'Cred': pseudos_list[0],
-        'H': pseudos_list[1],
-    },
+    'pseudos': pseudos_dict,
     'metadata': {
         'options': options,
-        'label': "Benzene molecule",
+        'label': "Benzene molecule with pseudo family",
     }
 }
 
@@ -219,11 +174,8 @@ if submit_test:
     inputs["metadata"]["dry_run"] = True
     inputs["metadata"]["store_provenance"] = False
     process = submit(SiestaCalculation, **inputs)
-    #    subfolder, script_filename = calc.submit_test()
     print("Submited test for calculation (uuid='{}')".format(process.uuid))
     print("Check the folder submit_test for the result of the test")
-# I could't find a way to access the actual folder (subfolder of submit_test)
-# from the calculation node. So I can't print the exact location
 
 else:
     process = submit(SiestaCalculation, **inputs)

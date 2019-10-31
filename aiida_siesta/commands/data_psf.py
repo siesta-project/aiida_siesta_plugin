@@ -1,162 +1,135 @@
 # -*- coding: utf-8 -*-
-"""
-Verdi command definition for PSF pseudopotentials data.
-`verdi data psf`
-"""
+
+# This file is based in 'cmd_upf.py' from the Aiida Core distribution,    #
+#   Copyright (c), The AiiDA team. All rights reserved.                   #
+#                                                                         #
+"""Implements the `verdi data psf` command."""
+
+from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
+
+import io
+import os
 import click
-import sys
 
-from aiida.cmdline.commands import data_cmd
-from aiida.backends.utils import is_dbenv_loaded, load_dbenv
-
-CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
+from aiida.cmdline.commands.cmd_data import verdi_data
+from aiida.cmdline.params import arguments, options
+from aiida.cmdline.utils import decorators, echo
 
 
-@data_cmd.group('psf', context_settings=CONTEXT_SETTINGS)
-def psfdata():
-    """PSF pseudos command line interface for SIESTA plugin."""
-    pass
+@verdi_data.group('psf')
+def psf():
+    """Manipulate PsfData objects (PSF-format pseudopotentials)."""
 
 
-@psfdata.command()
-@click.option('-n', '--name', prompt="Enter group name", help="Group name.")
+@psf.command('uploadfamily')
+@click.argument('folder', type=click.Path(exists=True, file_okay=False, resolve_path=True))
+@click.argument('group_label', type=click.STRING)
+@click.argument('group_description', type=click.STRING)
 @click.option(
-    '-d',
-    '--description',
-    prompt="Enter group description",
-    help="Brief description of the group.")
-@click.option(
-    '-S',
     '--stop-if-existing',
     is_flag=True,
-    help=
-    "OPTIONAL: Stop if some pseudo files are already registered in the database."
+    default=False,
+    help='Interrupt pseudos import if a pseudo was already present in the AiiDA database'
 )
-@click.argument(
-    'directory',
-    type=click.Path(exists=True, file_okay=False, resolve_path=True))
-def uploadfamily(name, description, stop_if_existing, directory):
+@decorators.with_dbenv()
+def psf_uploadfamily(folder, group_label, group_description, stop_if_existing):
     """
-    Upload a collection of *.psf files from specified directory
-    to a new pseudopotential family.
+    Create a new PSF family from a folder of PSF files.
 
     Returns the numbers of files found and the number of nodes uploaded.
+
+    Call without parameters to get some help.
     """
-    from aiida import is_dbenv_loaded, load_dbenv
-    if not is_dbenv_loaded():
-        load_dbenv()
-
-    import aiida_siesta.data.psf as psf
-
-    files_found, files_uploaded = psf.upload_psf_family(
-        directory, name, description, stop_if_existing)
-
-    click.echo("PSF files found: {}. New files uploaded: {}".format(
-        files_found, files_uploaded))
+    from aiida_siesta.data.psf import upload_psf_family
+    files_found, files_uploaded = upload_psf_family(folder, group_label, group_description, stop_if_existing)
+    echo.echo_success('PSF files found: {}. New files uploaded: {}'.format(files_found, files_uploaded))
 
 
-@psfdata.command()
+@psf.command('listfamilies')
 @click.option(
-    '-e',
-    '--element',
-    multiple=True,
-    help="OPTIONAL: Filter the families only to those containing "
-    "a pseudo for each of the specified elements.")
-@click.option(
-    '-D',
+    '-d',
     '--with-description',
+    'with_description',
     is_flag=True,
-    help="OPTIONAL: Print families\' description.")
-def listfamilies(element, with_description):
+    default=False,
+    help='Show also the description for the PSF family'
+)
+@options.WITH_ELEMENTS()
+@decorators.with_dbenv()
+def psf_listfamilies(elements, with_description):
     """
-    Print on screen the list of installed PSF-pseudo families.
+    List all PSF families that exist in the database.
     """
-    from aiida import is_dbenv_loaded, load_dbenv
-    if not is_dbenv_loaded():
-        load_dbenv()
-
-    from aiida.orm import DataFactory
+    from aiida import orm
+    from aiida.plugins import DataFactory
     from aiida_siesta.data.psf import PSFGROUP_TYPE
 
-    PsfData = DataFactory('siesta.psf')
-    from aiida.orm.querybuilder import QueryBuilder
-    from aiida.orm.group import Group
-    qb = QueryBuilder()
-    qb.append(PsfData, tag='psfdata')
-
-    if element:
-        qb.add_filter(PsfData, {'attributes.element': {'in': element}})
-
-    qb.append(
-        Group,
-        group_of='psfdata',
+    PsfData = DataFactory('siesta.psf')  # pylint: disable=invalid-name
+    query = orm.QueryBuilder()
+    query.append(PsfData, tag='psfdata')
+    if elements is not None:
+        query.add_filter(PsfData, {'attributes.element': {'in': elements}})
+    query.append(
+        orm.Group,
+        with_node='psfdata',
         tag='group',
-        project=["name", "description"],
-        filters={
-            "type": {
-                '==': PSFGROUP_TYPE
-            }
-        })
+        project=['label', 'description'],
+        filters={'type_string': {
+            '==': PSFGROUP_TYPE
+        }}
+    )
 
-    qb.distinct()
-    if qb.count() > 0:
-        for res in qb.dict():
-            group_name = res.get("group").get("name")
-            group_desc = res.get("group").get("description")
-            qb = QueryBuilder()
-            qb.append(
-                Group, tag='thisgroup', filters={
-                    "name": {
-                        'like': group_name
-                    }
-                })
-            qb.append(PsfData, project=["id"], member_of='thisgroup')
+    query.distinct()
+    if query.count() > 0:
+        for res in query.dict():
+            group_label = res.get('group').get('label')
+            group_desc = res.get('group').get('description')
+            query = orm.QueryBuilder()
+            query.append(orm.Group, tag='thisgroup', filters={'label': {'like': group_label}})
+            query.append(PsfData, project=['id'], with_group='thisgroup')
 
             if with_description:
-                description_string = ": {}".format(group_desc)
+                description_string = ': {}'.format(group_desc)
             else:
-                description_string = ""
+                description_string = ''
 
-            click.echo("* {} [{} pseudos]{}".format(group_name,
-                                                    qb.count(),
-                                                    description_string))
+            echo.echo_success('* {} [{} pseudos]{}'.format(group_label, query.count(), description_string))
 
     else:
-        click.echo("No valid PSF pseudopotential family found.", err=True)
+        echo.echo_warning('No valid PSF pseudopotential family found.')
 
 
-@psfdata.command()
-@click.argument('family')
-@click.argument(
-    'directory',
-    type=click.Path(exists=False, file_okay=False, resolve_path=True))
-def exportfamily(family, directory):
+@psf.command('exportfamily')
+@click.argument('folder', type=click.Path(exists=True, file_okay=False, resolve_path=True))
+@arguments.GROUP()
+@decorators.with_dbenv()
+def psf_exportfamily(folder, group):
     """
-    Export a pseudopotential family into a new directory.
+    Export a pseudopotential family into a folder.
+    Call without parameters to get some help.
     """
-    from aiida import is_dbenv_loaded, load_dbenv
-    if not is_dbenv_loaded():
-        load_dbenv()
+    if group.is_empty:
+        echo.echo_critical('Group<{}> contains no pseudos'.format(group.label))
 
-    import os
-    from aiida.common.exceptions import NotExistent
-    from aiida.orm import DataFactory
+    for node in group.nodes:
+        dest_path = os.path.join(folder, node.filename)
+        if not os.path.isfile(dest_path):
+            with io.open(dest_path, 'w', encoding='utf8') as handle:
+                handle.write(node.get_content())
+        else:
+            echo.echo_warning('File {} is already present in the destination folder'.format(node.filename))
 
-    PsfData = DataFactory('siesta.psf')
-    try:
-        group = PsfData.get_psf_group(family)
-    except NotExistent:
-        click.echo("PSF family {} not found".format(family), err=True)
 
-    try:
-        os.makedirs(directory)
-        for pseudo in group.nodes:
-            dest_path = os.path.join(directory, pseudo.filename)
-            with open(dest_path, 'w') as dest:
-                with pseudo._get_folder_pathsubfolder.open(
-                        pseudo.filename) as source:
-                    dest.write(source.read())
-    except OSError:
-        click.echo(
-            "Destination directory {} exists; aborted".format(directory),
-            err=True)
+@psf.command('import')
+@click.argument('filename', type=click.Path(exists=True, dir_okay=False, resolve_path=True))
+@decorators.with_dbenv()
+def psf_import(filename):
+    """
+    Import a PSF pseudopotential from a file.
+    """
+    from aiida_siesta.data.psf import PsfData
+
+    node, _ = PsfData.get_or_create(filename)
+    echo.echo_success('Imported: {}'.format(node))

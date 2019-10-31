@@ -1,21 +1,40 @@
 {
-    "version": "0.9.11",
+    "version": "1.0.0",
     "name": "aiida-siesta",
     "url": "https://github.com/albgar/aiida_siesta_plugin",
     "keywords": ["aiida", "siesta", "dft"],
     "license": "MIT License",
     "author": "Alberto Garcia, Victor M. Garcia-Suarez, Emanuele Bosoni, Vladimir Dikan",
     "author_email": "albertog@icmab.es",
-    "description": "A plugin for Siesta's basic functionality within AiiDA framework.",
+    "description": "A plugin for Siesta's basic functionality within the AiiDA framework.",
     "classifiers": [
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 2.7",
+	"Programming Language :: Python :: 3.6",
         "Development Status :: 3 - Alpha"
     ],
     "install_requires": [
-        "aiida_core[docs,atomic_tools]>=0.12.0,<1.0.0",
+        "aiida_core[docs,atomic_tools]>=1.0.0b1,<2.0.0",
         "pytest>=3.3.2"
     ],
+    "extras_require": {
+        "dev": [
+            "pre-commit",
+            "prospector==1.1.5",
+            "pylint==1.9.4; python_version<'3.0'",
+            "pylint==2.2.2; python_version>='3.0'",
+            "astroid==2.1.0; python_version>='3.0'",
+            "pgtest==1.2.0",
+            "pytest==3.6.3",
+            "pytest-regressions==1.0.5",
+            "yapf==0.26.0"
+        ],
+        "docs": [
+            "Sphinx",
+            "docutils",
+            "sphinx_rtd_theme"
+        ]
+    },
     "entry_points": {
         "aiida.calculations": [
             "siesta.siesta = aiida_siesta.calculations.siesta:SiestaCalculation",
@@ -24,6 +43,11 @@
         "aiida.parsers": [
             "siesta.parser = aiida_siesta.parsers.siesta:SiestaParser",
             "siesta.stm = aiida_siesta.parsers.stm:STMParser"
+        ],
+        "aiida.workflows": [
+            "siesta.base = aiida_siesta.workflows.base:SiestaBaseWorkChain",
+            "siesta.bands = aiida_siesta.workflows.base:SiestaBandsWorkChain",
+            "siesta.stm = aiida_siesta.workflows.base:SiestaSTMWorkChain"
         ],
         "aiida.data": [
             "siesta.psf = aiida_siesta.data.psf:PsfData"

@@ -1,15 +1,20 @@
-# -*- coding: utf-8 -*-
 """
 This module manages the PSF pseudopotentials in the local repository.
 """
+# For migration example to aiida-1.0 see:
+# aiida/orm/nodes/data/upf.py in `aiida_core`
 
+from __future__ import absolute_import
 from aiida.common.utils import classproperty
-from aiida.orm.data.singlefile import SinglefileData
+from aiida.common.files import md5_file
+from aiida.orm.nodes import SinglefileData
+import io
+import six
 
 __copyright__ = u"Copyright (c), 2015, ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE (Theory and Simulation of Materials (THEOS) and National Centre for Computational Design and Discovery of Novel Materials (NCCR MARVEL)), Switzerland and ROBERT BOSCH LLC, USA. All rights reserved."
 __license__ = "MIT license, see LICENSE.txt file"
-__version__ = "0.9.10"
-__contributors__ = "Victor M. Garcia-Suarez, Andrea Cepellotti"
+__version__ = "1.0.0"
+__contributors__ = "Victor M. Garcia-Suarez, Andrea Cepellotti, Vladimir Dikan"
 
 PSFGROUP_TYPE = 'data.psf.family'
 
@@ -50,7 +55,7 @@ def get_pseudos_from_structure(structure, family_name):
 
 
 def upload_psf_family(folder,
-                      group_name,
+                      group_label,
                       group_description,
                       stop_if_existing=True):
     """
@@ -58,7 +63,7 @@ def upload_psf_family(folder,
 
     :param folder: a path containing all PSF files to be added.
         Only files ending in .PSF (case-insensitive) are considered.
-    :param group_name: the name of the group to create. If it exists and is
+    :param group_label: the name of the group to create. If it exists and is
         non-empty, a UniquenessError is raised.
     :param group_description: a string to be set as the group description.
         Overwrites previous descriptions, if the group was existing.
@@ -68,11 +73,13 @@ def upload_psf_family(folder,
     """
     import os
     import aiida.common
-    from aiida.common import aiidalogger
-    from aiida.orm import Group
+
+    from aiida import orm
+    from aiida.common import AIIDA_LOGGER as aiidalogger
     from aiida.common.exceptions import UniquenessError, NotExistent
-    from aiida.backends.utils import get_automatic_user
     from aiida.orm.querybuilder import QueryBuilder
+
+
     if not os.path.isdir(folder):
         raise ValueError("folder must be a directory")
 
@@ -86,21 +93,16 @@ def upload_psf_family(folder,
 
     nfiles = len(files)
 
-    try:
-        group = Group.get(name=group_name, type_string=PSFGROUP_TYPE)
-        group_created = False
-    except NotExistent:
-        group = Group(
-            name=group_name,
-            type_string=PSFGROUP_TYPE,
-            user=get_automatic_user())
-        group_created = True
+    automatic_user = orm.User.objects.get_default()
+    group, group_created = orm.Group.objects.get_or_create(label=group_label,
+                                                           type_string=PSFGROUP_TYPE,
+                                                           user=automatic_user)
 
-    if group.user != get_automatic_user():
+    if group.user.email != automatic_user.email:
         raise UniquenessError("There is already a PsfFamily group with name {}"
                               ", but it belongs to user {}, therefore you "
-                              "cannot modify it".format(
-                                  group_name, group.user.email))
+                              "cannot modify it".format(group_label,
+                                                        group.user.email))
 
     # Always update description, even if the group already existed
     group.description = group_description
@@ -110,7 +112,7 @@ def upload_psf_family(folder,
     pseudo_and_created = []
 
     for f in files:
-        md5sum = aiida.common.utils.md5_file(f)
+        md5sum = md5_file(f)
         qb = QueryBuilder()
         qb.append(PsfData, filters={'attributes.md5': {'==': md5sum}})
         existing_psf = qb.first()
@@ -171,7 +173,7 @@ def upload_psf_family(folder,
                 pseudo.uuid, pseudo.filename))
 
     # Add elements to the group all togetehr
-    group.add_nodes(pseudo for pseudo, created in pseudo_and_created)
+    group.add_nodes([pseudo for pseudo, created in pseudo_and_created])
 
     nuploaded = len([_ for _, created in pseudo_and_created if created])
 
@@ -188,34 +190,40 @@ def parse_psf(fname, check_filename=True):
     import os
 
     from aiida.common.exceptions import ParsingError
+    # from aiida.common import AIIDA_LOGGER
     # TODO: move these data in a 'chemistry' module
-    from aiida.orm.data.structure import _valid_symbols
+    from aiida.orm.nodes.data.structure import _valid_symbols
 
     parsed_data = {}
 
-    with open(fname) as f:
+    try:
+        psf_contents = fname.read().split()
+        fname = fname.name
+    except AttributeError:
+        with io.open(fname, encoding='utf8') as f:
+            psf_contents = f.read().split()
 
-        # Parse the element
-        element = None
-        for element in f.read().split():
-            break
+    # Parse the element
+    element = None
+    for element in psf_contents:
+        break
 
-        # Only first letter capitalized!
-        if element is None:
-            raise ParsingError(
-                "Unable to find the element of PSF {}".format(fname))
-        element = element.capitalize()
-        if element not in _valid_symbols:
-            raise ParsingError(
-                "Unknown element symbol {} for file {}".format(element, fname))
+    # Only first letter capitalized!
+    if element is None:
+        raise ParsingError(
+            "Unable to find the element of PSF {}".format(fname))
+    element = element.capitalize()
+    if element not in _valid_symbols:
+        raise ParsingError(
+            "Unknown element symbol {} for file {}".format(element, fname))
 
-        if check_filename:
-            if not os.path.basename(fname).lower().startswith(element.lower()):
-                raise ParsingError("Filename {0} was recognized for element "
-                                   "{1}, but the filename does not start "
-                                   "with {1}".format(fname, element))
+    if check_filename:
+        if not os.path.basename(fname).lower().startswith(element.lower()):
+            raise ParsingError("Filename {0} was recognized for element "
+                               "{1}, but the filename does not start "
+                               "with {1}".format(fname, element))
 
-        parsed_data['element'] = element
+    parsed_data['element'] = element
 
     return parsed_data
 
@@ -246,7 +254,7 @@ class PsfData(SinglefileData):
 
         if not os.path.abspath(filename):
             raise ValueError("filename must be an absolute path")
-        md5 = aiida.common.utils.md5_file(filename)
+        md5 = md5_file(filename)
 
         pseudos = cls.from_md5(md5)
         if len(pseudos) == 0:
@@ -280,13 +288,26 @@ class PsfData(SinglefileData):
         """
         from aiida.common.exceptions import ParsingError, ValidationError
         import aiida.common.utils
+        from aiida.common.files import md5_from_filelike
 
-        psf_abspath = self.get_file_abs_path()
-        if not psf_abspath:
-            raise ValidationError("No valid PSF was passed!")
 
-        parsed_data = parse_psf(psf_abspath)
-        md5sum = aiida.common.utils.md5_file(psf_abspath)
+        # psf_abspath = self.get_file_abs_path()
+
+        if self.is_stored:
+            return self
+
+        # if not psf_abspath:
+        #     raise ValidationError("No valid PSF was passed!")
+
+        # parsed_data = parse_psf(psf_abspath)
+        # md5sum = md5_file(psf_abspath)
+
+        with self.open(mode='r') as handle:
+            parsed_data = parse_psf(handle)
+
+          # Open in binary mode which is required for generating the md5 checksum
+        with self.open(mode='rb') as handle:
+            md5sum = md5_from_filelike(handle)
 
         try:
             element = parsed_data['element']
@@ -294,10 +315,11 @@ class PsfData(SinglefileData):
             raise ParsingError("No 'element' parsed in the PSF file {};"
                                " unable to store".format(self.filename))
 
-        self._set_attr('element', str(element))
-        self._set_attr('md5', md5sum)
+        self.set_attribute('element', str(element))
+        self.set_attribute('md5', md5sum)
 
         return super(PsfData, self).store(*args, **kwargs)
+
 
     @classmethod
     def from_md5(cls, md5):
@@ -307,8 +329,11 @@ class PsfData(SinglefileData):
         Note that the hash has to be stored in a _md5 attribute, otherwise
         the pseudo will not be found.
         """
-        queryset = cls.query(dbattributes__key='md5', dbattributes__tval=md5)
-        return list(queryset)
+        from aiida.orm.querybuilder import QueryBuilder
+        qb = QueryBuilder()
+        qb.append(cls, filters={'attributes.md5': {'==': md5}})
+        return [_ for [_] in qb.all()]
+
 
     def set_file(self, filename):
         """
@@ -318,7 +343,7 @@ class PsfData(SinglefileData):
         import aiida.common.utils
 
         parsed_data = parse_psf(filename)
-        md5sum = aiida.common.utils.md5_file(filename)
+        md5sum = md5_file(filename)
 
         try:
             element = parsed_data['element']
@@ -328,8 +353,11 @@ class PsfData(SinglefileData):
 
         super(PsfData, self).set_file(filename)
 
-        self._set_attr('element', str(element))
-        self._set_attr('md5', md5sum)
+        # self._set_attr('element', str(element))
+        # self._set_attr('md5', md5sum)
+        self.set_attribute('element', str(element))
+        self.set_attribute('md5', md5sum)
+
 
     def get_psf_family_names(self):
         """
@@ -345,29 +373,40 @@ class PsfData(SinglefileData):
 
     @property
     def element(self):
-        return self.get_attr('element', None)
+        return self.get_attribute('element', None)
 
     @property
     def md5sum(self):
-        return self.get_attr('md5', None)
+        return self.get_attribute('md5', None)
 
     def _validate(self):
         from aiida.common.exceptions import ValidationError, ParsingError
+        from aiida.common.files import md5_from_filelike
         import aiida.common.utils
 
         super(PsfData, self)._validate()
 
-        psf_abspath = self.get_file_abs_path()
-        if not psf_abspath:
-            raise ValidationError("No valid PSF was passed!")
+        # psf_abspath = self.get_file_abs_path()
+        # if not psf_abspath:
+        #     raise ValidationError("No valid PSF was passed!")
 
-        try:
-            parsed_data = parse_psf(psf_abspath)
-        except ParsingError:
-            raise ValidationError("The file '{}' could not be "
-                                  "parsed".format(psf_abspath))
-        md5 = aiida.common.utils.md5_file(psf_abspath)
+        with self.open(mode='r') as handle:
+            parsed_data = parse_psf(handle)
 
+        # Open in binary mode which is required for generating the md5 checksum
+        with self.open(mode='rb') as handle:
+            md5 = md5_from_filelike(handle)
+
+        # try:
+        #     parsed_data = parse_psf(psf_abspath)
+        # except ParsingError:
+        #     raise ValidationError("The file '{}' could not be "
+        #                           "parsed".format(psf_abspath))
+        # md5 = md5_file(psf_abspath)
+
+
+        # TODO: This is erroneous exception,
+        # as it is in the `upf` module oin `aiida_core`
         try:
             element = parsed_data['element']
         except KeyError:
@@ -375,12 +414,12 @@ class PsfData(SinglefileData):
                                   "file {}".format(psf_abspath))
 
         try:
-            attr_element = self.get_attr('element')
+            attr_element = self.get_attribute('element')
         except AttributeError:
             raise ValidationError("attribute 'element' not set.")
 
         try:
-            attr_md5 = self.get_attr('md5')
+            attr_md5 = self.get_attribute('md5')
         except AttributeError:
             raise ValidationError("attribute 'md5' not set.")
 
@@ -394,14 +433,13 @@ class PsfData(SinglefileData):
                                   "parsed instead.".format(attr_md5, md5))
 
     @classmethod
-    def get_psf_group(cls, group_name):
+    def get_psf_group(cls, group_label):
         """
         Return the PsfFamily group with the given name.
         """
         from aiida.orm import Group
 
-        return Group.get(
-            name=group_name, type_string=cls.psffamily_type_string)
+        return Group.get(label=group_label, type_string=cls.psffamily_type_string)
 
     @classmethod
     def get_psf_groups(cls, filter_elements=None, user=None):
@@ -423,7 +461,7 @@ class PsfData(SinglefileData):
         if user is not None:
             group_query_params['user'] = user
 
-        if isinstance(filter_elements, basestring):
+        if isinstance(filter_elements, six.string_types):
             filter_elements = [filter_elements]
 
         if filter_elements is not None:

@@ -1,5 +1,7 @@
 #!/usr/bin/env runaiida
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
+from __future__ import print_function
 import sys
 import os
 
@@ -13,12 +15,13 @@ __authors__ = "The AiiDA team."
 #
 
 # Used to test the parent calculation
-SiestaCalc = CalculationFactory('siesta.siesta') 
+from aiida_siesta.calculations.siesta import SiestaCalculation
+#SiestaCalc = CalculationFactory('siesta.siesta') 
 
 try:
     calc_id = sys.argv[1]
 except IndexError:
-    print >> sys.stderr, ("Must provide as parameter the calc ID")
+    print(("Must provide as parameter the calc ID"), file=sys.stderr)
     sys.exit(1)
 
 
@@ -27,23 +30,19 @@ try:
 except ValueError:
     raise ValueError('Calc_id not an integer: {}'.format(calc_id))
 
-#calc = Calculation.get_subclass_from_pk(calc_id)
 calc = load_node(int(calc_id))
-#####
 
-if isinstance(calc,SiestaCalc):
+if (calc.process_class == SiestaCalculation):
 
-    print "Calculation status: '{}'".format(calc.get_state())
-##??     print "Desc: {}".format(calc.description)
-    d=calc.out.output_parameters.get_dict()
-    
+    print("Calculation is '{0}' with exit code '{1}'".format(calc.process_state.name,calc.exit_status))
+    d=calc.outputs.output_parameters.get_dict()    
     try:
-        print "Warnings: {}".format(d['warnings'])
+        print("Warnings: {}".format(d['warnings']))
     except:
         pass
 
 else:
-    print >> sys.stderr, ("Calculation should be a Siesta calculation.")
+    print(("Calculation should be a Siesta calculation."), file=sys.stderr)
     sys.exit(1)
 
 

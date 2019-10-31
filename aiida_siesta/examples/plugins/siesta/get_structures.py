@@ -1,5 +1,7 @@
 #!/usr/bin/env runaiida
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
+from __future__ import print_function
 import sys
 import os
 
@@ -13,12 +15,12 @@ __authors__ = "The AiiDA team."
 #
 
 # Used to test the parent calculation
-SiestaCalc = CalculationFactory('siesta.siesta') 
+from aiida_siesta.calculations.siesta import SiestaCalculation
 
 try:
     calc_id = sys.argv[1]
 except IndexError:
-    print >> sys.stderr, ("Must provide as parameter the calc ID")
+    print(("Must provide as parameter the calc ID"), file=sys.stderr)
     sys.exit(1)
 
 
@@ -31,30 +33,30 @@ except ValueError:
 calc = load_node(int(calc_id))
 #####
 
-if isinstance(calc,SiestaCalc):
+if (calc.process_class==SiestaCalculation):
 
-    print "Calculation status: '{}'".format(calc.get_state())
+    print("Calculation status: '{}'".format(calc.process_state.name))
 
-    d=calc.out.output_parameters.get_dict()
+    d=calc.outputs.output_parameters.get_dict()
    
-    sin=calc.inp.structure
-    print "Input structure:"
-    print " Cell lengths: {}".format(sin.cell_lengths)
-    print " Cell angles: {}".format(sin.cell_angles)
-    print " Cell volume: {}".format(sin.get_cell_volume())
+    sin=calc.inputs.structure
+    print("Input structure:")
+    print(" Cell lengths: {}".format(sin.cell_lengths))
+    print(" Cell angles: {}".format(sin.cell_angles))
+    print(" Cell volume: {}".format(sin.get_cell_volume()))
     
     if d['variable_geometry']:
       try:
-        sout=calc.out.output_structure
-        print "Output structure:"
-        print " Cell lengths: {}".format(sout.cell_lengths)
-        print " Cell angles: {}".format(sout.cell_angles)
-        print " Cell volume: {}".format(sout.get_cell_volume())
+        sout=calc.outputs.output_structure
+        print("Output structure:")
+        print(" Cell lengths: {}".format(sout.cell_lengths))
+        print(" Cell angles: {}".format(sout.cell_angles))
+        print(" Cell volume: {}".format(sout.get_cell_volume()))
       except:
-        print "Output structure not available..."
+        print("Output structure not available...")
 
 else:
-    print >> sys.stderr, ("Calculation should be a Siesta calculation.")
+    print(("Calculation should be a Siesta calculation."), file=sys.stderr)
     sys.exit(1)
 
 

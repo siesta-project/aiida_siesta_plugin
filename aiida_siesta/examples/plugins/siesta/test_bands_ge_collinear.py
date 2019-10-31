@@ -5,6 +5,14 @@ from __future__ import print_function
 
 import os.path as op
 import sys
+from aiida.tools import get_explicit_kpoints_path
+
+#In this example we will calculate the band structure of Ge with SOC.
+#Thanks to SeeK-path we can automatically generate the
+#high symmetry points path where to calculate the bands.
+#Alternatively, a manual list of k-points can be set.
+
+################################################################
 
 from aiida.engine import submit
 from aiida.orm import load_code
@@ -33,8 +41,12 @@ try:
 except IndexError:
     codename = 'Siesta4.0.1@kelvin'
 
-# Si diamond structure
-alat = 5.430  # angstrom
+##-------------------Structure-----------------------------------
+##Manually set the structure, all the quantities must be in Ang.
+##Then, we pass through SeeK-path, to get the standardized cell,
+##necessary for the automatic choice of the bands path.
+
+alat = 5.65  # angstrom
 cell = [
     [
         0.5 * alat,
@@ -53,48 +65,57 @@ cell = [
     ],
 ]
 
-# Si
-# This was originally given in the "ScaledCartesian" format
-#
-structure = StructureData(cell=cell)
-structure.append_atom(position=(0.000 * alat, 0.000 * alat, 0.000 * alat),
-                      symbols=['Si'])
-structure.append_atom(position=(0.250 * alat, 0.250 * alat, 0.250 * alat),
-                      symbols=['Si'])
+s = StructureData(cell=cell)
+s.append_atom(position=(0.000 * alat, 0.000 * alat, 0.000 * alat),
+              symbols=['Ge'])
+s.append_atom(position=(0.250 * alat, 0.250 * alat, 0.250 * alat),
+              symbols=['Ge'])
+
+elements = list(s.get_symbols_set())
+
+seekpath_parameters = Dict(dict={
+    'reference_distance': 0.02,
+    'symprec': 0.0001
+})
+result = get_explicit_kpoints_path(s, **seekpath_parameters.get_dict())
+structure = result['primitive_structure']
 
 code = load_code(codename)
 
 parameters = Dict(
     dict={
-        'xc-functional': 'LDA',
-        'xc-authors': 'CA',
+        'xc-functional': 'GGA',
+        'xc-authors': 'PBE',
         'max-scfiterations': 50,
         'dm-numberpulay': 4,
+        'Spin': "collinear",
         'dm-mixingweight': 0.3,
         'dm-tolerance': 1.e-3,
-        'Solution-method': 'diagon',
-        'electronic-temperature': '25 meV',
-        'md-typeofrun': 'cg',
-        'md-numcgsteps': 3,
-        'md-maxcgdispl': '0.1 Ang',
-        'md-maxforcetol': '0.04 eV/Ang',
-        'write-forces': True,
-        # 'xml-write': True
+        'electronic-temperature': '25 meV'
     })
 
 basis = Dict(
     dict={
         'pao-energy-shift': '300 meV',
         '%block pao-basis-sizes': """
-Si DZP
+Ge DZP
 %endblock pao-basis-sizes""",
     })
 
 kpoints = KpointsData()
 kpoints.set_kpoints_mesh([4, 4, 4])
 
+##-------------------K-points for bands --------------------
+bandskpoints = KpointsData()
+
+##.....Making use of SeeK-path for the automatic path......
+##The choice of the distance between kpoints is in the call seekpath_parameters
+##All high symmetry points included, labels already included
+##This calls BandLine in siesta
+bandskpoints = result['explicit_kpoints']
+
 pseudos_list = []
-raw_pseudos = [("Si.psf", 'Si')]
+raw_pseudos = [("Ge.psf", 'Ge')]
 for fname, kind in raw_pseudos:
     absname = op.realpath(
         op.join(op.dirname(__file__), "data/sample-psf-family", fname))
@@ -106,7 +127,7 @@ for fname, kind in raw_pseudos:
     pseudos_list.append(pseudo)
 
 options = {
-    "max_wallclock_seconds": 360,
+    "max_wallclock_seconds": 600,
     "resources": {
         "num_machines": 1,
         "num_mpiprocs_per_machine": 1,
@@ -119,11 +140,12 @@ inputs = {
     'code': code,
     'basis': basis,
     'kpoints': kpoints,
+    'bandskpoints': bandskpoints,
     'pseudos': {
-        'Si': pseudos_list[0],
+        'Ge': pseudos_list[0],
     },
     'metadata': {
-        "label": "TestOnSiliconBulk",
+        "label": "Ge band-structure with collinear spin",
         'options': options,
     }
 }
@@ -135,8 +157,6 @@ if submit_test:
     #    subfolder, script_filename = calc.submit_test()
     print("Submited test for calculation (uuid='{}')".format(process.uuid))
     print("Check the folder submit_test for the result of the test")
-# I could't find a way to access the actual folder (subfolder of submit_test)
-# from the calculation node. So I can't print the exact location
 
 else:
     process = submit(SiestaCalculation, **inputs)
