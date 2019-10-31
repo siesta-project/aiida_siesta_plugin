@@ -46,8 +46,8 @@
         ],
         "aiida.workflows": [
             "siesta.base = aiida_siesta.workflows.base:SiestaBaseWorkChain",
-            "siesta.bands = aiida_siesta.workflows.base:SiestaBandsWorkChain",
-            "siesta.stm = aiida_siesta.workflows.base:SiestaSTMWorkChain"
+            "siesta.bands = aiida_siesta.workflows.bands:SiestaBandsWorkChain",
+            "siesta.stm = aiida_siesta.workflows.stm:SiestaSTMWorkChain"
         ],
         "aiida.data": [
             "siesta.psf = aiida_siesta.data.psf:PsfData"
