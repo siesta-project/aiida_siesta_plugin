@@ -38,16 +38,16 @@
     "entry_points": {
         "aiida.calculations": [
             "siesta.siesta = aiida_siesta.calculations.siesta:SiestaCalculation",
-            "siesta.stm = aiida_siesta.calculations.stm:STMCalculation",
-            "siesta.vibra = aiida_siesta.calculations.vibra:VibraCalculation"
+            "siesta.stm = aiida_siesta.calculations.stm:STMCalculation"
         ],
         "aiida.parsers": [
             "siesta.parser = aiida_siesta.parsers.siesta:SiestaParser",
-            "siesta.stm = aiida_siesta.parsers.stm:STMParser",
-            "siesta.vibra = aiida_siesta.parsers.vibra:VibraParser"
+            "siesta.stm = aiida_siesta.parsers.stm:STMParser"
         ],
         "aiida.workflows": [
-            "siesta.base = aiida_siesta.workflows.base:SiestaBaseWorkChain"
+            "siesta.base = aiida_siesta.workflows.base:SiestaBaseWorkChain",
+            "siesta.bands = aiida_siesta.workflows.base:SiestaBandsWorkChain",
+            "siesta.stm = aiida_siesta.workflows.base:SiestaSTMWorkChain"
         ],
         "aiida.data": [
             "siesta.psf = aiida_siesta.data.psf:PsfData"
