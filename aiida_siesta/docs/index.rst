@@ -30,8 +30,8 @@ plugin.
 Vladimir Dikan and Alberto Garcia developed the workflows and
 refined the architecture of the package.
 
-We acknowledge partial support from the Spanish MINECO (projects
-FIS2012-37549-C05-05 and FIS2015-64886-C5-4-P) and  by the `MaX 
+We acknowledge partial support from the Spanish Research Agency (projects
+FIS2012-37549-C05-05, FIS2015-64886-C5-4-P and PGC2018-096955-B-C44) and  by the `MaX 
 European Centre of Excellence <http://www.max-centre.eu/>`_ funded by the Horizon 2020 EINFRA-5 program,
 Grant No. 676598.
 

@@ -12,12 +12,16 @@ Supported Siesta versions
 
 At least 4.0.1 of the 4.0 series, and 4.1-b3 of the 4.1 series, which
 can be found in the development platform
-(http://launchpad.net/siesta/).
+(https://gitlab.com/siesta-project/siesta).
 
 Inputs
 ------
 
-* **structure**, class :py:class:`StructureData <aiida.orm.data.structure.StructureData>`
+* **code**, class :py:class:`Code <aiida.orm.Code>`
+
+A code object linked to a Siesta executable. 
+  
+* **structure**, class :py:class:`StructureData <aiida.orm.StructureData>`
 
 A structure. Siesta employs "species labels" to implement special
 conditions (such as basis set characteristics) for specific atoms
@@ -46,7 +50,7 @@ implemented through the 'name' attribute of the Site objects. For example::
    s.append_atom(position=(0.000,0.000,5.604),symbols=['H'])
 
 
-* **parameters**, class :py:class:`ParameterData <aiida.orm.data.parameter.ParameterData>`
+* **parameters**, class :py:class:`Dict <aiida.orm.Dict>`
 
 A dictionary with scalar fdf variables and blocks, which are the
 basic elements of any Siesta input file. A given Siesta fdf file
@@ -59,23 +63,27 @@ constructor. For example::
     {
       "mesh-cutoff": "200 Ry",
       "dm-tolerance": "0.0001",
-	  "%block example-block": """
+	  "%block example-block":
+	  """
 	  first line
-	  second line             """,
+	  second line
+	  %endblock example-block""",
     }
 
-Note that Siesta fdf keywords allow '.', '-', or nothing as
-internal separators. AiiDA does not allow the use of '.' in
-nodes to be inserted in the database, so it should not be used
-in the input script (or removed before assigning the dictionary to
-the ParameterData instance).
+Note that Siesta fdf keywords allow '.', '-', (or nothing) as internal
+separators. AiiDA does not allow the use of '.' in nodes to be
+inserted in the database, so it should not be used in the input script
+(or removed before assigning the dictionary to the Dict
+instance). For legibility, a single dash ('-') is suggested, as in the
+examples above.
 
-* **pseudo**, class :py:class:`PsfData <aiida_siesta.data.psf.PsfData>`
+* **pseudos**, input namespace of class :py:class:`PsfData <aiida_siesta.data.psf.PsfData>`
 
 The PsfData class has been implemented along the lines of the Upf class for QE.
 
-One pseudopotential file per atomic element. Several species in the
-Siesta sense can share the same pseudopotential. For the example
+One pseudopotential file per atomic element. Several species (in the
+Siesta sense, which allows the same element to be treated differently
+according to its environment) can share the same pseudopotential. For the example
 above::
 
   pseudo_file_to_species_map = [ ("C.psf", ['C', 'Cred']),
@@ -88,12 +96,12 @@ Alternatively, a pseudo for every atomic species can be set with the
 has been installed. (But the family approach does not yet support
 multiple species sharing the same pseudopotential.)
 
-.. note:: The verdi command-line interface has recently been upgraded
-   to support entry points defined by external packages. We have
-   implemented a `verdi data psf` family of commands: `uploadfamily`,
-   `exportfamily`, and `listfamilies`. 
+.. note:: The verdi command-line interface now supports entry points
+   defined by external packages. We have implemented a `verdi data
+   psf` family of commands: `uploadfamily`, `exportfamily`, and
+   `listfamilies`.
 
-* **basis**, class :py:class:`ParameterData  <aiida.orm.data.parameter.ParameterData>`
+* **basis**, class :py:class:`Dict  <aiida.orm.Dict>`
   
 A dictionary specifically intended for basis set information. It
 follows the same structure as the **parameters** element, including
@@ -102,7 +110,7 @@ direct translation of the myriad basis-set options supported by the
 Siesta program. In future we might have a more structured input for
 basis-set information.
 
-* **kpoints**, class :py:class:`KpointsData <aiida.orm.data.array.kpoints.KpointsData>`
+* **kpoints**, class :py:class:`KpointsData <aiida.orm.KpointsData>`
   
 Reciprocal space points for the full sampling of the BZ during the
 self-consistent-field iteration. It must be given in mesh form. There is no support
@@ -110,8 +118,7 @@ yet for Siesta's kgrid-cutoff keyword.
 
 If this node is not present, only the Gamma point is used for sampling.
 
-* **bandskpoints**, class :py:class:`KpointsData
-  <aiida.orm.data.array.kpoints.KpointsData>`
+* **bandskpoints**, class :py:class:`KpointsData <aiida.orm.KpointsData>`
   
 Reciprocal space points for the calculation of bands.  They can be
 given as a simple list of k-points, as segments with start and end
@@ -120,8 +127,7 @@ functionality of modern versions of the class.
 
 If this node is not present, no band structure is computed.
 
-* **settings**, class
-  :py:class:`ParameterData <aiida.orm.data.parameter.ParameterData>`
+* **settings**, class  :py:class:`Dict <aiida.orm.Dict>`
       
 An optional dictionary that activates non-default operations. For a list of possible
 values to pass, see the section on :ref:`advanced features <siesta-advanced-features>`.
@@ -137,8 +143,7 @@ The output parser takes advantage of the structured output available
 in Siesta as a Chemical Markup Language (CML) file. The CML-writer
 functionality should be compiled in and active in the run!
 
-* **output_parameters** :py:class:`ParameterData <aiida.orm.data.parameter.ParameterData>` 
-  (accessed by ``calculation.res``)
+* **output_parameters** :py:class:`Dict <aiida.orm.Dict>` 
 
 A dictionary with metadata, scalar result values, a warnings
 list, and possibly a timing section.
@@ -184,24 +189,22 @@ and checking at each scf step for the walltime consumed. This
 'warnings' list can be examined by the parser itself to raise an
 exception in the FATAL case.
 
-* **output_array** :py:class:`ArrayData <aiida.orm.data.array.ArrayData>`
+* **forces_and_stress** :py:class:`ArrayData <aiida.orm.ArrayData>`
 
 Contains the final forces (eV/Angstrom) and stresses (GPa) in array form.
   
 
-* **output_structure** :py:class:`StructureData
-  <aiida.orm.data.structure.StructureData>`
+* **output_structure** :py:class:`StructureData <aiida.orm.StructureData>`
   
 Present only if the calculation is moving the ions.  Cell and ionic
 positions refer to the last configuration.
 
-* **bands_array**, :py:class:`BandsData
-  <aiida.orm.data.array.bands.BandsData>`
+* **bands**, :py:class:`BandsData  <aiida.orm.BandsData>`
   
 Present only if a band calculation is requested (signaled by the
 presence of a **bandskpoints** input node of class KpointsData)
-Contains the list of electronic energies for every kpoint. For
-spin-polarized calculations, the 'bands' array has an extra dimension
+Contains an array with the list of electronic energies for every
+kpoint. For spin-polarized calculations, there is an extra dimension
 for spin.
   
 No trajectories have been implemented yet.
@@ -210,27 +213,23 @@ Errors
 ------
 
 Errors during the parsing stage are reported in the log of the calculation (accessible 
-with the ``verdi calculation logshow`` command). 
-Moreover, they are stored in the ParameterData under the key ``warnings``, and are
-accessible with ``Calculation.res.warnings``.
+with the ``verdi process report`` command). 
+Moreover, they are stored in the `output_parameters` node under the key ``warnings``.
 
 Restarts
 --------
 
-A restarting capability is implemented following the basic idiom::
+A restarting capability is implemented through the optional input
+**parent_calc_folder**, :py:class:`RemoteData  <aiida.orm.RemoteData>`
 
-  c = load_node(Failed_Calc_PK)
-  c2 = c.create_restart(force_restart=True)
-  c2.store_all()
-  c2.submit()
+which represents the remote scratch folder for a previous calculation.
 
 The density-matrix file is copied from the old calculation scratch
-folder to the new calculation's one. If an **ouput_structure** node
-is available, it is used as the structure for restarting.
+folder to the new calculation's one.
 
-This approach enables continuation of (variable-geometry) runs which
-have failed due to lack of time or insufficient convergence in the
-allotted number of steps.
+This approach enables continuation of runs which have failed due to
+lack of time or insufficient convergence in the allotted number of
+steps.
 
 .. _siesta-advanced-features:
 
@@ -239,13 +238,9 @@ Additional advanced features
 
 While the input link with name **parameters** is used for the main
 Siesta options (as would be given in an fdf file), additional settings
-can be specified in the **settings** input, also of type ParameterData.
+can be specified in the **settings** input, also of type Dict.
 
 Below we summarise some of the options that you can specify, and their effect.
-In each case, after having defined the content of ``settings_dict``, you can use
-it as input of a calculation ``calc`` by doing::
-
-  calc.use_settings(ParameterData(dict=settings_dict))
 
 The keys of the settings dictionary are internally converted to
 uppercase by the plugin.
@@ -275,5 +270,3 @@ those files as a list as follows::
   settings_dict = {  
     'additional_retrieve_list': ['aiida.EIG', 'aiida.ORB_INDX'],
   }
-
-
