@@ -25,20 +25,20 @@ Supported Siesta versions
 
 At least 4.0.1 of the 4.0 series, and 4.1-b3 of the 4.1 series, which
 can be found in the development platform
-(http://launchpad.net/siesta/).
+(https://gitlab.com/siesta-project/siesta).
 
 Inputs
 ------
 
-* **code**, a code
+* **code**,  class :py:class:`Code  <aiida.orm.Code>`
 
-* **structure**, class :py:class:`StructureData
-  <aiida.orm.data.structure.StructureData>`
+A database object representing a Siesta executable.
+
+* **structure**, class :py:class:`StructureData <aiida.orm.StructureData>`
 
 A structure. See the plugin documentation for more details.
 
-
-* **protocol**, Str
+* **protocol**, class :py:class:`Str <aiida.orm.Str>`
 
 Either "standard" or "fast" at this point.
 Each has its own set of associated parameters.
@@ -95,16 +95,18 @@ The *basis* section applies globally for now.
 Outputs
 -------
 
-* **scf_plus_band_parameters** :py:class:`ParameterData <aiida.orm.data.parameter.ParameterData>` 
+* **output_parameters** :py:class:`Dict <aiida.orm.Dict>` 
 
 A dictionary with metadata and scalar result values from the final *scf+bands*
 calculation executed.
 
-* **bandstructure**, :py:class:`BandsData
-  <aiida.orm.data.array.bands.BandsData>`
+* **bands**, :py:class:`BandsData <aiida.orm.BandsData>`
   
-Contains the list of electronic energies for every kpoint. For
-spin-polarized calculations, the 'bands' array has an extra dimension
+Contains an array with the list of electronic energies for every
+kpoint. For spin-polarized calculations, there is an extra dimension
 for spin.
 
+* **output_structure** :py:class:`StructureData <aiida.orm.StructureData>`
+  
+Present only if the workchain is modifying the geometry of the system.
 

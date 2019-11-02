@@ -38,38 +38,38 @@ Supported Siesta versions
 
 At least 4.0.1 of the 4.0 series, and 4.1-b3 of the 4.1 series, which
 can be found in the development platform
-(http://launchpad.net/siesta/).
+(https://gitlab.com/siesta-project/siesta/).
 
 Inputs
 ------
 
-* **code**, a code associated to the Siesta plugin
+* **code**,  class :py:class:`Code  <aiida.orm.Code>`
 
-* **stm_code**, a code associated to the STM (plstm)  plugin
+A database object representing a Siesta executable.
 
-* **structure**, class :py:class:`StructureData
-  <aiida.orm.data.structure.StructureData>`
+* **stm_code**, class :py:class:`Code  <aiida.orm.Code>`
+
+A code associated to the STM (plstm)  plugin (siesta.stm)
+
+* **structure**, class :py:class:`StructureData <aiida.orm.StructureData>`
 
 A structure. See the plugin documentation for more details.
 
-* **height**, class :py:class:`Float
-  <aiida.orm.data.base.Float>`
+* **height**, class :py:class:`Float <aiida.orm.Float>`
 
 The height of the plane at which the image is desired (in Ang).
 
-* **e1**, class :py:class:`Float
-  <aiida.orm.data.base.Float>`
+* **e1**, class :py:class:`Float  <aiida.orm.Float>`
 
 The lower limit of the energy window for which the LDOS is to be
 computed (in eV).
 
-* **e2**, class :py:class:`Float
-  <aiida.orm.data.base.Float>`
+* **e2**, class :py:class:`Float <aiida.orm.Float>`
 
 The upper limit of the energy window for which the LDOS is to be
 computed (in eV).
 
-* **protocol**, Str
+* **protocol**, class :py:class:`Str <aiida.orm.Str>`
 
 Either "standard" or "fast" at this point.
 Each has its own set of associated parameters.
@@ -126,11 +126,7 @@ The *basis* section applies globally for now.
 Outputs
 -------
 
-* **output_structure** :py:class:`ParameterData <aiida.orm.data.parameter.ParameterData>` 
-
-The final relaxed structure (if applicable)
-
-* **stm_array** :py:class:`ArrayData <aiida.orm.data.array.ArrayData>` 
+* **stm_array** :py:class:`ArrayData <aiida.orm.ArrayData>` 
 
 A collection of three 2D arrays (`X`, `Y`, `Z`) holding the section or
 topography information. They follow the `meshgrid` convention in
