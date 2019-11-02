@@ -7,12 +7,12 @@ import six
 from aiida import orm
 from aiida.common import CalcInfo, CodeInfo, InputValidationError
 from aiida.common.constants import elements
-from aiida.engine import CalcJob, exceptions
-from aiida.orm import Dict, RemoteData, StructureData, BandsData, ArrayData
+from aiida.engine import CalcJob
+from aiida.orm import Dict, StructureData, BandsData, ArrayData
 
 from .tkdict import FDFDict
-from aiida_siesta.data.psf import PsfData, get_pseudos_from_structure
-
+from aiida_siesta.data.psf import PsfData
+from aiida_siesta.data.psml import PsmlData
 # See the LICENSE.txt and AUTHORS.txt files.
 
 ###################################################################
@@ -95,15 +95,18 @@ class SiestaCalculation(CalcJob):
                    valid_type=orm.Dict,
                    help='Input settings',
                    required=False)
-        spec.input('parameters', valid_type=orm.Dict, help='Input parameters')
+        spec.input('parameters',
+                   valid_type=orm.Dict,
+                   help='Input parameters')
         spec.input('parent_calc_folder',
                    valid_type=orm.RemoteData,
                    required=False,
                    help='Parent folder')
-        spec.input_namespace('pseudos',
-                             valid_type=PsfData,
-                             help='Input pseudo potentials',
-                             dynamic=True)
+        spec.input_namespace(
+                  'pseudos',
+                  valid_type=(PsfData, PsmlData),
+                  help='Input pseudo potentials',
+                  dynamic=True)
 
         # These are optional, since a default is specified
         # But they should not be set by the user...
@@ -128,7 +131,7 @@ class SiestaCalculation(CalcJob):
         spec.input('metadata.options.parser_name',
                    valid_type=six.string_types,
                    default='siesta.parser')
-
+#----------------------------------------------------
         spec.output('output_parameters',
                     valid_type=Dict,
                     required=True,
@@ -142,7 +145,7 @@ class SiestaCalculation(CalcJob):
                     valid_type=BandsData,
                     required=False,
                     help='Optional band structure')
-        #I don't know why the bands parameters are parsed as BandsData alseady contains the kpoints (Emanuele)
+        #I don't know why the bands parameters are parsed as BandsData already contains the kpoints (Emanuele)
         #AG: Agreed, this will go soon.
         spec.output('bands_parameters',
                     valid_type=Dict,
@@ -319,8 +322,15 @@ class SiestaCalculation(CalcJob):
             # ... list of tuples with format ('node_uuid', 'filename', relativedestpath')
             # We probably should be pre-pending 'self._PSEUDO_SUBFOLDER' in the
             # last slot, for generality...
-            local_copy_list.append((ps.uuid, ps.filename, kind.name + ".psf"))
-
+            if isinstance(ps, PsfData):
+                local_copy_list.append((ps.uuid, ps.filename,
+                                        kind.name + ".psf"))
+            elif isinstance(ps, PsmlData):
+                local_copy_list.append((ps.uuid, ps.filename,
+                                        kind.name + ".psml"))
+            else:
+                pass
+                
         atomic_species_card_list = (["%block chemicalspecieslabel\n"] +
                                     list(atomic_species_card_list))
         atomic_species_card = "".join(atomic_species_card_list)

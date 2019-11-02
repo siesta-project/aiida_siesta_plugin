@@ -77,9 +77,10 @@ inserted in the database, so it should not be used in the input script
 instance). For legibility, a single dash ('-') is suggested, as in the
 examples above.
 
-* **pseudos**, input namespace of class :py:class:`PsfData <aiida_siesta.data.psf.PsfData>`
+* **pseudos**, input namespace of class :py:class:`PsfData  <aiida_siesta.data.psf.PsfData>`
+  OR class :py:class:`PsmlData  <aiida_siesta.data.psml.PsmlData>`
 
-The PsfData class has been implemented along the lines of the Upf class for QE.
+The PsfData and PsmlData classes have been implemented along the lines of the Upf class for QE.
 
 One pseudopotential file per atomic element. Several species (in the
 Siesta sense, which allows the same element to be treated differently
@@ -97,9 +98,13 @@ has been installed. (But the family approach does not yet support
 multiple species sharing the same pseudopotential.)
 
 .. note:: The verdi command-line interface now supports entry points
-   defined by external packages. We have implemented a `verdi data
-   psf` family of commands: `uploadfamily`, `exportfamily`, and
+   defined by external packages. We have implemented  `verdi data
+   psf` and `verdi data psml` suites of commands: `uploadfamily`, `exportfamily`, and
    `listfamilies`.
+
+It can be argued that a single `SiestaPseudo` class, with psf and psml
+subclasses, might have been implemented. But the `PsmlData` class aims
+to transcend Siesta and to be used by other codes.
 
 * **basis**, class :py:class:`Dict  <aiida.orm.Dict>`
   

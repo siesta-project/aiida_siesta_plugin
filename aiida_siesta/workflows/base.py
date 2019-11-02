@@ -12,7 +12,7 @@ from aiida.engine import CalcJob, WorkChain, ToContext, append_, while_
 from aiida.plugins import CalculationFactory
 from aiida.common import AttributeDict, AiidaException
 
-from aiida_siesta.data.psf import PsfData, get_pseudos_from_structure
+from aiida_siesta.data.common import get_pseudos_from_structure
 from aiida_siesta.calculations.siesta import SiestaCalculation
 
 from .utils import register_error_handler, ErrorHandlerReport, ErrorHandler
@@ -219,10 +219,6 @@ class SiestaBaseWorkChain(WorkChain):
             if kind not in pseudos:
                 raise ValueError(
                     'no pseudo available for element {}'.format(kind))
-            elif not isinstance(pseudos[kind], PsfData):
-                raise ValueError(
-                    'pseudo for element {} is not of type PsfData'.format(
-                        kind))
 
         return pseudos
 
@@ -360,6 +356,7 @@ class SiestaBaseWorkChain(WorkChain):
 
         """
 
+
         for name, port in six.iteritems(self.spec().outputs):
 
             try:
@@ -378,7 +375,6 @@ class SiestaBaseWorkChain(WorkChain):
 
         self.report('Base workchain completed after {} iterations'.format(
             self.ctx.iteration))
-
     def on_terminated(self):
         """
         If the clean_workdir input was set to True, recursively collect

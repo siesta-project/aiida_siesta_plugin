@@ -66,13 +66,14 @@ the Dict instance). For legibility, a single dash ('-') is suggested, as in the
 examples above.
 
 * **pseudos**, input namespace of class :py:class:`PsfData <aiida_siesta.data.psf.PsfData>`
+  OR class :py:class:`PsmlData <aiida_siesta.data.psml.PsmlData>`
 
 (Optional)
-A dictionary of PsfData objects representing the pseudopotentials for
+A dictionary of PsfData or PsmlData objects representing the pseudopotentials for
 the calculation. If it is not input, a **pseudo_family** specification
 must be used (see below).
 
-The PsfData class has been implemented along the lines of the Upf class for QE.
+The PsfData and PsmlData classes have been implemented along the lines of the Upf class for QE.
 
 * **pseudo_family**, class :py:class:`Str <aiida.orm.Str>`
 
