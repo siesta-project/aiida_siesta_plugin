@@ -125,12 +125,66 @@ If this node is not present, only the Gamma point is used for sampling.
 
 * **bandskpoints**, class :py:class:`KpointsData <aiida.orm.KpointsData>`
   
-Reciprocal space points for the calculation of bands.  They can be
-given as a simple list of k-points, as segments with start and end
-point and number of points, or as a complete automatic path, using the
-functionality of modern versions of the class.
+Reciprocal space points for the calculation of bands.
+This keyword is meant to facilitate the management of kpoints
+exploiting the functionality
+of the class :py:class:`KpointsData <aiida.orm.KpointsData>`.
+The full list of kpoints must be passed to the class
+and they must be in units of the reciprocal lattice vectors.
+Moreover the cell must be set in the :py:class:`KpointsData <aiida.orm.KpointsData>`
+class.
 
-If this node is not present, no band structure is computed.
+This can be achieved manually listing a set of kpoints::
+        bandskpoints.set_cell(structure.cell, structure.pbc)
+        kpp = [(0.500,  0.250, 0.750), (0.500,  0.500, 0.500), (0., 0., 0.)]
+        bandskpoints.set_kpoints(kpp)
+In this case Siesta will create the BandPoints block.
+
+Alternatively (recommended) the high-symmetry path associated to the
+structure under investigation can be
+automatically generated through the aiida tool 'get_explicit_kpoints_path'.
+Here how to use it::
+        from aiida.tools import get_explicit_kpoints_path
+        symmpath_parameters = Dict(dict={
+        'reference_distance': 0.02,
+        'symprec': 0.0001
+        })
+        kpresult = get_explicit_kpoints_path(s, **symmpath_parameters.get_dict())
+        bandskpoints = kpresult['explicit_kpoints']
+Where 's' in the input structure and 'reference_distance' is
+the distance between two subsequent kpoints. 'symprec' is the precision
+in calculating the
+
+In this case the block BandLines is set in the Siesta
+calculation.
+
+.. note:: 'get_explicit_kpoints_path' make use of "SeeK-path".
+   Please cite the `HPKOT paper`_. if you use this tool.
+   Warning: as explained in the `aiida documentation`_., SeekPath
+   might modify the structure to follow particular conventions
+   and the generated kpoints might only 
+   apply on the internally generated 'primitive_structure' and not 
+   on the input structure that was provided. The correct
+   way to use this tool is to use the generated 'primitive_structure' also for the
+   Siesta calculation::
+        structure = kpresult['primitive_structure']
+
+The final option (unrecommended) covers the situation
+when one really needs to maintain a specific convention for the
+structure or one needs to calculate the bands on a specific path
+that is not a high-symmetry direction, the following (very involved)
+option is available::
+        from aiida.tools.data.array.kpoints.legacy import get_explicit_kpoints_path as legacy_path
+        kpp = [('A',  (0.500,  0.250, 0.750), 'B', (0.500,  0.500, 0.500), 40),
+        ('B', (0.500,  0.500, 0.500), 'C', (0., 0., 0.), 40)]
+        tmp=legacy_path(kpp)
+        bandskpoints.set_cell(structure.cell, structure.pbc)
+        bandskpoints.set_kpoints(tmp[3])
+        bandskpoints.labels=tmp[4]
+The legacy "get_explicit_kpoints_path" shares only the name with the function in
+"aiida.tools", but it is very different in scope.
+
+If the keyword node is not present, no band structure is computed.
 
 * **settings**, class  :py:class:`Dict <aiida.orm.Dict>`
       
@@ -275,3 +329,6 @@ those files as a list as follows::
   settings_dict = {  
     'additional_retrieve_list': ['aiida.EIG', 'aiida.ORB_INDX'],
   }
+
+.. _HPKOT paper: http://dx.doi.org/10.1016/j.commatsci.2016.10.015
+.. _aiida documentation: https://aiida.readthedocs.io/projects/aiida-core/en/latest/apidoc/aiida.tools.html#aiida.tools.get_explicit_kpoints_path
