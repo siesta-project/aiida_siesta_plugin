@@ -49,6 +49,8 @@ implemented through the 'name' attribute of the Site objects. For example::
    s.append_atom(position=(0.000,0.000,4.442),symbols=['C'])
    s.append_atom(position=(0.000,0.000,5.604),symbols=['H'])
 
+The class :py:class:`StructureData <aiida.orm.StructureData>` uses Angstrom
+as internal units, the cell and atom positions must be specified in Angstrom.
 
 * **parameters**, class :py:class:`Dict <aiida.orm.Dict>`
 
@@ -146,15 +148,11 @@ structure under investigation can be
 automatically generated through the aiida tool 'get_explicit_kpoints_path'.
 Here how to use it::
         from aiida.tools import get_explicit_kpoints_path
-        symmpath_parameters = Dict(dict={
-        'reference_distance': 0.02,
-        'symprec': 0.0001
-        })
+        symmpath_parameters = Dict(dict={'reference_distance': 0.02})
         kpresult = get_explicit_kpoints_path(s, **symmpath_parameters.get_dict())
         bandskpoints = kpresult['explicit_kpoints']
 Where 's' in the input structure and 'reference_distance' is
-the distance between two subsequent kpoints. 'symprec' is the precision
-in calculating the
+the distance between two subsequent kpoints.
 
 In this case the block BandLines is set in the Siesta
 calculation.
