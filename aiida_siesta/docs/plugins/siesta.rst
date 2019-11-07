@@ -135,6 +135,7 @@ Moreover the cell must be set in the :py:class:`KpointsData <aiida.orm.KpointsDa
 class.
 
 This can be achieved manually listing a set of kpoints::
+
         bandskpoints.set_cell(structure.cell, structure.pbc)
         kpp = [(0.500,  0.250, 0.750), (0.500,  0.500, 0.500), (0., 0., 0.)]
         bandskpoints.set_kpoints(kpp)
@@ -159,8 +160,8 @@ In this case the block BandLines is set in the Siesta
 calculation.
 
 .. note:: 'get_explicit_kpoints_path' make use of "SeeK-path".
-   Please cite the `HPKOT paper`_. if you use this tool.
-   Warning: as explained in the `aiida documentation`_., SeekPath
+   Please cite the `HPKOT paper`_ if you use this tool.
+   Warning: as explained in the `aiida documentation`_, SeekPath
    might modify the structure to follow particular conventions
    and the generated kpoints might only 
    apply on the internally generated 'primitive_structure' and not 
@@ -184,7 +185,14 @@ option is available::
 The legacy "get_explicit_kpoints_path" shares only the name with the function in
 "aiida.tools", but it is very different in scope.
 
-If the keyword node is not present, no band structure is computed.
+If the keyword node **bandskpoints** is not present, no band structure is computed.
+
+.. note:: The implementation relies on the correct description of
+   the labels in the class :py:class:`KpointsData <aiida.orm.KpointsData>`.
+   Refrain from the use of 'bandskpoints.labels= ..' in any other
+   situation apart from the one described above. An incorrect use of the labels
+   might result in an incorrect parsing of the bands.
+
 
 * **settings**, class  :py:class:`Dict <aiida.orm.Dict>`
       
@@ -262,9 +270,12 @@ positions refer to the last configuration.
   
 Present only if a band calculation is requested (signaled by the
 presence of a **bandskpoints** input node of class KpointsData)
-Contains an array with the list of electronic energies for every
+Contains an array with the list of electronic energies (in eV) for every
 kpoint. For spin-polarized calculations, there is an extra dimension
-for spin.
+for spin. In this class also the full list of kpoints is stored and they are
+in units of 1/Angstrom. Therefore a direct comparison with the Siesta output 
+SystLabel.bands is possible only after the conversion of Angstrom to Bohr.
+The bands are not rescaled by the Fermi energy.
   
 No trajectories have been implemented yet.
 
