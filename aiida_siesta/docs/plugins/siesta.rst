@@ -61,10 +61,11 @@ Inputs
   as internal units, the cell and atom positions must be specified in Angstrom.
 
   The :py:class:`StructureData <aiida.orm.StructureData>` can also import 
-  ase structure or pymatgen structures. This two tools can be used to load
+  ase structures or pymatgen structures. This two tools can be used to load
   structure from files. See example in ....
 
 * **parameters**, class :py:class:`Dict <aiida.orm.Dict>`, *Mandatory*
+
   A dictionary with scalar fdf variables and blocks, which are the
   basic elements of any Siesta input file. A given Siesta fdf file
   can be cast almost directly into this dictionary form, except that
@@ -160,6 +161,7 @@ Inputs
   any basis specification and it will run with the default DZP.
 
 * **kpoints**, class :py:class:`KpointsData <aiida.orm.KpointsData>`, *Optional*
+
   Reciprocal space points for the full sampling of the BZ during the
   self-consistent-field iteration. It must be given in mesh form. There is no support
   yet for Siesta's kgrid-cutoff keyword::
@@ -171,6 +173,7 @@ Inputs
   If this node is not present, only the Gamma point is used for sampling.
   
 * **bandskpoints**, class :py:class:`KpointsData <aiida.orm.KpointsData>`, *Optional*
+
   Reciprocal space points for the calculation of bands.
   This keyword is meant to facilitate the management of kpoints
   exploiting the functionality
@@ -206,7 +209,8 @@ Inputs
 
   .. note:: 'get_explicit_kpoints_path' make use of "SeeK-path".
      Please cite the `HPKOT paper`_ if you use this tool.
-     Warning: as explained in the `aiida documentation`_, SeekPath
+
+  .. warning:: as explained in the `aiida documentation`_, SeekPath
      might modify the structure to follow particular conventions
      and the generated kpoints might only 
      apply on the internally generated 'primitive_structure' and not 
@@ -236,16 +240,16 @@ Inputs
 
   The full list of cases can be explored looking at the example ...
 
-  If the keyword node **bandskpoints** is not present, no band structure is computed.
-
   .. warning:: The implementation relies on the correct description of
      the labels in the class :py:class:`KpointsData <aiida.orm.KpointsData>`.
      Refrain from the use of 'bandskpoints.labels' in any other
      situation apart from the one described above. An incorrect use of the labels
      might result in an incorrect parsing of the bands.
 
+  If the keyword node **bandskpoints** is not present, no band structure is computed.
 
 * **settings**, class  :py:class:`Dict <aiida.orm.Dict>` , *Optional*      
+
   An optional dictionary that activates non-default operations. For a list of possible
   values to pass, see the section on :ref:`advanced features <siesta-advanced-features>`.
 
@@ -256,10 +260,12 @@ Once all the inputs above are set, the subsequent step consists in passing them 
 calculation class and run/submit it.
 
 First, the Siesta calculation class is loaded::
+
         from aiida_siesta.calculations.siesta import SiestaCalculation
         builder = SiestaCalculation.get_builder()
 
 The inputs (defined as in the previous section) are passed to the builder::
+
         builder.code = code
         builder.structure = structure
         builder.parameters = parameters
@@ -269,22 +275,27 @@ The inputs (defined as in the previous section) are passed to the builder::
         builder.bandskpoints = bandskpoints
 
 Finally the resources for the calculation must be set, for instance::
+
         builder.metadata.options.resources = {'num_machines': 1}
         builder.metadata.options.max_wallclock_seconds = 1800
 
 Optionally, label and description::
+
         builder.metadata.label = 'My generic title'
         builder.metadata.description 'My more detailed description'
 
-Run the calculation for interactive run::
+To run the calculation in an interactive way::
+
         from aiida.engine import run
         results = run(builder)
-where the results variable will contain a dictionary containing all the nodes that were produced as output.
+Here the results variable will contain a dictionary 
+containing all the nodes that were produced as output.
 
-Or submit it to the deamon to run in backround::
+Another option is to submit it to the deamon::
+
         from aiida.engine import run
         calc = submit(builder)
-In this case, calc is the calculation node, and not the result dictionary.
+In this case, calc is the calculation node and not the results dictionary.
 
 .. note:: In order to inspect the inputs created by AiiDA without 
    actually running the calculation, we can perform a dry run of the submission process::
@@ -369,13 +380,14 @@ functionality should be compiled in and active in the run!
 * **bands**, :py:class:`BandsData  <aiida.orm.BandsData>`
   
   Present only if a band calculation is requested (signaled by the
-  presence of a **bandskpoints** input node of class KpointsData)
-  Contains an array with the list of electronic energies (in eV) for every
+  presence of a **bandskpoints** input node of class KpointsData).
+  It contains an array with the list of electronic energies (in eV) for every
   kpoint. For spin-polarized calculations, there is an extra dimension
   for spin. In this class also the full list of kpoints is stored and they are
   in units of 1/Angstrom. Therefore a direct comparison with the Siesta output 
   SystLabel.bands is possible only after the conversion of Angstrom to Bohr.
-  The bands are not rescaled by the Fermi energy.
+  The bands are not rescaled by the Fermi energy. Tools for the generation
+  of files that can be easly plot are available through ``bands.export``.
   
 No trajectories have been implemented yet.
 
@@ -384,7 +396,7 @@ Errors
 
 Errors during the parsing stage are reported in the log of the calculation (accessible 
 with the ``verdi process report`` command). 
-Moreover, they are stored in the `output_parameters` node under the key ``warnings``.
+Moreover, they are stored in the **output_parameters** node under the key ``warnings``.
 
 Restarts
 --------
