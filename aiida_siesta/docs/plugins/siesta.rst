@@ -414,8 +414,7 @@ Restarts
 --------
 
 A restarting capability is implemented through the optional input
-**parent_calc_folder**, :py:class:`RemoteData  <aiida.orm.RemoteData>`
-
+**parent_calc_folder**, :py:class:`RemoteData  <aiida.orm.RemoteData>`,
 which represents the remote scratch folder for a previous calculation.
 
 The density-matrix file is copied from the old calculation scratch
@@ -425,7 +424,7 @@ This approach enables continuation of runs which have failed due to
 lack of time or insufficient convergence in the allotted number of
 steps.
 
-Examples are in ...
+An informative example is example_restart.py in the folder aiida_siesta/examples/plugins/siesta.
 
 .. _siesta-advanced-features:
 
@@ -466,6 +465,8 @@ those files as a list as follows::
   settings_dict = {  
     'additional_retrieve_list': ['aiida.EIG', 'aiida.ORB_INDX'],
   }
+
+See for example example_ldos.py in aiida_siesta/examples/plugins/siesta.
 
 .. _aiida guidelines: https://aiida-core.readthedocs.io/en/latest/get_started/computers.html
 .. _HPKOT paper: http://dx.doi.org/10.1016/j.commatsci.2016.10.015
