@@ -19,4 +19,5 @@ aiida_core python framework.
 ::
 
    reentry scan -r aiida
+   verd daemon restart
 

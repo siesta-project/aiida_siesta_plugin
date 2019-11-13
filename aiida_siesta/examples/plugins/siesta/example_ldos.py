@@ -12,6 +12,8 @@ from aiida.orm import load_code
 from aiida_siesta.calculations.siesta import SiestaCalculation
 from aiida.plugins import DataFactory
 
+# There is no parsing for the ldos, but the file .LDOS can be
+# retrieved using the "settings" feature.
 ################################################################
 
 PsfData = DataFactory('siesta.psf')
@@ -36,7 +38,7 @@ except IndexError:
 try:
     codename = sys.argv[2]
 except IndexError:
-    codename = 'Siesta-4.0@rinaldo'
+    codename = 'Siesta4.0.1@kelvin'
 
 #
 #------------------Code and computer options ---------------------------
@@ -44,7 +46,7 @@ except IndexError:
 code = load_code(codename)
 
 options = {
-    "queue_name": "debug",
+#    "queue_name": "debug",
     "max_wallclock_seconds": 1700,
     "resources": {
         "num_machines": 1,
@@ -54,7 +56,7 @@ options = {
 #
 #----Settings first  -----------------------------
 #
-settings_dict = {'additional_retrieve_list': ['aiida.BONDS', 'aiida.EIG']}
+settings_dict = {'additional_retrieve_list': ['aiida.BONDS', 'aiida.LDOS']}
 settings = Dict(dict=settings_dict)
 #---------------------------------------------------
 
@@ -150,8 +152,8 @@ basis = Dict(dict=basis_dict)
 # This exemplifies the handling of pseudos for different species
 # Those sharing the same pseudo should be indicated.
 #
-pseudos_list = []
-raw_pseudos = [("C.psf", ['C', 'Cred']), ("H.psf", 'H')]
+pseudos_dict = {}
+raw_pseudos = [("C.psf", ['C', 'Cred']), ("H.psf", ['H'])]
 
 for fname, kinds, in raw_pseudos:
     absname = os.path.realpath(
@@ -162,21 +164,20 @@ for fname, kinds, in raw_pseudos:
         print("Created the pseudo for {}".format(kinds))
     else:
         print("Using the pseudo for {} from DB: {}".format(kinds, pseudo.pk))
-    pseudos_list.append(pseudo)
+    for j in kinds:
+        pseudos_dict[j]=pseudo
+
 
 #-----------------------------------------------------------------------
 #--All the inputs of a Siesta calculations are listed in a dictionary--
 #
 inputs = {
+    'settings' : settings,
     'structure': s,
     'parameters': parameters,
     'code': code,
     'basis': basis,
-    'pseudos': {
-        'C': pseudos_list[0],
-        'Cred': pseudos_list[0],
-        'H': pseudos_list[1],
-    },
+    'pseudos': pseudos_dict,
     'metadata': {
         'options': options,
         'label': "Benzene molecule",

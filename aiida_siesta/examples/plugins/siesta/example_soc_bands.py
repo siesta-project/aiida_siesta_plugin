@@ -39,7 +39,7 @@ except IndexError:
 try:
     codename = sys.argv[2]
 except IndexError:
-    codename = 'Siesta4.0.1@kelvin'
+    codename = 'Siesta4.1-b3@kelvin'
 
 ##-------------------Structure-----------------------------------
 ##Manually set the structure, all the quantities must be in Ang.
@@ -114,23 +114,31 @@ bandskpoints = KpointsData()
 ##This calls BandLine in siesta
 bandskpoints = result['explicit_kpoints']
 
-pseudos_list = []
-raw_pseudos = [("Ge.psf", 'Ge')]
-for fname, kind in raw_pseudos:
+
+# Pseudopotentials
+pseudos_dict = {}
+raw_pseudos = [("Ge.psf", ['Ge'])]
+for fname, kinds in raw_pseudos:
     absname = op.realpath(
         op.join(op.dirname(__file__), "data/sample-psf-family", fname))
     pseudo, created = PsfData.get_or_create(absname, use_first=True)
     if created:
-        print("\nCreated the pseudo for {}".format(kind))
+        print("\nCreated the pseudo for {}".format(kinds))
     else:
-        print("\nUsing the pseudo for {} from DB: {}".format(kind, pseudo.pk))
-    pseudos_list.append(pseudo)
+        print("\nUsing the pseudo for {} from DB: {}".format(kinds, pseudo.pk))
+    for j in kinds:
+        pseudos_dict[j]=pseudo
+
+
 
 options = {
-    "max_wallclock_seconds": 600,
+#    "queue_name": "DevQ",
+#    'account' : "tcphy107c",
+    "max_wallclock_seconds": 1200,
+    "withmpi" : True,
     "resources": {
         "num_machines": 1,
-        "num_mpiprocs_per_machine": 1,
+        "num_mpiprocs_per_machine": 2,
     }
 }
 
@@ -141,9 +149,7 @@ inputs = {
     'basis': basis,
     'kpoints': kpoints,
     'bandskpoints': bandskpoints,
-    'pseudos': {
-        'Ge': pseudos_list[0],
-    },
+    'pseudos': pseudos_dict,
     'metadata': {
         "label": "Ge band-structure with SOC",
         'options': options,

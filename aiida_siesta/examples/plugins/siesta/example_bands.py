@@ -2,10 +2,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 from __future__ import print_function
-
 import os.path as op
 import sys
-from aiida.tools import get_explicit_kpoints_path
 
 #In this example we will calculate the band structure of Si.
 #Thanks to SeeK-path we can automatically generate the
@@ -14,13 +12,14 @@ from aiida.tools import get_explicit_kpoints_path
 
 ################################################################
 
+
 from aiida.engine import submit
 from aiida.orm import load_code
 from aiida.orm import (Dict, StructureData, KpointsData)
 from aiida_siesta.calculations.siesta import SiestaCalculation
-from aiida.plugins import DataFactory
+from aiida_siesta.data.psf import PsfData
+from aiida.tools import get_explicit_kpoints_path
 
-PsfData = DataFactory('siesta.psf')
 
 try:
     dontsend = sys.argv[1]
@@ -41,11 +40,13 @@ try:
 except IndexError:
     codename = 'Siesta4.0.1@kelvin'
 
+#The code
+code = load_code(codename)
+
 ##-------------------Structure-----------------------------------
 ##Manually set the structure, all the quantities must be in Ang.
 ##Then, we pass through SeeK-path, to get the standardized cell,
 ##necessary for the automatic choice of the bands path.
-
 alat = 5.430  # angstrom
 cell = [
     [
@@ -80,8 +81,7 @@ seekpath_parameters = Dict(dict={
 result = get_explicit_kpoints_path(s, **seekpath_parameters.get_dict())
 structure = result['primitive_structure']
 
-code = load_code(codename)
-
+#The parameters
 parameters = Dict(
     dict={
         'xc-functional': 'LDA',
@@ -92,64 +92,66 @@ parameters = Dict(
         'dm-tolerance': 1.e-3,
         'Solution-method': 'diagon',
         'electronic-temperature': '25 meV',
-        'md-typeofrun': 'cg',
-        'md-numcgsteps': 3,
-        'md-maxcgdispl': '0.1 Ang',
-        'md-maxforcetol': '0.04 eV/Ang',
         'write-forces': True,
-        # 'xml-write': True
     })
 
-basis = Dict(
-    dict={
-        'pao-energy-shift': '300 meV',
-        '%block pao-basis-sizes': """
+#The basis
+basis = Dict(dict={
+'pao-energy-shift': '300 meV',
+'%block pao-basis-sizes': """
 Si DZP
 %endblock pao-basis-sizes""",
     })
 
+#The kpoints mesh
 kpoints = KpointsData()
 kpoints.set_kpoints_mesh([4, 4, 4])
 
 ##-------------------K-points for bands --------------------
 bandskpoints = KpointsData()
-##Uncomment your favourite, two options:
-
+##Uncomment your favourite, three options:
 ##1)
 ##.....Making use of SeeK-path for the automatic path......
 ##The choice of the distance between kpoints is in the call seekpath_parameters
 ##All high symmetry points included, labels already included
 ##This calls BandLine in siesta
 bandskpoints = result['explicit_kpoints']
-
 ##2)
-##.....Only points, no labels.......
-##Mandatory to set cell and pbc
+##.................Only discrete points.............
+##Mandatory to set cell and pbc. Do not set labels!
 ##This calls BandsPoint
 #kpp = [(0.500,  0.250, 0.750), (0.500,  0.500, 0.500), (0., 0., 0.)]
 #bandskpoints.set_cell(structure.cell, structure.pbc)
 #bandskpoints.set_kpoints(kpp)
-
-#Note: The option to define a path touching specific kpoints
-#for instance:
+##3)
+##...The option to define a path touching specific kpoints...
+##It make use of a legacy function. Mandatory to set cell and pbc
+#from aiida.tools.data.array.kpoints.legacy import get_explicit_kpoints_path as legacy_path
 #kpp = [('W',  (0.500,  0.250, 0.750), 'L', (0.500,  0.500, 0.500), 40),
 #        ('L', (0.500,  0.500, 0.500), 'G', (0., 0., 0.), 40)]
-#Now is not easy to set. I'll study more on that
+#tmp=legacy_path(kpp)
+#bandskpoints.set_cell(structure.cell, structure.pbc)
+#bandskpoints.set_kpoints(tmp[3])
+#bandskpoints.labels=tmp[4]
 
-pseudos_list = []
-raw_pseudos = [("Si.psf", 'Si')]
-for fname, kind in raw_pseudos:
+#The pseudopotentials
+pseudos_dict = {}
+raw_pseudos = [("Si.psf", ['Si'])]
+for fname, kinds in raw_pseudos:
     absname = op.realpath(
         op.join(op.dirname(__file__), "data/sample-psf-family", fname))
     pseudo, created = PsfData.get_or_create(absname, use_first=True)
     if created:
-        print("\nCreated the pseudo for {}".format(kind))
+        print("\nCreated the pseudo for {}".format(kinds))
     else:
-        print("\nUsing the pseudo for {} from DB: {}".format(kind, pseudo.pk))
-    pseudos_list.append(pseudo)
+        print("\nUsing the pseudo for {} from DB: {}".format(kinds, pseudo.pk))
+    for j in kinds:
+        pseudos_dict[j]=pseudo
 
+#Resources
 options = {
     "max_wallclock_seconds": 600,
+#    "withmpi" : True,
     "resources": {
         "num_machines": 1,
         "num_mpiprocs_per_machine": 1,
@@ -163,11 +165,9 @@ inputs = {
     'basis': basis,
     'kpoints': kpoints,
     'bandskpoints': bandskpoints,
-    'pseudos': {
-        'Si': pseudos_list[0],
-    },
+    'pseudos': pseudos_dict,
     'metadata': {
-        "label": "TestOnSiliconBandsLines",
+        "label": "TestOnSiliconBands",
         'options': options,
     }
 }

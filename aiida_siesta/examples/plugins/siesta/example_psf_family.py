@@ -13,6 +13,7 @@ from aiida_siesta.data.psf import get_pseudos_from_structure
 from aiida.plugins import DataFactory
 
 #----------------- Example of the use of a pseudopotential family
+# Read 00_README to learn how to set up a family
 
 PsfData = DataFactory('siesta.psf')
 Dict = DataFactory('dict')
@@ -102,8 +103,6 @@ s.append_atom(position=(0.000, 0.000, 5.604), symbols=['H'])
 params_dict = {
     'xc-functional': 'LDA',
     'xc-authors': 'CA',
-    'spin-polarized': True,
-    'noncollinearspin': False,
     'mesh-cutoff': '200.000 Ry',
     'max-scfiterations': 1000,
     'dm-numberpulay': 5,
@@ -113,13 +112,7 @@ params_dict = {
     'negl-nonoverlap-int': False,
     'solution-method': 'diagon',
     'electronic-temperature': '100.000 K',
-    'md-typeofrun': 'cg',
-    'md-numcgsteps': 2,
-    'md-maxcgdispl': '0.200 bohr',
-    'md-maxforcetol': '0.050 eV/Ang',
     'writeforces': True,
-    'writecoorstep': True,
-    'write-mulliken-pop': 1,
 }
 
 parameters = Dict(dict=params_dict)

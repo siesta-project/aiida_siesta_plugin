@@ -10,7 +10,7 @@ from __future__ import print_function
 # in the allotted number of iterations.
 
 import sys
-import os
+import os.path as op
 
 from aiida.engine import submit
 from aiida.orm import load_code
@@ -41,7 +41,7 @@ except IndexError:
 try:
     codename = sys.argv[2]
 except IndexError:
-    codename = 'siesta4.0.1@kelvin'
+    codename = 'Siesta4.0.1@kelvin'
 
 #
 #------------------Code
@@ -80,7 +80,7 @@ s.append_atom(position=(0.250 * alat, 0.250 * alat, 0.250 * alat),
 #----------------------------------------------
 
 options = {
-    "queue_name": "debug",
+#    "queue_name": "debug",
     "max_wallclock_seconds": 1700,
     "resources": {
         "num_machines": 1,
@@ -134,18 +134,18 @@ kpoints_mesh = 4
 kpoints.set_kpoints_mesh([kpoints_mesh, kpoints_mesh, kpoints_mesh])
 
 #------------------------------------------------
-pseudos_list = []
-raw_pseudos = [("Si.psf", 'Si')]
-for fname, kinds, in raw_pseudos:
-    absname = os.path.realpath(
-        os.path.join(os.path.dirname(__file__), "data/sample-psf-family",
-                     fname))
+pseudos_dict = {}
+raw_pseudos = [("Si.psf", ['Si'])]
+for fname, kinds in raw_pseudos:
+    absname = op.realpath(
+        op.join(op.dirname(__file__), "data/sample-psf-family", fname))
     pseudo, created = PsfData.get_or_create(absname, use_first=True)
     if created:
-        print("Created the pseudo for {}".format(kinds))
+        print("\nCreated the pseudo for {}".format(kinds))
     else:
-        print("Using the pseudo for {} from DB: {}".format(kinds, pseudo.pk))
-    pseudos_list.append(pseudo)
+        print("\nUsing the pseudo for {} from DB: {}".format(kinds, pseudo.pk))
+    for j in kinds:
+        pseudos_dict[j]=pseudo
 
 #---------------------------------------------
 
@@ -155,9 +155,7 @@ inputs = {
     'code': code,
     'basis': basis,
     'kpoints': kpoints,
-    'pseudos': {
-        'Si': pseudos_list[0],
-    },
+    'pseudos': pseudos_dict,
     'metadata': {
         'options': options,
         'label': "Bulk Si short scf cycle"

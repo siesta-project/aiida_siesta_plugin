@@ -16,6 +16,8 @@ can be found in the development platform
 
 Inputs
 ------
+Some examples are referenced in the following list. They are located in the folder
+aiida_siesta/examples/plugins/siesta.
 
 * **code**, class :py:class:`Code <aiida.orm.Code>`, *Mandatory*
 
@@ -62,7 +64,7 @@ Inputs
 
   The :py:class:`StructureData <aiida.orm.StructureData>` can also import 
   ase structures or pymatgen structures. This two tools can be used to load
-  structure from files. See example in ....
+  structure from files. See example example_cif_bands.py
 
 * **parameters**, class :py:class:`Dict <aiida.orm.Dict>`, *Mandatory*
 
@@ -116,8 +118,7 @@ Inputs
 
   Alternatively, a pseudo for every atomic species can be set with the
   **use_pseudos_from_family**  method, if a family of pseudopotentials
-  has been installed. (But the family approach does not yet support
-  multiple species sharing the same pseudopotential.) For an example ...
+  has been installed. For an example see  example_psf_family.py
 
   .. note:: The verdi command-line interface now supports entry points
      defined by external packages. We have implemented  `verdi data
@@ -238,7 +239,7 @@ Inputs
   The legacy "get_explicit_kpoints_path" shares only the name with the function in
   "aiida.tools", but it is very different in scope.
 
-  The full list of cases can be explored looking at the example ...
+  The full list of cases can be explored looking at the example example_bands.py
 
   .. warning:: The implementation relies on the correct description of
      the labels in the class :py:class:`KpointsData <aiida.orm.KpointsData>`.
@@ -308,7 +309,18 @@ In this case, calc is the calculation node and not the results dictionary.
    launch the calculation, passing the calculation class as the first argument::
         run(SiestaCalculation, structure=s, pseudos=pseudos, kpoints = kpoints, ...)
 
-Examples in the folder ...
+A large set of examples covering some standard cases are in the folder 
+aiida_siesta/examples/plugins/siesta. They can be run with::
+        runaiida example_name.py {--send, --dont-send}
+
+The parameter --dont-send will activate the "dry run" option. In that case a test
+folder (submit_test) will be created, containing all the files that aiida
+generates automatically. The parameter --send will submit the example to
+the daemon.
+One of the two parameter needs to be present to run the script. Optionally,
+a second argument containing the name of the code (code@computer) to use
+can be passed to the script. Alternatively the name of the code can be changed
+inside the script.
 
 Outputs
 -------

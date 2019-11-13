@@ -1,26 +1,18 @@
 #!/usr/bin/env runaiida
 # -*- coding: utf-8 -*-
-
 from __future__ import absolute_import
 from __future__ import print_function
 
-# See LICENSE and Contributors
-
-# This script will restart a calculation that ended without
-# scf convergence in the allotted number of iterations, or without geometry convergence.
-#
-# Usage:
-#         ./test_siesta_restart.py {--send, --dont-send} PK_of_failed_calculation
-
-import sys, os
-
-from aiida.engine import submit
-from aiida.orm import load_code
-from aiida.common import NotExistent
+import os.path as op
+import sys
 from aiida_siesta.calculations.siesta import SiestaCalculation
-from aiida.plugins import DataFactory
+from aiida.engine import submit
 
-Dict = DataFactory('dict')
+# Script to restart a calculation, for instance the one obtained with
+# example_scf_fail.py or example_geom_fail.py
+# Usage:
+#         ./example_restart.py {--send, --dont-send} PK_of_calculation_to_restart
+
 
 try:
     dontsend = sys.argv[1]
@@ -32,60 +24,71 @@ try:
         raise IndexError
 except IndexError:
     print(("The first parameter can only be either "
-                          "--send or --dont-send"), file=sys.stderr)
+           "--send or --dont-send"),
+          file=sys.stderr)
     sys.exit(1)
 
 try:
-    PK = int(sys.argv[2])
-except IndexError:
-    print(("The second parameter must be the PK of a calculation"), file=sys.stderr)
+    pke = sys.argv[2]
+    pk = int(pke)
+except:
+    print(("The second parameter is the pk of the calculation "
+           "you want to restart, integer, mandatory!"),
+          file=sys.stderr)
     sys.exit(1)
 
-    
-c = load_node(PK)
+#Loading calculation we want to restart (old_cal),
+#must be second parameter passed to the script
+try:
+    g=load_node(pk)
+    if (g.process_class == SiestaCalculation):
+        print(("Restarting calculation {}").format(pk))
+    else:
+        raise
+except:
+    print(("PK you passed is not a valid PK. "
+           "Allowed are CalcJobNode with .process_class == SiestaCalculation"))
+    sys.exit(1)
 
-print("Restarting calculation (uuid='{}')".format(c.uuid))
-print("Is excepted?: '{}'".format(c.is_excepted))
-#
-# Note that this use of 'failed' does not correspond to the process state.
-#
-print("Is failed?: '{}'".format(c.is_failed))
-if c.is_failed:
-   print("Exit code: '{}'".format(c.exit_status))
-   print("'{}'".format(c.exit_message))
-print(" ")
 
-restart=c.get_builder_restart()
+#Set up the a new calculation with all
+#the inputs of the old one (we use the builder)
+restart=g.get_builder_restart()
 
+#The inputs of old_calc attched to restart are
+#already stored!!! You can not modify them straight away
+#If you want to change something you make a clone
+#and reassign it to the builder.
+#Here we change max-scfiterations for example
 newpar=restart.parameters.clone()
-newpar.attributes["max-scf-iterations"]= 50
+newpar.attributes["max-scfiterations"]=32
+##In case of geometry fail, change th number of md steps:
+#newpar.attributes["md-numcgsteps"]=20
 restart.parameters=newpar
 
-if c.outputs.output_parameters.attributes["variable_geometry"]:
-   restart.structure=c.outputs.output_structure
 
-# The most important line. The presence of
-# parent_calc_folder triggers the 'restart' operations
-# in the plugin, such as  the copy of the .DM and the
-# addition of use-save-dm to the parameters
+#We need to take care here of passing the
+#output geometry of old_calc to the new calculation
+if g.outputs.output_parameters.attributes["variable_geometry"]:
+   restart.structure=g.outputs.output_structure
 
-restart.parent_calc_folder=c.outputs.remote_folder
+#The most important line. The presence of
+#parent_calc_folder triggers the real restart
+#meaning the copy of the .DM and the
+#addition of dm-use-saved-dm to the parameters
+restart.parent_calc_folder=g.outputs.remote_folder
 
 if submit_test:
-
-    m=restart["metadata"]
-
-    # An attempt to clone the 'metadata' section of the object raised this error:
-    # Error: AttributeError: 'ProcessBuilderNamespace' object has no attribute 'clone'
-    # It seems that one can simply set this attributes by hand:
-
-    m.dry_run = True
-    m.store_provenance = False
-    print("Dry run without storing provenance. See the submit_test directory")
+    restart.metadata.dry_run=True
+    restart.metadata.store_provenance=False
+    process = submit(restart)
+    print("Submited test for calculation (uuid='{}')".format(process.uuid))
+    print("Check the folder submit_test for the result of the test")
 
 else:
-    print("Calculation restarted")
-
-
-submit(restart)
+    process = submit(restart)
+    print("Submitted calculation; ID={}".format(process.pk))
+    print("For information about this calculation type: verdi process show {}".
+          format(process.pk))
+    print("For a list of running processes type: verdi process list")
 

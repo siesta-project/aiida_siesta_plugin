@@ -3,7 +3,6 @@
 
 from __future__ import absolute_import
 from __future__ import print_function
-
 import sys
 import os
 
@@ -46,29 +45,12 @@ code = load_code(codename)
 options = {
     "queue_name": "debug",
     "max_wallclock_seconds": 1700,
+#    'withmpi': True,
     "resources": {
         "num_machines": 1,
         "num_mpiprocs_per_machine": 1,
     }
 }
-
-#TO DO:
-# A Siesta executable compiled in serial mode might not work properly
-# on a computer set up for MPI operation.
-# This snippet can be used to check whether a code has been compiled
-# with mpi support, and act accordingly
-# For this to work, the user has to manually add the record in the
-# database. In the verdi shell:
-#
-# code = load_node(code_PK)
-# code.set_extra("mpi",True)
-#code_mpi_enabled =  False
-#try:
-#    code_mpi_enabled =  code.get_extra("mpi")
-#except AttributeError:
-#    pass
-#calc.set_withmpi(code_mpi_enabled)
-#-----------------------------------------------------------------------
 
 #
 #-------------------------- Settings ---------------------------------
@@ -100,7 +82,6 @@ cell = [
 ]
 
 # Note an atom tagged (for convenience) with a different label
-
 s = StructureData(cell=cell)
 s.append_atom(position=(0.000, 0.000, 0.468), symbols=['H'])
 s.append_atom(position=(0.000, 0.000, 1.620), symbols=['C'])
@@ -121,33 +102,21 @@ elements = list(s.get_symbols_set())
 #
 # ----------------------Parameters -------------------------------------
 #
-# Note the use of '.' in some entries. This will be fixed below.
-# Note also that some entries have ':' as separator. This is not
-# allowed in Siesta, and will be fixed by the plugin itself. The
-# latter case is an unfortunate historical choice. It should not
-# be used in modern scripts.
-#
+# Note the use of '.' is not allowed.
+# Note also that ':' as separator is not allowed in Siesta.
+# '-' is the suggested choice.
 params_dict = {
     'xc-functional': 'LDA',
     'xc-authors': 'CA',
-    'spin-polarized': True,
-    'noncollinearspin': False,
     'mesh-cutoff': '200.000 Ry',
     'max-scfiterations': 1000,
     'dm-numberpulay': 5,
     'dm-mixingweight': 0.050,
     'dm-tolerance': 1.e-4,
     'dm-mixscf1': True,
-    'negl-nonoverlap-int': False,
     'solution-method': 'diagon',
     'electronic-temperature': '100.000 K',
-    'md-typeofrun': 'cg',
-    'md-numcgsteps': 2,
-    'md-maxcgdispl': '0.200 bohr',
-    'md-maxforcetol': '0.050 eV/Ang',
     'writeforces': True,
-    'writecoorstep': True,
-    'write-mulliken-pop': 1,
 }
 
 parameters = Dict(dict=params_dict)
@@ -158,13 +127,13 @@ parameters = Dict(dict=params_dict)
 # The basis dictionary follows the 'parameters' convention
 #
 basis_dict = {
-    'pao-basistype':
-    'split',
-    'pao-splitnorm':
-    0.150,
-    'pao-energyshift':
-    '0.020 Ry',
-    '%block pao-basis-sizes':
+'pao-basistype':
+'split',
+'pao-splitnorm':
+ 0.150,
+'pao-energyshift':
+'0.020 Ry',
+'%block pao-basis-sizes':
     """
 C    SZP
 Cred SZ
@@ -180,8 +149,8 @@ basis = Dict(dict=basis_dict)
 # This exemplifies the handling of pseudos for different species
 # Those sharing the same pseudo should be indicated.
 #
-pseudos_list = []
-raw_pseudos = [("C.psf", ['C', 'Cred']), ("H.psf", 'H')]
+pseudos_dict = {}
+raw_pseudos = [("C.psf", ['C', 'Cred']), ("H.psf", ['H'])]
 
 for fname, kinds, in raw_pseudos:
     absname = os.path.realpath(
@@ -192,7 +161,9 @@ for fname, kinds, in raw_pseudos:
         print("Created the pseudo for {}".format(kinds))
     else:
         print("Using the pseudo for {} from DB: {}".format(kinds, pseudo.pk))
-    pseudos_list.append(pseudo)
+    for j in kinds:
+        pseudos_dict[j]=pseudo
+
 
 #-----------------------------------------------------------------------
 
@@ -204,11 +175,7 @@ inputs = {
     'parameters': parameters,
     'code': code,
     'basis': basis,
-    'pseudos': {
-        'C': pseudos_list[0],
-        'Cred': pseudos_list[0],
-        'H': pseudos_list[1],
-    },
+    'pseudos' : pseudos_dict,
     'metadata': {
         'options': options,
         'label': "Benzene molecule",
@@ -219,11 +186,8 @@ if submit_test:
     inputs["metadata"]["dry_run"] = True
     inputs["metadata"]["store_provenance"] = False
     process = submit(SiestaCalculation, **inputs)
-    #    subfolder, script_filename = calc.submit_test()
     print("Submited test for calculation (uuid='{}')".format(process.uuid))
     print("Check the folder submit_test for the result of the test")
-# I could't find a way to access the actual folder (subfolder of submit_test)
-# from the calculation node. So I can't print the exact location
 
 else:
     process = submit(SiestaCalculation, **inputs)

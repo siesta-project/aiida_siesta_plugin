@@ -44,7 +44,7 @@ except IndexError:
 code = load_code(codename)
 
 options = {
-    "queue_name": "debug",
+#    "queue_name": "debug",
     "max_wallclock_seconds": 1700,
     "resources": {
         "num_machines": 1,
@@ -97,7 +97,7 @@ params_dict = {
     'dm-mixingweight': 0.1,
     'dm-tolerance': 1.e-4,
     'md-typeofrun': 'cg',
-    'md-numcgsteps': 8,
+    'md-numcgsteps': 7,
     'md-maxcgdispl': '0.200 bohr',
     'md-maxforcetol': '0.020 eV/Ang',
     'geometry-must-converge': True

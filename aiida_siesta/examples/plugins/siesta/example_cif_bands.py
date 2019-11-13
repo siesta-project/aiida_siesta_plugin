@@ -3,10 +3,9 @@
 
 from __future__ import absolute_import
 from __future__ import print_function
-
 import sys
-
 import pymatgen as mg
+import ase.io
 
 from aiida.engine import submit
 from aiida.orm import load_code
@@ -19,6 +18,8 @@ from aiida.tools import get_explicit_kpoints_path
 # a cif file.
 # The band structure is calculated and the kpoint path is automatically
 # generated using seekpath.
+# The pseudopotential is taken from a family, please refer to 00_README
+# and example_psf_family.py for better understanding
 
 PsfData = DataFactory('siesta.psf')
 Dict = DataFactory('dict')
@@ -42,11 +43,9 @@ except IndexError:
 try:
     codename = sys.argv[2]
 except IndexError:
-    codename = 'siesta4.0.1@parsons'
+    codename = 'Siesta4.0.1@kelvin'
 
-#
 #------------------Code and computer options ---------------------------
-#
 code = load_code(codename)
 
 options = {
@@ -58,56 +57,41 @@ options = {
     }
 }
 #
-settings_dict = {'additional_retrieve_list': ['aiida.BONDS', 'aiida.EIG']}
-settings = Dict(dict=settings_dict)
+#settings_dict = {'additional_retrieve_list': ['aiida.BONDS', 'aiida.EIG']}
+#settings = Dict(dict=settings_dict)
 #---------------------------------------------------------------------
 
-#
 # Structure -----------------------------------------
-#
-# Passing through SeeK-path first, to get the standardized cell.
+# Two choices for importing the .cif, pymatgen or ase. Then
+# passing through SeeK-path  to get the standardized cell.
 # Necessary for the automatic choice of the bands path.
-#
 structure = mg.Structure.from_file("data/O2_ICSD_173933.cif", primitive=False)
 s = StructureData(pymatgen_structure=structure)
+#structure =ase.io.read("data/O2_ICSD_173933.cif")
+#s = StructureData(ase=structure)
 
 seekpath_parameters = {'reference_distance': 0.02, 'symprec': 0.0001}
 result = get_explicit_kpoints_path(s, **seekpath_parameters)
 newstructure = result['primitive_structure']
 
-#
 # Parameters ---------------------------------------------------
-#
 params_dict = {
     'xc-functional': 'LDA',
     'xc-authors': 'CA',
-    'spin-polarized': True,
-    'noncollinearspin': False,
     'mesh-cutoff': '200.000 Ry',
     'max-scfiterations': 1000,
     'dm-numberpulay': 5,
     'dm-mixingweight': 0.050,
     'dm-tolerance': 1.e-4,
     'dm-mixscf1': True,
-    'negl-nonoverlap-int': False,
     'solution-method': 'diagon',
     'electronic-temperature': '100.000 K',
-    'md-typeofrun': 'cg',
-    'md-numcgsteps': 2,
-    'md-maxcgdispl': '0.200 bohr',
-    'md-maxforcetol': '0.050 eV/Ang',
     'writeforces': True,
-    'writecoorstep': True,
-    'write-mulliken-pop': 1
 }
 #
 parameters = Dict(dict=params_dict)
 
-#----------------------------------------------------------
-#
 # Basis Set Info ------------------------------------------
-# The basis dictionary follows the 'parameters' convention
-#
 basis_dict = {
     'pao-basistype': 'split',
     'pao-splitnorm': 0.150,
@@ -118,7 +102,6 @@ O    SZP
 }
 #
 basis = Dict(dict=basis_dict)
-#--------------------------------------------------------------
 
 #--------------------- Pseudopotentials ---------------------------------
 #
@@ -154,7 +137,7 @@ inputs = {
     'pseudos': pseudos_dict,
     'metadata': {
         'options': options,
-        'label': "O_el_cell_spin from CIF"
+        'label': "O_el_cell_from_CIF"
     }
 }
 

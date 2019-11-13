@@ -5,17 +5,15 @@ from __future__ import absolute_import
 from __future__ import print_function
 
 import sys
-import os
+import os.path as op
 
 from aiida.engine import submit
 from aiida.orm import load_code
 from aiida_siesta.calculations.siesta import SiestaCalculation
 from aiida.plugins import DataFactory
 
-##########################################################
-#                                                        #
-#  Siesta calculation on benzene molecule, first to try  #
-#                                                        #
+# Version of siesta supporting psml files is needed to run 
+# this example
 ##########################################################
 
 PsmlData = DataFactory('siesta.psml')
@@ -145,18 +143,19 @@ basis = Dict(dict=basis_dict)
 # This exemplifies the handling of pseudos for different species
 # Those sharing the same pseudo should be indicated.
 #
-pseudos_list = []
-raw_pseudos = [("Si.psml", 'Si')]
-
-for fname, kinds, in raw_pseudos:
-    absname = os.path.realpath(
-        os.path.join(os.path.dirname(__file__), "data/sample-psml-family", fname))
+pseudos_dict = {}
+raw_pseudos = [("Si.psml", ['Si'])]
+for fname, kinds in raw_pseudos:
+    absname = op.realpath(
+        op.join(op.dirname(__file__), "data/sample-psml-family", fname))
     pseudo, created = PsmlData.get_or_create(absname, use_first=True)
     if created:
-        print("Created the pseudo for {}".format(kinds))
+        print("\nCreated the pseudo for {}".format(kinds))
     else:
-        print("Using the pseudo for {} from DB: {}".format(kinds, pseudo.pk))
-    pseudos_list.append(pseudo)
+        print("\nUsing the pseudo for {} from DB: {}".format(kinds, pseudo.pk))
+    for j in kinds:
+        pseudos_dict[j]=pseudo
+
 
 #-----------------------------------------------------------------------
 
@@ -168,9 +167,7 @@ inputs = {
     'parameters': parameters,
     'code': code,
     'basis': basis,
-    'pseudos': {
-        'Si': pseudos_list[0]
-    },
+    'pseudos': pseudos_dict,
     'metadata': {
         'options': options,
         'label': "Si crystal with PSML pseudos",
@@ -181,7 +178,6 @@ if submit_test:
     inputs["metadata"]["dry_run"] = True
     inputs["metadata"]["store_provenance"] = False
     process = submit(SiestaCalculation, **inputs)
-    #    subfolder, script_filename = calc.submit_test()
     print("Submited test for calculation (uuid='{}')".format(process.uuid))
     print("Check the folder submit_test for the result of the test")
 
