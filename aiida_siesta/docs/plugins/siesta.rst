@@ -63,7 +63,7 @@ aiida_siesta/examples/plugins/siesta.
   as internal units, the cell and atom positions must be specified in Angstrom.
 
   The :py:class:`StructureData <aiida.orm.StructureData>` can also import 
-  ase structures or pymatgen structures. This two tools can be used to load
+  ase structures or pymatgen structures. These two tools can be used to load
   structure from files. See example example_cif_bands.py
 
 * **parameters**, class :py:class:`Dict <aiida.orm.Dict>`, *Mandatory*
@@ -108,7 +108,7 @@ aiida_siesta/examples/plugins/siesta.
     import os
     from aiida_siesta.data.psf import PsfData
 
-    pseudo_file_to_species_map = [ ("C.psf", ['C', 'Cred']),("H.psf", 'H')]
+    pseudo_file_to_species_map = [ ("C.psf", ['C', 'Cred']),("H.psf", ['H'])]
     pseudos_dict = {}
     for fname, kinds, in pseudo_file_to_species_map:
           absname = os.path.realpath(os.path.join("path/to/file",fname))
@@ -118,7 +118,7 @@ aiida_siesta/examples/plugins/siesta.
 
   Alternatively, a pseudo for every atomic species can be set with the
   **use_pseudos_from_family**  method, if a family of pseudopotentials
-  has been installed. For an example see  example_psf_family.py
+  has been installed. For an example see example_psf_family.py
 
   .. note:: The verdi command-line interface now supports entry points
      defined by external packages. We have implemented  `verdi data
@@ -142,12 +142,9 @@ aiida_siesta/examples/plugins/siesta.
         from aiida.orm import Dict
 
         basis_dict = {
-        'pao-basistype':
-        'split',
-        'pao-splitnorm':
-        0.150,
-        'pao-energyshift':
-        '0.020 Ry',
+        'pao-basistype':'split',
+        'pao-splitnorm': 0.150,
+        'pao-energyshift': '0.020 Ry',
         '%block pao-basis-sizes':
         """
         C    SZP
@@ -159,7 +156,8 @@ aiida_siesta/examples/plugins/siesta.
         basis = Dict(dict=basis_dict)
 
   In case no basis is set, the Siesta calculation will not include
-  any basis specification and it will run with the default DZP.
+  any basis specification and it will run with the default Basis: DZP 
+  plus (many) other defaults.
 
 * **kpoints**, class :py:class:`KpointsData <aiida.orm.KpointsData>`, *Optional*
 
@@ -168,8 +166,9 @@ aiida_siesta/examples/plugins/siesta.
   yet for Siesta's kgrid-cutoff keyword::
           from aiida.orm import KpointsData
           kpoints=KpointsData()
-          kpoints_mesh = 5
-          kpoints.set_kpoints_mesh([kpoints_mesh,kpoints_mesh,kpoints_mesh])
+          kp_mesh = 5
+          mesh_displ = 0.5 #optional
+          kpoints.set_kpoints_mesh([kp_mesh,kp_mesh,kp_mesh],[mesh_displ,mesh_displ,mesh_displ])
   
   If this node is not present, only the Gamma point is used for sampling.
   
@@ -191,7 +190,7 @@ aiida_siesta/examples/plugins/siesta.
           bandskpoints.set_cell(structure.cell, structure.pbc)
           kpp = [(0.500,  0.250, 0.750), (0.500,  0.500, 0.500), (0., 0., 0.)]
           bandskpoints.set_kpoints(kpp)
-  In this case the Siesta input will present the BandPoints block.
+  In this case the Siesta input will use the BandPoints block.
   
   Alternatively (recommended) the high-symmetry path associated to the
   structure under investigation can be
@@ -292,9 +291,9 @@ To run the calculation in an interactive way::
 Here the results variable will contain a dictionary 
 containing all the nodes that were produced as output.
 
-Another option is to submit it to the deamon::
+Another option is to submit it to the daemon::
 
-        from aiida.engine import run
+        from aiida.engine import submit
         calc = submit(builder)
 In this case, calc is the calculation node and not the results dictionary.
 
@@ -308,30 +307,32 @@ In this case, calc is the calculation node and not the results dictionary.
    is not mandatory. The inputs can be provided as keywords argument when you 
    launch the calculation, passing the calculation class as the first argument::
         run(SiestaCalculation, structure=s, pseudos=pseudos, kpoints = kpoints, ...)
+   same syntax for the command ``submit``.
 
 A large set of examples covering some standard cases are in the folder 
 aiida_siesta/examples/plugins/siesta. They can be run with::
-        runaiida example_name.py {--send, --dont-send}
+        runaiida example_name.py {--send, --dont-send} code@computer
 
 The parameter --dont-send will activate the "dry run" option. In that case a test
 folder (submit_test) will be created, containing all the files that aiida
 generates automatically. The parameter --send will submit the example to
-the daemon.
-One of the two parameter needs to be present to run the script. Optionally,
-a second argument containing the name of the code (code@computer) to use
-can be passed to the script. Alternatively the name of the code can be changed
-inside the script.
+the daemon. One of the two options needs to be present to run the script. 
+The second argument contains the name of the code (code@computer) to use
+in the calculation. It must be a previously set up code, corresponding to
+a siesta executable.
 
 Outputs
 -------
 
 There are several output nodes that can be created by the plugin,
 according to the calculation details.  All output nodes can be
-accessed with the ``calculation.out`` method.
+accessed with the ``calculation.outuputs`` method.
 
-The output parser takes advantage of the structured output available
-in Siesta as a Chemical Markup Language (CML) file. The CML-writer
-functionality should be compiled in and active in the run!
+.. The output parser takes advantage of the structured output available
+.. in Siesta as a Chemical Markup Language (CML) file. The CML-writer
+.. functionality should be compiled in Siesta. AiiDA then takes care automitically
+.. to include the right keywords in the siesta.fdf in order to prodeuce the
+.. CML file.
 
 * **output_parameters** :py:class:`Dict <aiida.orm.Dict>` 
 
