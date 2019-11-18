@@ -6,19 +6,14 @@ from __future__ import print_function
 
 import sys
 
-import pymatgen as mg
-
 from aiida.engine import submit
 from aiida.orm import load_code
 from aiida_siesta.calculations.siesta import SiestaCalculation
 from aiida_siesta.data.psf import get_pseudos_from_structure
 from aiida.plugins import DataFactory
-from aiida.tools import get_explicit_kpoints_path
 
-# This script will send a Siesta calculation on a structure taken from
-# a cif file.
-# The band structure is calculated and the kpoint path is automatically
-# generated using seekpath.
+#----------------- Example of the use of a pseudopotential family
+# Read 00_README to learn how to set up a family
 
 PsfData = DataFactory('siesta.psf')
 Dict = DataFactory('dict')
@@ -38,11 +33,11 @@ except IndexError:
            "--send or --dont-send"),
           file=sys.stderr)
     sys.exit(1)
-
+#
 try:
     codename = sys.argv[2]
 except IndexError:
-    codename = 'siesta4.0.1@parsons'
+    codename = 'Siesta4.0.1@kelvin'
 
 #
 #------------------Code and computer options ---------------------------
@@ -63,26 +58,51 @@ settings = Dict(dict=settings_dict)
 #---------------------------------------------------------------------
 
 #
-# Structure -----------------------------------------
+#-------------------------- Structure --------------------------------
 #
-# Passing through SeeK-path first, to get the standardized cell.
-# Necessary for the automatic choice of the bands path.
-#
-structure = mg.Structure.from_file("data/O2_ICSD_173933.cif", primitive=False)
-s = StructureData(pymatgen_structure=structure)
+alat = 15.  # angstrom
+cell = [
+    [
+        alat,
+        0.,
+        0.,
+    ],
+    [
+        0.,
+        alat,
+        0.,
+    ],
+    [
+        0.,
+        0.,
+        alat,
+    ],
+]
 
-seekpath_parameters = {'reference_distance': 0.02, 'symprec': 0.0001}
-result = get_explicit_kpoints_path(s, **seekpath_parameters)
-newstructure = result['primitive_structure']
+# Note an atom tagged (for convenience) with a different label
+
+s = StructureData(cell=cell)
+s.append_atom(position=(0.000, 0.000, 0.468), symbols=['H'])
+s.append_atom(position=(0.000, 0.000, 1.620), symbols=['C'])
+s.append_atom(position=(0.000, -2.233, 1.754), symbols=['H'])
+s.append_atom(position=(0.000, 2.233, 1.754), symbols=['H'])
+s.append_atom(position=(0.000, -1.225, 2.327), symbols='C', name="Cred")
+s.append_atom(position=(0.000, 1.225, 2.327), symbols=['C'])
+s.append_atom(position=(0.000, -1.225, 3.737), symbols=['C'])
+s.append_atom(position=(0.000, 1.225, 3.737), symbols=['C'])
+s.append_atom(position=(0.000, -2.233, 4.311), symbols=['H'])
+s.append_atom(position=(0.000, 2.233, 4.311), symbols=['H'])
+s.append_atom(position=(0.000, 0.000, 4.442), symbols=['C'])
+s.append_atom(position=(0.000, 0.000, 5.604), symbols=['H'])
+
+#-----------------------------------------------------------------------
 
 #
-# Parameters ---------------------------------------------------
+# ----------------------Parameters -------------------------------------
 #
 params_dict = {
     'xc-functional': 'LDA',
     'xc-authors': 'CA',
-    'spin-polarized': True,
-    'noncollinearspin': False,
     'mesh-cutoff': '200.000 Ry',
     'max-scfiterations': 1000,
     'dm-numberpulay': 5,
@@ -92,33 +112,33 @@ params_dict = {
     'negl-nonoverlap-int': False,
     'solution-method': 'diagon',
     'electronic-temperature': '100.000 K',
-    'md-typeofrun': 'cg',
-    'md-numcgsteps': 2,
-    'md-maxcgdispl': '0.200 bohr',
-    'md-maxforcetol': '0.050 eV/Ang',
     'writeforces': True,
-    'writecoorstep': True,
-    'write-mulliken-pop': 1
 }
-#
-parameters = Dict(dict=params_dict)
 
-#----------------------------------------------------------
+parameters = Dict(dict=params_dict)
+#------------------------------------------------------------------------
+
 #
-# Basis Set Info ------------------------------------------
+# ---------------------Basis Set Info -----------------------------------
 # The basis dictionary follows the 'parameters' convention
 #
 basis_dict = {
-    'pao-basistype': 'split',
-    'pao-splitnorm': 0.150,
-    'pao-energyshift': '0.020 Ry',
-    '%block pao-basis-sizes': """
-O    SZP  
+    'pao-basistype':
+    'split',
+    'pao-splitnorm':
+    0.150,
+    'pao-energyshift':
+    '0.020 Ry',
+    '%block pao-basis-sizes':
+    """
+C    SZP
+Cred SZ
+H    SZP
 %endblock pao-basis-sizes""",
 }
-#
+
 basis = Dict(dict=basis_dict)
-#--------------------------------------------------------------
+#------------------------------------------------------------------------
 
 #--------------------- Pseudopotentials ---------------------------------
 #
@@ -128,33 +148,18 @@ pseudos_dict = get_pseudos_from_structure(s, 'sample_psf_family')
 print(pseudos_dict)
 #-----------------------------------------------------------------------
 
-# K-points for scf cycle -------------------------------------------
-kts = KpointsData()
-kpoints_mesh = 4
-kts.set_kpoints_mesh([kpoints_mesh, kpoints_mesh, kpoints_mesh])
-
-#
-bandskpoints = KpointsData()
-
-# Making use of SeeK-path for the automatic path
-# The choice of the distance between kpoints is in the call seekpath_parameters
-# All high symmetry points included, labels already included
-bandskpoints = result['explicit_kpoints']
-
 #
 #--All the inputs of a Siesta calculations are listed in a dictionary--
 #
 inputs = {
-    'structure': newstructure,
+    'structure': s,
     'parameters': parameters,
     'code': code,
     'basis': basis,
-    'kpoints': kts,
-    'bandskpoints': bandskpoints,
     'pseudos': pseudos_dict,
     'metadata': {
         'options': options,
-        'label': "O_el_cell_spin from CIF"
+        'label': "Benzene molecule with pseudo family",
     }
 }
 

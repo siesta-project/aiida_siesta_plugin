@@ -1,8 +1,8 @@
 #!/usr/bin/env runaiida
 # -*- coding: utf-8 -*-
+
 from __future__ import absolute_import
 from __future__ import print_function
-
 import os.path as op
 import sys
 
@@ -10,9 +10,7 @@ from aiida.engine import submit
 from aiida.orm import load_code
 from aiida.orm import (Dict, StructureData, KpointsData)
 from aiida_siesta.calculations.siesta import SiestaCalculation
-from aiida.plugins import DataFactory
-
-PsfData = DataFactory('siesta.psf')
+from aiida_siesta.data.psf import PsfData
 
 try:
     dontsend = sys.argv[1]
@@ -33,7 +31,10 @@ try:
 except IndexError:
     codename = 'Siesta4.0.1@kelvin'
 
-# Si diamond structure
+#The code
+code = load_code(codename)
+
+#The structure. Si diamond structure
 alat = 5.430  # angstrom
 cell = [
     [
@@ -52,18 +53,15 @@ cell = [
         0.5 * alat,
     ],
 ]
-
-# Si
-# This was originally given in the "ScaledCartesian" format
-#
+#The atom positions were originally given in the "ScaledCartesian" format
+#but standard for aiida structures is Cartesian in Angstrom 
 structure = StructureData(cell=cell)
 structure.append_atom(position=(0.000 * alat, 0.000 * alat, 0.000 * alat),
                       symbols=['Si'])
-structure.append_atom(position=(0.250 * alat, 0.250 * alat, 0.250 * alat),
+structure.append_atom(position=(0.260 * alat, 0.250 * alat, 0.250 * alat),
                       symbols=['Si'])
 
-code = load_code(codename)
-
+#The parameters
 parameters = Dict(
     dict={
         'xc-functional': 'LDA',
@@ -75,53 +73,59 @@ parameters = Dict(
         'Solution-method': 'diagon',
         'electronic-temperature': '25 meV',
         'md-typeofrun': 'cg',
-        'md-numcgsteps': 3,
+        'md-numcgsteps': 16,
         'md-maxcgdispl': '0.1 Ang',
         'md-maxforcetol': '0.04 eV/Ang',
+        'md-variablecell': True,
         'write-forces': True,
-        # 'xml-write': True
     })
 
-basis = Dict(
-    dict={
-        'pao-energy-shift': '300 meV',
-        '%block pao-basis-sizes': """
+#The basis set
+basis = Dict(dict={
+'pao-energy-shift': '300 meV',
+'%block pao-basis-sizes': """
 Si DZP
 %endblock pao-basis-sizes""",
     })
 
+#The kpoints
 kpoints = KpointsData()
 kpoints.set_kpoints_mesh([4, 4, 4])
 
-pseudos_list = []
-raw_pseudos = [("Si.psf", 'Si')]
-for fname, kind in raw_pseudos:
+#The pseudopotentials
+pseudos_dict = {}
+raw_pseudos = [("Si.psf", ['Si'])]
+for fname, kinds in raw_pseudos:
     absname = op.realpath(
         op.join(op.dirname(__file__), "data/sample-psf-family", fname))
     pseudo, created = PsfData.get_or_create(absname, use_first=True)
     if created:
-        print("\nCreated the pseudo for {}".format(kind))
+        print("\nCreated the pseudo for {}".format(kinds))
     else:
-        print("\nUsing the pseudo for {} from DB: {}".format(kind, pseudo.pk))
-    pseudos_list.append(pseudo)
+        print("\nUsing the pseudo for {} from DB: {}".format(kinds, pseudo.pk))
+    for j in kinds:
+        pseudos_dict[j]=pseudo
 
+#Resources
 options = {
     "max_wallclock_seconds": 360,
+    'withmpi': True,
     "resources": {
         "num_machines": 1,
-        "num_mpiprocs_per_machine": 1,
+        "num_mpiprocs_per_machine": 2,
     }
 }
 
+
+#The submission
+#All the inputs of a Siesta calculations are listed in a dictionary
 inputs = {
     'structure': structure,
     'parameters': parameters,
     'code': code,
     'basis': basis,
     'kpoints': kpoints,
-    'pseudos': {
-        'Si': pseudos_list[0],
-    },
+    'pseudos': pseudos_dict,
     'metadata': {
         "label": "TestOnSiliconBulk",
         'options': options,
@@ -132,11 +136,8 @@ if submit_test:
     inputs["metadata"]["dry_run"] = True
     inputs["metadata"]["store_provenance"] = False
     process = submit(SiestaCalculation, **inputs)
-    #    subfolder, script_filename = calc.submit_test()
     print("Submited test for calculation (uuid='{}')".format(process.uuid))
     print("Check the folder submit_test for the result of the test")
-# I could't find a way to access the actual folder (subfolder of submit_test)
-# from the calculation node. So I can't print the exact location
 
 else:
     process = submit(SiestaCalculation, **inputs)
@@ -144,3 +145,4 @@ else:
     print("For information about this calculation type: verdi process show {}".
           format(process.pk))
     print("For a list of running processes type: verdi process list")
+

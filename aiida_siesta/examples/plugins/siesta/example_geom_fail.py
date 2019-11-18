@@ -12,7 +12,7 @@ from aiida_siesta.calculations.siesta import SiestaCalculation
 from aiida_siesta.data.psf import get_pseudos_from_structure
 from aiida.plugins import DataFactory
 
-#----------------- Example of the use of a pseudopotential family
+#  Siesta calculation on Water molecule -- to fail in geom relaxation
 
 PsfData = DataFactory('siesta.psf')
 Dict = DataFactory('dict')
@@ -44,7 +44,7 @@ except IndexError:
 code = load_code(codename)
 
 options = {
-    "queue_name": "debug",
+#    "queue_name": "debug",
     "max_wallclock_seconds": 1700,
     "resources": {
         "num_machines": 1,
@@ -52,14 +52,14 @@ options = {
     }
 }
 #
+#-------------------------- Settings ---------------------------------
+#
 settings_dict = {'additional_retrieve_list': ['aiida.BONDS', 'aiida.EIG']}
 settings = Dict(dict=settings_dict)
-#---------------------------------------------------------------------
-
 #
-#-------------------------- Structure --------------------------------
+# Structure -----------------------------------------
 #
-alat = 15.  # angstrom
+alat = 10.0  # angstrom
 cell = [
     [
         alat,
@@ -78,81 +78,41 @@ cell = [
     ],
 ]
 
-# Note an atom tagged (for convenience) with a different label
+# Water molecule
+# One of the H atoms is sligthy moved
 
 s = StructureData(cell=cell)
-s.append_atom(position=(0.000, 0.000, 0.468), symbols=['H'])
-s.append_atom(position=(0.000, 0.000, 1.620), symbols=['C'])
-s.append_atom(position=(0.000, -2.233, 1.754), symbols=['H'])
-s.append_atom(position=(0.000, 2.233, 1.754), symbols=['H'])
-s.append_atom(position=(0.000, -1.225, 2.327), symbols='C', name="Cred")
-s.append_atom(position=(0.000, 1.225, 2.327), symbols=['C'])
-s.append_atom(position=(0.000, -1.225, 3.737), symbols=['C'])
-s.append_atom(position=(0.000, 1.225, 3.737), symbols=['C'])
-s.append_atom(position=(0.000, -2.233, 4.311), symbols=['H'])
-s.append_atom(position=(0.000, 2.233, 4.311), symbols=['H'])
-s.append_atom(position=(0.000, 0.000, 4.442), symbols=['C'])
-s.append_atom(position=(0.000, 0.000, 5.604), symbols=['H'])
+s.append_atom(position=(0.000, 0.000, 0.00), symbols=['O'])
+s.append_atom(position=(0.757, 0.586, 0.00), symbols=['H'])
+s.append_atom(position=(-0.780, 0.600, 0.00), symbols=['H'])
 
-#-----------------------------------------------------------------------
-
-#
 # ----------------------Parameters -------------------------------------
-#
+
 params_dict = {
     'xc-functional': 'LDA',
     'xc-authors': 'CA',
-    'spin-polarized': True,
-    'noncollinearspin': False,
-    'mesh-cutoff': '200.000 Ry',
-    'max-scfiterations': 1000,
-    'dm-numberpulay': 5,
-    'dm-mixingweight': 0.050,
+    'mesh-cutoff': '100.000 Ry',
+    'max-scfiterations': 30,
+    'dm-numberpulay': 4,
+    'dm-mixingweight': 0.1,
     'dm-tolerance': 1.e-4,
-    'dm-mixscf1': True,
-    'negl-nonoverlap-int': False,
-    'solution-method': 'diagon',
-    'electronic-temperature': '100.000 K',
     'md-typeofrun': 'cg',
-    'md-numcgsteps': 2,
+    'md-numcgsteps': 7,
     'md-maxcgdispl': '0.200 bohr',
-    'md-maxforcetol': '0.050 eV/Ang',
-    'writeforces': True,
-    'writecoorstep': True,
-    'write-mulliken-pop': 1,
+    'md-maxforcetol': '0.020 eV/Ang',
+    'geometry-must-converge': True
 }
 
 parameters = Dict(dict=params_dict)
 #------------------------------------------------------------------------
-
 #
-# ---------------------Basis Set Info -----------------------------------
-# The basis dictionary follows the 'parameters' convention
+# No basis set spec in this calculation (default)
 #
-basis_dict = {
-    'pao-basistype':
-    'split',
-    'pao-splitnorm':
-    0.150,
-    'pao-energyshift':
-    '0.020 Ry',
-    '%block pao-basis-sizes':
-    """
-C    SZP
-Cred SZ
-H    SZP
-%endblock pao-basis-sizes""",
-}
-
-basis = Dict(dict=basis_dict)
-#------------------------------------------------------------------------
-
 #--------------------- Pseudopotentials ---------------------------------
 #
 # FIXME: The family name is hardwired
 #
 pseudos_dict = get_pseudos_from_structure(s, 'sample_psf_family')
-print(pseudos_dict)
 #-----------------------------------------------------------------------
 
 #
@@ -162,11 +122,10 @@ inputs = {
     'structure': s,
     'parameters': parameters,
     'code': code,
-    'basis': basis,
     'pseudos': pseudos_dict,
     'metadata': {
         'options': options,
-        'label': "Benzene molecule with pseudo family",
+        'label': "Water molecule -- geom fail"
     }
 }
 

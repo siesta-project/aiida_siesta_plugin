@@ -16,51 +16,69 @@ can be found in the development platform
 
 Inputs
 ------
+Some examples are referenced in the following list. They are located in the folder
+aiida_siesta/examples/plugins/siesta.
 
-* **code**, class :py:class:`Code <aiida.orm.Code>`
+* **code**, class :py:class:`Code <aiida.orm.Code>`, *Mandatory*
 
-A code object linked to a Siesta executable. 
-  
-* **structure**, class :py:class:`StructureData <aiida.orm.StructureData>`
+  A code object linked to a Siesta executable. 
+  If you setup the code ``Siesta4.0.1`` on machine ``kelvin`` following the `aiida guidelines`_,
+  then the code is selected in this way::
 
-A structure. Siesta employs "species labels" to implement special
-conditions (such as basis set characteristics) for specific atoms
-(e.g., surface atoms might have a richer basis set). This is
-implemented through the 'name' attribute of the Site objects. For example::
+        codename = 'Siesta4.0.1@kelvin'
+        from aiida.orm import Code
+        code = Code.get_from_string(codename)
 
-  alat = 15. # angstrom
-  cell = [[alat, 0., 0.,],
-    [0., alat, 0.,],
-    [0., 0., alat,],
-   ]
+ 
+* **structure**, class :py:class:`StructureData <aiida.orm.StructureData>`, *Mandatory*
 
-   # Benzene molecule with a special carbon atom
-   s = StructureData(cell=cell)
-   s.append_atom(position=(0.000,0.000,0.468),symbols=['H'])
-   s.append_atom(position=(0.000,0.000,1.620),symbols=['C'])
-   s.append_atom(position=(0.000,-2.233,1.754),symbols=['H'])
-   s.append_atom(position=(0.000,2.233,1.754),symbols=['H'])
-   s.append_atom(position=(0.000,-1.225,2.327),symbols='C',name="Cred")
-   s.append_atom(position=(0.000,1.225,2.327),symbols=['C'])
-   s.append_atom(position=(0.000,-1.225,3.737),symbols=['C'])
-   s.append_atom(position=(0.000,1.225,3.737),symbols=['C'])
-   s.append_atom(position=(0.000,-2.233,4.311),symbols=['H'])
-   s.append_atom(position=(0.000,2.233,4.311),symbols=['H'])
-   s.append_atom(position=(0.000,0.000,4.442),symbols=['C'])
-   s.append_atom(position=(0.000,0.000,5.604),symbols=['H'])
+  A structure. Siesta employs "species labels" to implement special
+  conditions (such as basis set characteristics) for specific atoms
+  (e.g., surface atoms might have a richer basis set). This is
+  implemented through the 'name' attribute of the Site objects. For example::
+      from aiida.orm import StructureData
 
+      alat = 15. # angstrom
+      cell = [[alat, 0., 0.,],
+        [0., alat, 0.,],
+        [0., 0., alat,],
+       ]
 
-* **parameters**, class :py:class:`Dict <aiida.orm.Dict>`
+       # Benzene molecule with a special carbon atom
+       s = StructureData(cell=cell)
+       s.append_atom(position=(0.000,0.000,0.468),symbols=['H'])
+       s.append_atom(position=(0.000,0.000,1.620),symbols=['C'])
+       s.append_atom(position=(0.000,-2.233,1.754),symbols=['H'])
+       s.append_atom(position=(0.000,2.233,1.754),symbols=['H'])
+       s.append_atom(position=(0.000,-1.225,2.327),symbols='C',name="Cred")
+       s.append_atom(position=(0.000,1.225,2.327),symbols=['C'])
+       s.append_atom(position=(0.000,-1.225,3.737),symbols=['C'])
+       s.append_atom(position=(0.000,1.225,3.737),symbols=['C'])
+       s.append_atom(position=(0.000,-2.233,4.311),symbols=['H'])
+       s.append_atom(position=(0.000,2.233,4.311),symbols=['H'])
+       s.append_atom(position=(0.000,0.000,4.442),symbols=['C'])
+       s.append_atom(position=(0.000,0.000,5.604),symbols=['H'])
 
-A dictionary with scalar fdf variables and blocks, which are the
-basic elements of any Siesta input file. A given Siesta fdf file
-can be cast almost directly into this dictionary form, except that
-some items (for structure data) are blocked. Any units are
-specified for now as part of the value string. Blocks are entered
-by using an appropriate key and Python's multiline string
-constructor. For example::
+  The class :py:class:`StructureData <aiida.orm.StructureData>` uses Angstrom
+  as internal units, the cell and atom positions must be specified in Angstrom.
 
-    {
+  The :py:class:`StructureData <aiida.orm.StructureData>` can also import 
+  ase structures or pymatgen structures. These two tools can be used to load
+  structure from files. See example example_cif_bands.py
+
+* **parameters**, class :py:class:`Dict <aiida.orm.Dict>`, *Mandatory*
+
+  A dictionary with scalar fdf variables and blocks, which are the
+  basic elements of any Siesta input file. A given Siesta fdf file
+  can be cast almost directly into this dictionary form, except that
+  some items (for structure data) are blocked. Any units are
+  specified for now as part of the value string. Blocks are entered
+  by using an appropriate key and Python's multiline string
+  constructor. For example::
+
+    from aiida.orm import Dict    
+
+    parameters = Dict(dict={
       "mesh-cutoff": "200 Ry",
       "dm-tolerance": "0.0001",
 	  "%block example-block":
@@ -68,92 +86,260 @@ constructor. For example::
 	  first line
 	  second line
 	  %endblock example-block""",
-    }
+    })
 
-Note that Siesta fdf keywords allow '.', '-', (or nothing) as internal
-separators. AiiDA does not allow the use of '.' in nodes to be
-inserted in the database, so it should not be used in the input script
-(or removed before assigning the dictionary to the Dict
-instance). For legibility, a single dash ('-') is suggested, as in the
-examples above.
+  Note that Siesta fdf keywords allow '.', '-', (or nothing) as internal
+  separators. AiiDA does not allow the use of '.' in nodes to be
+  inserted in the database, so it should not be used in the input script
+  (or removed before assigning the dictionary to the Dict
+  instance). For legibility, a single dash ('-') is suggested, as in the
+  examples above.
 
 * **pseudos**, input namespace of class :py:class:`PsfData  <aiida_siesta.data.psf.PsfData>`
-  OR class :py:class:`PsmlData  <aiida_siesta.data.psml.PsmlData>`
+  OR class :py:class:`PsmlData  <aiida_siesta.data.psml.PsmlData>`, *Mandatory*
 
-The PsfData and PsmlData classes have been implemented along the lines of the Upf class for QE.
+  The PsfData and PsmlData classes have been implemented along the lines of the Upf class for QE.
 
-One pseudopotential file per atomic element. Several species (in the
-Siesta sense, which allows the same element to be treated differently
-according to its environment) can share the same pseudopotential. For the example
-above::
+  One pseudopotential file per atomic element. Several species (in the
+  Siesta sense, which allows the same element to be treated differently
+  according to its environment) can share the same pseudopotential. For the example
+  above::
 
-  pseudo_file_to_species_map = [ ("C.psf", ['C', 'Cred']),
-                            ("H.psf", 'H')
-			    ]
+    import os
+    from aiida_siesta.data.psf import PsfData
 
+    pseudo_file_to_species_map = [ ("C.psf", ['C', 'Cred']),("H.psf", ['H'])]
+    pseudos_dict = {}
+    for fname, kinds, in pseudo_file_to_species_map:
+          absname = os.path.realpath(os.path.join("path/to/file",fname))
+          pseudo, created = PsfData.get_or_create(absname, use_first=True)
+          for j in kinds:
+                  pseudos_dict[j]=pseudo
 
-Alternatively, a pseudo for every atomic species can be set with the
-**use_pseudos_from_family**  method, if a family of pseudopotentials
-has been installed. (But the family approach does not yet support
-multiple species sharing the same pseudopotential.)
+  Alternatively, a pseudo for every atomic species can be set with the
+  **use_pseudos_from_family**  method, if a family of pseudopotentials
+  has been installed. For an example see example_psf_family.py
 
-.. note:: The verdi command-line interface now supports entry points
-   defined by external packages. We have implemented  `verdi data
-   psf` and `verdi data psml` suites of commands: `uploadfamily`, `exportfamily`, and
-   `listfamilies`.
+  .. note:: The verdi command-line interface now supports entry points
+     defined by external packages. We have implemented  `verdi data
+     psf` and `verdi data psml` suites of commands: `uploadfamily`, `exportfamily`, and
+     `listfamilies`.
 
-It can be argued that a single `SiestaPseudo` class, with psf and psml
-subclasses, might have been implemented. But the `PsmlData` class aims
-to transcend Siesta and to be used by other codes.
+  It can be argued that a single `SiestaPseudo` class, with psf and psml
+  subclasses, might have been implemented. But the `PsmlData` class aims
+  to transcend Siesta and to be used by other codes.
 
-* **basis**, class :py:class:`Dict  <aiida.orm.Dict>`
+* **basis**, class :py:class:`Dict  <aiida.orm.Dict>`, *Optional*
+
+  A dictionary specifically intended for basis set information. It
+  follows the same structure as the **parameters** element, including
+  the allowed use of fdf-block items. This raw interface allows a
+  direct translation of the myriad basis-set options supported by the
+  Siesta program. In future we might have a more structured input for
+  basis-set information.
+  An example::
+
+        from aiida.orm import Dict
+
+        basis_dict = {
+        'pao-basistype':'split',
+        'pao-splitnorm': 0.150,
+        'pao-energyshift': '0.020 Ry',
+        '%block pao-basis-sizes':
+        """
+        C    SZP
+        Cred SZ
+        H    SZP
+        %endblock pao-basis-sizes""",
+        }
+
+        basis = Dict(dict=basis_dict)
+
+  In case no basis is set, the Siesta calculation will not include
+  any basis specification and it will run with the default Basis: DZP 
+  plus (many) other defaults.
+
+* **kpoints**, class :py:class:`KpointsData <aiida.orm.KpointsData>`, *Optional*
+
+  Reciprocal space points for the full sampling of the BZ during the
+  self-consistent-field iteration. It must be given in mesh form. There is no support
+  yet for Siesta's kgrid-cutoff keyword::
+          from aiida.orm import KpointsData
+          kpoints=KpointsData()
+          kp_mesh = 5
+          mesh_displ = 0.5 #optional
+          kpoints.set_kpoints_mesh([kp_mesh,kp_mesh,kp_mesh],[mesh_displ,mesh_displ,mesh_displ])
   
-A dictionary specifically intended for basis set information. It
-follows the same structure as the **parameters** element, including
-the allowed use of fdf-block items. This raw interface allows a
-direct translation of the myriad basis-set options supported by the
-Siesta program. In future we might have a more structured input for
-basis-set information.
-
-* **kpoints**, class :py:class:`KpointsData <aiida.orm.KpointsData>`
+  If this node is not present, only the Gamma point is used for sampling.
   
-Reciprocal space points for the full sampling of the BZ during the
-self-consistent-field iteration. It must be given in mesh form. There is no support
-yet for Siesta's kgrid-cutoff keyword.
+* **bandskpoints**, class :py:class:`KpointsData <aiida.orm.KpointsData>`, *Optional*
 
-If this node is not present, only the Gamma point is used for sampling.
-
-* **bandskpoints**, class :py:class:`KpointsData <aiida.orm.KpointsData>`
+  Reciprocal space points for the calculation of bands.
+  This keyword is meant to facilitate the management of kpoints
+  exploiting the functionality
+  of the class :py:class:`KpointsData <aiida.orm.KpointsData>`.
+  The full list of kpoints must be passed to the class
+  and they must be in units of the reciprocal lattice vectors.
+  Moreover the cell must be set in the :py:class:`KpointsData <aiida.orm.KpointsData>`
+  class.
   
-Reciprocal space points for the calculation of bands.  They can be
-given as a simple list of k-points, as segments with start and end
-point and number of points, or as a complete automatic path, using the
-functionality of modern versions of the class.
+  This can be achieved manually listing a set of kpoints::
+  
+          from aiida.orm import KpointsData
+          bandskpoints=KpointsData()
+          bandskpoints.set_cell(structure.cell, structure.pbc)
+          kpp = [(0.500,  0.250, 0.750), (0.500,  0.500, 0.500), (0., 0., 0.)]
+          bandskpoints.set_kpoints(kpp)
+  In this case the Siesta input will use the BandPoints block.
+  
+  Alternatively (recommended) the high-symmetry path associated to the
+  structure under investigation can be
+  automatically generated through the aiida tool 'get_explicit_kpoints_path'.
+  Here how to use it::
+          from aiida.orm import KpointsData
+          bandskpoints=KpointsData()
+          from aiida.tools import get_explicit_kpoints_path
+          symmpath_parameters = Dict(dict={'reference_distance': 0.02})
+          kpresult = get_explicit_kpoints_path(s, **symmpath_parameters.get_dict())
+          bandskpoints = kpresult['explicit_kpoints']
+  Where 's' in the input structure and 'reference_distance' is
+  the distance between two subsequent kpoints.
+  In this case the block BandLines is set in the Siesta
+  calculation.
 
-If this node is not present, no band structure is computed.
+  .. note:: 'get_explicit_kpoints_path' make use of "SeeK-path".
+     Please cite the `HPKOT paper`_ if you use this tool. "SeeK-path"
+     is a external utility, not a requirement for aiida-core, therefore
+     it is not available by default. It can be easily installed using 
+     ``pip install seekpath``. "SeeK-path" allows to
+     determine canonical unit cells and k-point information in an easy
+     way. For more general information, refer to the `SeeK-path documentation`_.
 
-* **settings**, class  :py:class:`Dict <aiida.orm.Dict>`
-      
-An optional dictionary that activates non-default operations. For a list of possible
-values to pass, see the section on :ref:`advanced features <siesta-advanced-features>`.
+  .. warning:: as explained in the `aiida documentation`_, "SeeK-path"
+     might modify the structure to follow particular conventions
+     and the generated kpoints might only 
+     apply on the internally generated 'primitive_structure' and not 
+     on the input structure that was provided. The correct
+     way to use this tool is to use the generated 'primitive_structure' also for the
+     Siesta calculation::
+          structure = kpresult['primitive_structure']
+
+
+
+  The final option (unrecommended) covers the situation
+  when one really needs to maintain a specific convention for the
+  structure or one needs to calculate the bands on a specific path
+  that is not a high-symmetry direction, the following (very involved)
+  option is available::
+        from aiida.orm import KpointsData
+        bandskpoints=KpointsData()
+        from aiida.tools.data.array.kpoints.legacy import get_explicit_kpoints_path as legacy_path
+        kpp = [('A',  (0.500,  0.250, 0.750), 'B', (0.500,  0.500, 0.500), 40),
+        ('B', (0.500,  0.500, 0.500), 'C', (0., 0., 0.), 40)]
+        tmp=legacy_path(kpp)
+        bandskpoints.set_cell(structure.cell, structure.pbc)
+        bandskpoints.set_kpoints(tmp[3])
+        bandskpoints.labels=tmp[4]
+  The legacy "get_explicit_kpoints_path" shares only the name with the function in
+  "aiida.tools", but it is very different in scope.
+
+  The full list of cases can be explored looking at the example example_bands.py
+
+  .. warning:: The implementation relies on the correct description of
+     the labels in the class :py:class:`KpointsData <aiida.orm.KpointsData>`.
+     Refrain from the use of 'bandskpoints.labels' in any other
+     situation apart from the one described above. An incorrect use of the labels
+     might result in an incorrect parsing of the bands.
+
+  If the keyword node **bandskpoints** is not present, no band structure is computed.
+
+* **settings**, class  :py:class:`Dict <aiida.orm.Dict>` , *Optional*      
+
+  An optional dictionary that activates non-default operations. For a list of possible
+  values to pass, see the section on :ref:`advanced features <siesta-advanced-features>`.
+
+Submitting the calculation
+--------------------------
+
+Once all the inputs above are set, the subsequent step consists in passing them to the 
+calculation class and run/submit it.
+
+First, the Siesta calculation class is loaded::
+
+        from aiida_siesta.calculations.siesta import SiestaCalculation
+        builder = SiestaCalculation.get_builder()
+
+The inputs (defined as in the previous section) are passed to the builder::
+
+        builder.code = code
+        builder.structure = structure
+        builder.parameters = parameters
+        builder.pseudos = pseudos_dict
+        builder.basis = basis
+        builder.kpoints = kpoints
+        builder.bandskpoints = bandskpoints
+
+Finally the resources for the calculation must be set, for instance::
+
+        builder.metadata.options.resources = {'num_machines': 1}
+        builder.metadata.options.max_wallclock_seconds = 1800
+
+Optionally, label and description::
+
+        builder.metadata.label = 'My generic title'
+        builder.metadata.description 'My more detailed description'
+
+To run the calculation in an interactive way::
+
+        from aiida.engine import run
+        results = run(builder)
+Here the results variable will contain a dictionary 
+containing all the nodes that were produced as output.
+
+Another option is to submit it to the daemon::
+
+        from aiida.engine import submit
+        calc = submit(builder)
+In this case, calc is the calculation node and not the results dictionary.
+
+.. note:: In order to inspect the inputs created by AiiDA without 
+   actually running the calculation, we can perform a dry run of the submission process::
+        builder.metadata.dry_run = True
+        builder.metadata.store_provenance = False
+   This will create the input files, that are available for inspection.
+
+.. note:: The use of the builder makes the process more intuitive, but it
+   is not mandatory. The inputs can be provided as keywords argument when you 
+   launch the calculation, passing the calculation class as the first argument::
+        run(SiestaCalculation, structure=s, pseudos=pseudos, kpoints = kpoints, ...)
+   same syntax for the command ``submit``.
+
+A large set of examples covering some standard cases are in the folder 
+aiida_siesta/examples/plugins/siesta. They can be run with::
+        runaiida example_name.py {--send, --dont-send} code@computer
+
+The parameter --dont-send will activate the "dry run" option. In that case a test
+folder (submit_test) will be created, containing all the files that aiida
+generates automatically. The parameter --send will submit the example to
+the daemon. One of the two options needs to be present to run the script. 
+The second argument contains the name of the code (code@computer) to use
+in the calculation. It must be a previously set up code, corresponding to
+a siesta executable.
 
 Outputs
 -------
 
 There are several output nodes that can be created by the plugin,
 according to the calculation details.  All output nodes can be
-accessed with the ``calculation.out`` method.
+accessed with the ``calculation.outputs`` method.
 
-The output parser takes advantage of the structured output available
-in Siesta as a Chemical Markup Language (CML) file. The CML-writer
-functionality should be compiled in and active in the run!
 
 * **output_parameters** :py:class:`Dict <aiida.orm.Dict>` 
 
-A dictionary with metadata, scalar result values, a warnings
-list, and possibly a timing section.
-Units are specified by means of an extra item with '_units'
-appended to the key::
+  A dictionary with metadata, scalar result values, a warnings
+  list, and possibly a timing section.
+  Units are specified by means of an extra item with '_units'
+  appended to the key::
 
     {
       "siesta:Version": "siesta-4.0.2",
@@ -175,42 +361,46 @@ appended to the key::
       "warnings": [ "INFO: Job Completed"]
     }
 
-The scalar quantities to include are specified in a global-variable
-in the parser. Currently they are the Kohn-Sham, Free, Band, and Fermi
-energies, and the total spin. These are converted to 'float'.
-As this dictionary is sorted, keys for program values and metadata are
-intermixed.
+  The scalar quantities to include are specified in a global-variable
+  in the parser. Currently they are the Kohn-Sham, Free, Band, and Fermi
+  energies, and the total spin. These are converted to 'float'.
+  As this dictionary is sorted, keys for program values and metadata are
+  intermixed.
 
-The timing information (if present), includes the global walltime in
-seconds, and a decomposition by sections of the code. Most relevant
-are typically the `compute_DM` and `setup_H` sections.
+  The timing information (if present), includes the global walltime in
+  seconds, and a decomposition by sections of the code. Most relevant
+  are typically the `compute_DM` and `setup_H` sections.
 
-The 'warnings' list contains program messages, labeled as INFO,
-WARNING, or FATAL, read directly from a MESSAGES file produced by
-Siesta, which include items from the execution of the program and
-also a possible 'out of time' condition. This is implemented by
-passing to the program the wallclock time specified in the script,
-and checking at each scf step for the walltime consumed. This
-'warnings' list can be examined by the parser itself to raise an
-exception in the FATAL case.
+  The 'warnings' list contains program messages, labeled as INFO,
+  WARNING, or FATAL, read directly from a MESSAGES file produced by
+  Siesta, which include items from the execution of the program and
+  also a possible 'out of time' condition. This is implemented by
+  passing to the program the wallclock time specified in the script,
+  and checking at each scf step for the walltime consumed. This
+  'warnings' list can be examined by the parser itself to raise an
+  exception in the FATAL case.
 
 * **forces_and_stress** :py:class:`ArrayData <aiida.orm.ArrayData>`
 
-Contains the final forces (eV/Angstrom) and stresses (GPa) in array form.
+  Contains the final forces (eV/Angstrom) and stresses (GPa) in array form.
   
 
 * **output_structure** :py:class:`StructureData <aiida.orm.StructureData>`
   
-Present only if the calculation is moving the ions.  Cell and ionic
-positions refer to the last configuration.
+  Present only if the calculation is moving the ions.  Cell and ionic
+  positions refer to the last configuration.
 
 * **bands**, :py:class:`BandsData  <aiida.orm.BandsData>`
   
-Present only if a band calculation is requested (signaled by the
-presence of a **bandskpoints** input node of class KpointsData)
-Contains an array with the list of electronic energies for every
-kpoint. For spin-polarized calculations, there is an extra dimension
-for spin.
+  Present only if a band calculation is requested (signaled by the
+  presence of a **bandskpoints** input node of class KpointsData).
+  It contains an array with the list of electronic energies (in eV) for every
+  kpoint. For spin-polarized calculations, there is an extra dimension
+  for spin. In this class also the full list of kpoints is stored and they are
+  in units of 1/Angstrom. Therefore a direct comparison with the Siesta output 
+  SystLabel.bands is possible only after the conversion of Angstrom to Bohr.
+  The bands are not rescaled by the Fermi energy. Tools for the generation
+  of files that can be easly plot are available through ``bands.export``.
   
 No trajectories have been implemented yet.
 
@@ -219,14 +409,13 @@ Errors
 
 Errors during the parsing stage are reported in the log of the calculation (accessible 
 with the ``verdi process report`` command). 
-Moreover, they are stored in the `output_parameters` node under the key ``warnings``.
+Moreover, they are stored in the **output_parameters** node under the key ``warnings``.
 
 Restarts
 --------
 
 A restarting capability is implemented through the optional input
-**parent_calc_folder**, :py:class:`RemoteData  <aiida.orm.RemoteData>`
-
+**parent_calc_folder**, :py:class:`RemoteData  <aiida.orm.RemoteData>`,
 which represents the remote scratch folder for a previous calculation.
 
 The density-matrix file is copied from the old calculation scratch
@@ -235,6 +424,8 @@ folder to the new calculation's one.
 This approach enables continuation of runs which have failed due to
 lack of time or insufficient convergence in the allotted number of
 steps.
+
+An informative example is example_restart.py in the folder aiida_siesta/examples/plugins/siesta.
 
 .. _siesta-advanced-features:
 
@@ -275,3 +466,10 @@ those files as a list as follows::
   settings_dict = {  
     'additional_retrieve_list': ['aiida.EIG', 'aiida.ORB_INDX'],
   }
+
+See for example example_ldos.py in aiida_siesta/examples/plugins/siesta.
+
+.. _SeeK-path documentation: https://seekpath.readthedocs.io/en/latest/
+.. _aiida guidelines: https://aiida-core.readthedocs.io/en/latest/get_started/computers.html
+.. _HPKOT paper: http://dx.doi.org/10.1016/j.commatsci.2016.10.015
+.. _aiida documentation: https://aiida.readthedocs.io/projects/aiida-core/en/latest/apidoc/aiida.tools.html#aiida.tools.get_explicit_kpoints_path

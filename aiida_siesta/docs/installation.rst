@@ -14,9 +14,10 @@ directory:
 As a pre-requisite, this will install an appropriate version of the
 aiida_core python framework.
 
-.. important:: Next, do not forget to run the following command
+.. important:: Next, do not forget to run the following commands
 
 ::
 
    reentry scan -r aiida
+   verdi daemon restart
 

@@ -12,7 +12,9 @@ from aiida.orm import load_code
 from aiida_siesta.calculations.siesta import SiestaCalculation
 from aiida.plugins import DataFactory
 
-#  Siesta calculation on benzene molecule
+# There is no parsing for the ldos, but the file .LDOS can be
+# retrieved using the "settings" feature.
+################################################################
 
 PsfData = DataFactory('siesta.psf')
 Dict = DataFactory('dict')
@@ -32,7 +34,7 @@ except IndexError:
            "--send or --dont-send"),
           file=sys.stderr)
     sys.exit(1)
-#
+
 try:
     codename = sys.argv[2]
 except IndexError:
@@ -44,41 +46,22 @@ except IndexError:
 code = load_code(codename)
 
 options = {
-    "queue_name": "debug",
+#    "queue_name": "debug",
     "max_wallclock_seconds": 1700,
     "resources": {
         "num_machines": 1,
         "num_mpiprocs_per_machine": 1,
     }
 }
-
-#TO DO:
-# A Siesta executable compiled in serial mode might not work properly
-# on a computer set up for MPI operation.
-# This snippet can be used to check whether a code has been compiled
-# with mpi support, and act accordingly
-# For this to work, the user has to manually add the record in the
-# database. In the verdi shell:
 #
-# code = load_node(code_PK)
-# code.set_extra("mpi",True)
-#code_mpi_enabled =  False
-#try:
-#    code_mpi_enabled =  code.get_extra("mpi")
-#except AttributeError:
-#    pass
-#calc.set_withmpi(code_mpi_enabled)
-#-----------------------------------------------------------------------
-
+#----Settings first  -----------------------------
 #
-#-------------------------- Settings ---------------------------------
-#
-settings_dict = {'additional_retrieve_list': ['aiida.BONDS', 'aiida.EIG']}
+settings_dict = {'additional_retrieve_list': ['aiida.BONDS', 'aiida.LDOS']}
 settings = Dict(dict=settings_dict)
-#---------------------------------------------------------------------
+#---------------------------------------------------
 
 #
-#-------------------------- Structure --------------------------------
+# Structure -----------------------------------------
 #
 alat = 15.  # angstrom
 cell = [
@@ -99,8 +82,9 @@ cell = [
     ],
 ]
 
+# Benzene molecule
 # Note an atom tagged (for convenience) with a different label
-
+#
 s = StructureData(cell=cell)
 s.append_atom(position=(0.000, 0.000, 0.468), symbols=['H'])
 s.append_atom(position=(0.000, 0.000, 1.620), symbols=['C'])
@@ -115,46 +99,35 @@ s.append_atom(position=(0.000, 2.233, 4.311), symbols=['H'])
 s.append_atom(position=(0.000, 0.000, 4.442), symbols=['C'])
 s.append_atom(position=(0.000, 0.000, 5.604), symbols=['H'])
 
-elements = list(s.get_symbols_set())
-#-----------------------------------------------------------------------
+#-------------------------------------------------------------
+#
+# Parameters ---------------------------------------------------
+#
+ldos_block_content = "\n {e1} {e2} eV".format(e1=-5.0, e2=1.0)
 
-#
-# ----------------------Parameters -------------------------------------
-#
-# Note the use of '.' in some entries. This will be fixed below.
-# Note also that some entries have ':' as separator. This is not
-# allowed in Siesta, and will be fixed by the plugin itself. The
-# latter case is an unfortunate historical choice. It should not
-# be used in modern scripts.
-#
 params_dict = {
-    'xc-functional': 'LDA',
-    'xc-authors': 'CA',
-    'spin-polarized': True,
-    'noncollinearspin': False,
-    'mesh-cutoff': '200.000 Ry',
-    'max-scfiterations': 1000,
-    'dm-numberpulay': 5,
-    'dm-mixingweight': 0.050,
-    'dm-tolerance': 1.e-4,
-    'dm-mixscf1': True,
-    'negl-nonoverlap-int': False,
-    'solution-method': 'diagon',
-    'electronic-temperature': '100.000 K',
-    'md-typeofrun': 'cg',
-    'md-numcgsteps': 2,
-    'md-maxcgdispl': '0.200 bohr',
-    'md-maxforcetol': '0.050 eV/Ang',
-    'writeforces': True,
-    'writecoorstep': True,
-    'write-mulliken-pop': 1,
+    'xc-functional':
+    'LDA',
+    'xc-authors':
+    'CA',
+    'mesh-cutoff':
+    '200.000 Ry',
+    'dm-numberpulay':
+    5,
+    'dm-mixingweight':
+    0.050,
+    'dm-tolerance':
+    1.e-4,
+    'electronic-temperature':
+    '100.000 K',
+    '%block local-density-of-states':
+    """
+ -5.0 1.0 eV
+%endblock local-density-of-states """
 }
-
 parameters = Dict(dict=params_dict)
-#------------------------------------------------------------------------
-
 #
-# ---------------------Basis Set Info -----------------------------------
+# Basis Set Info ------------------------------------------
 # The basis dictionary follows the 'parameters' convention
 #
 basis_dict = {
@@ -169,19 +142,18 @@ basis_dict = {
 C    SZP
 Cred SZ
 H    SZP
-%endblock pao-basis-sizes""",
+%endblock pao-basis-sizes"""
 }
-
 basis = Dict(dict=basis_dict)
-#------------------------------------------------------------------------
+#--------------------------------------------------------------
 
 #--------------------- Pseudopotentials ---------------------------------
 #
 # This exemplifies the handling of pseudos for different species
 # Those sharing the same pseudo should be indicated.
 #
-pseudos_list = []
-raw_pseudos = [("C.psf", ['C', 'Cred']), ("H.psf", 'H')]
+pseudos_dict = {}
+raw_pseudos = [("C.psf", ['C', 'Cred']), ("H.psf", ['H'])]
 
 for fname, kinds, in raw_pseudos:
     absname = os.path.realpath(
@@ -192,23 +164,20 @@ for fname, kinds, in raw_pseudos:
         print("Created the pseudo for {}".format(kinds))
     else:
         print("Using the pseudo for {} from DB: {}".format(kinds, pseudo.pk))
-    pseudos_list.append(pseudo)
+    for j in kinds:
+        pseudos_dict[j]=pseudo
+
 
 #-----------------------------------------------------------------------
-
-#
 #--All the inputs of a Siesta calculations are listed in a dictionary--
 #
 inputs = {
+    'settings' : settings,
     'structure': s,
     'parameters': parameters,
     'code': code,
     'basis': basis,
-    'pseudos': {
-        'C': pseudos_list[0],
-        'Cred': pseudos_list[0],
-        'H': pseudos_list[1],
-    },
+    'pseudos': pseudos_dict,
     'metadata': {
         'options': options,
         'label': "Benzene molecule",
@@ -222,8 +191,6 @@ if submit_test:
     #    subfolder, script_filename = calc.submit_test()
     print("Submited test for calculation (uuid='{}')".format(process.uuid))
     print("Check the folder submit_test for the result of the test")
-# I could't find a way to access the actual folder (subfolder of submit_test)
-# from the calculation node. So I can't print the exact location
 
 else:
     process = submit(SiestaCalculation, **inputs)

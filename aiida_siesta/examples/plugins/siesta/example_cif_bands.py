@@ -3,16 +3,23 @@
 
 from __future__ import absolute_import
 from __future__ import print_function
-
 import sys
+import pymatgen as mg
+import ase.io
 
 from aiida.engine import submit
 from aiida.orm import load_code
 from aiida_siesta.calculations.siesta import SiestaCalculation
 from aiida_siesta.data.psf import get_pseudos_from_structure
 from aiida.plugins import DataFactory
+from aiida.tools import get_explicit_kpoints_path
 
-#  Siesta calculation on Water molecule -- to fail in geom relaxation
+# This script will send a Siesta calculation on a structure taken from
+# a cif file.
+# The band structure is calculated and the kpoint path is automatically
+# generated using seekpath.
+# The pseudopotential is taken from a family, please refer to 00_README
+# and example_psf_family.py for better understanding
 
 PsfData = DataFactory('siesta.psf')
 Dict = DataFactory('dict')
@@ -32,15 +39,13 @@ except IndexError:
            "--send or --dont-send"),
           file=sys.stderr)
     sys.exit(1)
-#
+
 try:
     codename = sys.argv[2]
 except IndexError:
     codename = 'Siesta4.0.1@kelvin'
 
-#
 #------------------Code and computer options ---------------------------
-#
 code = load_code(codename)
 
 options = {
@@ -52,80 +57,87 @@ options = {
     }
 }
 #
-#-------------------------- Settings ---------------------------------
-#
-settings_dict = {'additional_retrieve_list': ['aiida.BONDS', 'aiida.EIG']}
-settings = Dict(dict=settings_dict)
-#
+#settings_dict = {'additional_retrieve_list': ['aiida.BONDS', 'aiida.EIG']}
+#settings = Dict(dict=settings_dict)
+#---------------------------------------------------------------------
+
 # Structure -----------------------------------------
-#
-alat = 10.0  # angstrom
-cell = [
-    [
-        alat,
-        0.,
-        0.,
-    ],
-    [
-        0.,
-        alat,
-        0.,
-    ],
-    [
-        0.,
-        0.,
-        alat,
-    ],
-]
+# Two choices for importing the .cif, pymatgen or ase. Then
+# passing through SeeK-path  to get the standardized cell.
+# Necessary for the automatic choice of the bands path.
+structure = mg.Structure.from_file("data/O2_ICSD_173933.cif", primitive=False)
+s = StructureData(pymatgen_structure=structure)
+#structure =ase.io.read("data/O2_ICSD_173933.cif")
+#s = StructureData(ase=structure)
 
-# Water molecule
-# One of the H atoms is sligthy moved
+seekpath_parameters = {'reference_distance': 0.02, 'symprec': 0.0001}
+result = get_explicit_kpoints_path(s, **seekpath_parameters)
+newstructure = result['primitive_structure']
 
-s = StructureData(cell=cell)
-s.append_atom(position=(0.000, 0.000, 0.00), symbols=['O'])
-s.append_atom(position=(0.757, 0.586, 0.00), symbols=['H'])
-s.append_atom(position=(-0.780, 0.600, 0.00), symbols=['H'])
-
-# ----------------------Parameters -------------------------------------
-
+# Parameters ---------------------------------------------------
 params_dict = {
     'xc-functional': 'LDA',
     'xc-authors': 'CA',
-    'mesh-cutoff': '100.000 Ry',
-    'max-scfiterations': 30,
-    'dm-numberpulay': 4,
-    'dm-mixingweight': 0.1,
+    'mesh-cutoff': '200.000 Ry',
+    'max-scfiterations': 1000,
+    'dm-numberpulay': 5,
+    'dm-mixingweight': 0.050,
     'dm-tolerance': 1.e-4,
-    'md-typeofrun': 'cg',
-    'md-numcgsteps': 8,
-    'md-maxcgdispl': '0.200 bohr',
-    'md-maxforcetol': '0.020 eV/Ang',
-    'geometry-must-converge': True
+    'dm-mixscf1': True,
+    'solution-method': 'diagon',
+    'electronic-temperature': '100.000 K',
+    'writeforces': True,
 }
-
+#
 parameters = Dict(dict=params_dict)
-#------------------------------------------------------------------------
+
+# Basis Set Info ------------------------------------------
+basis_dict = {
+    'pao-basistype': 'split',
+    'pao-splitnorm': 0.150,
+    'pao-energyshift': '0.020 Ry',
+    '%block pao-basis-sizes': """
+O    SZP  
+%endblock pao-basis-sizes""",
+}
 #
-# No basis set spec in this calculation (default)
-#
+basis = Dict(dict=basis_dict)
+
 #--------------------- Pseudopotentials ---------------------------------
 #
 # FIXME: The family name is hardwired
 #
 pseudos_dict = get_pseudos_from_structure(s, 'sample_psf_family')
+print(pseudos_dict)
 #-----------------------------------------------------------------------
+
+# K-points for scf cycle -------------------------------------------
+kts = KpointsData()
+kpoints_mesh = 4
+kts.set_kpoints_mesh([kpoints_mesh, kpoints_mesh, kpoints_mesh])
+
+#
+bandskpoints = KpointsData()
+
+# Making use of SeeK-path for the automatic path
+# The choice of the distance between kpoints is in the call seekpath_parameters
+# All high symmetry points included, labels already included
+bandskpoints = result['explicit_kpoints']
 
 #
 #--All the inputs of a Siesta calculations are listed in a dictionary--
 #
 inputs = {
-    'structure': s,
+    'structure': newstructure,
     'parameters': parameters,
     'code': code,
+    'basis': basis,
+    'kpoints': kts,
+    'bandskpoints': bandskpoints,
     'pseudos': pseudos_dict,
     'metadata': {
         'options': options,
-        'label': "Water molecule -- geom fail"
+        'label': "O_el_cell_from_CIF"
     }
 }
 
