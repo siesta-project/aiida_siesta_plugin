@@ -208,9 +208,14 @@ aiida_siesta/examples/plugins/siesta.
   calculation.
 
   .. note:: 'get_explicit_kpoints_path' make use of "SeeK-path".
-     Please cite the `HPKOT paper`_ if you use this tool.
+     Please cite the `HPKOT paper`_ if you use this tool. "SeeK-path"
+     is a external utility, not a requirement for aiida-core, therefore
+     it is not available by default. It can be easily installed using 
+     ``pip install seekpath``. "SeeK-path" allows to
+     determine canonical unit cells and k-point information in an easy
+     way. For more general information, refer to the `SeeK-path documentation`_.
 
-  .. warning:: as explained in the `aiida documentation`_, SeekPath
+  .. warning:: as explained in the `aiida documentation`_, "SeeK-path"
      might modify the structure to follow particular conventions
      and the generated kpoints might only 
      apply on the internally generated 'primitive_structure' and not 
@@ -326,13 +331,8 @@ Outputs
 
 There are several output nodes that can be created by the plugin,
 according to the calculation details.  All output nodes can be
-accessed with the ``calculation.outuputs`` method.
+accessed with the ``calculation.outputs`` method.
 
-.. The output parser takes advantage of the structured output available
-.. in Siesta as a Chemical Markup Language (CML) file. The CML-writer
-.. functionality should be compiled in Siesta. AiiDA then takes care automitically
-.. to include the right keywords in the siesta.fdf in order to prodeuce the
-.. CML file.
 
 * **output_parameters** :py:class:`Dict <aiida.orm.Dict>` 
 
@@ -469,6 +469,7 @@ those files as a list as follows::
 
 See for example example_ldos.py in aiida_siesta/examples/plugins/siesta.
 
+.. _SeeK-path documentation: https://seekpath.readthedocs.io/en/latest/
 .. _aiida guidelines: https://aiida-core.readthedocs.io/en/latest/get_started/computers.html
 .. _HPKOT paper: http://dx.doi.org/10.1016/j.commatsci.2016.10.015
 .. _aiida documentation: https://aiida.readthedocs.io/projects/aiida-core/en/latest/apidoc/aiida.tools.html#aiida.tools.get_explicit_kpoints_path
