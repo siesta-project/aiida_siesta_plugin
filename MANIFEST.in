@@ -1,3 +1,4 @@
-include *.txt *.yml *.sh *.rst *.py *.json *.psf  *.cif
-recursive-include aiida_siesta/examples/ *.txt *.py *.psf  *.cif *.rst
-recursive-include aiida_siesta/tests/ *.txt *.py *.psf  *.cif *.rst
+include *.txt *.yml *.sh *.rst *.py *.json *.psf *.psml *.cif
+recursive-include aiida_siesta/examples/ *.txt *.py *.psf *.psml  *.cif *.rst 00_README
+exclude docker-compose.yml
+prune dockerscripts/
