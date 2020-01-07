@@ -98,15 +98,19 @@ def generate_calc_job_node():
         entry_point = format_entry_point_string('aiida.calculations', entry_point_name)
 
         node = orm.CalcJobNode(computer=computer, process_type=entry_point)
-        node.set_attribute('input_filename', 'aiida.in')
+        node.set_attribute('input_filename', 'aiida.fdf')
         node.set_attribute('output_filename', 'aiida.out')
-        node.set_attribute('error_filename', 'aiida.err')
+        node.set_attribute('xml_file', 'aiida.xml')
+        #node.set_attribute('error_filename', 'aiida.err')
         node.set_option('resources', {'num_machines': 1, 'num_mpiprocs_per_machine': 1})
         node.set_option('max_wallclock_seconds', 1800)
 
         if attributes:
             node.set_attribute_many(attributes)
-
+        
+        #What inputs do we need? I don't think it checks the mandatory inputs,
+        #for instance the pseudo is not defined in quantum espresso.
+        #Probably only the ones that trigger a particular parsing? Or not even.
         if inputs:
             for link_label, input_node in flatten_inputs(inputs):
                 input_node.store()
