@@ -31,7 +31,7 @@ output_parameters:
   - 36
   nnz: 19594
   no_u: 26
-  parser_info: AiiDA Siesta Parser V. aiida-1.0.0--plugin-1.0.0
+  parser_info: AiiDA Siesta Parser V. aiida-1.0.0
   parser_warnings: []
   siesta:Arch: gfortran-esl-bundle-0.4
   siesta:EndTime: 2020-01-07T14-53-55

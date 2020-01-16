@@ -28,17 +28,17 @@ class SiestaCalculation(CalcJob):
     """
     Siesta calculator class for AiiDA.
     """
-    _siesta_plugin_version = 'aiida-1.0.0b--plugin-1.0-migration'
+    _siesta_plugin_version = 'aiida-1.0.0'
 
     ###########################################################
     ## Important distinction between input.spec of the class ##
-    ## (can be modified) and pure parameters                 ##
+    ## (can be modified) and pure parameters, stored as      ##
+    ## class variables only                                  ##
     ###########################################################
 
-    # Parameters
-    # Keywords that cannot be set
-    # We need to canonicalize this!
-
+    # Parameters stored as class variables
+    # 1) Keywords that cannot be set (need to canonoze this?)
+    # 2) Filepaths of certain outputs
     _aiida_blocked_keywords = ['system-name', 'system-label']
     _aiida_blocked_keywords.append('number-of-species')
     _aiida_blocked_keywords.append('number-of-atoms')
@@ -53,19 +53,19 @@ class SiestaCalculation(CalcJob):
     _PSEUDO_SUBFOLDER = './'
     _OUTPUT_SUBFOLDER = './'
     _PREFIX = 'aiida'
-
-    # Default of the input.spec, it's just default, but user
-    # could change the name
-    _DEFAULT_INPUT_FILE = 'aiida.fdf'
-    _DEFAULT_OUTPUT_FILE = 'aiida.out'
     _DEFAULT_XML_FILE = 'aiida.xml'
     _DEFAULT_JSON_FILE = 'time.json'
     _DEFAULT_MESSAGES_FILE = 'MESSAGES'
     _DEFAULT_BANDS_FILE = 'aiida.bands'
 
+
+    # Default of the input.spec, it's just default, but user
+    # could change the name
+    _DEFAULT_INPUT_FILE = 'aiida.fdf'
+    _DEFAULT_OUTPUT_FILE = 'aiida.out'
+
     # in restarts, it will copy from the parent the following
     # (fow now, just the density matrix file)
-    # _restart_copy_from = os.path.join(self._OUTPUT_SUBFOLDER, '*.DM')
     _restart_copy_from = os.path.join(_OUTPUT_SUBFOLDER, '*.DM')
 
     # in restarts, it will copy the previous folder in the following one
@@ -75,6 +75,7 @@ class SiestaCalculation(CalcJob):
     def define(cls, spec):
         super(SiestaCalculation, cls).define(spec)
 
+        # Input nodes
         spec.input('code', valid_type=orm.Code, help='Input code')
         spec.input('structure',
                    valid_type=orm.StructureData,
@@ -108,30 +109,21 @@ class SiestaCalculation(CalcJob):
                   help='Input pseudo potentials',
                   dynamic=True)
 
-        # These are optional, since a default is specified
-        # But they should not be set by the user...
+        # Metadada.options host the inputs that are not stored
+        # as a separate node, but attached to `CalcJobNode`
+        # as attributes. They are optional, since a default is 
+        # specified, but they might be changed by the user.
         spec.input('metadata.options.input_filename',
                    valid_type=six.string_types,
                    default=cls._DEFAULT_INPUT_FILE)
         spec.input('metadata.options.output_filename',
                    valid_type=six.string_types,
                    default=cls._DEFAULT_OUTPUT_FILE)
-        spec.input('metadata.options.xml_file',
-                   valid_type=six.string_types,
-                   default=cls._DEFAULT_XML_FILE)
-        spec.input('metadata.options.bands_file',
-                   valid_type=six.string_types,
-                   default=cls._DEFAULT_BANDS_FILE)
-        spec.input('metadata.options.messages_file',
-                   valid_type=six.string_types,
-                   default=cls._DEFAULT_MESSAGES_FILE)
-        spec.input('metadata.options.json_file',
-                   valid_type=six.string_types,
-                   default=cls._DEFAULT_JSON_FILE)
         spec.input('metadata.options.parser_name',
                    valid_type=six.string_types,
                    default='siesta.parser')
-#----------------------------------------------------
+
+        # Output nodes
         spec.output('output_parameters',
                     valid_type=Dict,
                     required=True,
@@ -145,8 +137,9 @@ class SiestaCalculation(CalcJob):
                     valid_type=BandsData,
                     required=False,
                     help='Optional band structure')
-        #I don't know why the bands parameters are parsed as BandsData already contains the kpoints (Emanuele)
-        #AG: Agreed, this will go soon.
+        # I don't know why the bands parameters are parsed as BandsData already 
+        # contains the kpoints (Emanuele)
+        # AG: Agreed, this will go soon.
         spec.output('bands_parameters',
                     valid_type=Dict,
                     required=False,
@@ -156,15 +149,19 @@ class SiestaCalculation(CalcJob):
                     required=False,
                     help='Optional forces and stress')
 
-        spec.default_output_node = 'output_parameters'  #should be existing output node and a Dict
+        # Option that allows acces through node.res
+        # should be existing output node and a Dict
+        spec.default_output_node = 'output_parameters'
 
+        # Error handeling
         spec.exit_code(
             100,
             'ERROR_NO_RETRIEVED_FOLDER',
             message='The retrieved folder data node could not be accessed.')
-        spec.exit_code(120,
-                       'SCF_NOT_CONV',
-                       message='Calculation did not reach scf convergence!')
+        spec.exit_code(
+            120,
+            'SCF_NOT_CONV',
+            message='Calculation did not reach scf convergence!')
         spec.exit_code(
             130,
             'GEOM_NOT_CONV',
@@ -181,12 +178,12 @@ class SiestaCalculation(CalcJob):
         :return: `aiida.common.datastructures.CalcInfo` instance
         """
 
-        ########################################
-        # BEGINNING OF INITIAL INPUT CHECK     #
-        # All input ports that are defined via #
-        # spec.input are required by default,  #
-        # no need to check them                #
-        ########################################
+        #####################################################
+        # BEGINNING OF INITIAL INPUT CHECK                  #
+        # All input ports that are defined via spec.input   #
+        # are checked by default, only need to asses their  #
+        # presence in case they are optional                #
+        #####################################################
 
         code = self.inputs.code
         structure = self.inputs.structure
@@ -488,21 +485,22 @@ class SiestaCalculation(CalcJob):
             infile.write("max.walltime {}".format(
                 metadataoption.max_wallclock_seconds))
 
+        # ====================== Code and Calc info ========================
+        # Code information object and Calc information object are now only
+        # only used to set up the CMDLINE, line that lunches siesta
+        # and set up the list of files to retrieve
+
         cmdline_params = settings_dict.pop('CMDLINE', [])
-        #
-        # Code information object
-        #
+        
         codeinfo = CodeInfo()
         codeinfo.cmdline_params = list(cmdline_params)
         codeinfo.stdin_name = metadataoption.input_filename
         codeinfo.stdout_name = metadataoption.output_filename
-        codeinfo.xml_name = metadataoption.xml_file
-        codeinfo.json_name = metadataoption.json_file
-        codeinfo.messages_name = metadataoption.messages_file
+        #codeinfo.xml_name = self._DEFAULT_XML_FILE
+        #codeinfo.json_name = self_DEFAULT_JSON_FILE
+        #codeinfo.messages_name = self_DEFAULT_MESSAGES_FILE
         codeinfo.code_uuid = code.uuid
-        #
-        # Calc information object
-        #
+        
         calcinfo = CalcInfo()
         calcinfo.uuid = str(self.uuid)
         if cmdline_params:
@@ -511,26 +509,20 @@ class SiestaCalculation(CalcJob):
         calcinfo.remote_copy_list = remote_copy_list
         calcinfo.stdin_name = metadataoption.input_filename
         calcinfo.stdout_name = metadataoption.output_filename
-        calcinfo.xml_name = metadataoption.xml_file
-        calcinfo.json_name = metadataoption.json_file
-        calcinfo.messages_name = metadataoption.messages_file
+        #calcinfo.xml_name = self._DEFAULT_XML_FILE
+        #calcinfo.json_name = self_DEFAULT_JSON_FILE
+        #calcinfo.messages_name = self_DEFAULT_MESSAGES_FILE
         calcinfo.codes_info = [codeinfo]
-        #
-
         # Retrieve by default: the output file, the xml file, the
         # messages file, and the json timing file.
         # If flagbands=True we also add the bands file to the retrieve list!
-        # This is extremely important because the parser parses the bands
-        # only if aiida.bands is in the retrieve list!!
-
         calcinfo.retrieve_list = []
         calcinfo.retrieve_list.append(metadataoption.output_filename)
-        calcinfo.retrieve_list.append(metadataoption.xml_file)
-        calcinfo.retrieve_list.append(metadataoption.json_file)
-        calcinfo.retrieve_list.append(metadataoption.messages_file)
+        calcinfo.retrieve_list.append(self._DEFAULT_XML_FILE) 
+        calcinfo.retrieve_list.append(self._DEFAULT_JSON_FILE) 
+        calcinfo.retrieve_list.append(self._DEFAULT_MESSAGES_FILE) 
         if bandskpoints is not None:
-            calcinfo.retrieve_list.append(metadataoption.bands_file)
-
+            calcinfo.retrieve_list.append(self._DEFAULT_BANDS_FILE) 
         # Any other files specified in the settings dictionary
         settings_retrieve_list = settings_dict.pop('ADDITIONAL_RETRIEVE_LIST',
                                                    [])

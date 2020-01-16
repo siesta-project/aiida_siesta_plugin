@@ -12,10 +12,11 @@
         "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3.5",
 	"Programming Language :: Python :: 3.6",
-        "Development Status :: 4 - Beta"
+	"Programming Language :: Python :: 3.7",
+	"Development Status :: 4 - Beta"
     ],
     "install_requires": [
-        "aiida_core[atomic_tools]>=1.0.0,<2.0.0"
+        "aiida_core[atomic_tools]>=1.0.0b6,<2.0.0"
     ],
     "extras_require": {
         "dev": [

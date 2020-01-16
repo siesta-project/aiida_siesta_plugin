@@ -293,7 +293,7 @@ class SiestaParser(Parser):
         from aiida.orm import TrajectoryData
         import re
 
-        parser_version = 'aiida-1.0.0--plugin-1.0.0'
+        parser_version = 'aiida-1.0.0'
         parser_info = {}
         parser_info['parser_info'] = 'AiiDA Siesta Parser V. {}'.format(
             parser_version)
@@ -440,33 +440,33 @@ class SiestaParser(Parser):
         else:
             raise OutputParsingError("Output file not retrieved")
 
-        if self.node.get_option('xml_file') in list_of_files:
+        if self.node.process_class._DEFAULT_XML_FILE in list_of_files:
             xml_path = os.path.join(
                 out_folder._repository._get_base_folder().abspath,
-                self.node.get_option('xml_file'))
+                self.node.process_class._DEFAULT_XML_FILE)
         else:
             raise OutputParsingError("Xml file not retrieved")
 
-        if self.node.get_option('json_file') in list_of_files:
+        if self.node.process_class._DEFAULT_JSON_FILE in list_of_files:
             json_path = os.path.join(
                 out_folder._repository._get_base_folder().abspath,
-                self.node.get_option('json_file'))
+                self.node.process_class._DEFAULT_JSON_FILE)
 #        else:
 #            raise OutputParsingError("json file not retrieved")
 
-        if self.node.get_option('messages_file') in list_of_files:
+        if self.node.process_class._DEFAULT_MESSAGES_FILE in list_of_files:
             messages_path = os.path.join(
                 out_folder._repository._get_base_folder().abspath,
-                self.node.get_option('messages_file'))
+                self.node.process_class._DEFAULT_MESSAGES_FILE)
 
 
 #        else:
 #            raise OutputParsingError("message file not retrieved")
 
-        if self.node.get_option('bands_file') in list_of_files:
+        if self.node.process_class._DEFAULT_BANDS_FILE in list_of_files:
             bands_path = os.path.join(
                 out_folder._repository._get_base_folder().abspath,
-                self.node.get_option('bands_file'))
+                self.node.process_class._DEFAULT_BANDS_FILE)
 
         if bands_path is None:
             supposed_to_have_bandsfile = True
