@@ -100,8 +100,7 @@ def generate_calc_job_node():
         node = orm.CalcJobNode(computer=computer, process_type=entry_point)
         node.set_attribute('input_filename', 'aiida.fdf')
         node.set_attribute('output_filename', 'aiida.out')
-        node.set_attribute('xml_file', 'aiida.xml')
-        #node.set_attribute('error_filename', 'aiida.err')
+        #node.set_attribute('xml_file', 'aiida.xml')
         node.set_option('resources', {'num_machines': 1, 'num_mpiprocs_per_machine': 1})
         node.set_option('max_wallclock_seconds', 1800)
 
@@ -157,6 +156,25 @@ def generate_psf_data():
     return _generate_psf_data
 
 
+@pytest.fixture(scope='session')
+def generate_psml_data():
+    """Return a `PsmlData` instance for the given element a file for which should exist in `tests/pseudos`."""
+
+    def _generate_psml_data(element):
+        """Return `PsmlData` node."""
+        from aiida_siesta.data.psml import PsmlData
+
+        filename = os.path.join('tests', 'pseudos', '{}.psml'.format(element))
+        filepath = os.path.abspath(filename)
+
+        with io.open(filepath, 'r') as handle:
+            psml = PsmlData(file=handle.name)
+
+        return psml
+
+    return _generate_psml_data
+
+
 @pytest.fixture
 def generate_structure():
     """Return a `StructureData` representing bulk silicon."""
@@ -169,7 +187,7 @@ def generate_structure():
         cell = [[param / 2., param / 2., 0], [param / 2., 0, param / 2.], [0, param / 2., param / 2.]]
         structure = StructureData(cell=cell)
         structure.append_atom(position=(0., 0., 0.), symbols='Si', name='Si')
-        structure.append_atom(position=(param / 4., param / 4., param / 4.), symbols='Si', name='Si')
+        structure.append_atom(position=(param / 4., param / 4., param / 4.), symbols='Si', name='SiDiff')
 
         return structure
 
@@ -213,6 +231,7 @@ def generate_basis():
         'pao-energy-shift': '300 meV',
         '%block pao-basis-sizes': """
         Si DZP
+        SiDiff DZP
         %endblock pao-basis-sizes""",
         }
 

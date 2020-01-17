@@ -39,7 +39,8 @@ def test_siesta_default(aiida_profile, fixture_localhost, generate_calc_job_node
         'output_parameters': results['output_parameters'].get_dict()
     })
 
-
+# As it is implemented now, there is no point to test also the case bandslines as
+# I assert the attributes of bands, not the actual array!
 def test_siesta_bandspoints(aiida_profile, fixture_localhost, generate_calc_job_node,
     generate_parser, generate_structure, data_regression):
     """Test parsing of bands in a siesta calculation when the bandspoints option is set in the submission file.
@@ -59,9 +60,12 @@ def test_siesta_bandspoints(aiida_profile, fixture_localhost, generate_calc_job_
         'bandskpoints': bandskpoints
     })
 
-    attributes=AttributeDict({'bands_file': 'aiida.bands'})
+    #attributes=AttributeDict({'bands_file': 'aiida.bands'})
+    #This is not necessary anymore, in previous commit
+    #I modified the parser to read name of bands file directly
+    #from process_class variable
 
-    node = generate_calc_job_node(entry_point_calc_job, fixture_localhost, name, inputs, attributes)
+    node = generate_calc_job_node(entry_point_calc_job, fixture_localhost, name, inputs) #, attributes)
     parser = generate_parser(entry_point_parser)
     results, calcfunction = parser.parse_from_node(node, store_provenance=False)
 

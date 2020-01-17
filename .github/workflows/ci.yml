@@ -44,5 +44,5 @@ jobs:
         reentry scan
     - name: Run pytest
       run:
-        pytest -sv tests/calculations
+        pytest -sv tests
 

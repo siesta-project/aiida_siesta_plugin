@@ -10,7 +10,7 @@ mdmaxforcetol 0.04 eV/Ang
 mdnumcgsteps 3
 mdtypeofrun cg
 numberofatoms 2
-numberofspecies 1
+numberofspecies 2
 solutionmethod diagon
 systemlabel aiida
 systemname aiida
@@ -24,12 +24,14 @@ xmlwrite T
 pao-energy-shift 300 meV
 %block pao-basis-sizes 
         Si DZP
+        SiDiff DZP
         %endblock pao-basis-sizes
 #
 # -- Structural Info follows
 #
 %block chemicalspecieslabel
     1    14     Si
+    2    14 SiDiff
 %endblock chemicalspecieslabel
 %block lattice-vectors
       0.0000000000       2.7150000000       2.7150000000
@@ -38,7 +40,7 @@ pao-energy-shift 300 meV
 %endblock lattice-vectors
 %block atomiccoordinatesandatomicspecies
       0.0000000000       0.0000000000       0.0000000000    1     Si      1
-      1.3575000000       4.0725000000       4.0725000000    1     Si      2
+      1.3575000000       4.0725000000       4.0725000000    2 SiDiff      2
 %endblock atomiccoordinatesandatomicspecies
 #
 # -- K-points Info follows

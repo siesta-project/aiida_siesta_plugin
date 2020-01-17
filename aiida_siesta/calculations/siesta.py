@@ -28,7 +28,7 @@ class SiestaCalculation(CalcJob):
     """
     Siesta calculator class for AiiDA.
     """
-    _siesta_plugin_version = 'aiida-1.0.0'
+    _siesta_plugin_version = '1.0.0'
 
     ###########################################################
     ## Important distinction between input.spec of the class ##
@@ -243,7 +243,6 @@ class SiestaCalculation(CalcJob):
 
         # Look for blocked keywords and
         # add the proper values to the dictionary
-
         for blocked_key in self._aiida_blocked_keywords:
             canonical_blocked = FDFDict.translate_key(blocked_key)
             for key in input_params:
@@ -257,18 +256,14 @@ class SiestaCalculation(CalcJob):
         input_params.update({'system-label': self._PREFIX})
         input_params.update({'use-tree-timer': 'T'})
         input_params.update({'xml-write': 'T'})
-
         input_params.update({'number-of-species': len(structure.kinds)})
         input_params.update({'number-of-atoms': len(structure.sites)})
 
-        #
         # Regarding the lattice-constant parameter:
         # -- The variable "alat" is not typically kept anywhere, and
         # has already been used to define the vectors.
         # We need to specify that the units of these vectors are Ang...
-
         input_params.update({'lattice-constant': '1.0 Ang'})
-
         # Note that this  will break havoc with the band-k-points "pi/a"
         # option. The use of this option should be banned.
 
@@ -486,9 +481,9 @@ class SiestaCalculation(CalcJob):
                 metadataoption.max_wallclock_seconds))
 
         # ====================== Code and Calc info ========================
-        # Code information object and Calc information object are now only
-        # only used to set up the CMDLINE, line that lunches siesta
-        # and set up the list of files to retrieve
+        # Code information object and Calc information object are now
+        # only used to set up the CMDLINE (the bash line that launches siesta)
+        # and to set up the list of files to retrieve.
 
         cmdline_params = settings_dict.pop('CMDLINE', [])
         
@@ -496,9 +491,6 @@ class SiestaCalculation(CalcJob):
         codeinfo.cmdline_params = list(cmdline_params)
         codeinfo.stdin_name = metadataoption.input_filename
         codeinfo.stdout_name = metadataoption.output_filename
-        #codeinfo.xml_name = self._DEFAULT_XML_FILE
-        #codeinfo.json_name = self_DEFAULT_JSON_FILE
-        #codeinfo.messages_name = self_DEFAULT_MESSAGES_FILE
         codeinfo.code_uuid = code.uuid
         
         calcinfo = CalcInfo()
@@ -509,13 +501,10 @@ class SiestaCalculation(CalcJob):
         calcinfo.remote_copy_list = remote_copy_list
         calcinfo.stdin_name = metadataoption.input_filename
         calcinfo.stdout_name = metadataoption.output_filename
-        #calcinfo.xml_name = self._DEFAULT_XML_FILE
-        #calcinfo.json_name = self_DEFAULT_JSON_FILE
-        #calcinfo.messages_name = self_DEFAULT_MESSAGES_FILE
         calcinfo.codes_info = [codeinfo]
         # Retrieve by default: the output file, the xml file, the
         # messages file, and the json timing file.
-        # If flagbands=True we also add the bands file to the retrieve list!
+        # If bandskpoints, also the bands file is added to the retrieve list.
         calcinfo.retrieve_list = []
         calcinfo.retrieve_list.append(metadataoption.output_filename)
         calcinfo.retrieve_list.append(self._DEFAULT_XML_FILE) 

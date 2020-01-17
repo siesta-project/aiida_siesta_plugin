@@ -12,12 +12,13 @@ from aiida.tools import get_explicit_kpoints_path
 
 def test_base(aiida_profile, fixture_sandbox, generate_calc_job, 
     fixture_code, generate_structure, generate_kpoints_mesh, generate_basis,
-    generate_param, generate_psf_data, file_regression):
+    generate_param, generate_psf_data, generate_psml_data, file_regression):
     """Test that single calculation is submitted."""
 
     entry_point_name = 'siesta.siesta'
 
     psf = generate_psf_data('Si')
+    psml = generate_psml_data('Si')
 
     inputs = {
         'code': fixture_code(entry_point_name),
@@ -26,7 +27,8 @@ def test_base(aiida_profile, fixture_sandbox, generate_calc_job,
         'parameters': generate_param(),
         'basis': generate_basis(),
         'pseudos': {
-            'Si': psf
+            'Si': psf,
+            'SiDiff': psml
         },
         'metadata': {
             'options': {
@@ -40,7 +42,7 @@ def test_base(aiida_profile, fixture_sandbox, generate_calc_job,
     calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
 
     #cmdline_params = ['-in', 'aiida.fdf']
-    local_copy_list = [(psf.uuid, psf.filename, 'Si.psf')]
+    local_copy_list = [(psf.uuid, psf.filename, 'Si.psf'),(psml.uuid, psml.filename,'SiDiff.psml')]
     retrieve_list = ['MESSAGES', 'time.json', 'aiida.out', 'aiida.xml']
 
     # Check the attributes of the returned `CalcInfo`
@@ -60,14 +62,97 @@ def test_base(aiida_profile, fixture_sandbox, generate_calc_job,
     file_regression.check(input_written, encoding='utf-8', extension='.fdf')
 
 
-def test_bandslines(aiida_profile, fixture_sandbox, generate_calc_job,
+# Still in progress ...
+#def test_restart(aiida_profile, fixture_sandbox, fixture_localhost, generate_calc_job, 
+#    fixture_code, generate_structure, generate_kpoints_mesh, generate_basis,
+#    generate_param, generate_psf_data, generate_psml_data, file_regression):
+#    """Test that single calculation is submitted."""
+#
+#    entry_point_name = 'siesta.siesta'
+#
+#    psf = generate_psf_data('Si')
+#    psml = generate_psml_data('Si')
+#
+#    import os
+#    basepath = os.path.dirname(os.path.abspath(__file__))
+#    fake_remote_path=os.path.join(basepath, 'fixtures', 'restart') 
+#    fake_remote_folder = orm.RemoteData(computer=fixture_localhost, remote_path=fake_remote_path)
+#
+#    #remote_folder.add_incoming(node, link_type=LinkType.CREATE, link_label='remote_folder')
+#    #remote_folder.store()
+#
+#    inputs = {
+#        'parent_calc_folder': fake_remote_folder,
+#        'code': fixture_code(entry_point_name),
+#        'structure': generate_structure(),
+#        'kpoints': generate_kpoints_mesh(2),
+#        'parameters': generate_param(),
+#        'basis': generate_basis(),
+#        'pseudos': {
+#            'Si': psf,
+#            'SiDiff': psml
+#        },
+#        'metadata': {
+#            'options': {
+#               'resources': {'num_machines': 1  },
+#               'max_wallclock_seconds': 1800,
+#               'withmpi': False,
+#               }
+#        }
+#    }
+#
+#    calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
+#    remote_copy_list = ["as.DM"]
+#    assert sorted(calc_info.remote_copy_list) == sorted(remote_copy_list)
+
+# Should be extended to all the blocked_keyworld
+def test_blocked_keyword(aiida_profile, fixture_sandbox, generate_calc_job, 
     fixture_code, generate_structure, generate_kpoints_mesh, generate_basis,
-    generate_param, generate_psf_data, file_regression):
+    generate_param, generate_psf_data, generate_psml_data, file_regression):
     """Test that single calculation is submitted."""
 
     entry_point_name = 'siesta.siesta'
 
     psf = generate_psf_data('Si')
+    psml = generate_psml_data('Si')
+
+    parameters = generate_param()
+    parameters.set_attribute('system-name',"whatever")
+
+    inputs = {
+        'code': fixture_code(entry_point_name),
+        'structure': generate_structure(),
+        'kpoints': generate_kpoints_mesh(2),
+        'parameters': parameters,
+        'basis': generate_basis(),
+        'pseudos': {
+            'Si': psf,
+            'SiDiff': psml
+        },
+        'metadata': {
+            'options': {
+               'resources': {'num_machines': 1  },
+               'max_wallclock_seconds': 1800,
+               'withmpi': False,
+               }
+        }
+    }
+
+    from aiida.common import InputValidationError
+    import pytest
+    with pytest.raises(InputValidationError):
+        calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
+
+
+def test_bandslines(aiida_profile, fixture_sandbox, generate_calc_job,
+    fixture_code, generate_structure, generate_kpoints_mesh, generate_basis,
+    generate_param, generate_psf_data, generate_psml_data, file_regression):
+    """Test that single calculation is submitted."""
+
+    entry_point_name = 'siesta.siesta'
+
+    psf = generate_psf_data('Si')
+    psml = generate_psml_data('Si')
 
     s=generate_structure()
     seekpath_parameters = orm.Dict(dict={
@@ -89,7 +174,8 @@ def test_bandslines(aiida_profile, fixture_sandbox, generate_calc_job,
         'parameters': generate_param(),
         'basis': generate_basis(),
         'pseudos': {
-            'Si': psf
+            'Si': psf,
+            'SiDiff': psml
         },
         'metadata': {
             'options': {
@@ -113,12 +199,13 @@ def test_bandslines(aiida_profile, fixture_sandbox, generate_calc_job,
 
 def test_bandspoints(aiida_profile, fixture_sandbox, generate_calc_job,
     fixture_code, generate_structure, generate_kpoints_mesh, generate_basis,
-    generate_param, generate_psf_data, file_regression):
+    generate_param, generate_psf_data, generate_psml_data, file_regression):
     """Test that single calculation is submitted."""
 
     entry_point_name = 'siesta.siesta'
 
     psf = generate_psf_data('Si')
+    psml = generate_psml_data('Si')
 
     structure=generate_structure()
     bandskpoints = orm.KpointsData()
@@ -135,7 +222,8 @@ def test_bandspoints(aiida_profile, fixture_sandbox, generate_calc_job,
         'parameters': generate_param(),
         'basis': generate_basis(),
         'pseudos': {
-            'Si': psf
+            'Si': psf,
+            'SiDiff': psml
         },
         'metadata': {
             'options': {
