@@ -32,31 +32,47 @@ class SiestaBaseWorkChain(WorkChain):
     """
 
     _calculation_class = SiestaCalculation
-    _error_handler_entry_point = 'aiida_siesta.workflow_error_handlers.base'
+ #   _error_handler_entry_point = 'aiida_siesta.workflow_error_handlers.base'
 
     def __init__(self, *args, **kwargs):
         super(SiestaBaseWorkChain, self).__init__(*args, **kwargs)
 
-    @override
-    def load_instance_state(self, saved_state, load_context):
-        super(SiestaBaseWorkChain,
-              self).load_instance_state(saved_state, load_context)
-        self._load_error_handlers()
+    #The next commented part is
+    #presumably needed only if you specify an error handler registry and
+    #you give it an entry point. It is not defined at the moment!
+    #I commented it in the first place because this part was giving error due to
+    #get_plugins, that now is get_entry_point_names
+    #Remember the above if uncomment in the future. Emanuele 20/01/2020
+    #
+    #Better above if you uncomment
+    #   _error_handler_entry_point = 'aiida_siesta.workflow_error_handlers.base'
+    #
+    #@override
+    #def load_instance_state(self, saved_state, load_context):
+    #"""Load the process instance from a saved state.
+    #   :param saved_state: saved state of existing process instance
+    #   :param load_context: context for loading instance state
+    #    """
+    #
+    #    super(SiestaBaseWorkChain,
+    #          self).load_instance_state(saved_state, load_context)
+    #    self._load_error_handlers()
 
-    def _load_error_handlers(self):
-        # If an error handler entry point is defined, load them. If the plugin cannot be loaded log it and pass
-        if self._error_handler_entry_point is not None:
-            for plugin in get_plugins(self._error_handler_entry_point):
-                try:
-                    get_plugin(self._error_handler_entry_point, plugin)
-                    self.logger.info(
-                        "loaded the '{}' entry point for the '{}' error handlers category"
-                        .format(plugin, self._error_handler_entry_point,
-                                plugin))
-                except EntryPointError:
-                    self.logger.warning(
-                        "failed to load the '{}' entry point for the '{}' error handlers"
-                        .format(plugin, self._error_handler_entry_point))
+    #def _load_error_handlers(self):
+    #    # If an error handler entry point is defined, load them. If the plugin cannot be loaded log it and pass
+    #    if self._error_handler_entry_point is not None:
+    #        for plugin in get_plugins(self._error_handler_entry_point):
+    #            try:
+    #                get_plugin(self._error_handler_entry_point, plugin)
+    #                self.logger.info(
+    #                    "loaded the '{}' entry point for the '{}' error handlers category"
+    #                    .format(plugin, self._error_handler_entry_point,
+    #                      plugin))
+    #            except EntryPointError:
+    #                self.logger.warning(
+    #                    "failed to load the '{}' entry point for the '{}' error handlers"
+    #                    .format(plugin, self._error_handler_entry_point))
+
 
     @classmethod
     def define(cls, spec):
@@ -68,10 +84,12 @@ class SiestaBaseWorkChain(WorkChain):
         spec.input('parent_folder', valid_type=orm.RemoteData, required=False)
         spec.input('kpoints', valid_type=orm.KpointsData, required=False)
         spec.input('bandskpoints', valid_type=orm.KpointsData, required=False)
-        spec.input('parameters', valid_type=orm.Dict, required=False)
+        #Required by the plugin
+        spec.input('parameters', valid_type=orm.Dict)
         spec.input('basis', valid_type=orm.Dict, required=False)
         spec.input('settings', valid_type=orm.Dict, required=False)
-        spec.input('options', valid_type=orm.Dict, required=False)
+        #Required by any CalcJob
+        spec.input('options', valid_type=orm.Dict)
 
         spec.input(
             'max_iterations',
@@ -166,22 +184,31 @@ class SiestaBaseWorkChain(WorkChain):
         self.ctx.out_of_time = False
 
         # Define inputs for the context of the workflow
+        # the orm.Dict are back to be dictionaries because in this
+        # way one can modify them. prepare_process_inputs reverts
+        # them to orm.Dict
+        # The few mandatory inputs (pseudo is handled later):
         self.ctx.inputs = {
             'code': self.inputs.code,
             'structure': self.inputs.structure,
             'pseudos': {},
-            'kpoints': self.inputs.kpoints,
             'parameters': self.inputs.parameters.get_dict(),
-            'basis': self.inputs.basis.get_dict(),
-            'settings': self.inputs.settings.get_dict(),
             'metadata': {
                 'options': self.inputs.options.get_dict(),
             }
         }
+        # Now the optional inputs
+        if 'kpoints' in self.inputs:
+            self.ctx.inputs['kpoints'] = self.inputs.kpoints
+        if 'basis' in self.inputs:
+            self.ctx.inputs['basis'] = self.inputs.basis.get_dict()
+        if 'settings' in self.inputs:
+            self.ctx.inputs['settings'] = self.inputs.settings.get_dict()
         if 'bandskpoints' in self.inputs:
             self.ctx.want_band_structure = True
             self.ctx.inputs['bandskpoints'] = self.inputs.bandskpoints
 
+        #TO_DO soon, restart!
         # if 'parent_folder' in self.inputs:
         #     self.ctx.has_parent_folder = True
         #     self.ctx.inputs['parent_folder'] = self.inputs.parent_folder
