@@ -12,7 +12,14 @@
 
 """
 from __future__ import absolute_import
-from collections import MutableMapping
+#MutableMapping and other "abstract base classes" are in collections.abc from
+#python 3.3. "from collections import MutableMapping" is not supported
+#anymore in python 3.8, however it is the only option in python 2.7
+try:
+    from collections.abc import MutableMapping
+except ImportError:
+    from collections import MutableMapping
+
 import six
 
 

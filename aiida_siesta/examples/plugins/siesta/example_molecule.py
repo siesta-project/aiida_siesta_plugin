@@ -43,7 +43,7 @@ except IndexError:
 code = load_code(codename)
 
 options = {
-    "queue_name": "debug",
+#    "queue_name": "debug",
     "max_wallclock_seconds": 1700,
 #    'withmpi': True,
     "resources": {
