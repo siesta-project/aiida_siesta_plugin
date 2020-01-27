@@ -11,7 +11,7 @@ from aiida.common.lang import override
 from aiida.engine import CalcJob, WorkChain, ToContext, append_, while_
 from aiida.plugins import CalculationFactory
 from aiida.common import AttributeDict, AiidaException
-
+from aiida.plugins.entry_point import get_entry_point_names, load_entry_point
 from aiida_siesta.data.common import get_pseudos_from_structure
 from aiida_siesta.calculations.siesta import SiestaCalculation
 
@@ -32,46 +32,35 @@ class SiestaBaseWorkChain(WorkChain):
     """
 
     _calculation_class = SiestaCalculation
- #   _error_handler_entry_point = 'aiida_siesta.workflow_error_handlers.base'
+    _error_handler_entry_point = 'aiida_siesta.workflow_error_handlers.base'
 
     def __init__(self, *args, **kwargs):
         super(SiestaBaseWorkChain, self).__init__(*args, **kwargs)
 
-    #The next commented part is
-    #presumably needed only if you specify an error handler registry and
+    #Next two functions are needed only if you specify an error handler registry and
     #you give it an entry point. It is not defined at the moment!
-    #I commented it in the first place because this part was giving error due to
-    #get_plugins, that now is get_entry_point_names
-    #Remember the above if uncomment in the future. Emanuele 20/01/2020
-    #
-    #Better above if you uncomment
-    #   _error_handler_entry_point = 'aiida_siesta.workflow_error_handlers.base'
-    #
-    #@override
-    #def load_instance_state(self, saved_state, load_context):
-    #"""Load the process instance from a saved state.
-    #   :param saved_state: saved state of existing process instance
-    #   :param load_context: context for loading instance state
-    #    """
-    #
-    #    super(SiestaBaseWorkChain,
-    #          self).load_instance_state(saved_state, load_context)
-    #    self._load_error_handlers()
+    @override
+    def load_instance_state(self, saved_state, load_context):
+        """Load the process instance from a saved state.
+        :param saved_state: saved state of existing process instance
+        :param load_context: context for loading instance state
+        """
+        super(SiestaBaseWorkChain,self).load_instance_state(saved_state, load_context)
+        self._load_error_handlers()
 
-    #def _load_error_handlers(self):
-    #    # If an error handler entry point is defined, load them. If the plugin cannot be loaded log it and pass
-    #    if self._error_handler_entry_point is not None:
-    #        for plugin in get_plugins(self._error_handler_entry_point):
-    #            try:
-    #                get_plugin(self._error_handler_entry_point, plugin)
-    #                self.logger.info(
-    #                    "loaded the '{}' entry point for the '{}' error handlers category"
-    #                    .format(plugin, self._error_handler_entry_point,
-    #                      plugin))
-    #            except EntryPointError:
-    #                self.logger.warning(
-    #                    "failed to load the '{}' entry point for the '{}' error handlers"
-    #                    .format(plugin, self._error_handler_entry_point))
+    def _load_error_handlers(self):
+        # If an error handler entry point is defined, load them. If the plugin cannot be loaded log it and pass
+        if self._error_handler_entry_point is not None:
+            for entry_point_name in get_entry_point_names(self._error_handler_entry_point):
+                try:
+                    load_entry_point(self._error_handler_entry_point, entry_point_name)
+                    self.logger.info(
+                        "loaded the '{}' entry point for the '{}' error handlers category"
+                        .format(entry_point_name, self._error_handler_entry_point, plugin))
+                except EntryPointError as exception:
+                    self.logger.warning(
+                        "failed to load the '{}' entry point for the '{}' error handlers: '{}'"
+                        .format(entry_point_name, self._error_handler_entry_point, exception))
 
 
     @classmethod
