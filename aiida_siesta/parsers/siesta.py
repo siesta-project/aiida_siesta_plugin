@@ -7,19 +7,20 @@ from aiida.orm import Dict
 from six.moves import range
 from aiida.common import OutputParsingError
 from aiida.common import exceptions
-
 # See the LICENSE.txt and AUTHORS.txt files.
 
 # TODO Get modules metadata from setup script.
 
-# These auxiliary functions should be put in another module...
 # List of scalar values from CML to be transferred to AiiDA
-#
 standard_output_list = [
     'siesta:FreeE', 'siesta:E_KS', 'siesta:Ebs', 'siesta:E_Fermi',
     'siesta:stot'
 ]  ## leave svec for later
 
+#####################################################
+# BEGINNING OF SET OF AUXILIARY FUNCTIONS           #
+# They should probably be put in a separate module  #
+#####################################################
 
 def text_to_array(s, dtype):
     return np.array(s.replace("\n", "").split(), dtype=dtype)
@@ -32,7 +33,8 @@ def get_parsed_xml_doc(xml_path):
     try:
         xmldoc = minidom.parse(xml_path)
     except:
-        xmldoc = None
+        raise OutputParsingError("Faulty Xml File")
+        #xmldoc = None
 
     # We might want to add some extra consistency checks
 
@@ -155,7 +157,7 @@ def get_sizes_info(xmldoc):
                             int(s) for s in array.childNodes[0].data.split()
                         ]
 
-            return no_u, nnz, mesh
+    return no_u, nnz, mesh
 
 
 def get_last_structure(xmldoc, input_structure):
@@ -263,27 +265,113 @@ def get_final_forces_and_stress(xmldoc):
 
     return forces, stress
 
-
-#----------------------------------------------------------------------
-
-from aiida.common.exceptions import OutputParsingError
+##################################
+# END OF AUXILIARY FUNCTIONS SET #
+##################################
 
 
 class SiestaOutputParsingError(OutputParsingError):
     pass
 
-
 class SiestaCMLParsingError(OutputParsingError):
     pass
-
-
-#---------------------------
-
 
 class SiestaParser(Parser):
     """
     Parser for the output of Siesta.
     """
+    def parse(self, **kwargs):
+        """
+        Receives in input a dictionary of retrieved nodes.
+        Does all the logic here.
+        """
+        from aiida.engine import ExitCode
+
+        try:
+            output_folder = self.retrieved
+        except exceptions.NotExistent:
+            return self.exit_codes.ERROR_NO_RETRIEVED_FOLDER
+
+        output_path, messages_path, xml_path, json_path, bands_path = \
+            self._fetch_output_files(output_folder)
+
+        out_results = self._get_output_nodes(output_path, messages_path,
+                                             xml_path, json_path, bands_path)
+
+        for line in out_results["warnings"]:
+            if u'GEOM_NOT_CONV' in line:
+                return (self.exit_codes.GEOM_NOT_CONV)
+            if u'SCF_NOT_CONV' in line:
+                return (self.exit_codes.SCF_NOT_CONV)
+
+        return ExitCode(0)
+
+    def _fetch_output_files(self, out_folder):
+        """
+        Checks the output folder for standard output and standard error
+        files, returns their absolute paths on success.
+
+        :param retrieved: A dictionary of retrieved nodes, as obtained from the
+          parser.
+        """
+        # from aiida.common.datastructures import calc_states
+        from aiida.common.exceptions import InvalidOperation
+        import os
+
+        list_of_files = out_folder._repository.list_object_names()
+
+        output_path = None
+        messages_path = None
+        xml_path = None
+        json_path = None
+        bands_path = None
+
+        if self.node.get_option('output_filename') in list_of_files:
+            output_path = os.path.join(
+                out_folder._repository._get_base_folder().abspath,
+                self.node.get_option('output_filename'))
+        else:
+            raise OutputParsingError("Output file not retrieved")
+
+        if self.node.process_class._DEFAULT_XML_FILE in list_of_files:
+            xml_path = os.path.join(
+                out_folder._repository._get_base_folder().abspath,
+                self.node.process_class._DEFAULT_XML_FILE)
+        else:
+            raise OutputParsingError("Xml file not retrieved")
+
+        if self.node.process_class._DEFAULT_JSON_FILE in list_of_files:
+            json_path = os.path.join(
+                out_folder._repository._get_base_folder().abspath,
+                self.node.process_class._DEFAULT_JSON_FILE)
+#        else:
+#            raise OutputParsingError("json file not retrieved")
+
+        if self.node.process_class._DEFAULT_MESSAGES_FILE in list_of_files:
+            messages_path = os.path.join(
+                out_folder._repository._get_base_folder().abspath,
+                self.node.process_class._DEFAULT_MESSAGES_FILE)
+#        else:
+#            raise OutputParsingError("message file not retrieved")
+
+        if self.node.process_class._DEFAULT_BANDS_FILE in list_of_files:
+            bands_path = os.path.join(
+                out_folder._repository._get_base_folder().abspath,
+                self.node.process_class._DEFAULT_BANDS_FILE)
+
+        if bands_path is None:
+            supposed_to_have_bandsfile = True
+            try:
+                self.node.inputs.bandskpoints
+            except:
+                supposed_to_have_bandsfile = False
+            if supposed_to_have_bandsfile:
+                raise OutputParsingError("bands file not retrieved")
+
+        return output_path, messages_path, xml_path, json_path, bands_path
+
+
+
     def _get_output_nodes(self, output_path, messages_path, xml_path,
                           json_path, bands_path):
         """
@@ -293,7 +381,7 @@ class SiestaParser(Parser):
         from aiida.orm import TrajectoryData
         import re
 
-        parser_version = 'aiida-1.0.0--plugin-1.0.0'
+        parser_version = '1.0.1'
         parser_info = {}
         parser_info['parser_info'] = 'AiiDA Siesta Parser V. {}'.format(
             parser_version)
@@ -386,98 +474,6 @@ class SiestaParser(Parser):
 
         return result_dict
 
-    # def parse(self,retrieved_temporary_folder, **kwargs):
-    def parse(self, **kwargs):
-        """
-        Receives in input a dictionary of retrieved nodes.
-        Does all the logic here.
-        """
-        from aiida.engine import ExitCode
-
-        try:
-            output_folder = self.retrieved
-        except exceptions.NotExistent:
-            return self.exit_codes.ERROR_NO_RETRIEVED_FOLDER
-
-        output_path, messages_path, xml_path, json_path, bands_path = \
-            self._fetch_output_files(output_folder)
-
-        out_results = self._get_output_nodes(output_path, messages_path,
-                                             xml_path, json_path, bands_path)
-
-        for line in out_results["warnings"]:
-            if u'GEOM_NOT_CONV' in line:
-                return (self.exit_codes.GEOM_NOT_CONV)
-            if u'SCF_NOT_CONV' in line:
-                return (self.exit_codes.SCF_NOT_CONV)
-
-        return ExitCode(0)
-
-    def _fetch_output_files(self, out_folder):
-        """
-        Checks the output folder for standard output and standard error
-        files, returns their absolute paths on success.
-
-        :param retrieved: A dictionary of retrieved nodes, as obtained from the
-          parser.
-        """
-        # from aiida.common.datastructures import calc_states
-        from aiida.common.exceptions import InvalidOperation
-        import os
-
-        list_of_files = out_folder._repository.list_object_names()
-
-        output_path = None
-        messages_path = None
-        xml_path = None
-        json_path = None
-        bands_path = None
-
-        if self.node.get_option('output_filename') in list_of_files:
-            output_path = os.path.join(
-                out_folder._repository._get_base_folder().abspath,
-                self.node.get_option('output_filename'))
-        else:
-            raise OutputParsingError("Output file not retrieved")
-
-        if self.node.get_option('xml_file') in list_of_files:
-            xml_path = os.path.join(
-                out_folder._repository._get_base_folder().abspath,
-                self.node.get_option('xml_file'))
-        else:
-            raise OutputParsingError("Xml file not retrieved")
-
-        if self.node.get_option('json_file') in list_of_files:
-            json_path = os.path.join(
-                out_folder._repository._get_base_folder().abspath,
-                self.node.get_option('json_file'))
-#        else:
-#            raise OutputParsingError("json file not retrieved")
-
-        if self.node.get_option('messages_file') in list_of_files:
-            messages_path = os.path.join(
-                out_folder._repository._get_base_folder().abspath,
-                self.node.get_option('messages_file'))
-
-
-#        else:
-#            raise OutputParsingError("message file not retrieved")
-
-        if self.node.get_option('bands_file') in list_of_files:
-            bands_path = os.path.join(
-                out_folder._repository._get_base_folder().abspath,
-                self.node.get_option('bands_file'))
-
-        if bands_path is None:
-            supposed_to_have_bandsfile = True
-            try:
-                self.node.inputs.bandskpoints
-            except:
-                supposed_to_have_bandsfile = False
-            if supposed_to_have_bandsfile:
-                raise OutputParsingError("bands file not retrieved")
-
-        return output_path, messages_path, xml_path, json_path, bands_path
 
     def get_warnings_from_file(self, messages_path):
         """
@@ -536,7 +532,7 @@ class SiestaParser(Parser):
         tottx = f.read().split()
 
         ef = float(tottx[0])
-        if self.node.inputs.bandskpoints.labels == None:
+        if self.node.inputs.bandskpoints.labels is None:
             minfreq, maxfreq = float(tottx[1]), float(tottx[2])
             nbands, nspins, nkpoints = int(tottx[3]), int(tottx[4]), int(
                 tottx[5])
