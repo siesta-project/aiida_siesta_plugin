@@ -11,7 +11,7 @@ from aiida.common.lang import override
 from aiida.engine import CalcJob, WorkChain, ToContext, append_, while_
 from aiida.plugins import CalculationFactory
 from aiida.common import AttributeDict, AiidaException
-
+from aiida.plugins.entry_point import get_entry_point_names, load_entry_point
 from aiida_siesta.data.common import get_pseudos_from_structure
 from aiida_siesta.calculations.siesta import SiestaCalculation
 
@@ -37,26 +37,31 @@ class SiestaBaseWorkChain(WorkChain):
     def __init__(self, *args, **kwargs):
         super(SiestaBaseWorkChain, self).__init__(*args, **kwargs)
 
+    #Next two functions are needed only if you specify an error handler registry and
+    #you give it an entry point. It is not defined at the moment!
     @override
     def load_instance_state(self, saved_state, load_context):
-        super(SiestaBaseWorkChain,
-              self).load_instance_state(saved_state, load_context)
+        """Load the process instance from a saved state.
+        :param saved_state: saved state of existing process instance
+        :param load_context: context for loading instance state
+        """
+        super(SiestaBaseWorkChain,self).load_instance_state(saved_state, load_context)
         self._load_error_handlers()
 
     def _load_error_handlers(self):
         # If an error handler entry point is defined, load them. If the plugin cannot be loaded log it and pass
         if self._error_handler_entry_point is not None:
-            for plugin in get_plugins(self._error_handler_entry_point):
+            for entry_point_name in get_entry_point_names(self._error_handler_entry_point):
                 try:
-                    get_plugin(self._error_handler_entry_point, plugin)
+                    load_entry_point(self._error_handler_entry_point, entry_point_name)
                     self.logger.info(
                         "loaded the '{}' entry point for the '{}' error handlers category"
-                        .format(plugin, self._error_handler_entry_point,
-                                plugin))
-                except EntryPointError:
+                        .format(entry_point_name, self._error_handler_entry_point, plugin))
+                except EntryPointError as exception:
                     self.logger.warning(
-                        "failed to load the '{}' entry point for the '{}' error handlers"
-                        .format(plugin, self._error_handler_entry_point))
+                        "failed to load the '{}' entry point for the '{}' error handlers: '{}'"
+                        .format(entry_point_name, self._error_handler_entry_point, exception))
+
 
     @classmethod
     def define(cls, spec):
@@ -68,10 +73,12 @@ class SiestaBaseWorkChain(WorkChain):
         spec.input('parent_folder', valid_type=orm.RemoteData, required=False)
         spec.input('kpoints', valid_type=orm.KpointsData, required=False)
         spec.input('bandskpoints', valid_type=orm.KpointsData, required=False)
-        spec.input('parameters', valid_type=orm.Dict, required=False)
+        #Required by the plugin
+        spec.input('parameters', valid_type=orm.Dict)
         spec.input('basis', valid_type=orm.Dict, required=False)
         spec.input('settings', valid_type=orm.Dict, required=False)
-        spec.input('options', valid_type=orm.Dict, required=False)
+        #Required by any CalcJob
+        spec.input('options', valid_type=orm.Dict)
 
         spec.input(
             'max_iterations',
@@ -166,22 +173,31 @@ class SiestaBaseWorkChain(WorkChain):
         self.ctx.out_of_time = False
 
         # Define inputs for the context of the workflow
+        # the orm.Dict are back to be dictionaries because in this
+        # way one can modify them. prepare_process_inputs reverts
+        # them to orm.Dict
+        # The few mandatory inputs (pseudo is handled later):
         self.ctx.inputs = {
             'code': self.inputs.code,
             'structure': self.inputs.structure,
             'pseudos': {},
-            'kpoints': self.inputs.kpoints,
             'parameters': self.inputs.parameters.get_dict(),
-            'basis': self.inputs.basis.get_dict(),
-            'settings': self.inputs.settings.get_dict(),
             'metadata': {
                 'options': self.inputs.options.get_dict(),
             }
         }
+        # Now the optional inputs
+        if 'kpoints' in self.inputs:
+            self.ctx.inputs['kpoints'] = self.inputs.kpoints
+        if 'basis' in self.inputs:
+            self.ctx.inputs['basis'] = self.inputs.basis.get_dict()
+        if 'settings' in self.inputs:
+            self.ctx.inputs['settings'] = self.inputs.settings.get_dict()
         if 'bandskpoints' in self.inputs:
             self.ctx.want_band_structure = True
             self.ctx.inputs['bandskpoints'] = self.inputs.bandskpoints
 
+        #TO_DO soon, restart!
         # if 'parent_folder' in self.inputs:
         #     self.ctx.has_parent_folder = True
         #     self.ctx.inputs['parent_folder'] = self.inputs.parent_folder

@@ -33,7 +33,8 @@ def get_parsed_xml_doc(xml_path):
     try:
         xmldoc = minidom.parse(xml_path)
     except:
-        xmldoc = None
+        raise OutputParsingError("Faulty Xml File")
+        #xmldoc = None
 
     # We might want to add some extra consistency checks
 
@@ -156,7 +157,7 @@ def get_sizes_info(xmldoc):
                             int(s) for s in array.childNodes[0].data.split()
                         ]
 
-            return no_u, nnz, mesh
+    return no_u, nnz, mesh
 
 
 def get_last_structure(xmldoc, input_structure):
@@ -269,8 +270,6 @@ def get_final_forces_and_stress(xmldoc):
 ##################################
 
 
-from aiida.common.exceptions import OutputParsingError
-
 class SiestaOutputParsingError(OutputParsingError):
     pass
 
@@ -382,7 +381,7 @@ class SiestaParser(Parser):
         from aiida.orm import TrajectoryData
         import re
 
-        parser_version = '1.0.0'
+        parser_version = '1.0.1'
         parser_info = {}
         parser_info['parser_info'] = 'AiiDA Siesta Parser V. {}'.format(
             parser_version)
@@ -533,7 +532,7 @@ class SiestaParser(Parser):
         tottx = f.read().split()
 
         ef = float(tottx[0])
-        if self.node.inputs.bandskpoints.labels == None:
+        if self.node.inputs.bandskpoints.labels is None:
             minfreq, maxfreq = float(tottx[1]), float(tottx[2])
             nbands, nspins, nkpoints = int(tottx[3]), int(tottx[4]), int(
                 tottx[5])
