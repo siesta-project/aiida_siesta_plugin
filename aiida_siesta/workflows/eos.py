@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+
 from __future__ import absolute_import
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
 from aiida.plugins import DataFactory
@@ -7,7 +8,7 @@ from aiida.engine import WorkChain, calcfunction, ToContext
 from aiida.orm import Float
 
 @calcfunction
-def structure_init(stru, vol):
+def scale_to_vol(stru, vol):
     """
     Calcfunction to scale a structure to a target volume.
     Uses pymatgen.
@@ -77,7 +78,7 @@ def fit_and_final_dicts(**calcs):
     """
     Calcfunction that collects all the E vs V, performs
     the birch_murnaghan fit and creates a dictionary with all
-    the relevant results.
+    the relevant results. Uses scipy.optimize and numpy.
     :param clacs: Dictionaries result of get_info
     :return: A dictionary containing a list EvsV and
              the results of the murnagan fit.
@@ -151,7 +152,7 @@ class IsotropicEosFast(WorkChain):
             cls.return_results
         )
         spec.output('res_dict', valid_type=DataFactory("dict"), required=True)
-        spec.output('initial_structure', valid_type=DataFactory("structure"), required=True)
+        spec.output('equilibrium_structure', valid_type=DataFactory("structure"), required=False)
 
     def initio(self):
         self.ctx.scales = (0.94, 0.96, 0.98, 1., 1.02, 1.04, 1.06)
@@ -163,7 +164,7 @@ class IsotropicEosFast(WorkChain):
                 'neither an explicit pseudos dictionary nor a pseudo_family was specified'
                 )
         if "volume_per_atom" in self.inputs:
-            self.ctx.s0 = structure_init(self.ctx.expinputs.structure,self.inputs.volume_per_atom)
+            self.ctx.s0 = scale_to_vol(self.ctx.expinputs.structure,self.inputs.volume_per_atom)
         else:
             self.ctx.s0 = self.ctx.expinputs.structure
 
@@ -181,19 +182,26 @@ class IsotropicEosFast(WorkChain):
     def return_results(self):
         self.report('All 7 calculations finished. Post process starts')
         collectwcinfo = {}
-        #altlab="a"
         for label in self.ctx.scales:
             wcnode = self.ctx[str(label)]
+            # To performe the eos with variable cell is wrong. We should 
+            # implement errors if there are siesta keywords that activate 
+            # the relax cell in the parameter dict. For the moment the
+            # use of output_structure should at least make the user realise
+            # that something is wrong (we expect to have structure converged 
+            # to similar volums if you do relax cell)
             if "output_structure" in wcnode.outputs: 
                 info = get_info(wcnode.outputs.output_parameters,wcnode.outputs.output_structure)
             else:
                 info = get_info(wcnode.outputs.output_parameters,wcnode.inputs.structure)
             collectwcinfo["s"+str(label).replace(".","_")] = info
-            #altlab=altlab+"a"
 
         res_dict = fit_and_final_dicts(**collectwcinfo)
 
-        self.out('initial_structure', self.ctx.s0)
         self.out('res_dict', res_dict)
+
+        if "fit_res" in res_dict:
+            eq_structure = scale_to_vol(self.ctx.s0, res_dict["fit_res"]["Vo"])
+            self.out('equilibrium_structure', eq_structure)
 
 
