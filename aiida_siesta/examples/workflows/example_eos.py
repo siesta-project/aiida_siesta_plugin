@@ -10,19 +10,17 @@ import sys
 #AiiDA classes and functions
 from aiida.engine import submit
 from aiida.orm import load_code
-from aiida.orm import (Dict, StructureData, KpointsData)
+from aiida.orm import (Float, Dict, StructureData, KpointsData)
 from aiida_siesta.data.psf import PsfData
-from aiida_siesta.workflows.base import SiestaBaseWorkChain
+from aiida_siesta.workflows.eos import IsotropicEosFast
 
-# This example shows the use of the SiestaBaseWorkChain
+# This example shows the use of the IsotropicEosFast
 # Requires a working aiida profile and the set up of
 # a code (it submits the WorkChain to the daemon).
-# To run it: runaiida example_first.py codename
+# To run it: runaiida example_eos.py codename
 # The inputs are the same of ../plugins/siesta/example_first.py
-# However max-scfiterations' is set to 4. The calculation
-# does not converge in 4 iterations, but the WorkChain
-# automatically recognises the error and takes care of
-# resubmitting the calculation.
+# with the addition of an optional "volume_per_atom",
+# the starting volume around which the EoS is calculated
 
 try:
     codename = sys.argv[1]
@@ -64,7 +62,7 @@ parameters = Dict(
     dict={
         'xc-functional': 'LDA',
         'xc-authors': 'CA',
-        'max-scfiterations': 4,
+        'max-scfiterations': 40,
         'dm-numberpulay': 4,
         'dm-mixingweight': 0.3,
         'dm-tolerance': 1.e-5,
@@ -84,7 +82,7 @@ Si DZP
 
 #The kpoints
 kpoints = KpointsData()
-kpoints.set_kpoints_mesh([4, 4, 4])
+kpoints.set_kpoints_mesh([14, 14, 14])
 
 #The pseudopotentials
 pseudos_dict = {}
@@ -124,10 +122,11 @@ inputs = {
     'basis': basis,
     'kpoints': kpoints,
     'pseudos': pseudos_dict,
-    'options': options
+    'options': options,
+    'volume_per_atom': Float(18)
 }
 
-process = submit(SiestaBaseWorkChain, **inputs)
+process = submit(IsotropicEosFast, **inputs)
 print("Submitted workchain; ID={}".format(process.pk))
 print(
     "For information about this workchain type: verdi process show {}".format(

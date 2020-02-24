@@ -58,7 +58,7 @@ def get_info(outpar, struct):
 
     ev = {}
     ev["vol"] = struct.get_cell_volume()/len(struct.sites)
-    ev["vol_units"] = 'ang/atom'
+    ev["vol_units"] = 'ang^3/atom'
     ev["en"] = outpar['E_KS']/len(struct.sites)
     ev["en_units"] = outpar['E_KS_units']+'/atom'
     Dict = DataFactory('dict')
@@ -146,6 +146,7 @@ class IsotropicEosFast(WorkChain):
         super(IsotropicEosFast, cls).define(spec)
         spec.input("volume_per_atom",  valid_type=Float, required=False)
         spec.expose_inputs(SiestaBaseWorkChain)#, exclude=('kpoints',))
+        spec.inputs._ports['pseudos'].dynamic = True #Temporary fix to issue #135 plumpy
         spec.outline(
             cls.initio,
             cls.run_base_wcs,
@@ -156,23 +157,22 @@ class IsotropicEosFast(WorkChain):
 
     def initio(self):
         self.ctx.scales = (0.94, 0.96, 0.98, 1., 1.02, 1.04, 1.06)
-        self.ctx.expinputs = AttributeDict(self.exposed_inputs(SiestaBaseWorkChain))
-        self.report("Starting IsotropicEosfast Workchain")
+        self.report("Starting IsotropicEosFast Workchain")
         if "pseudo_family" not in self.inputs:
             if not self.inputs.pseudos: 
                 raise ValueError(
                 'neither an explicit pseudos dictionary nor a pseudo_family was specified'
                 )
         if "volume_per_atom" in self.inputs:
-            self.ctx.s0 = scale_to_vol(self.ctx.expinputs.structure,self.inputs.volume_per_atom)
+            self.ctx.s0 = scale_to_vol(self.inputs.structure,self.inputs.volume_per_atom)
         else:
-            self.ctx.s0 = self.ctx.expinputs.structure
+            self.ctx.s0 = self.inputs.structure
 
     def run_base_wcs(self):
         calcs = {}
         for scale in self.ctx.scales:
                 scaled = rescale(self.ctx.s0, Float(scale))
-                inputs = self.ctx.expinputs
+                inputs = AttributeDict(self.exposed_inputs(SiestaBaseWorkChain))
                 inputs["structure"] = scaled
                 future = self.submit(SiestaBaseWorkChain, **inputs)
                 self.report('Launching SiestaBaseWorkChain<{}>'.format(future.pk))
@@ -200,8 +200,13 @@ class IsotropicEosFast(WorkChain):
 
         self.out('res_dict', res_dict)
 
-        if "fit_res" in res_dict:
-            eq_structure = scale_to_vol(self.ctx.s0, res_dict["fit_res"]["Vo"])
+        if "fit_res" in res_dict.attributes:
+            self.report('Birch-Murnagan fit was succesfull, creating the equilibrium structure output node')
+            eq_structure = scale_to_vol(self.ctx.s0, Float(res_dict["fit_res"]["Vo"]))
             self.out('equilibrium_structure', eq_structure)
+
+        self.report('End of IsotropicEosFast Workchain')
+
+        return
 
 
