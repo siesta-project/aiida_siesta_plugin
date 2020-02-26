@@ -110,7 +110,7 @@ class SiestaRelaxationInputsGenerator:
                 except:
                     pass  # No problem. No heuristics, no info
             meshcutoff = max(min_meshcutoff,meshcutoff)  
-            parameters["meshcutoff"]=meshcutoff
+            parameters["meshcutoff"]=str(meshcutoff)+" Ry"
             #relaxation type
             if  relaxation_type == "variable_cell":
                 parameters["md-variable-cell"]= True
@@ -169,7 +169,7 @@ class SiestaRelaxationInputsGenerator:
                 except:
                     pass  # No problem. No heuristics, no info
             meshcutoff = max(min_meshcutoff,meshcutoff)  
-            parameters["meshcutoff"]=meshcutoff
+            parameters["meshcutoff"]=str(meshcutoff)+" Ry"
             #relaxation type
             if  relaxation_type == "variable_cell":
                 parameters["md-variable-cell"]= True
@@ -183,7 +183,7 @@ class SiestaRelaxationInputsGenerator:
             }
             
             #Pseudo fam
-            pseudo_fam = "nc-fr-04_pbe_standard_psml"
+            pseudo_fam = "sample_psf_family"
 
         builder = SiestaBaseWorkChain.get_builder()
         builder.structure = structure
