@@ -2,7 +2,7 @@ from aiida.orm import (Float, Str, ArrayData, Dict, StructureData)
 from aiida.engine import submit
 from aiida.engine import WorkChain, ToContext, calcfunction
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
-from aiida_siesta.workflows.functions.protocols import SiestaRelaxationInputsGenerator
+from aiida_siesta.workflows.functions.relaxinputs import SiestaRelaxationInputsGenerator
 
 @calcfunction
 def get_energy(pardict):
@@ -61,7 +61,7 @@ class SiestaRelaxWorkChainProtocol(WorkChain):
         instgen = SiestaRelaxationInputsGenerator()
         builder=instgen.get_builder(
                     structure=self.inputs.structure,
-                    protocol=self.inputs.protocol,
+                    protocol=self.inputs.protocol.value,
                     relaxation_type=self.inputs.relaxation_type,
                     calc_engines=self.inputs.calc_engines,
                     threshold_forces=threshold_forces,
