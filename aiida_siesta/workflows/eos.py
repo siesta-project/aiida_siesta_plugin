@@ -67,10 +67,67 @@ def get_info(outpar, struct):
     return resultdict
 
 
-def birch_murnaghan(V, E0, V0, B0, B01):
-    r = (V0 / V) ** (2. / 3.)
-    return E0 + 9. / 16. * B0 * V0 * (r - 1.) ** 2 * \
+def DeltaProjectBirchMurnaghanFit(volumes, energies):
+    
+    import numpy as np
+    
+    fitdata = np.polyfit(volumes**(-2./3.), energies, 3, full=True)
+    #ssr = fitdata[1]
+    #sst = np.sum((energies - np.average(energies))**2.)
+    #residuals0 = ssr/sst
+    deriv0 = np.poly1d(fitdata[0])
+    deriv1 = np.polyder(deriv0, 1)
+    deriv2 = np.polyder(deriv1, 1)
+    deriv3 = np.polyder(deriv2, 1)
+
+    volume0 = 0
+    x = 0
+    for x in np.roots(deriv1):
+        if x > 0 and deriv2(x) > 0:
+            E0=deriv0(x)
+            volume0 = x**(-3./2.)
+            break
+
+    #Implement here something about checking fit is good!
+    if volume0 == 0:
+        print('Error: No minimum could be found')
+        exit()
+    
+    derivV2 = 4./9. * x**5. * deriv2(x)
+    derivV3 = (-20./9. * x**(13./2.) * deriv2(x) -
+        8./27. * x**(15./2.) * deriv3(x))
+    bulk_modulus0 = derivV2 / x**(3./2.)
+    bulk_deriv0 = -1 - x**(-3./2.) * derivV3 / derivV2
+
+    return E0, volume0, bulk_modulus0, bulk_deriv0
+
+
+def StandardBirchMurnaghanFit(volumes, energies):
+
+    from scipy.optimize import curve_fit
+    import numpy as np
+
+    def birch_murnaghan(V, E0, V0, B0, B01):
+        r = (V0 / V) ** (2. / 3.)
+        return E0 + 9. / 16. * B0 * V0 * (r - 1.) ** 2 * \
                 (2. + (B01 - 4.) * (r - 1.))
+
+    params, covariance = curve_fit(
+         birch_murnaghan, 
+         xdata=volumes, 
+         ydata=energies,
+         p0=(
+            energies.min(),  # E0
+            volumes.mean(),  # V0
+            0.1,  # B0
+            3.,  # B01
+            ),
+         sigma=None
+        )
+
+    #Implement here something about checking fit is good!
+    return params[0], params[1], params[2], params[3]
+
 
 
 @calcfunction
@@ -83,8 +140,6 @@ def fit_and_final_dicts(**calcs):
     :return: A dictionary containing a list EvsV and
              the results of the murnagan fit.
     """
-    from scipy.optimize import curve_fit
-    import numpy as np
 
     eos = []
     volu = []
@@ -95,31 +150,19 @@ def fit_and_final_dicts(**calcs):
         ener.append(arg["en"])
         eos.append([arg["vol"],arg["en"],arg["vol_units"],arg["en_units"]])
 
-    try:
-        fit_res = {}
-        volumes = np.array(volu)
-        energies = np.array(ener)
-        params, covariance = curve_fit(
-            birch_murnaghan, xdata=volumes, ydata=energies,
-            p0=(
-                energies.min(),  # E0
-                volumes.mean(),  # V0
-                0.1,  # B0
-                3.,  # B01
-            ),
-            sigma=None
-        )
-        fit_res["Eo"] = params[0]
-        fit_res["Vo"] = params[1]
-        fit_res["Bo"] = params[2]
-        fit_res["B1"] = params[3]
-        perr = np.sqrt(np.diag(covariance))
-        fit_res["EoErr"] = perr[0]
-        fit_res["VoErr"] = perr[1]
-        fit_res["BoErr"] = perr[2]
-        fit_res["B1Err"] = perr[3]
-    except:
-        fit_res = None
+    volumes = np.array(volu)
+    energies = np.array(ener)
+    E0, volume0, bulk_modulus0, bulk_deriv0 = StandardBirchMurnaghanFit(volumes,energies)
+    fit_res = {}
+    fit_res["Eo"] = E0
+    fit_res["Vo"] = volume0
+    fit_res["Bo"] = bulk_modulus0
+    fit_res["B1"] = bulk_deriv0
+    #perr = np.sqrt(np.diag(covariance))
+    #fit_res["EoErr"] = perr[0]
+    #fit_res["VoErr"] = perr[1]
+    #fit_res["BoErr"] = perr[2]
+    #fit_res["B1Err"] = perr[3]
 
     Dict = DataFactory("dict")
     if fit_res is None:
