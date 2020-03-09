@@ -12,7 +12,7 @@ from aiida.engine import submit
 from aiida.orm import load_code
 from aiida.orm import (Float, Dict, StructureData, KpointsData)
 from aiida_siesta.data.psf import PsfData
-from aiida_siesta.workflows.eos import IsotropicEosFast
+from aiida_siesta.workflows.eos import EqOfStateFixedCellShape
 
 # This example shows the use of the IsotropicEosFast
 # Requires a working aiida profile and the set up of
@@ -123,10 +123,10 @@ inputs = {
     'kpoints': kpoints,
     'pseudos': pseudos_dict,
     'options': options,
-    'volume_per_atom': Float(18)
+    'volume_per_atom': Float(19)
 }
 
-process = submit(IsotropicEosFast, **inputs)
+process = submit(EqOfStateFixedCellShape, **inputs)
 print("Submitted workchain; ID={}".format(process.pk))
 print(
     "For information about this workchain type: verdi process show {}".format(

@@ -67,14 +67,23 @@ def get_info(outpar, struct):
     return resultdict
 
 
-def DeltaProjectBirchMurnaghanFit(volumes, energies):
-    
+def delta_project_BM_fit(volumes, energies):
+    """
+    The fitting procedure implemented in this function 
+    was copied from the Delta Project Code.
+    https://github.com/molmod/DeltaCodesDFT/blob/master/eosfit.py
+    It is introduced to fully uniform the delta test procedure
+    with the one performed with other codes, moreover it
+    has the upside to not use scypi.
+    """
+
     import numpy as np
-    
+   
+    #Does the fit always succeed?
     fitdata = np.polyfit(volumes**(-2./3.), energies, 3, full=True)
-    #ssr = fitdata[1]
-    #sst = np.sum((energies - np.average(energies))**2.)
-    #residuals0 = ssr/sst
+    ssr = fitdata[1]
+    sst = np.sum((energies - np.average(energies))**2.)
+    residuals0 = ssr/sst
     deriv0 = np.poly1d(fitdata[0])
     deriv1 = np.polyder(deriv0, 1)
     deriv2 = np.polyder(deriv1, 1)
@@ -88,45 +97,55 @@ def DeltaProjectBirchMurnaghanFit(volumes, energies):
             volume0 = x**(-3./2.)
             break
 
-    #Implement here something about checking fit is good!
-    if volume0 == 0:
-        print('Error: No minimum could be found')
-        exit()
-    
-    derivV2 = 4./9. * x**5. * deriv2(x)
-    derivV3 = (-20./9. * x**(13./2.) * deriv2(x) -
-        8./27. * x**(15./2.) * deriv3(x))
-    bulk_modulus0 = derivV2 / x**(3./2.)
-    bulk_deriv0 = -1 - x**(-3./2.) * derivV3 / derivV2
+    #Here something checking if the fit is good!
+    #The choice of residuals0 > 0.01 it is not supported 
+    #by a real scientific reason, just from experience.
+    #Values ~ 0.1 are when fit random numbers, ~ 10^-5
+    #appears for good fits. The check on the presence of
+    #a minmum covers the situations when an almost 
+    #linear dependence is fitted (very far from minimum)
+    if volume0 == 0 or residuals0 > 0.01:
+        return residuals0, volume0
+    else:
+        derivV2 = 4./9. * x**5. * deriv2(x)
+        derivV3 = (-20./9. * x**(13./2.) * deriv2(x) -
+            8./27. * x**(15./2.) * deriv3(x))
+        bulk_modulus0 = derivV2 / x**(3./2.)
+        bulk_deriv0 = -1 - x**(-3./2.) * derivV3 / derivV2
+        return E0, volume0, bulk_modulus0, bulk_deriv0
 
-    return E0, volume0, bulk_modulus0, bulk_deriv0
 
-
-def StandardBirchMurnaghanFit(volumes, energies):
-
-    from scipy.optimize import curve_fit
-    import numpy as np
-
-    def birch_murnaghan(V, E0, V0, B0, B01):
-        r = (V0 / V) ** (2. / 3.)
-        return E0 + 9. / 16. * B0 * V0 * (r - 1.) ** 2 * \
-                (2. + (B01 - 4.) * (r - 1.))
-
-    params, covariance = curve_fit(
-         birch_murnaghan, 
-         xdata=volumes, 
-         ydata=energies,
-         p0=(
-            energies.min(),  # E0
-            volumes.mean(),  # V0
-            0.1,  # B0
-            3.,  # B01
-            ),
-         sigma=None
-        )
-
-    #Implement here something about checking fit is good!
-    return params[0], params[1], params[2], params[3]
+#def standard_BM_fit(volumes, energies):
+#
+#    from scipy.optimize import curve_fit
+#    import numpy as np
+#
+#    def birch_murnaghan(V, E0, V0, B0, B01):
+#        r = (V0 / V) ** (2. / 3.)
+#        return E0 + 9. / 16. * B0 * V0 * (r - 1.) ** 2 * \
+#                (2. + (B01 - 4.) * (r - 1.))
+#
+#    #Does the fit always succeed?
+#    params, covariance = curve_fit(
+#         birch_murnaghan, 
+#         xdata=volumes, 
+#         ydata=energies,
+#         p0=(
+#            energies.min(),  # E0
+#            volumes.mean(),  # V0
+#            0.1,  # B0
+#            3.,  # B01
+#            ),
+#         sigma=None
+#        )
+#
+#    #Implement here something checking if there is a reasonable minimum!
+#    #...
+#    #Implement here something checking if the covariance is small enough!
+#    #...
+#        return residuals0, volume0
+#    else:
+#        return params[0], params[1], params[2], params[3]
 
 
 
@@ -141,6 +160,8 @@ def fit_and_final_dicts(**calcs):
              the results of the murnagan fit.
     """
 
+    import numpy as np
+
     eos = []
     volu = []
     ener = []
@@ -152,17 +173,19 @@ def fit_and_final_dicts(**calcs):
 
     volumes = np.array(volu)
     energies = np.array(ener)
-    E0, volume0, bulk_modulus0, bulk_deriv0 = StandardBirchMurnaghanFit(volumes,energies)
-    fit_res = {}
-    fit_res["Eo"] = E0
-    fit_res["Vo"] = volume0
-    fit_res["Bo"] = bulk_modulus0
-    fit_res["B1"] = bulk_deriv0
-    #perr = np.sqrt(np.diag(covariance))
-    #fit_res["EoErr"] = perr[0]
-    #fit_res["VoErr"] = perr[1]
-    #fit_res["BoErr"] = perr[2]
-    #fit_res["B1Err"] = perr[3]
+    try:
+        E0, volume0, bulk_modulus0, bulk_deriv0 = delta_project_BM_fit(volumes,energies)
+        #E0, volume0, bulk_modulus0, bulk_deriv0 = standard_BM_fit(volumes,energies)
+        fit_res = {}
+        fit_res["Eo"] = E0
+        fit_res["Vo"] = volume0
+        fit_res["Bo"] = bulk_modulus0
+        fit_res["B1"] = bulk_deriv0
+    except:
+        fit_res = {}
+        residuals0, volume0 = delta_project_BM_fit(volumes,energies)
+        #In the future we could use these info to improve help, 
+        #residuals0 ia np array
 
     Dict = DataFactory("dict")
     if fit_res is None:
@@ -173,34 +196,47 @@ def fit_and_final_dicts(**calcs):
     return result_dict
 
 
-class IsotropicEosFast(WorkChain):
+class EqOfStateFixedCellShape(WorkChain):
     """
-    WorkChain to calculate the isotropic equation of state.
-    This means that the cell shape is fixed, only the volume
-    is rescaled. In particular the volumes considered are 7
-    equidistant volumes around a starting volume.
-    The starting volume is an optional input of the WorkChain.
-    All the SiestaCalculation parameters are other inputs of the
-    workchain.
+    WorkChain to calculate the equation of state of a solid.
+    The cell shape is fixed, only the volume is rescaled. 
+    In particular the volumes considered are 7 equidistant volumes 
+    around a starting volume. The starting volume is 
+    an optional input of the WorkChain (called volume_per_atom).
+    If not specified, the input structure volume is used with no modifications.
+    All the SiestaBaseWorkChain inputs are other inputs of the workchain.
+    This WorkChain also tries to perform a Birch_Murnaghan fit
+    on the calculatad E(V) data.
     """
 
     @classmethod
     def define(cls, spec):
-        super(IsotropicEosFast, cls).define(spec)
-        spec.input("volume_per_atom",  valid_type=Float, required=False)
-        spec.expose_inputs(SiestaBaseWorkChain)#, exclude=('kpoints',))
+        super(EqOfStateFixedCellShape, cls).define(spec)
+        spec.input("volume_per_atom",  
+                valid_type=Float, 
+                required=False, 
+                help="Volume per atom around which to perform the EqOfState"
+                )
+        spec.expose_inputs(SiestaBaseWorkChain, exclude=('metadata',))
         spec.inputs._ports['pseudos'].dynamic = True #Temporary fix to issue #135 plumpy
         spec.outline(
             cls.initio,
             cls.run_base_wcs,
             cls.return_results
         )
-        spec.output('res_dict', valid_type=DataFactory("dict"), required=True)
-        spec.output('equilibrium_structure', valid_type=DataFactory("structure"), required=False)
+        spec.output('results_dict', 
+                valid_type=DataFactory("dict"), 
+                required=True,
+                help="Containing the calculated E(V) data and, if the fit is sucessfull, "
+                    "the resulting fit parameters")
+        spec.output('equilibrium_structure', 
+                valid_type=DataFactory("structure"), 
+                required=False,
+                help="Equilibrium volume structure. Returned only if the fit is succesfull" )
 
     def initio(self):
         self.ctx.scales = (0.94, 0.96, 0.98, 1., 1.02, 1.04, 1.06)
-        self.report("Starting IsotropicEosFast Workchain")
+        self.report("Starting EqOfStateFixedCellShape Workchain")
         if "pseudo_family" not in self.inputs:
             if not self.inputs.pseudos: 
                 raise ValueError(
@@ -218,7 +254,7 @@ class IsotropicEosFast(WorkChain):
                 inputs = AttributeDict(self.exposed_inputs(SiestaBaseWorkChain))
                 inputs["structure"] = scaled
                 future = self.submit(SiestaBaseWorkChain, **inputs)
-                self.report('Launching SiestaBaseWorkChain<{}>'.format(future.pk))
+                self.report('Launching SiestaBaseWorkChain<{0}>, at volume rescaled of {1}'.format(future.pk,scale))
                 calcs[str(scale)] = future
         return ToContext(**calcs)  #Here it waits
 
@@ -241,14 +277,16 @@ class IsotropicEosFast(WorkChain):
 
         res_dict = fit_and_final_dicts(**collectwcinfo)
 
-        self.out('res_dict', res_dict)
+        self.out('results_dict', res_dict)
 
         if "fit_res" in res_dict.attributes:
-            self.report('Birch-Murnagan fit was succesfull, creating the equilibrium structure output node')
+            self.report('Birch-Murnaghan fit was succesfull, creating the equilibrium structure output node')
             eq_structure = scale_to_vol(self.ctx.s0, Float(res_dict["fit_res"]["Vo"]))
             self.out('equilibrium_structure', eq_structure)
+        else:
+            self.report("WARNING: Birch-Murnaghan fit failed, check your results_dict['eos_data']")
 
-        self.report('End of IsotropicEosFast Workchain')
+        self.report('End of EqOfStateFixedCellShape Workchain')
 
         return
 
