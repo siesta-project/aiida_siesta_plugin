@@ -66,6 +66,7 @@ aiida_siesta/examples/plugins/siesta.
   ase structures or pymatgen structures. These two tools can be used to load
   structure from files. See example example_cif_bands.py
 
+
 * **parameters**, class :py:class:`Dict <aiida.orm.Dict>`, *Mandatory*
 
   A dictionary with scalar fdf variables and blocks, which are the
