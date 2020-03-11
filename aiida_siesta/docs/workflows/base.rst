@@ -30,14 +30,24 @@ can be found in the development platform
 Inputs
 ------
 
+Most inputs of the WorkChain are mirroring the plugin inputs. Therefore more
+detailed information on them can be found :ref:`here <siesta-plugin-inputs>`.
+
 * **code**,  class :py:class:`Code  <aiida.orm.Code>`, *Mandatory*
 
-  A database object representing a Siesta executable.
+  A database object representing a Siesta executable. See the plugin documentation for more details.
+
+.. |br| raw:: html
+
+    <br />
 
 * **structure**, class :py:class:`StructureData <aiida.orm.StructureData>`, *Mandatory*
 
-   A structure. See the plugin documentation for more details.
+  A structure. See the plugin documentation for more details.
 
+.. |br| raw:: html
+
+    <br />
 
 * **parameters**, class :py:class:`Dict <aiida.orm.Dict>`,  *Mandatory*
 
@@ -66,6 +76,11 @@ Inputs
   in the input script (or removed before assigning the dictionary to
   the Dict instance). For legibility, a single dash ('-') is suggested, as in the
   examples above.
+  See the plugin documentation for more details.
+
+.. |br| raw:: html
+
+    <br />
 
 * **pseudos**, input namespace of class :py:class:`PsfData <aiida_siesta.data.psf.PsfData>`
   OR class :py:class:`PsmlData <aiida_siesta.data.psml.PsmlData>`, *Optional*
@@ -75,11 +90,20 @@ Inputs
   must be used (see below).
   
   The PsfData and PsmlData classes have been implemented along the lines of the Upf class for QE.
+  See the plugin documentation for more details.
+
+.. |br| raw:: html
+
+    <br />
 
 * **pseudo_family**, class :py:class:`Str <aiida.orm.Str>`, *Optional*
 
   String representing the name of the pseudopotential family (that can
   be uploaded via the `verdi data psf` or `verdi data psml` CLI interface) to be used.
+
+.. |br| raw:: html
+
+    <br />
 
 * **basis**, class :py:class:`Dict  <aiida.orm.Dict>`, *Optional*
   
@@ -88,38 +112,64 @@ Inputs
   the allowed use of fdf-block items. This raw interface allows a
   direct translation of the myriad basis-set options supported by the
   Siesta program. In future we might have a more structured input for
-  basis-set information.
+  basis-set information. See the plugin documentation for more details.
+
+.. |br| raw:: html
+
+    <br />
 
 * **kpoints**, class :py:class:`KpointsData <aiida.orm.KpointsData>`, *Optional*
   
   Reciprocal space points for the full sampling of the BZ during the
   self-consistent-field iteration. It must be given in mesh form. There is no support
-  yet for Siesta's kgrid-cutoff keyword.
+  yet for Siesta's kgrid-cutoff keyword. See the plugin documentation for more details.
   
   If this node is not present, only the Gamma point is used for sampling.
+
+.. |br| raw:: html
+
+    <br />
 
 * **bandskpoints**, class :py:class:`KpointsData  <aiida.orm.KpointsData>`, *Optional*
   
   Reciprocal space points for the calculation of bands.  They can be
   given as a simple list of k-points, as segments with start and end
   point and number of points, or as a complete automatic path, using the
-  functionality of modern versions of the class.
+  functionality of modern versions of the class. See the plugin documentation 
+  for more details.
   
   If this node is not present, no band structure is computed.
 
+.. |br| raw:: html
+
+    <br />
+
 * **settings**, class :py:class:`Dict <aiida.orm.Dict>`, *Optional*
       
-An optional dictionary that activates non-default operations. For a list of possible
-values to pass, see the section on :ref:`advanced features <siesta-advanced-features>`.
+  An optional dictionary that activates non-default operations. For a list of possible
+  values to pass, see the section on :ref:`advanced features <siesta-advanced-features>`.
+
+.. |br| raw:: html
+
+    <br />
 
 * **options**, class :py:class:`Dict <aiida.orm.Dict>`, *Mandatory*
 
-  Execution options
+  Execution options. In this dictionary the computational resources and 
+  scheduler specifications (queue, account, etc ..) must be specified.
+
+.. |br| raw:: html
+
+    <br />
 
 * **clean_workdir**, class :py:class:`Bool <aiida.orm.Bool>`, *Optional*
 
   If true, work directories of all called calculations will be cleaned
   out.
+
+.. |br| raw:: html
+
+    <br />
 
 * **max_iterations**, class :py:class:`Int <aiida.orm.Int>`, *Optional*
 
@@ -135,9 +185,17 @@ Outputs
   A dictionary with metadata and scalar result values from the last
   calculation executed.
 
+.. |br| raw:: html
+
+    <br />
+
 * **output_structure** :py:class:`StructureData <aiida.orm.StructureData>`
   
   Present only if the workchain is modifying the geometry of the system.
+
+.. |br| raw:: html
+
+    <br />
 
 * **bands**, :py:class:`BandsData <aiida.orm.BandsData>`
   
@@ -147,10 +205,18 @@ Outputs
   kpoint. For spin-polarized calculations, there is an extra dimension
   for spin.
 
+.. |br| raw:: html
+
+    <br />
+
 * **forces_and_stress** :py:class:`ArrayData <aiida.orm.ArrayData>`
 
   Contains the final forces (eV/Angstrom) and stresses (GPa) in array form.
-  
+
+.. |br| raw:: html
+
+    <br />
+
 * **remote_folder**, :py:class:`RemoteData <aiida.orm.RemoteData>`
 
   The working remote folder for the last calculation executed.

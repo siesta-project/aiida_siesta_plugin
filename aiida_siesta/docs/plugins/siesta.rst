@@ -14,6 +14,8 @@ At least 4.0.1 of the 4.0 series, and 4.1-b3 of the 4.1 series, which
 can be found in the development platform
 (https://gitlab.com/siesta-project/siesta).
 
+.. _siesta-plugin-inputs:
+
 Inputs
 ------
 Some examples are referenced in the following list. They are located in the folder
@@ -64,8 +66,11 @@ aiida_siesta/examples/plugins/siesta.
 
   The :py:class:`StructureData <aiida.orm.StructureData>` can also import 
   ase structures or pymatgen structures. These two tools can be used to load
-  structure from files. See example example_cif_bands.py
+  structure from files. See example example_cif_bands.py.
 
+.. |br| raw:: html
+
+    <br />
 
 * **parameters**, class :py:class:`Dict <aiida.orm.Dict>`, *Mandatory*
 
@@ -95,6 +100,10 @@ aiida_siesta/examples/plugins/siesta.
   (or removed before assigning the dictionary to the Dict
   instance). For legibility, a single dash ('-') is suggested, as in the
   examples above.
+
+.. |br| raw:: html
+
+    <br />
 
 * **pseudos**, input namespace of class :py:class:`PsfData  <aiida_siesta.data.psf.PsfData>`
   OR class :py:class:`PsmlData  <aiida_siesta.data.psml.PsmlData>`, *Mandatory*
@@ -130,6 +139,10 @@ aiida_siesta/examples/plugins/siesta.
   subclasses, might have been implemented. But the `PsmlData` class aims
   to transcend Siesta and to be used by other codes.
 
+.. |br| raw:: html
+
+    <br />
+
 * **basis**, class :py:class:`Dict  <aiida.orm.Dict>`, *Optional*
 
   A dictionary specifically intended for basis set information. It
@@ -160,6 +173,10 @@ aiida_siesta/examples/plugins/siesta.
   any basis specification and it will run with the default Basis: DZP 
   plus (many) other defaults.
 
+.. |br| raw:: html
+
+    <br />
+
 * **kpoints**, class :py:class:`KpointsData <aiida.orm.KpointsData>`, *Optional*
 
   Reciprocal space points for the full sampling of the BZ during the
@@ -172,7 +189,11 @@ aiida_siesta/examples/plugins/siesta.
           kpoints.set_kpoints_mesh([kp_mesh,kp_mesh,kp_mesh],[mesh_displ,mesh_displ,mesh_displ])
   
   If this node is not present, only the Gamma point is used for sampling.
-  
+
+.. |br| raw:: html
+
+    <br />
+
 * **bandskpoints**, class :py:class:`KpointsData <aiida.orm.KpointsData>`, *Optional*
 
   Reciprocal space points for the calculation of bands.
@@ -253,6 +274,10 @@ aiida_siesta/examples/plugins/siesta.
      might result in an incorrect parsing of the bands.
 
   If the keyword node **bandskpoints** is not present, no band structure is computed.
+
+.. |br| raw:: html
+
+    <br />
 
 * **settings**, class  :py:class:`Dict <aiida.orm.Dict>` , *Optional*      
 
@@ -381,15 +406,26 @@ accessed with the ``calculation.outputs`` method.
   'warnings' list can be examined by the parser itself to raise an
   exception in the FATAL case.
 
+.. |br| raw:: html
+
+    <br />
+
 * **forces_and_stress** :py:class:`ArrayData <aiida.orm.ArrayData>`
 
   Contains the final forces (eV/Angstrom) and stresses (GPa) in array form.
   
+.. |br| raw:: html
+
+    <br />
 
 * **output_structure** :py:class:`StructureData <aiida.orm.StructureData>`
   
   Present only if the calculation is moving the ions.  Cell and ionic
   positions refer to the last configuration.
+
+.. |br| raw:: html
+
+    <br />
 
 * **bands**, :py:class:`BandsData  <aiida.orm.BandsData>`
   

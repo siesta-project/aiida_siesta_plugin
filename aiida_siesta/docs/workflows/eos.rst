@@ -1,5 +1,5 @@
 SIESTA Equation Of State workflow
-++++++++++++++++++++++
++++++++++++++++++++++++++++++++++
 
 Description
 -----------
@@ -7,7 +7,8 @@ Description
 The **EqOfStateFixedCellShape** WorkChain is a tool for the calculation of 
 the equation of state of a solid.
 Density Functional Theory (DFT) calculations with the SIESTA code are performed at 
-7 equidistant volumes around a starting volume in order to obtain E(V) data. 
+7 equidistant volumes around a starting volume in order to obtain the energy (E)
+versus volume (V) data.
 The starting volume is an optional input of the WorkChain, called `volume_per_atom`.
 If the latter is not specified, the input structure volume is use as starting volume.
 The WorchChain ensure robustness in the convergence of each SIESTA calculation thanks to 
@@ -24,11 +25,11 @@ obtain the E(V) curve under the restriction of fixed cell shape.
 This means that no algorithm for stress minimization is implemented in the WorkChain.
 However the option relaxation `MD.ConstantVolume` (see SIESTA manual)
 might be added into the parameters
-`Dict <aiida.orm.Dict>` to let SIESTA relax the structure at fixed volume.
+dictionary to let SIESTA to relax the structure at fixed volume.
 There is no point, for obvious reasons, to run this WorkChain with the 
 relaxation option `MD.VariableCell`.
 This WorkChain also tries to perform a Birch_Murnaghan fit
-on the calculated E(V) data, following the Delta Test implementation.
+on the calculated E(V) data, following the `DeltaProject`_ implementation.
 If the fit fails, a warning is stored in the report of the WorkChain
 (accessible through `verdi process report <PK>`), but the E(V) data for the 7 volumes 
 are always returned, leading to a succesfull termination of the process.
@@ -46,7 +47,11 @@ Inputs
 * All the inputs of the **SiestaBaseWorkChain**, as explained 
   :ref:`here <siesta-base-wc-inputs>`.
 
-* **volume_per_atom**,  class :py:class: `Float  <aiida.orm.Float>`, *Optional* 
+.. |br| raw:: html
+
+    <br />
+
+* **volume_per_atom**, class :py:class:`Float <aiida.orm.Float>`, *Optional* 
 
   A decimal number corresponding to the volume per atom around which to 
   perform the equation of state. 
@@ -56,16 +61,20 @@ Outputs
 
 * **results_dict** :py:class:`Dict <aiida.orm.Dict>` 
 
-  A dictionary containing a key `eos_data` containing the computed E(V) values and relative 
+  A dictionary containing a key `eos_data` that collects the computed E(V) values and relative 
   units of measure.
-  If the Birch-Murnaghan fit is succesfull, the key `fit_res` will report the minimum
+  If the Birch-Murnaghan fit is succesfull, also the key `fit_res` will be present in this disctionary.
+  It reports the following values extracted from the fit: the equilibrium
   volume (Vo, in ang^3/atom), the minimum energy (Eo, in eV/atom), the Bulk Modulus 
-  (Bo, in ev/ang^3) and its derivative respect to the presure B1.
+  (Bo, in ev/ang^3) and its derivative respect to the presure B1.  
+ 
+.. |br| raw:: html
 
+    <br />
+  
 * **equilibrium_structure** :py:class:`StructureData <aiida.orm.StructureData>`
   
   Present only if the Birch-Murnaghan fit is succesfull, it is the AiiDA structure
   at the equilibrium volume Vo.
 
-
-
+.. _DeltaProject: https://github.com/molmod/DeltaCodesDFT/blob/master/eosfit.py
