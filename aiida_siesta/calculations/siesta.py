@@ -52,7 +52,6 @@ class SiestaCalculation(CalcJob):
     _aiida_blocked_keywords.append('dmusesavedm')
     _PSEUDO_SUBFOLDER = './'
     _OUTPUT_SUBFOLDER = './'
-    _PREFIX = 'aiida'
     _DEFAULT_XML_FILE = 'aiida.xml'
     _DEFAULT_JSON_FILE = 'time.json'
     _DEFAULT_MESSAGES_FILE = 'MESSAGES'
@@ -61,6 +60,7 @@ class SiestaCalculation(CalcJob):
 
     # Default of the input.spec, it's just default, but user
     # could change the name
+    _PREFIX = 'aiida'
     _DEFAULT_INPUT_FILE = 'aiida.fdf'
     _DEFAULT_OUTPUT_FILE = 'aiida.out'
 
@@ -113,15 +113,15 @@ class SiestaCalculation(CalcJob):
         # as a separate node, but attached to `CalcJobNode`
         # as attributes. They are optional, since a default is 
         # specified, but they might be changed by the user.
-        spec.input('metadata.options.input_filename',
+        # The first one is siesta specific. The other three
+        # are defined in the CalcJob, here we need just to change
+        # the default.
+        spec.input('metadata.options.prefix',
                    valid_type=six.string_types,
-                   default=cls._DEFAULT_INPUT_FILE)
-        spec.input('metadata.options.output_filename',
-                   valid_type=six.string_types,
-                   default=cls._DEFAULT_OUTPUT_FILE)
-        spec.input('metadata.options.parser_name',
-                   valid_type=six.string_types,
-                   default='siesta.parser')
+                   default=cls._PREFIX)
+        spec.inputs['metadata']['options']['input_filename'].default=cls._DEFAULT_INPUT_FILE
+        spec.inputs['metadata']['options']['output_filename'].default=cls._DEFAULT_OUTPUT_FILE
+        spec.inputs['metadata']['options']['parser_name'].default='siesta.parser'
 
         # Output nodes
         spec.output('output_parameters',
@@ -252,8 +252,8 @@ class SiestaCalculation(CalcJob):
                         "input parameters".format(
                             input_params.get_last_key(key)))
 
-        input_params.update({'system-name': self._PREFIX})
-        input_params.update({'system-label': self._PREFIX})
+        input_params.update({'system-name': self.inputs.metadata.options.prefix})
+        input_params.update({'system-label': self.inputs.metadata.options.prefix})
         input_params.update({'use-tree-timer': 'T'})
         input_params.update({'xml-write': 'T'})
         input_params.update({'number-of-species': len(structure.kinds)})
