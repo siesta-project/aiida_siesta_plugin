@@ -71,7 +71,7 @@ except IndexError:
 
 #
 options = {
-    "queue_name": "debug",
+    #"queue_name": "debug",
     "max_wallclock_seconds": 1700,
     "resources": {
         "num_machines": 1,

@@ -140,6 +140,8 @@ class STMCalculation(CalcJob):
                         "input parameters".format(
                             input_params.get_last_key(key)))
 
+
+        #useless
         input_params.update({'system-label': self._PREFIX})
         input_params.update({'mode': 'constant-height'})
         input_params.update({'extension': 'ldos'})
@@ -152,12 +154,14 @@ class STMCalculation(CalcJob):
         # input_filename = self.inputs.metadata.options.input_filename
         input_filename = tempfolder.get_abs_path(metadataoption.input_filename)
 
+        zang = input_params['z'] / 0.529177
+        print(zang)
         with open(input_filename, 'w') as infile:
             infile.write("aiida\n")
             infile.write("ldos\n")
             infile.write("constant-height\n")
             # Convert height to bohr...
-            infile.write("{}\n".format(input_params['z'] / 0.529177))
+            infile.write("{}\n".format(zang))
             infile.write("unformatted\n")
 
         # ------------------------------------- END of input file creation
@@ -181,7 +185,7 @@ class STMCalculation(CalcJob):
         # Code information object
         #
         codeinfo = CodeInfo()
-        codeinfo.cmdline_params = list(cmdline_params)
+        codeinfo.cmdline_params = (list(cmdline_params) + ['-z', str(zang), 'aiida.LDOS'])
         codeinfo.stdin_name = metadataoption.input_filename
         codeinfo.stdout_name = metadataoption.output_filename
         codeinfo.plot_name = metadataoption.plot_filename

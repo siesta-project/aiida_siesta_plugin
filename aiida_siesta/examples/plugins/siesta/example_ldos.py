@@ -13,7 +13,9 @@ from aiida_siesta.calculations.siesta import SiestaCalculation
 from aiida.plugins import DataFactory
 
 # There is no parsing for the ldos, but the file .LDOS can be
-# retrieved using the "settings" feature.
+# retrieved using the "settings" feature (see below).
+# The remote_folder node produced by this example, can 
+# be used as input of the stm example in ../stm
 ################################################################
 
 PsfData = DataFactory('siesta.psf')
@@ -46,8 +48,10 @@ except IndexError:
 code = load_code(codename)
 
 options = {
-#    "queue_name": "debug",
-    "max_wallclock_seconds": 1700,
+    "max_wallclock_seconds": 360,
+        #    'withmpi': True,
+    'account': "tcphy113c",
+    'queue_name': "DevQ",
     "resources": {
         "num_machines": 1,
         "num_mpiprocs_per_machine": 1,
@@ -86,18 +90,18 @@ cell = [
 # Note an atom tagged (for convenience) with a different label
 #
 s = StructureData(cell=cell)
-s.append_atom(position=(0.000, 0.000, 0.468), symbols=['H'])
-s.append_atom(position=(0.000, 0.000, 1.620), symbols=['C'])
-s.append_atom(position=(0.000, -2.233, 1.754), symbols=['H'])
-s.append_atom(position=(0.000, 2.233, 1.754), symbols=['H'])
-s.append_atom(position=(0.000, -1.225, 2.327), symbols='C', name="Cred")
-s.append_atom(position=(0.000, 1.225, 2.327), symbols=['C'])
-s.append_atom(position=(0.000, -1.225, 3.737), symbols=['C'])
-s.append_atom(position=(0.000, 1.225, 3.737), symbols=['C'])
-s.append_atom(position=(0.000, -2.233, 4.311), symbols=['H'])
-s.append_atom(position=(0.000, 2.233, 4.311), symbols=['H'])
-s.append_atom(position=(0.000, 0.000, 4.442), symbols=['C'])
-s.append_atom(position=(0.000, 0.000, 5.604), symbols=['H'])
+s.append_atom(position=(0.468, 0.000, 0.000), symbols=['H'])
+s.append_atom(position=(1.620, 0.000, 0.000), symbols=['C'])
+s.append_atom(position=(1.754, -2.233, 0.000), symbols=['H'])
+s.append_atom(position=(1.754, 2.233, 0.000), symbols=['H'])
+s.append_atom(position=(2.327, -1.225, 0.000), symbols='C', name="Cred")
+s.append_atom(position=(2.327, 1.225, 0.000), symbols=['C'])
+s.append_atom(position=(3.737, -1.225, 0.000), symbols=['C'])
+s.append_atom(position=(3.737, 1.225, 0.000), symbols=['C'])
+s.append_atom(position=(4.311, -2.233, 0.000), symbols=['H'])
+s.append_atom(position=(4.311, 2.233, 0.000), symbols=['H'])
+s.append_atom(position=(4.442, 0.000, 0.000), symbols=['C'])
+s.append_atom(position=(5.604, 0.000, 0.000), symbols=['H'])
 
 #-------------------------------------------------------------
 #
@@ -106,23 +110,16 @@ s.append_atom(position=(0.000, 0.000, 5.604), symbols=['H'])
 ldos_block_content = "\n {e1} {e2} eV".format(e1=-5.0, e2=1.0)
 
 params_dict = {
-    'xc-functional':
-    'LDA',
-    'xc-authors':
-    'CA',
-    'mesh-cutoff':
-    '200.000 Ry',
-    'dm-numberpulay':
-    5,
-    'dm-mixingweight':
-    0.050,
-    'dm-tolerance':
-    1.e-4,
-    'electronic-temperature':
-    '100.000 K',
+    'xc-functional': 'LDA',
+    'xc-authors': 'CA',
+    'mesh-cutoff': '250.000 Ry',
+    'dm-numberpulay': 5,
+    'dm-mixingweight': 0.050,
+    'dm-tolerance': 1.e-4,
+    'electronic-temperature': '100.000 K',
     '%block local-density-of-states':
     """
- -5.0 1.0 eV
+ -9.6 -1.6 eV
 %endblock local-density-of-states """
 }
 parameters = Dict(dict=params_dict)
@@ -131,12 +128,9 @@ parameters = Dict(dict=params_dict)
 # The basis dictionary follows the 'parameters' convention
 #
 basis_dict = {
-    'pao-basistype':
-    'split',
-    'pao-splitnorm':
-    0.150,
-    'pao-energyshift':
-    '0.020 Ry',
+    'pao-basistype':'split',
+    'pao-splitnorm': 0.150,
+    'pao-energyshift':'0.020 Ry',
     '%block pao-basis-sizes':
     """
 C    SZP
