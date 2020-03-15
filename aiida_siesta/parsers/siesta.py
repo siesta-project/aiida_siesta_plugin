@@ -333,31 +333,35 @@ class SiestaParser(Parser):
         else:
             raise OutputParsingError("Output file not retrieved")
 
-        if self.node.process_class._DEFAULT_XML_FILE in list_of_files:
+        namexmlfile = str(self.node.get_option('prefix')) + ".xml"
+        print(namexmlfile)
+        print(list_of_files)
+        if namexmlfile in list_of_files:
             xml_path = os.path.join(
                 out_folder._repository._get_base_folder().abspath,
-                self.node.process_class._DEFAULT_XML_FILE)
+                namexmlfile)
         else:
             raise OutputParsingError("Xml file not retrieved")
 
-        if self.node.process_class._DEFAULT_JSON_FILE in list_of_files:
+        if self.node.process_class._JSON_FILE in list_of_files:
             json_path = os.path.join(
                 out_folder._repository._get_base_folder().abspath,
-                self.node.process_class._DEFAULT_JSON_FILE)
+                self.node.process_class._JSON_FILE)
 #        else:
 #            raise OutputParsingError("json file not retrieved")
 
-        if self.node.process_class._DEFAULT_MESSAGES_FILE in list_of_files:
+        if self.node.process_class._MESSAGES_FILE in list_of_files:
             messages_path = os.path.join(
                 out_folder._repository._get_base_folder().abspath,
-                self.node.process_class._DEFAULT_MESSAGES_FILE)
+                self.node.process_class._MESSAGES_FILE)
 #        else:
 #            raise OutputParsingError("message file not retrieved")
 
-        if self.node.process_class._DEFAULT_BANDS_FILE in list_of_files:
+        namebandsfile = str(self.node.get_option('prefix')) + ".bands"
+        if namebandsfile in list_of_files:
             bands_path = os.path.join(
                 out_folder._repository._get_base_folder().abspath,
-                self.node.process_class._DEFAULT_BANDS_FILE)
+                namebandsfile)
 
         if bands_path is None:
             supposed_to_have_bandsfile = True

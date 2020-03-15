@@ -52,15 +52,13 @@ class SiestaCalculation(CalcJob):
     _aiida_blocked_keywords.append('dmusesavedm')
     _PSEUDO_SUBFOLDER = './'
     _OUTPUT_SUBFOLDER = './'
-    _DEFAULT_XML_FILE = 'aiida.xml'
-    _DEFAULT_JSON_FILE = 'time.json'
-    _DEFAULT_MESSAGES_FILE = 'MESSAGES'
-    _DEFAULT_BANDS_FILE = 'aiida.bands'
+    _JSON_FILE = 'time.json'
+    _MESSAGES_FILE = 'MESSAGES'
 
 
     # Default of the input.spec, it's just default, but user
     # could change the name
-    _PREFIX = 'aiida'
+    _DEFAULT_PREFIX = 'aiida'
     _DEFAULT_INPUT_FILE = 'aiida.fdf'
     _DEFAULT_OUTPUT_FILE = 'aiida.out'
 
@@ -118,7 +116,7 @@ class SiestaCalculation(CalcJob):
         # the default.
         spec.input('metadata.options.prefix',
                    valid_type=six.string_types,
-                   default=cls._PREFIX)
+                   default=cls._DEFAULT_PREFIX)
         spec.inputs['metadata']['options']['input_filename'].default=cls._DEFAULT_INPUT_FILE
         spec.inputs['metadata']['options']['output_filename'].default=cls._DEFAULT_OUTPUT_FILE
         spec.inputs['metadata']['options']['parser_name'].default='siesta.parser'
@@ -506,12 +504,14 @@ class SiestaCalculation(CalcJob):
         # messages file, and the json timing file.
         # If bandskpoints, also the bands file is added to the retrieve list.
         calcinfo.retrieve_list = []
+        _XML_FILE = str(metadataoption.prefix) + ".xml"
+        _BANDS_FILE = str(metadataoption.prefix) + ".bands"
         calcinfo.retrieve_list.append(metadataoption.output_filename)
-        calcinfo.retrieve_list.append(self._DEFAULT_XML_FILE) 
-        calcinfo.retrieve_list.append(self._DEFAULT_JSON_FILE) 
-        calcinfo.retrieve_list.append(self._DEFAULT_MESSAGES_FILE) 
+        calcinfo.retrieve_list.append(_XML_FILE) 
+        calcinfo.retrieve_list.append(self._JSON_FILE) 
+        calcinfo.retrieve_list.append(self._MESSAGES_FILE) 
         if bandskpoints is not None:
-            calcinfo.retrieve_list.append(self._DEFAULT_BANDS_FILE) 
+            calcinfo.retrieve_list.append(_BANDS_FILE) 
         # Any other files specified in the settings dictionary
         settings_retrieve_list = settings_dict.pop('ADDITIONAL_RETRIEVE_LIST',
                                                    [])
