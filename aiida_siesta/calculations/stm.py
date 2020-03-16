@@ -21,11 +21,10 @@ class STMCalculation(CalcJob):
     takes and .LDOS or .RHO file and generates a plot file to simulate
     an STM image.
     """
-    _stm_plugin_version = 'aiida-1.0b--stm-1.0b'
+    _stm_plugin_version = '1.0.1'
 
     # Keywords that cannot be set
     # We need to canonicalize this!
-
     _aiida_blocked_keywords = ['mode', 'system-label', 'extension']
 
     # Default input and output files
@@ -94,27 +93,16 @@ class STMCalculation(CalcJob):
         :return: `aiida.common.datastructures.CalcInfo` instance
         """
 
-        # Process the settings dictionary first
-        # Settings can be undefined, and defaults to an empty dictionary
+        code = self.inputs.code
+        parameters = self.inputs.parameters
+        ldos_folder = self.inputs.ldos_folder
+        
         if 'settings' in self.inputs:
             settings = self.inputs.settings.get_dict()
-            # Settings converted to UPPERCASE
-            # Presumably to standardize the usage and avoid ambiguities
             settings_dict = _uppercase_dict(settings, dict_name='settings')
         else:
             settings_dict = {}
 
-        code = self.inputs.code
-        parameters = self.inputs.parameters
-        ldos_folder = self.inputs.ldos_folder
-
-        #
-        # Important note: This program should NOT be run with MPI.
-        # Scripts using this plugin should use:
-        #
-        # calc.set_withmpi(False)
-
-        #
         # List of the files to copy in the folder where the calculation
         # runs, for instance pseudo files
         local_copy_list = []
@@ -130,7 +118,6 @@ class STMCalculation(CalcJob):
 
         # Look for blocked keywords and
         # add the proper values to the dictionary
-
         for blocked_key in self._aiida_blocked_keywords:
             canonical_blocked = FDFDict.translate_key(blocked_key)
             for key in input_params:
@@ -141,42 +128,53 @@ class STMCalculation(CalcJob):
                             input_params.get_last_key(key)))
 
 
-        #useless
+        #useless so far, input_params is not stored or used!
         input_params.update({'system-label': self._PREFIX})
         input_params.update({'mode': 'constant-height'})
         input_params.update({'extension': 'ldos'})
 
         # Maybe check that the 'z' coordinate makes sense...
 
+
+        # ============== Creation of input file ===============
+
         # To have easy access to inputs metadata options
         metadataoption = self.inputs.metadata.options
 
-        # input_filename = self.inputs.metadata.options.input_filename
+        # input_filename access
         input_filename = tempfolder.get_abs_path(metadataoption.input_filename)
 
-        zang = input_params['z'] / 0.529177
-        print(zang)
+        # Getting the prefix from ldos_folder
+        try:
+            prefix = str(ldos_folder.creator.get_attribute("prefix"))
+        except:
+            self.report("No prefix detected from the remote folder, set 'aiida' as prefix")
+            prefix = "aiida"
+        ldosfile = prefix + ".LDOS"
+
+        # Convert height to bohr...
+        zbohr = input_params['z'] / 0.529177
+        #This can be improved a lot.
         with open(input_filename, 'w') as infile:
-            infile.write("aiida\n")
+            infile.write("{}\n".format(prefix))
             infile.write("ldos\n")
             infile.write("constant-height\n")
-            # Convert height to bohr...
-            infile.write("{}\n".format(zang))
+            infile.write("{}\n".format(zbohr))
             infile.write("unformatted\n")
 
-        # ------------------------------------- END of input file creation
+        # ====================== Code and Calc info ========================
+        # Code information object and Calc information object are now
+        # only used to set up the CMDLINE (the bash line that launches siesta)
+        # and to set up the list of files to retrieve.
 
         # The presence of a 'ldos_folder' is mandatory, to get the LDOS file
         # as indicated in the self._restart_copy_from attribute.
         # (this is not technically a restart, though)
 
         # It will be copied to the current calculation's working folder.
-
-        if ldos_folder is not None:
-            remote_copy_list.append(
-                (ldos_folder.computer.uuid,
-                 os.path.join(ldos_folder.get_remote_path(),
-                              self._restart_copy_from), self._restart_copy_to))
+        remote_copy_list.append((ldos_folder.computer.uuid, 
+            os.path.join(ldos_folder.get_remote_path(), self._restart_copy_from), 
+            self._restart_copy_to))
 
         # Empty command line by default
         # Why use 'pop' ?
@@ -185,7 +183,7 @@ class STMCalculation(CalcJob):
         # Code information object
         #
         codeinfo = CodeInfo()
-        codeinfo.cmdline_params = (list(cmdline_params) + ['-z', str(zang), 'aiida.LDOS'])
+        codeinfo.cmdline_params = (list(cmdline_params) + ['-z', str(zbohr), ldosfile])
         codeinfo.stdin_name = metadataoption.input_filename
         codeinfo.stdout_name = metadataoption.output_filename
         codeinfo.plot_name = metadataoption.plot_filename
@@ -207,7 +205,6 @@ class STMCalculation(CalcJob):
         #
 
         # Retrieve by default: the output file and the plot file
-
         calcinfo.retrieve_list = []
         calcinfo.retrieve_list.append(metadataoption.output_filename)
         calcinfo.retrieve_list.append(metadataoption.plot_filename)
