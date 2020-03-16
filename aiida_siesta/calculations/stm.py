@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 import os
-
 import six
 from aiida import orm
 from aiida.common import CalcInfo, CodeInfo, InputValidationError
@@ -26,14 +25,11 @@ class STMCalculation(CalcJob):
     # Keywords that cannot be set
     # We need to canonicalize this!
     _aiida_blocked_keywords = ['mode', 'system-label', 'extension']
+    _OUTPUT_SUBFOLDER = './'
 
     # Default input and output files
     _DEFAULT_INPUT_FILE = 'stm.in'
     _DEFAULT_OUTPUT_FILE = 'stm.out'
-    _DEFAULT_PLOT_FILE = 'aiida.CH.STM'
-
-    _OUTPUT_SUBFOLDER = './'
-    _PREFIX = 'aiida'
 
     # in restarts, it will copy from the parent the following
     _restart_copy_from = os.path.join(_OUTPUT_SUBFOLDER, '*.LDOS')
@@ -56,21 +52,12 @@ class STMCalculation(CalcJob):
                    required=True,
                    help='Parent folder')
 
-        # These are optional, since a default is specified
-        # But they should not be set by the user...
-        spec.input('metadata.options.input_filename',
-                   valid_type=six.string_types,
-                   default=cls._DEFAULT_INPUT_FILE)
-        spec.input('metadata.options.output_filename',
-                   valid_type=six.string_types,
-                   default=cls._DEFAULT_OUTPUT_FILE)
-        spec.input('metadata.options.plot_filename',
-                   valid_type=six.string_types,
-                   default=cls._DEFAULT_PLOT_FILE)
-        spec.input('metadata.options.parser_name',
-                   valid_type=six.string_types,
-                   default='siesta.stm')
+        # Metadata, defined in CalCJob, here we modify default
+        spec.inputs['metadata']['options']['input_filename'].default=cls._DEFAULT_INPUT_FILE
+        spec.inputs['metadata']['options']['output_filename'].default=cls._DEFAULT_OUTPUT_FILE
+        spec.inputs['metadata']['options']['parser_name'].default='siesta.stm'
 
+        #Outputs
         spec.output('stm_array',
                     valid_type=ArrayData,
                     required=True,
@@ -80,10 +67,20 @@ class STMCalculation(CalcJob):
                     required=True,
                     help='Other output')
 
+        # exit codes
         spec.exit_code(
             100,
             'ERROR_NO_RETRIEVED_FOLDER',
             message='The retrieved folder data node could not be accessed.')
+        spec.exit_code(
+            101,
+            'ERROR_OUTPUT_PLOT_MISSING',
+            message='The retrieved folder does not contain a CH.STM file')
+        spec.exit_code(
+            102,
+            'ERROR_OUTPUT_PLOT_READ',
+            message='The CH.STM file can not be read')
+
 
     def prepare_for_submission(self, tempfolder):
         """
@@ -129,7 +126,7 @@ class STMCalculation(CalcJob):
 
 
         #useless so far, input_params is not stored or used!
-        input_params.update({'system-label': self._PREFIX})
+        #input_params.update({'system-label': self._PREFIX})
         input_params.update({'mode': 'constant-height'})
         input_params.update({'extension': 'ldos'})
 
@@ -186,7 +183,6 @@ class STMCalculation(CalcJob):
         codeinfo.cmdline_params = (list(cmdline_params) + ['-z', str(zbohr), ldosfile])
         codeinfo.stdin_name = metadataoption.input_filename
         codeinfo.stdout_name = metadataoption.output_filename
-        codeinfo.plot_name = metadataoption.plot_filename
         codeinfo.code_uuid = code.uuid
 
         #
@@ -200,14 +196,16 @@ class STMCalculation(CalcJob):
         calcinfo.remote_copy_list = remote_copy_list
         calcinfo.stdin_name = metadataoption.input_filename
         calcinfo.stdout_name = metadataoption.output_filename
-        calcinfo.plot_name = metadataoption.plot_filename
         calcinfo.codes_info = [codeinfo]
         #
 
         # Retrieve by default: the output file and the plot file
         calcinfo.retrieve_list = []
         calcinfo.retrieve_list.append(metadataoption.output_filename)
-        calcinfo.retrieve_list.append(metadataoption.plot_filename)
+        # Some logic to understand which is the plot file will be in
+        # parser, here we put to retrieve every file ending in *CH.STM
+        calcinfo.retrieve_list.append("*.CH.STM")
+        print(calcinfo.retrieve_list)
 
         # Any other files specified in the settings dictionary
         settings_retrieve_list = settings_dict.pop('ADDITIONAL_RETRIEVE_LIST',

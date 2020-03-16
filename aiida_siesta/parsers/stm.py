@@ -29,18 +29,21 @@ class STMParser(Parser):
         from aiida.engine import ExitCode
 
         try:
-            self.retrieved
+            output_folder = self.retrieved
         except exceptions.NotExistent:
             return self.exit_codes.ERROR_NO_RETRIEVED_FOLDER
 
-        # The plot file is required for parsing
-        filename_plot = self.node.get_attribute('plot_filename')
+        print(output_folder.list_object_names())
+        filename_plot = None
+        for element in output_folder.list_object_names():
+            if "CH.STM" in element:
+                filename_plot = element
 
-        if filename_plot not in self.retrieved.list_object_names():
+        if filename_plot is None:
             return self.exit_codes.ERROR_OUTPUT_PLOT_MISSING
 
         try:
-            plot_contents = self.retrieved.get_object_content(filename_plot)
+            plot_contents = output_folder.get_object_content(filename_plot)
         except (IOError, OSError):
             return self.exit_codes.ERROR_OUTPUT_PLOT_READ
 
@@ -50,11 +53,12 @@ class STMParser(Parser):
         if stm_data is not None:
             self.out('stm_array', stm_data)
 
-        parser_version = 'aiida-1.0.0--stm-1.0'
+        parser_version = '1.0.1'
         parser_info = {}
         parser_info['parser_info'] = 'AiiDA STM(Siesta) Parser V. {}'.format(
             parser_version)
         parser_info['parser_warnings'] = []
+        parser_info['output_data_filename'] = filename_plot
 
         # Possibly put here some parsed data from the stm.out file
         # (but it is not very interesting)
