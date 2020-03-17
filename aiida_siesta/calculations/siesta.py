@@ -52,15 +52,13 @@ class SiestaCalculation(CalcJob):
     _aiida_blocked_keywords.append('dmusesavedm')
     _PSEUDO_SUBFOLDER = './'
     _OUTPUT_SUBFOLDER = './'
-    _PREFIX = 'aiida'
-    _DEFAULT_XML_FILE = 'aiida.xml'
-    _DEFAULT_JSON_FILE = 'time.json'
-    _DEFAULT_MESSAGES_FILE = 'MESSAGES'
-    _DEFAULT_BANDS_FILE = 'aiida.bands'
+    _JSON_FILE = 'time.json'
+    _MESSAGES_FILE = 'MESSAGES'
 
 
     # Default of the input.spec, it's just default, but user
     # could change the name
+    _DEFAULT_PREFIX = 'aiida'
     _DEFAULT_INPUT_FILE = 'aiida.fdf'
     _DEFAULT_OUTPUT_FILE = 'aiida.out'
 
@@ -113,15 +111,15 @@ class SiestaCalculation(CalcJob):
         # as a separate node, but attached to `CalcJobNode`
         # as attributes. They are optional, since a default is 
         # specified, but they might be changed by the user.
-        spec.input('metadata.options.input_filename',
+        # The first one is siesta specific. The other three
+        # are defined in the CalcJob, here we need just to change
+        # the default.
+        spec.input('metadata.options.prefix',
                    valid_type=six.string_types,
-                   default=cls._DEFAULT_INPUT_FILE)
-        spec.input('metadata.options.output_filename',
-                   valid_type=six.string_types,
-                   default=cls._DEFAULT_OUTPUT_FILE)
-        spec.input('metadata.options.parser_name',
-                   valid_type=six.string_types,
-                   default='siesta.parser')
+                   default=cls._DEFAULT_PREFIX)
+        spec.inputs['metadata']['options']['input_filename'].default=cls._DEFAULT_INPUT_FILE
+        spec.inputs['metadata']['options']['output_filename'].default=cls._DEFAULT_OUTPUT_FILE
+        spec.inputs['metadata']['options']['parser_name'].default='siesta.parser'
 
         # Output nodes
         spec.output('output_parameters',
@@ -252,8 +250,8 @@ class SiestaCalculation(CalcJob):
                         "input parameters".format(
                             input_params.get_last_key(key)))
 
-        input_params.update({'system-name': self._PREFIX})
-        input_params.update({'system-label': self._PREFIX})
+        input_params.update({'system-name': self.inputs.metadata.options.prefix})
+        input_params.update({'system-label': self.inputs.metadata.options.prefix})
         input_params.update({'use-tree-timer': 'T'})
         input_params.update({'xml-write': 'T'})
         input_params.update({'number-of-species': len(structure.kinds)})
@@ -506,12 +504,14 @@ class SiestaCalculation(CalcJob):
         # messages file, and the json timing file.
         # If bandskpoints, also the bands file is added to the retrieve list.
         calcinfo.retrieve_list = []
+        _XML_FILE = str(metadataoption.prefix) + ".xml"
+        _BANDS_FILE = str(metadataoption.prefix) + ".bands"
         calcinfo.retrieve_list.append(metadataoption.output_filename)
-        calcinfo.retrieve_list.append(self._DEFAULT_XML_FILE) 
-        calcinfo.retrieve_list.append(self._DEFAULT_JSON_FILE) 
-        calcinfo.retrieve_list.append(self._DEFAULT_MESSAGES_FILE) 
+        calcinfo.retrieve_list.append(_XML_FILE) 
+        calcinfo.retrieve_list.append(self._JSON_FILE) 
+        calcinfo.retrieve_list.append(self._MESSAGES_FILE) 
         if bandskpoints is not None:
-            calcinfo.retrieve_list.append(self._DEFAULT_BANDS_FILE) 
+            calcinfo.retrieve_list.append(_BANDS_FILE) 
         # Any other files specified in the settings dictionary
         settings_retrieve_list = settings_dict.pop('ADDITIONAL_RETRIEVE_LIST',
                                                    [])
