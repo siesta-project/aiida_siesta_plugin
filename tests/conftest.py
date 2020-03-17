@@ -100,7 +100,7 @@ def generate_calc_job_node():
         node = orm.CalcJobNode(computer=computer, process_type=entry_point)
         node.set_attribute('input_filename', 'aiida.fdf')
         node.set_attribute('output_filename', 'aiida.out')
-        #node.set_attribute('xml_file', 'aiida.xml')
+        node.set_attribute('prefix', 'aiida')
         node.set_option('resources', {'num_machines': 1, 'num_mpiprocs_per_machine': 1})
         node.set_option('max_wallclock_seconds', 1800)
 
