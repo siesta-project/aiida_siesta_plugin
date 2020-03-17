@@ -26,7 +26,7 @@ import sys
 from aiida.engine import submit
 from aiida.orm import load_code
 from aiida.orm import load_node
-from aiida.orm import Dict
+from aiida.orm import Dict, Str, Float
 from aiida_siesta.calculations.stm import STMCalculation
 from aiida.plugins import DataFactory
 
@@ -65,9 +65,9 @@ remotedata = load_node(remotedata_pk)
 
 #–-------------
 try:
-    height = float(sys.argv[4])
+    cur = float(sys.argv[4])
 except IndexError:
-    height = 7.5
+    cur = 0.3
 
 #
 options = {
@@ -80,12 +80,6 @@ options = {
 }
 #
 # Parameters ---------------------------------------------------
-params_dict = {
-    'z': height  # In Angstrom
-}
-parameters = Dict(dict=params_dict)
-#
-#-------------------------- Settings ---------------------------------
 #
 settings_dict = {}
 settings = Dict(dict=settings_dict)
@@ -94,7 +88,8 @@ settings = Dict(dict=settings_dict)
 #
 inputs = {
     'settings': settings,
-    'parameters': parameters,
+    'value': Float(cur),
+    'mode': Str("constant-current"),
     'code': code,
     'ldos_folder': remotedata,
     'metadata': {

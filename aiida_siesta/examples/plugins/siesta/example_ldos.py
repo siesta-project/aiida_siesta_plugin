@@ -49,9 +49,9 @@ code = load_code(codename)
 
 options = {
     "max_wallclock_seconds": 360,
-        #    'withmpi': True,
-    'account': "tcphy113c",
-    'queue_name': "DevQ",
+    #'withmpi': True,
+    #'account': "tcphy113c",
+    #'queue_name': "DevQ",
     "resources": {
         "num_machines": 1,
         "num_mpiprocs_per_machine": 1,

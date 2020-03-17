@@ -22,9 +22,6 @@ class STMCalculation(CalcJob):
     """
     _stm_plugin_version = '1.0.1'
 
-    # Keywords that cannot be set
-    # We need to canonicalize this!
-    _aiida_blocked_keywords = ['mode', 'system-label', 'extension']
     _OUTPUT_SUBFOLDER = './'
 
     # Default input and output files
@@ -46,7 +43,12 @@ class STMCalculation(CalcJob):
                    valid_type=orm.Dict,
                    help='Input settings',
                    required=False)
-        spec.input('parameters', valid_type=orm.Dict, help='Input parameters')
+        #spec.input('spin', valid_type=orm.Bool, default=orm.Bool(False),
+        #        help='Weather or not to perform spin analysis')
+        spec.input('mode', valid_type=orm.Str, 
+                help='Allowed values are "constant-height" or "constant-current"')
+        spec.input('value', valid_type=orm.Float, 
+                help='Value of height in Ang or value of current in e/bohr**3')
         spec.input('ldos_folder',
                    valid_type=orm.RemoteData,
                    required=True,
@@ -91,8 +93,17 @@ class STMCalculation(CalcJob):
         """
 
         code = self.inputs.code
-        parameters = self.inputs.parameters
         ldos_folder = self.inputs.ldos_folder
+        
+        allowedmodes = ["constant-height","constant-current"]
+        mode = self.inputs.mode
+        print(mode.value)
+        if mode.value not in allowedmodes:
+            print("ss")
+            raise ValueError("The allowed options for the port 'mode' are {}".format(allowedmodes))
+
+        value=self.inputs.value
+        #spin = self.inputs.spin
         
         if 'settings' in self.inputs:
             settings = self.inputs.settings.get_dict()
@@ -106,31 +117,6 @@ class STMCalculation(CalcJob):
 
         # List of files for restart
         remote_copy_list = []
-
-        # ============== Preprocess of input parameters ===============
-        # There should be a warning for duplicated (canonicalized) keys
-        # in the original dictionary in the script
-
-        input_params = FDFDict(parameters.get_dict())
-
-        # Look for blocked keywords and
-        # add the proper values to the dictionary
-        for blocked_key in self._aiida_blocked_keywords:
-            canonical_blocked = FDFDict.translate_key(blocked_key)
-            for key in input_params:
-                if key == canonical_blocked:
-                    raise InputValidationError(
-                        "You cannot specify explicitly the '{}' flag in the "
-                        "input parameters".format(
-                            input_params.get_last_key(key)))
-
-
-        #useless so far, input_params is not stored or used!
-        #input_params.update({'system-label': self._PREFIX})
-        input_params.update({'mode': 'constant-height'})
-        input_params.update({'extension': 'ldos'})
-
-        # Maybe check that the 'z' coordinate makes sense...
 
 
         # ============== Creation of input file ===============
@@ -150,13 +136,15 @@ class STMCalculation(CalcJob):
         ldosfile = prefix + ".LDOS"
 
         # Convert height to bohr...
-        zbohr = input_params['z'] / 0.529177
-        #This can be improved a lot.
+        if mode.value == "constant-height":
+            vvalue = value.value / 0.529177
+        else:
+            vvalue = value.value
         with open(input_filename, 'w') as infile:
             infile.write("{}\n".format(prefix))
             infile.write("ldos\n")
-            infile.write("constant-height\n")
-            infile.write("{}\n".format(zbohr))
+            infile.write("{}\n".format(mode.value))
+            infile.write("{}\n".format(vvalue))
             infile.write("unformatted\n")
 
         # ====================== Code and Calc info ========================
@@ -180,7 +168,10 @@ class STMCalculation(CalcJob):
         # Code information object
         #
         codeinfo = CodeInfo()
-        codeinfo.cmdline_params = (list(cmdline_params) + ['-z', str(zbohr), ldosfile])
+        if mode.value == "constant-height":
+            codeinfo.cmdline_params = (list(cmdline_params) + ['-z', str(vvalue), ldosfile])
+        else:
+            codeinfo.cmdline_params = (list(cmdline_params) + ['-i', str(vvalue), ldosfile])
         codeinfo.stdin_name = metadataoption.input_filename
         codeinfo.stdout_name = metadataoption.output_filename
         codeinfo.code_uuid = code.uuid
@@ -204,7 +195,7 @@ class STMCalculation(CalcJob):
         calcinfo.retrieve_list.append(metadataoption.output_filename)
         # Some logic to understand which is the plot file will be in
         # parser, here we put to retrieve every file ending in *CH.STM
-        calcinfo.retrieve_list.append("*.CH.STM")
+        calcinfo.retrieve_list.append("*.STM")
         print(calcinfo.retrieve_list)
 
         # Any other files specified in the settings dictionary

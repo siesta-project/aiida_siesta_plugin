@@ -36,7 +36,7 @@ class STMParser(Parser):
         print(output_folder.list_object_names())
         filename_plot = None
         for element in output_folder.list_object_names():
-            if "CH.STM" in element:
+            if ".STM" in element:
                 filename_plot = element
 
         if filename_plot is None:
