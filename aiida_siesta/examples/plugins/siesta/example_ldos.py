@@ -15,7 +15,7 @@ from aiida.plugins import DataFactory
 # There is no parsing for the ldos, but the file .LDOS can be
 # retrieved using the "settings" feature (see below).
 # The remote_folder node produced by this example, can 
-# be used as input of the stm example in ../stm
+# be used as input of the stm examples in ../stm
 ################################################################
 
 PsfData = DataFactory('siesta.psf')
@@ -40,7 +40,7 @@ except IndexError:
 try:
     codename = sys.argv[2]
 except IndexError:
-    codename = 'Siesta4.0.1@kelvin'
+    codename = 'Siesta-4.0.2@kay'
 
 #
 #------------------Code and computer options ---------------------------
@@ -110,6 +110,7 @@ s.append_atom(position=(5.604, 0.000, 0.000), symbols=['H'])
 ldos_block_content = "\n {e1} {e2} eV".format(e1=-5.0, e2=1.0)
 
 params_dict = {
+    'spin':'polarized',
     'xc-functional': 'LDA',
     'xc-authors': 'CA',
     'mesh-cutoff': '250.000 Ry',

@@ -49,7 +49,7 @@ except IndexError:
 try:
     codename = sys.argv[2]
 except IndexError:
-    codename = 'Siesta4.0.1@kelvin'
+    codename = 'STMsimple4.0.2@kay'
 
 code = load_code(codename)
 #
@@ -71,7 +71,8 @@ except IndexError:
 
 #
 options = {
-    #"queue_name": "debug",
+    #'account': "tcphy113c",
+    #"queue_name": "DevQ",
     "max_wallclock_seconds": 1700,
     "resources": {
         "num_machines": 1,
@@ -88,6 +89,7 @@ settings = Dict(dict=settings_dict)
 #
 inputs = {
     'settings': settings,
+    'spin_option': Str("q"),
     'value': Float(height),
     'mode': Str("constant-height"),
     'code': code,

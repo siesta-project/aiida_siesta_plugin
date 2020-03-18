@@ -43,8 +43,10 @@ class STMCalculation(CalcJob):
                    valid_type=orm.Dict,
                    help='Input settings',
                    required=False)
-        #spec.input('spin', valid_type=orm.Bool, default=orm.Bool(False),
-        #        help='Weather or not to perform spin analysis')
+        spec.input('spin_option', valid_type=orm.Str, default=orm.Str("q"),
+                help='Spin option, follows plstm sintax: '
+                '"q" no spin, "s" total spin, "x","y","z" the three '
+                'spin components (only available in non-collinear case)')
         spec.input('mode', valid_type=orm.Str, 
                 help='Allowed values are "constant-height" or "constant-current"')
         spec.input('value', valid_type=orm.Float, 
@@ -97,13 +99,11 @@ class STMCalculation(CalcJob):
         
         allowedmodes = ["constant-height","constant-current"]
         mode = self.inputs.mode
-        print(mode.value)
         if mode.value not in allowedmodes:
-            print("ss")
             raise ValueError("The allowed options for the port 'mode' are {}".format(allowedmodes))
 
         value=self.inputs.value
-        #spin = self.inputs.spin
+        spin_option = self.inputs.spin_option
         
         if 'settings' in self.inputs:
             settings = self.inputs.settings.get_dict()
@@ -144,7 +144,7 @@ class STMCalculation(CalcJob):
             infile.write("{}\n".format(prefix))
             infile.write("ldos\n")
             infile.write("{}\n".format(mode.value))
-            infile.write("{}\n".format(vvalue))
+            infile.write("{0:.5f}\n".format(vvalue))
             infile.write("unformatted\n")
 
         # ====================== Code and Calc info ========================
@@ -168,10 +168,15 @@ class STMCalculation(CalcJob):
         # Code information object
         #
         codeinfo = CodeInfo()
+        
         if mode.value == "constant-height":
-            codeinfo.cmdline_params = (list(cmdline_params) + ['-z', str(vvalue), ldosfile])
+            cmdline_params = (list(cmdline_params) + ['-z', '{0:.5f}'.format(vvalue)])
         else:
-            codeinfo.cmdline_params = (list(cmdline_params) + ['-i', str(vvalue), ldosfile])
+            cmdline_params = (list(cmdline_params) + ['-i', '{0:.5f}'.format(vvalue)])
+        if spin_option.value != "q":
+            codeinfo.cmdline_params = (list(cmdline_params) +  ['-s', str(spin_option.value), ldosfile])
+        else:
+            codeinfo.cmdline_params = (list(cmdline_params) +  [ldosfile])
         codeinfo.stdin_name = metadataoption.input_filename
         codeinfo.stdout_name = metadataoption.output_filename
         codeinfo.code_uuid = code.uuid
@@ -196,7 +201,6 @@ class STMCalculation(CalcJob):
         # Some logic to understand which is the plot file will be in
         # parser, here we put to retrieve every file ending in *CH.STM
         calcinfo.retrieve_list.append("*.STM")
-        print(calcinfo.retrieve_list)
 
         # Any other files specified in the settings dictionary
         settings_retrieve_list = settings_dict.pop('ADDITIONAL_RETRIEVE_LIST',

@@ -33,7 +33,6 @@ class STMParser(Parser):
         except exceptions.NotExistent:
             return self.exit_codes.ERROR_NO_RETRIEVED_FOLDER
 
-        print(output_folder.list_object_names())
         filename_plot = None
         for element in output_folder.list_object_names():
             if ".STM" in element:
@@ -41,6 +40,14 @@ class STMParser(Parser):
 
         if filename_plot is None:
             return self.exit_codes.ERROR_OUTPUT_PLOT_MISSING
+
+        old_version=True
+        if "LDOS" in filename_plot:
+            old_version=False
+        if old_version and self.node.inputs.spin_option.value != "q":
+            self.node.logger.warning("Spin option different from 'q' was requested in "
+                    "input, but the plstm version used for the calculation do not implement spin support. "
+                    "The parsed STM data refers to the total charge option.")
 
         try:
             plot_contents = output_folder.get_object_content(filename_plot)
