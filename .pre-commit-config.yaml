@@ -1,33 +1,32 @@
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v2.2.3
+  hooks:
+  - id: trailing-whitespace
+    exclude:
+      (?x)(
+        ^aiida_siesta/workflows|
+        ^aiida_siesta/data|
+        ^aiida_siesta/parsers|
+        ^aiida_siesta/examples|
+        ^aiida_siesta/docs/|
+        ^tests/
+      )
+
 - repo: local
   hooks:
-
-  - id: yapf
-    name: yapf
-    entry: yapf
-    language: system
-    types: [python]
-    args: ['-i']
-
   - id: prospector
     language: system
     types: [file, python]
+    exclude:
+     (?x)(
+        ^aiida_siesta/workflows|
+        ^aiida_siesta/data|
+        ^aiida_siesta/parsers|
+        ^aiida_siesta/examples|
+        ^aiida_siesta/docs/|
+        ^tests/
+     )
     name: prospector
     description: 'This hook runs Prospector: https://github.com/landscapeio/prospector'
     entry: prospector
 
-  - id: version-number
-    name: Check consistency in version number
-    entry: python ./.ci/validate_version_number.py
-    args: ['version']
-    language: system
-    files: '^(setup.json)'
-    pass_filenames: false
-
-- repo: https://github.com/python-modernize/python-modernize.git
-  sha: a234ce4e185cf77a55632888f1811d83b4ad9ef2
-  hooks:
-  - id: python-modernize
-    exclude: ^aiida_siesta/docs/
-    args:
-      - --write
-      - --nobackups

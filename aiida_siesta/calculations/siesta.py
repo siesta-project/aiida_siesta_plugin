@@ -1,18 +1,13 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
-
 import os
-
-import six
 from aiida import orm
 from aiida.common import CalcInfo, CodeInfo, InputValidationError
 from aiida.common.constants import elements
 from aiida.engine import CalcJob
 from aiida.orm import Dict, StructureData, BandsData, ArrayData
-
-from .tkdict import FDFDict
+from aiida_siesta.calculations.tkdict import FDFDict
 from aiida_siesta.data.psf import PsfData
 from aiida_siesta.data.psml import PsmlData
+
 # See the LICENSE.txt and AUTHORS.txt files.
 
 ###################################################################
@@ -22,7 +17,6 @@ from aiida_siesta.data.psml import PsmlData
 ## class similar to the WorkChains. Use of class variables &     ##
 ## the input spec is necessary                                   ##
 ###################################################################
-
 
 class SiestaCalculation(CalcJob):
     """
@@ -54,7 +48,6 @@ class SiestaCalculation(CalcJob):
     _OUTPUT_SUBFOLDER = './'
     _JSON_FILE = 'time.json'
     _MESSAGES_FILE = 'MESSAGES'
-
 
     # Default of the input.spec, it's just default, but user
     # could change the name
@@ -109,17 +102,17 @@ class SiestaCalculation(CalcJob):
 
         # Metadada.options host the inputs that are not stored
         # as a separate node, but attached to `CalcJobNode`
-        # as attributes. They are optional, since a default is 
+        # as attributes. They are optional, since a default is
         # specified, but they might be changed by the user.
         # The first one is siesta specific. The other three
         # are defined in the CalcJob, here we need just to change
         # the default.
         spec.input('metadata.options.prefix',
-                   valid_type=six.string_types,
+                   valid_type=str,
                    default=cls._DEFAULT_PREFIX)
-        spec.inputs['metadata']['options']['input_filename'].default=cls._DEFAULT_INPUT_FILE
-        spec.inputs['metadata']['options']['output_filename'].default=cls._DEFAULT_OUTPUT_FILE
-        spec.inputs['metadata']['options']['parser_name'].default='siesta.parser'
+        spec.inputs['metadata']['options']['input_filename'].default = cls._DEFAULT_INPUT_FILE
+        spec.inputs['metadata']['options']['output_filename'].default = cls._DEFAULT_OUTPUT_FILE
+        spec.inputs['metadata']['options']['parser_name'].default = 'siesta.parser'
 
         # Output nodes
         spec.output('output_parameters',
@@ -135,7 +128,7 @@ class SiestaCalculation(CalcJob):
                     valid_type=BandsData,
                     required=False,
                     help='Optional band structure')
-        # I don't know why the bands parameters are parsed as BandsData already 
+        # I don't know why the bands parameters are parsed as BandsData already
         # contains the kpoints (Emanuele)
         # AG: Agreed, this will go soon.
         spec.output('bands_parameters',
@@ -289,7 +282,7 @@ class SiestaCalculation(CalcJob):
         atomic_species_card_list = []
 
         # Dictionary to get the atomic number of a given element
-        datmn = dict([(v['symbol'], k) for k, v in six.iteritems(elements)])
+        datmn = dict([(v['symbol'], k) for k, v in elements.items()])
 
         spind = {}
         spcount = 0
@@ -300,7 +293,7 @@ class SiestaCalculation(CalcJob):
             atomic_species_card_list.append("{0:5} {1:5} {2:5}\n".format(
                 spind[kind.name], datmn[kind.symbol], kind.name.rjust(6)))
 
-            ps = pseudos[kind.name]
+            psp = pseudos[kind.name]
 
             # Add this pseudo file to the list of files to copy, with
             # the appropiate name. In the case of sub-species
@@ -312,15 +305,15 @@ class SiestaCalculation(CalcJob):
             # ... list of tuples with format ('node_uuid', 'filename', relativedestpath')
             # We probably should be pre-pending 'self._PSEUDO_SUBFOLDER' in the
             # last slot, for generality...
-            if isinstance(ps, PsfData):
-                local_copy_list.append((ps.uuid, ps.filename,
+            if isinstance(psp, PsfData):
+                local_copy_list.append((psp.uuid, psp.filename,
                                         kind.name + ".psf"))
-            elif isinstance(ps, PsmlData):
-                local_copy_list.append((ps.uuid, ps.filename,
+            elif isinstance(psp, PsmlData):
+                local_copy_list.append((psp.uuid, psp.filename,
                                         kind.name + ".psml"))
             else:
                 pass
-                
+
         atomic_species_card_list = (["%block chemicalspecieslabel\n"] +
                                     list(atomic_species_card_list))
         atomic_species_card = "".join(atomic_species_card_list)
@@ -354,16 +347,13 @@ class SiestaCalculation(CalcJob):
             #
             try:
                 mesh, offset = kpoints.get_kpoints_mesh()
-                has_mesh = True
             except AttributeError:
                 raise InputValidationError("K-point sampling for scf "
                                            "must be given in mesh form")
 
             kpoints_card_list = ["%block kgrid_monkhorst_pack\n"]
-            #
-            # This will fail if has_mesh is False (for the case of a list),
+            # This would fail if kpoints is not a mash (for the case of a list),
             # since in that case 'offset' is undefined.
-            #
             kpoints_card_list.append("{0:6} {1:6} {2:6} {3:18.10f}\n".format(
                 mesh[0], 0, 0, offset[0]))
             kpoints_card_list.append("{0:6} {1:6} {2:6} {3:18.10f}\n".format(
@@ -386,32 +376,32 @@ class SiestaCalculation(CalcJob):
             bandskpoints_card_list = [
                 "BandLinesScale ReciprocalLatticeVectors\n"
             ]
-            if bandskpoints.labels == None:
+            if bandskpoints.labels is None:
                 bandskpoints_card_list.append("%block BandPoints\n")
-                for s in bandskpoints.get_kpoints():
+                for kpo in bandskpoints.get_kpoints():
                     bandskpoints_card_list.append(
                         "{0:8.3f} {1:8.3f} {2:8.3f} \n".format(
-                            s[0], s[1], s[2]))
+                            kpo[0], kpo[1], kpo[2]))
                 fbkpoints_card = "".join(bandskpoints_card_list)
                 fbkpoints_card += "%endblock BandPoints\n"
             else:
                 bandskpoints_card_list.append("%block BandLines\n")
-                savs = []
+                savindx = []
                 listforbands = bandskpoints.get_kpoints()
-                for s, m in bandskpoints.labels:
-                    savs.append(s)
+                for indx, label in bandskpoints.labels:
+                    savindx.append(indx)
                 rawindex = 0
-                for s, m in bandskpoints.labels:
+                for indx, label in bandskpoints.labels:
                     rawindex = rawindex + 1
-                    x, y, z = listforbands[s]
+                    x, y, z = listforbands[indx]
                     if rawindex == 1:
                         bandskpoints_card_list.append(
                             "{0:3} {1:8.3f} {2:8.3f} {3:8.3f} {4:1} \n".format(
-                                1, x, y, z, m))
+                                1, x, y, z, label))
                     else:
                         bandskpoints_card_list.append(
                             "{0:3} {1:8.3f} {2:8.3f} {3:8.3f} {4:1} \n".format(
-                                s - savs[rawindex - 2], x, y, z, m))
+                                indx - savindx[rawindex - 2], x, y, z, label))
                 fbkpoints_card = "".join(bandskpoints_card_list)
                 fbkpoints_card += "%endblock BandLines\n"
             del bandskpoints_card_list
@@ -447,7 +437,6 @@ class SiestaCalculation(CalcJob):
         with open(input_filename, 'w') as infile:
             # here print keys and values tp file
 
-            # for k, v in sorted(six.iteritems(input_params)):
             for k, v in sorted(input_params.get_filtered_items()):
                 infile.write("%s %s\n" % (k, v))
 
@@ -458,7 +447,7 @@ class SiestaCalculation(CalcJob):
             #
             if basis is not None:
                 infile.write("#\n# -- Basis Set Info follows\n#\n")
-                for k, v in six.iteritems(basis.get_dict()):
+                for k, v in basis.get_dict().items():
                     infile.write("%s %s\n" % (k, v))
 
             # Write previously generated cards now
@@ -484,13 +473,13 @@ class SiestaCalculation(CalcJob):
         # and to set up the list of files to retrieve.
 
         cmdline_params = settings_dict.pop('CMDLINE', [])
-        
+
         codeinfo = CodeInfo()
         codeinfo.cmdline_params = list(cmdline_params)
         codeinfo.stdin_name = metadataoption.input_filename
         codeinfo.stdout_name = metadataoption.output_filename
         codeinfo.code_uuid = code.uuid
-        
+
         calcinfo = CalcInfo()
         calcinfo.uuid = str(self.uuid)
         if cmdline_params:
@@ -504,14 +493,14 @@ class SiestaCalculation(CalcJob):
         # messages file, and the json timing file.
         # If bandskpoints, also the bands file is added to the retrieve list.
         calcinfo.retrieve_list = []
-        _XML_FILE = str(metadataoption.prefix) + ".xml"
-        _BANDS_FILE = str(metadataoption.prefix) + ".bands"
+        xml_file = str(metadataoption.prefix) + ".xml"
+        bands_file = str(metadataoption.prefix) + ".bands"
         calcinfo.retrieve_list.append(metadataoption.output_filename)
-        calcinfo.retrieve_list.append(_XML_FILE) 
-        calcinfo.retrieve_list.append(self._JSON_FILE) 
-        calcinfo.retrieve_list.append(self._MESSAGES_FILE) 
+        calcinfo.retrieve_list.append(xml_file)
+        calcinfo.retrieve_list.append(self._JSON_FILE)
+        calcinfo.retrieve_list.append(self._MESSAGES_FILE)
         if bandskpoints is not None:
-            calcinfo.retrieve_list.append(_BANDS_FILE) 
+            calcinfo.retrieve_list.append(bands_file)
         # Any other files specified in the settings dictionary
         settings_retrieve_list = settings_dict.pop('ADDITIONAL_RETRIEVE_LIST',
                                                    [])
@@ -520,14 +509,14 @@ class SiestaCalculation(CalcJob):
         return calcinfo
 
 
-def _uppercase_dict(d, dict_name):
+def _uppercase_dict(indic, dict_name):
     from collections import Counter
 
-    if isinstance(d, dict):
-        new_dict = dict((str(k).upper(), v) for k, v in six.iteritems(d))
-        if len(new_dict) != len(d):
+    if isinstance(indic, dict):
+        new_dict = dict((str(k).upper(), v) for k, v in indic.items())
+        if len(new_dict) != len(indic):
 
-            num_items = Counter(str(k).upper() for k in d.keys())
+            num_items = Counter(str(k).upper() for k in indic.keys())
             double_keys = ",".join([k for k, v in num_items if v > 1])
             raise InputValidationError(
                 "Inside the dictionary '{}' there are the following keys that "
