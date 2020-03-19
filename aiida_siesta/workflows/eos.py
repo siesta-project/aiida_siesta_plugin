@@ -6,6 +6,7 @@ from aiida.plugins import DataFactory
 from aiida.common import AttributeDict
 from aiida.engine import WorkChain, calcfunction, ToContext
 from aiida.orm import Float
+from aiida_siesta.calculations.tkdict import FDFDict
 
 @calcfunction
 def scale_to_vol(stru, vol):
@@ -177,15 +178,16 @@ def fit_and_final_dicts(**calcs):
         E0, volume0, bulk_modulus0, bulk_deriv0 = delta_project_BM_fit(volumes,energies)
         #E0, volume0, bulk_modulus0, bulk_deriv0 = standard_BM_fit(volumes,energies)
         fit_res = {}
-        fit_res["Eo"] = E0
-        fit_res["Vo"] = volume0
-        fit_res["Bo"] = bulk_modulus0
+        fit_res["Eo(eV/atom)"] = E0
+        fit_res["Vo(ang^3/atom)"] = volume0
+        fit_res["Bo(eV/ang^3)"] = bulk_modulus0
+        fit_res["Bo(GPa)"] = bulk_modulus0 * 160.21766208
         fit_res["B1"] = bulk_deriv0
     except:
         fit_res = {}
         residuals0, volume0 = delta_project_BM_fit(volumes,energies)
         #In the future we could use these info to improve help, 
-        #residuals0 ia np array
+        #residuals0 is a np array
 
     Dict = DataFactory("dict")
     if fit_res is None:
@@ -247,6 +249,13 @@ class EqOfStateFixedCellShape(WorkChain):
         else:
             self.ctx.s0 = self.inputs.structure
 
+        test_input_params = FDFDict(self.inputs.parameters.get_dict())
+        for k, v in sorted(test_input_params.get_filtered_items()):
+            if k == "mdvariablecell" or k == "mdrelaxcellonly":
+                if v is True or v == "T" or v == "true" or v == ".true.":
+                    self.report('WARNING: Relaxation with variable cell detected! '
+                            'No action taken, but are you sure this is what you want?' )
+
     def run_base_wcs(self):
         calcs = {}
         for scale in self.ctx.scales:
@@ -281,7 +290,7 @@ class EqOfStateFixedCellShape(WorkChain):
 
         if "fit_res" in res_dict.attributes:
             self.report('Birch-Murnaghan fit was succesfull, creating the equilibrium structure output node')
-            eq_structure = scale_to_vol(self.ctx.s0, Float(res_dict["fit_res"]["Vo"]))
+            eq_structure = scale_to_vol(self.ctx.s0, Float(res_dict["fit_res"]["Vo(ang^3/atom)"]))
             self.out('equilibrium_structure', eq_structure)
         else:
             self.report("WARNING: Birch-Murnaghan fit failed, check your results_dict['eos_data']")
