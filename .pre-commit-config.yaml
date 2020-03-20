@@ -5,7 +5,6 @@
     exclude:
       (?x)(
         ^aiida_siesta/workflows|
-        ^aiida_siesta/data|
         ^aiida_siesta/parsers|
         ^aiida_siesta/examples|
         ^aiida_siesta/docs/|
@@ -22,10 +21,8 @@
     args: ['-d']
     exclude:
      (?x)(
-        ^aiida_siesta/commands|
         ^aiida_siesta/calculations/stm.py|
         ^aiida_siesta/workflows|
-        ^aiida_siesta/data|
         ^aiida_siesta/parsers|
         ^aiida_siesta/examples|
         ^aiida_siesta/docs/|
@@ -38,7 +35,6 @@
      (?x)(
         ^aiida_siesta/calculations/stm.py|
         ^aiida_siesta/workflows|
-        ^aiida_siesta/data|
         ^aiida_siesta/parsers|
         ^aiida_siesta/examples|
         ^aiida_siesta/docs/|
