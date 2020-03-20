@@ -8,6 +8,7 @@ https://packaging.python.org/en/latest/distributing.html
 https://github.com/pypa/sampleproject
 """
 
+import codecs
 import json
 import os
 
@@ -21,7 +22,7 @@ def read(*parts):
     Build an absolute path from *parts* and and return the contents of the
     resulting file.  Assume UTF-8 encoding.
     """
-    with open(os.path.join(THIS_LOC, *parts), "rb", "utf-8") as filenam:
+    with codecs.open(os.path.join(THIS_LOC, *parts), "rb", "utf-8") as filenam:
         return filenam.read()
 
 
