@@ -18,6 +18,7 @@ from aiida_siesta.data.psml import PsmlData
 ## the input spec is necessary                                   ##
 ###################################################################
 
+
 class SiestaCalculation(CalcJob):
     """
     Siesta calculator class for AiiDA.
@@ -68,37 +69,14 @@ class SiestaCalculation(CalcJob):
 
         # Input nodes
         spec.input('code', valid_type=orm.Code, help='Input code')
-        spec.input('structure',
-                   valid_type=orm.StructureData,
-                   help='Input structure')
-        spec.input('kpoints',
-                   valid_type=orm.KpointsData,
-                   help='Input kpoints',
-                   required=False)
-        spec.input('bandskpoints',
-                   valid_type=orm.KpointsData,
-                   help='Input kpoints for bands',
-                   required=False)
-        spec.input('basis',
-                   valid_type=orm.Dict,
-                   help='Input basis',
-                   required=False)
-        spec.input('settings',
-                   valid_type=orm.Dict,
-                   help='Input settings',
-                   required=False)
-        spec.input('parameters',
-                   valid_type=orm.Dict,
-                   help='Input parameters')
-        spec.input('parent_calc_folder',
-                   valid_type=orm.RemoteData,
-                   required=False,
-                   help='Parent folder')
-        spec.input_namespace(
-                  'pseudos',
-                  valid_type=(PsfData, PsmlData),
-                  help='Input pseudo potentials',
-                  dynamic=True)
+        spec.input('structure', valid_type=orm.StructureData, help='Input structure')
+        spec.input('kpoints', valid_type=orm.KpointsData, help='Input kpoints', required=False)
+        spec.input('bandskpoints', valid_type=orm.KpointsData, help='Input kpoints for bands', required=False)
+        spec.input('basis', valid_type=orm.Dict, help='Input basis', required=False)
+        spec.input('settings', valid_type=orm.Dict, help='Input settings', required=False)
+        spec.input('parameters', valid_type=orm.Dict, help='Input parameters')
+        spec.input('parent_calc_folder', valid_type=orm.RemoteData, required=False, help='Parent folder')
+        spec.input_namespace('pseudos', valid_type=(PsfData, PsmlData), help='Input pseudo potentials', dynamic=True)
 
         # Metadada.options host the inputs that are not stored
         # as a separate node, but attached to `CalcJobNode`
@@ -107,65 +85,39 @@ class SiestaCalculation(CalcJob):
         # The first one is siesta specific. The other three
         # are defined in the CalcJob, here we need just to change
         # the default.
-        spec.input('metadata.options.prefix',
-                   valid_type=str,
-                   default=cls._DEFAULT_PREFIX)
+        spec.input('metadata.options.prefix', valid_type=str, default=cls._DEFAULT_PREFIX)
         spec.inputs['metadata']['options']['input_filename'].default = cls._DEFAULT_INPUT_FILE
         spec.inputs['metadata']['options']['output_filename'].default = cls._DEFAULT_OUTPUT_FILE
         spec.inputs['metadata']['options']['parser_name'].default = 'siesta.parser'
 
         # Output nodes
-        spec.output('output_parameters',
-                    valid_type=Dict,
-                    required=True,
-                    help='The calculation results')
-        spec.output('output_structure',
-                    valid_type=StructureData,
-                    required=False,
-                    help='Optional relaxed structure')
+        spec.output('output_parameters', valid_type=Dict, required=True, help='The calculation results')
+        spec.output('output_structure', valid_type=StructureData, required=False, help='Optional relaxed structure')
         # Note name change: bands_array --> bands
-        spec.output('bands',
-                    valid_type=BandsData,
-                    required=False,
-                    help='Optional band structure')
+        spec.output('bands', valid_type=BandsData, required=False, help='Optional band structure')
         # I don't know why the bands parameters are parsed as BandsData already
         # contains the kpoints (Emanuele)
         # AG: Agreed, this will go soon.
-        spec.output('bands_parameters',
-                    valid_type=Dict,
-                    required=False,
-                    help='Optional parameters of bands')
-        spec.output('forces_and_stress',
-                    valid_type=ArrayData,
-                    required=False,
-                    help='Optional forces and stress')
+        spec.output('bands_parameters', valid_type=Dict, required=False, help='Optional parameters of bands')
+        spec.output('forces_and_stress', valid_type=ArrayData, required=False, help='Optional forces and stress')
 
         # Option that allows acces through node.res
         # should be existing output node and a Dict
         spec.default_output_node = 'output_parameters'
 
         # Error handeling
-        spec.exit_code(
-            100,
-            'ERROR_NO_RETRIEVED_FOLDER',
-            message='The retrieved folder data node could not be accessed.')
-        spec.exit_code(
-            120,
-            'SCF_NOT_CONV',
-            message='Calculation did not reach scf convergence!')
-        spec.exit_code(
-            130,
-            'GEOM_NOT_CONV',
-            message='Calculation did not reach geometry convergence!')
+        spec.exit_code(100, 'ERROR_NO_RETRIEVED_FOLDER', message='Retrieved-folder data node could not be accessed.')
+        spec.exit_code(120, 'SCF_NOT_CONV', message='Calculation did not reach scf convergence!')
+        spec.exit_code(130, 'GEOM_NOT_CONV', message='Calculation did not reach geometry convergence!')
 
 
 #to DO SOON: improve help for pseudo.
 
-    def prepare_for_submission(self, tempfolder):
+    def prepare_for_submission(self, folder):  # noqa: MC0001  - is mccabe too complex funct -
         """
         Create the input files from the input nodes passed to this instance of the `CalcJob`.
 
-        :param tempfolder: an `aiida.common.folders.Folder` to temporarily write files on disk
+        :param folder: an `aiida.common.folders.Folder` to temporarily write files on disk
         :return: `aiida.common.datastructures.CalcInfo` instance
         """
 
@@ -240,8 +192,8 @@ class SiestaCalculation(CalcJob):
                 if key == canonical_blocked:
                     raise InputValidationError(
                         "You cannot specify explicitly the '{}' flag in the "
-                        "input parameters".format(
-                            input_params.get_last_key(key)))
+                        "input parameters".format(input_params.get_last_key(key))
+                    )
 
         input_params.update({'system-name': self.inputs.metadata.options.prefix})
         input_params.update({'system-label': self.inputs.metadata.options.prefix})
@@ -269,19 +221,19 @@ class SiestaCalculation(CalcJob):
         # ---------------- CELL_PARAMETERS ------------------------
         cell_parameters_card = "%block lattice-vectors\n"
         for vector in structure.cell:
-            cell_parameters_card += ("{0:18.10f} {1:18.10f} {2:18.10f}"
-                                     "\n".format(*vector))
+            cell_parameters_card += ("{0:18.10f} {1:18.10f} {2:18.10f}" "\n".format(*vector))
         cell_parameters_card += "%endblock lattice-vectors\n"
 
         # --------------ATOMIC_SPECIES & PSEUDOS-------------------
         # I create the subfolder that will contain the pseudopotentials
-        tempfolder.get_subfolder(self._PSEUDO_SUBFOLDER, create=True)
+        folder.get_subfolder(self._PSEUDO_SUBFOLDER, create=True)
         # I create the subfolder with the output data
-        tempfolder.get_subfolder(self._OUTPUT_SUBFOLDER, create=True)
+        folder.get_subfolder(self._OUTPUT_SUBFOLDER, create=True)
 
         atomic_species_card_list = []
 
         # Dictionary to get the atomic number of a given element
+        #pylint: disable=consider-using-dict-comprehension
         datmn = dict([(v['symbol'], k) for k, v in elements.items()])
 
         spind = {}
@@ -290,8 +242,9 @@ class SiestaCalculation(CalcJob):
 
             spcount += 1  # species count
             spind[kind.name] = spcount
-            atomic_species_card_list.append("{0:5} {1:5} {2:5}\n".format(
-                spind[kind.name], datmn[kind.symbol], kind.name.rjust(6)))
+            atomic_species_card_list.append(
+                "{0:5} {1:5} {2:5}\n".format(spind[kind.name], datmn[kind.symbol], kind.name.rjust(6))
+            )
 
             psp = pseudos[kind.name]
 
@@ -306,32 +259,29 @@ class SiestaCalculation(CalcJob):
             # We probably should be pre-pending 'self._PSEUDO_SUBFOLDER' in the
             # last slot, for generality...
             if isinstance(psp, PsfData):
-                local_copy_list.append((psp.uuid, psp.filename,
-                                        kind.name + ".psf"))
+                local_copy_list.append((psp.uuid, psp.filename, kind.name + ".psf"))
             elif isinstance(psp, PsmlData):
-                local_copy_list.append((psp.uuid, psp.filename,
-                                        kind.name + ".psml"))
+                local_copy_list.append((psp.uuid, psp.filename, kind.name + ".psml"))
             else:
                 pass
 
-        atomic_species_card_list = (["%block chemicalspecieslabel\n"] +
-                                    list(atomic_species_card_list))
+        atomic_species_card_list = (["%block chemicalspecieslabel\n"] + list(atomic_species_card_list))
         atomic_species_card = "".join(atomic_species_card_list)
         atomic_species_card += "%endblock chemicalspecieslabel\n"
         # Free memory
         del atomic_species_card_list
 
         # --------------------- ATOMIC_POSITIONS -----------------------
-        atomic_positions_card_list = [
-            "%block atomiccoordinatesandatomicspecies\n"
-        ]
+        atomic_positions_card_list = ["%block atomiccoordinatesandatomicspecies\n"]
         countatm = 0
         for site in structure.sites:
             countatm += 1
             atomic_positions_card_list.append(
                 "{0:18.10f} {1:18.10f} {2:18.10f} {3:4} {4:6} {5:6}\n".format(
-                    site.position[0], site.position[1], site.position[2],
-                    spind[site.kind_name], site.kind_name.rjust(6), countatm))
+                    site.position[0], site.position[1], site.position[2], spind[site.kind_name],
+                    site.kind_name.rjust(6), countatm
+                )
+            )
         atomic_positions_card = "".join(atomic_positions_card_list)
         del atomic_positions_card_list  # Free memory
         atomic_positions_card += "%endblock atomiccoordinatesandatomicspecies\n"
@@ -348,18 +298,14 @@ class SiestaCalculation(CalcJob):
             try:
                 mesh, offset = kpoints.get_kpoints_mesh()
             except AttributeError:
-                raise InputValidationError("K-point sampling for scf "
-                                           "must be given in mesh form")
+                raise InputValidationError("K-point sampling for scf " "must be given in mesh form")
 
             kpoints_card_list = ["%block kgrid_monkhorst_pack\n"]
             # This would fail if kpoints is not a mash (for the case of a list),
             # since in that case 'offset' is undefined.
-            kpoints_card_list.append("{0:6} {1:6} {2:6} {3:18.10f}\n".format(
-                mesh[0], 0, 0, offset[0]))
-            kpoints_card_list.append("{0:6} {1:6} {2:6} {3:18.10f}\n".format(
-                0, mesh[1], 0, offset[1]))
-            kpoints_card_list.append("{0:6} {1:6} {2:6} {3:18.10f}\n".format(
-                0, 0, mesh[2], offset[2]))
+            kpoints_card_list.append("{0:6} {1:6} {2:6} {3:18.10f}\n".format(mesh[0], 0, 0, offset[0]))
+            kpoints_card_list.append("{0:6} {1:6} {2:6} {3:18.10f}\n".format(0, mesh[1], 0, offset[1]))
+            kpoints_card_list.append("{0:6} {1:6} {2:6} {3:18.10f}\n".format(0, 0, mesh[2], offset[2]))
 
             kpoints_card = "".join(kpoints_card_list)
             kpoints_card += "%endblock kgrid_monkhorst_pack\n"
@@ -373,15 +319,11 @@ class SiestaCalculation(CalcJob):
         #BandLinesScale =pi/a is not supported at the moment because currently
         #a=1 always. BandLinesScale ReciprocalLatticeVectors is always set
         if bandskpoints is not None:
-            bandskpoints_card_list = [
-                "BandLinesScale ReciprocalLatticeVectors\n"
-            ]
+            bandskpoints_card_list = ["BandLinesScale ReciprocalLatticeVectors\n"]
             if bandskpoints.labels is None:
                 bandskpoints_card_list.append("%block BandPoints\n")
                 for kpo in bandskpoints.get_kpoints():
-                    bandskpoints_card_list.append(
-                        "{0:8.3f} {1:8.3f} {2:8.3f} \n".format(
-                            kpo[0], kpo[1], kpo[2]))
+                    bandskpoints_card_list.append("{0:8.3f} {1:8.3f} {2:8.3f} \n".format(kpo[0], kpo[1], kpo[2]))
                 fbkpoints_card = "".join(bandskpoints_card_list)
                 fbkpoints_card += "%endblock BandPoints\n"
             else:
@@ -396,12 +338,14 @@ class SiestaCalculation(CalcJob):
                     x, y, z = listforbands[indx]
                     if rawindex == 1:
                         bandskpoints_card_list.append(
-                            "{0:3} {1:8.3f} {2:8.3f} {3:8.3f} {4:1} \n".format(
-                                1, x, y, z, label))
+                            "{0:3} {1:8.3f} {2:8.3f} {3:8.3f} {4:1} \n".format(1, x, y, z, label)
+                        )
                     else:
                         bandskpoints_card_list.append(
                             "{0:3} {1:8.3f} {2:8.3f} {3:8.3f} {4:1} \n".format(
-                                indx - savindx[rawindex - 2], x, y, z, label))
+                                indx - savindx[rawindex - 2], x, y, z, label
+                            )
+                        )
                 fbkpoints_card = "".join(bandskpoints_card_list)
                 fbkpoints_card += "%endblock BandLines\n"
             del bandskpoints_card_list
@@ -419,10 +363,10 @@ class SiestaCalculation(CalcJob):
         # Maybe we should pass the information about which file(s) to
         # copy in the metadata 'options' dictionary
         if parent_calc_folder is not None:
-            remote_copy_list.append(
-                (parent_calc_folder.computer.uuid,
-                 os.path.join(parent_calc_folder.get_remote_path(),
-                              self._restart_copy_from), self._restart_copy_to))
+            remote_copy_list.append((
+                parent_calc_folder.computer.uuid,
+                os.path.join(parent_calc_folder.get_remote_path(), self._restart_copy_from), self._restart_copy_to
+            ))
 
             input_params.update({'dm-use-save-dm': "T"})
 
@@ -432,7 +376,7 @@ class SiestaCalculation(CalcJob):
         metadataoption = self.inputs.metadata.options
 
         # input_filename = self.inputs.metadata.options.input_filename
-        input_filename = tempfolder.get_abs_path(metadataoption.input_filename)
+        input_filename = folder.get_abs_path(metadataoption.input_filename)
 
         with open(input_filename, 'w') as infile:
             # here print keys and values tp file
@@ -464,8 +408,7 @@ class SiestaCalculation(CalcJob):
 
             # Write max wall-clock time
             infile.write("#\n# -- Max wall-clock time block\n#\n")
-            infile.write("max.walltime {}".format(
-                metadataoption.max_wallclock_seconds))
+            infile.write("max.walltime {}".format(metadataoption.max_wallclock_seconds))
 
         # ====================== Code and Calc info ========================
         # Code information object and Calc information object are now
@@ -502,8 +445,7 @@ class SiestaCalculation(CalcJob):
         if bandskpoints is not None:
             calcinfo.retrieve_list.append(bands_file)
         # Any other files specified in the settings dictionary
-        settings_retrieve_list = settings_dict.pop('ADDITIONAL_RETRIEVE_LIST',
-                                                   [])
+        settings_retrieve_list = settings_dict.pop('ADDITIONAL_RETRIEVE_LIST', [])
         calcinfo.retrieve_list += settings_retrieve_list
 
         return calcinfo
@@ -512,18 +454,19 @@ class SiestaCalculation(CalcJob):
 def _uppercase_dict(indic, dict_name):
     from collections import Counter
 
-    if isinstance(indic, dict):
-        new_dict = dict((str(k).upper(), v) for k, v in indic.items())
-        if len(new_dict) != len(indic):
+    if not isinstance(indic, dict):
+        raise TypeError("_uppercase_dict accepts only dictionaries as argument")
 
-            num_items = Counter(str(k).upper() for k in indic.keys())
-            double_keys = ",".join([k for k, v in num_items if v > 1])
-            raise InputValidationError(
-                "Inside the dictionary '{}' there are the following keys that "
-                "are repeated more than once when compared case-insensitively: "
-                "{}."
-                "This is not allowed.".format(dict_name, double_keys))
-        return new_dict
-    else:
-        raise TypeError(
-            "_lowercase_dict accepts only dictionaries as argument")
+    new_dict = dict((str(k).upper(), v) for k, v in indic.items())
+
+    if len(new_dict) != len(indic):
+        num_items = Counter(str(k).upper() for k in indic.keys())
+        double_keys = ",".join([k for k, v in num_items if v > 1])
+        raise InputValidationError(
+            "Inside the dictionary '{}' there are the following keys that "
+            "are repeated more than once when compared case-insensitively: "
+            "{}."
+            "This is not allowed.".format(dict_name, double_keys)
+        )
+
+    return new_dict

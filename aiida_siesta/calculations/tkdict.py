@@ -36,19 +36,19 @@ class TKDict(MutableMapping):
         self._storage = {}
         inp_dict = dict(*args, **kw)
 
-        for inp_key in inp_dict.keys():
+        for inp_key in inp_dict:
             self[inp_key] = inp_dict[inp_key]
 
     def keys(self):
         """ Return list of last key occurences. """
         # _storage keys are translated
-        return [self.get_last_key(k) for k in self._storage.keys()]
+        return [self.get_last_key(k) for k in self._storage]
         # return(self._storage.keys())
 
     def iterkeys(self):
         """D.iterkeys() -> an iterator over the keys of D *** UPDATE """
         for key in self:
-            value, last_key = self._storage[key]
+            value, last_key = self._storage[key]  # pylint: disable=unused-variable
             yield last_key
 
     def __setitem__(self, key, value):
@@ -62,7 +62,7 @@ class TKDict(MutableMapping):
         """ Translate the key, unpack value-tuple and return the value if exists or None. """
         trans_key = self.translate_key(key)
         try:
-            value, last_key = self._storage[trans_key]
+            value, last_key = self._storage[trans_key]  # pylint: disable=unused-variable
             #self._storage.__setitem__(trans_key, (value, key))
             return value
         except KeyError:
@@ -85,7 +85,7 @@ class TKDict(MutableMapping):
         """
         trans_key = self.translate_key(key)
         try:
-            value, last_key = self._storage[trans_key]
+            value, last_key = self._storage[trans_key]  # pylint: disable=unused-variable
             return last_key
         except KeyError:
             return None
@@ -111,7 +111,7 @@ class TKDict(MutableMapping):
         return self._storage.__str__()
 
 
-class FDFDict(TKDict):
+class FDFDict(TKDict):  # pylint: disable=too-many-ancestors
     """
     FDFDict class represents data from .fdf-file.
 
@@ -125,10 +125,9 @@ class FDFDict(TKDict):
     def translate_key(cls, key):
         to_remove = "-.:"
 
-        if isinstance(key, str):
-            # Unicode uses a single dictionary for translation
-            table = {ord(char): None for char in to_remove}
-            return key.translate(table).lower()
-        else:
-            # and that should cover it all. Argue if not:
+        if not isinstance(key, str):
             raise Exception("Key name error in FDFDict")
+
+        # Unicode uses a single dictionary for translation
+        table = {ord(char): None for char in to_remove}
+        return key.translate(table).lower()

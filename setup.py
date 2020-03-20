@@ -21,16 +21,17 @@ def read(*parts):
     Build an absolute path from *parts* and and return the contents of the
     resulting file.  Assume UTF-8 encoding.
     """
-    with codecs.open(os.path.join(THIS_LOC, *parts), "rb", "utf-8") as f:
-        return f.read()
+    with codecs.open(os.path.join(THIS_LOC, *parts), "rb", "utf-8") as filenam:
+        return filenam.read()
 
 
 if __name__ == '__main__':
     with open('setup.json', 'r') as info:
-        kwargs = json.load(info)
+        kwargs = json.load(info)  # pylint: disable=invalid-name
     setup(
         include_package_data=True,
         packages=find_packages(),
         long_description=read('PyPI-README.rst'),
         reentry_register=True,
-        **kwargs)
+        **kwargs
+    )
