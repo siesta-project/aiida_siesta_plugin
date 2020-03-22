@@ -5,7 +5,7 @@
     exclude:
       (?x)(
         ^aiida_siesta/workflows|
-        ^aiida_siesta/parsers|
+        ^aiida_siesta/parsers/stm.py|
         ^aiida_siesta/examples|
         ^aiida_siesta/docs/|
         ^tests/
@@ -23,7 +23,7 @@
      (?x)(
         ^aiida_siesta/calculations/stm.py|
         ^aiida_siesta/workflows|
-        ^aiida_siesta/parsers|
+        ^aiida_siesta/parsers/stm.py|
         ^aiida_siesta/examples|
         ^aiida_siesta/docs/|
         ^tests/
@@ -35,7 +35,8 @@
      (?x)(
         ^aiida_siesta/calculations/stm.py|
         ^aiida_siesta/workflows|
-        ^aiida_siesta/parsers|
+        ^aiida_siesta/parsers/stm.py|
+        ^aiida_siesta/parsers/json_time.py|
         ^aiida_siesta/examples|
         ^aiida_siesta/docs/|
         ^tests/
