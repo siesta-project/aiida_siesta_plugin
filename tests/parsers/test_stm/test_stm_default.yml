@@ -1,0 +1,14 @@
+output_parameters:
+  output_data_filename: aiida.LDOS.q.CH.STM
+  parser_info: AiiDA STM(Siesta) Parser V. 1.0.1
+  parser_warnings: []
+stm_array:
+  array|X:
+  - 144
+  - 144
+  array|Y:
+  - 144
+  - 144
+  array|Z:
+  - 144
+  - 144

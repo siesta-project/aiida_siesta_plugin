@@ -24,7 +24,9 @@ def test_siesta_default(aiida_profile, fixture_localhost, generate_calc_job_node
         'structure': structure
     })
 
-    node = generate_calc_job_node(entry_point_calc_job, fixture_localhost, name, inputs)
+    attributes=AttributeDict({'input_filename':'aiida.fdf', 'output_filename':'aiida.out', 'prefix':'aiida'})
+
+    node = generate_calc_job_node(entry_point_calc_job, fixture_localhost, name, inputs, attributes)
     parser = generate_parser(entry_point_parser)
     results, calcfunction = parser.parse_from_node(node, store_provenance=False)
 
@@ -60,12 +62,9 @@ def test_siesta_bandspoints(aiida_profile, fixture_localhost, generate_calc_job_
         'bandskpoints': bandskpoints
     })
 
-    #attributes=AttributeDict({'bands_file': 'aiida.bands'})
-    #This is not necessary anymore, in previous commit
-    #I modified the parser to read name of bands file directly
-    #from process_class variable
+    attributes=AttributeDict({'input_filename':'aiida.fdf', 'output_filename':'aiida.out', 'prefix':'aiida'})
 
-    node = generate_calc_job_node(entry_point_calc_job, fixture_localhost, name, inputs) #, attributes)
+    node = generate_calc_job_node(entry_point_calc_job, fixture_localhost, name, inputs, attributes)
     parser = generate_parser(entry_point_parser)
     results, calcfunction = parser.parse_from_node(node, store_provenance=False)
 

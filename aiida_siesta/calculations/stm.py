@@ -119,7 +119,9 @@ class STMCalculation(CalcJob):
         remote_copy_list = []
 
 
-        # ============== Creation of input file ===============
+        # ============== Creation of input file =========================
+        #Input file is only necessary for the old versions of plstm
+        #For the new versions, all is done through command line (next section)
 
         # To have easy access to inputs metadata options
         metadataoption = self.inputs.metadata.options
@@ -147,11 +149,11 @@ class STMCalculation(CalcJob):
             infile.write("{0:.5f}\n".format(vvalue))
             infile.write("unformatted\n")
 
+
         # ====================== Code and Calc info ========================
         # Code information object and Calc information object are now
         # only used to set up the CMDLINE (the bash line that launches siesta)
         # and to set up the list of files to retrieve.
-
         # The presence of a 'ldos_folder' is mandatory, to get the LDOS file
         # as indicated in the self._restart_copy_from attribute.
         # (this is not technically a restart, though)
@@ -161,50 +163,44 @@ class STMCalculation(CalcJob):
             os.path.join(ldos_folder.get_remote_path(), self._restart_copy_from), 
             self._restart_copy_to))
 
-        # Empty command line by default
-        # Why use 'pop' ?
+        # Empty command line by default. Why use 'pop' ?
         cmdline_params = settings_dict.pop('CMDLINE', [])
-        #
-        # Code information object
-        #
-        codeinfo = CodeInfo()
         
+        # Code information object. Sets the command line
+        codeinfo = CodeInfo()
         if mode.value == "constant-height":
             cmdline_params = (list(cmdline_params) + ['-z', '{0:.5f}'.format(vvalue)])
         else:
             cmdline_params = (list(cmdline_params) + ['-i', '{0:.5f}'.format(vvalue)])
         if spin_option.value != "q":
-            codeinfo.cmdline_params = (list(cmdline_params) +  ['-s', str(spin_option.value), ldosfile])
+            cmdline_params = (list(cmdline_params) +  ['-s', str(spin_option.value), ldosfile])
         else:
-            codeinfo.cmdline_params = (list(cmdline_params) +  [ldosfile])
+            cmdline_params = (list(cmdline_params) +  [ldosfile])
+        codeinfo.cmdline_params = list(cmdline_params)
         codeinfo.stdin_name = metadataoption.input_filename
         codeinfo.stdout_name = metadataoption.output_filename
         codeinfo.code_uuid = code.uuid
 
-        #
-        # Calc information object
-        #
+        # Calc information object. Important for files to copy, retrieve, etc
         calcinfo = CalcInfo()
         calcinfo.uuid = str(self.uuid)
-        if cmdline_params:
-            calcinfo.cmdline_params = list(cmdline_params)
         calcinfo.local_copy_list = local_copy_list
         calcinfo.remote_copy_list = remote_copy_list
+        calcinfo.codes_info = [codeinfo]
+        #Next three are useless in my opinion, as they can be access
+        #through calcinfo.codes_info and not used interally by AiiDA
+        if cmdline_params:
+            calcinfo.cmdline_params = list(cmdline_params)
         calcinfo.stdin_name = metadataoption.input_filename
         calcinfo.stdout_name = metadataoption.output_filename
-        calcinfo.codes_info = [codeinfo]
-        #
-
-        # Retrieve by default: the output file and the plot file
-        calcinfo.retrieve_list = []
-        calcinfo.retrieve_list.append(metadataoption.output_filename)
+        # Retrieve by default: the output file and the plot file,
         # Some logic to understand which is the plot file will be in
         # parser, here we put to retrieve every file ending in *CH.STM
+        calcinfo.retrieve_list = []
+        calcinfo.retrieve_list.append(metadataoption.output_filename)
         calcinfo.retrieve_list.append("*.STM")
-
         # Any other files specified in the settings dictionary
-        settings_retrieve_list = settings_dict.pop('ADDITIONAL_RETRIEVE_LIST',
-                                                   [])
+        settings_retrieve_list = settings_dict.pop('ADDITIONAL_RETRIEVE_LIST',[])
         calcinfo.retrieve_list += settings_retrieve_list
 
         return calcinfo
