@@ -65,11 +65,11 @@ class STMCalculation(CalcJob):
         spec.output('stm_array',
                     valid_type=ArrayData,
                     required=True,
-                    help='The contour data for the image')
+                    help='The contour data for the STM image')
         spec.output('output_parameters',
                     valid_type=Dict,
                     required=True,
-                    help='Other output')
+                    help='Other outputs, for the moment only parser version and name of .STM file')
 
         # exit codes
         spec.exit_code(
@@ -83,7 +83,11 @@ class STMCalculation(CalcJob):
         spec.exit_code(
             102,
             'ERROR_OUTPUT_PLOT_READ',
-            message='The CH.STM file can not be read')
+            message='The .STM file can not be read')
+        spec.exit_code(
+            102,
+            'ERROR_CREATION_STM_ARRAY',
+            message='The array containing the STM data can not be produced')
 
 
     def prepare_for_submission(self, tempfolder):

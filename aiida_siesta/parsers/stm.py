@@ -54,11 +54,13 @@ class STMParser(Parser):
         except (IOError, OSError):
             return self.exit_codes.ERROR_OUTPUT_PLOT_READ
 
-        # Save X, Y, and Z arrays in an ArrayData object
-        stm_data = self.get_stm_data(plot_contents)
+        # Save grid_X, grid_Y, and STM arrays in an ArrayData object
+        try:
+            stm_data = self.get_stm_data(plot_contents)
+        except (IOError, OSError):
+            return self.exit_codes.ERROR_CREATION_STM_ARRAY
 
-        if stm_data is not None:
-            self.out('stm_array', stm_data)
+        self.out('stm_array', stm_data)
 
         parser_version = '1.0.1'
         parser_info = {}
@@ -112,7 +114,7 @@ class STMParser(Parser):
 
         These can then be used in matplotlib to get a contour plot.
 
-        :param plot_contents: the contents of the aiida.CH.STM file as a string
+        :param plot_contents: the contents of the *.STM file as a string
         :return: `aiida.orm.ArrayData` instance representing the STM contour.
         """
 
@@ -156,8 +158,8 @@ class STMParser(Parser):
         Z = np.array(zz, dtype=float).transpose()
 
         arraydata = ArrayData()
-        arraydata.set_array('X', np.array(X))
-        arraydata.set_array('Y', np.array(Y))
-        arraydata.set_array('Z', np.array(Z))
+        arraydata.set_array('grid_X', np.array(X))
+        arraydata.set_array('grid_Y', np.array(Y))
+        arraydata.set_array('STM', np.array(Z))
 
         return arraydata

@@ -3,12 +3,12 @@ output_parameters:
   parser_info: AiiDA STM(Siesta) Parser V. 1.0.1
   parser_warnings: []
 stm_array:
-  array|X:
+  array|STM:
   - 144
   - 144
-  array|Y:
+  array|grid_X:
   - 144
   - 144
-  array|Z:
+  array|grid_Y:
   - 144
   - 144
