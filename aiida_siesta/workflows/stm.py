@@ -220,7 +220,10 @@ class SiestaSTMWorkChain(WorkChain):
             optio = self.inputs.stm_options.get_dict()
         else:
             optio = self.inputs.options.get_dict()
-            #other
+            optio["resources"]["num_machines"] = 1
+            optio["resources"]["num_mpiprocs_per_machine"] = 1
+            optio['withmpi'] = False
+
 
         stm_inputs = {
             'value': self.inputs.stm_value,
