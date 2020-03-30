@@ -29,32 +29,45 @@ class STMParser(Parser):
         from aiida.engine import ExitCode
 
         try:
-            self.retrieved
+            output_folder = self.retrieved
         except exceptions.NotExistent:
             return self.exit_codes.ERROR_NO_RETRIEVED_FOLDER
 
-        # The plot file is required for parsing
-        filename_plot = self.node.get_attribute('plot_filename')
+        filename_plot = None
+        for element in output_folder.list_object_names():
+            if ".STM" in element:
+                filename_plot = element
 
-        if filename_plot not in self.retrieved.list_object_names():
+        if filename_plot is None:
             return self.exit_codes.ERROR_OUTPUT_PLOT_MISSING
 
+        old_version=True
+        if "LDOS" in filename_plot:
+            old_version=False
+        if old_version and self.node.inputs.spin_option.value != "q":
+            self.node.logger.warning("Spin option different from 'q' was requested in "
+                    "input, but the plstm version used for the calculation do not implement spin support. "
+                    "The parsed STM data refers to the total charge option.")
+
         try:
-            plot_contents = self.retrieved.get_object_content(filename_plot)
+            plot_contents = output_folder.get_object_content(filename_plot)
         except (IOError, OSError):
             return self.exit_codes.ERROR_OUTPUT_PLOT_READ
 
-        # Save X, Y, and Z arrays in an ArrayData object
-        stm_data = self.get_stm_data(plot_contents)
+        # Save grid_X, grid_Y, and STM arrays in an ArrayData object
+        try:
+            stm_data = self.get_stm_data(plot_contents)
+        except (IOError, OSError):
+            return self.exit_codes.ERROR_CREATION_STM_ARRAY
 
-        if stm_data is not None:
-            self.out('stm_array', stm_data)
+        self.out('stm_array', stm_data)
 
-        parser_version = 'aiida-1.0.0--stm-1.0'
+        parser_version = '1.0.1'
         parser_info = {}
         parser_info['parser_info'] = 'AiiDA STM(Siesta) Parser V. {}'.format(
             parser_version)
         parser_info['parser_warnings'] = []
+        parser_info['output_data_filename'] = filename_plot
 
         # Possibly put here some parsed data from the stm.out file
         # (but it is not very interesting)
@@ -101,7 +114,7 @@ class STMParser(Parser):
 
         These can then be used in matplotlib to get a contour plot.
 
-        :param plot_contents: the contents of the aiida.CH.STM file as a string
+        :param plot_contents: the contents of the *.STM file as a string
         :return: `aiida.orm.ArrayData` instance representing the STM contour.
         """
 
@@ -145,8 +158,8 @@ class STMParser(Parser):
         Z = np.array(zz, dtype=float).transpose()
 
         arraydata = ArrayData()
-        arraydata.set_array('X', np.array(X))
-        arraydata.set_array('Y', np.array(Y))
-        arraydata.set_array('Z', np.array(Z))
+        arraydata.set_array('grid_X', np.array(X))
+        arraydata.set_array('grid_Y', np.array(Y))
+        arraydata.set_array('STM', np.array(Z))
 
         return arraydata
