@@ -1,0 +1,39 @@
+forces_and_stress:
+  array|forces:
+  - 2
+  - 3
+  array|stress:
+  - 3
+  - 3
+output_parameters:
+  E_Fermi: -3.575785
+  E_Fermi_units: eV
+  E_KS: -212.76557
+  E_KS_units: eV
+  Ebs: -69.358139
+  Ebs_units: eV
+  FreeE: -212.765618
+  FreeE_units: eV
+  dc:contributor: Siesta-CML
+  mesh:
+  - 36
+  - 36
+  - 36
+  nnz: 19594
+  no_u: 26
+  parser_info: AiiDA Siesta Parser V. 1.0.1
+  parser_warnings: []
+  siesta:Arch: gfortran-esl-bundle-0.4
+  siesta:EndTime: 2020-01-07T11-59-44
+  siesta:Flags: 'mpif90 -O2 -fbacktrace '
+  siesta:Mode: Serial
+  siesta:NetCDF: 'true'
+  siesta:Nodes: '         1'
+  siesta:PPFlags: -DCDF  -DMPI -DMPI_TIMING  -DF2003  -DSIESTA__DIAG_2STAGE
+  siesta:Program: Siesta
+  siesta:StartTime: 2020-01-07T11-59-41
+  siesta:Version: MaX-1.0-3
+  siesta:run_UUID: 9f80c280-314d-11ea-55fa-c1b1f37f0f6a
+  variable_geometry: true
+  warnings:
+  - 'WARNING: No MESSAGES file...'

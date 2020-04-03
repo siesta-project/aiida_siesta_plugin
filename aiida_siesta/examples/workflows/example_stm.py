@@ -1,16 +1,10 @@
-#!/usr/bin/env runaiida
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-from __future__ import print_function
-
 import sys
 import os
-
 from aiida.engine import submit
 from aiida.orm import load_code
 from aiida_siesta.calculations.siesta import SiestaCalculation
 from aiida.plugins import DataFactory
+from aiida_siesta.workflows.stm import SiestaSTMWorkChain
 
 # There is no parsing for the ldos, but the file .LDOS can be
 # retrieved using the "settings" feature (see below).
@@ -23,29 +17,14 @@ Dict = DataFactory('dict')
 KpointsData = DataFactory('array.kpoints')
 StructureData = DataFactory('structure')
 
-try:
-    dontsend = sys.argv[1]
-    if dontsend == "--dont-send":
-        submit_test = True
-    elif dontsend == "--send":
-        submit_test = False
-    else:
-        raise IndexError
-except IndexError:
-    print(("The first parameter can only be either "
-           "--send or --dont-send"),
-          file=sys.stderr)
-    sys.exit(1)
-
-try:
-    codename = sys.argv[2]
-except IndexError:
-    codename = 'Siesta-4.0.2@kay'
+codename = 'SiestaHere@localhost'
+stm_codename = 'STMhere@localhost'
 
 #
 #------------------Code and computer options ---------------------------
 #
 code = load_code(codename)
+stm_code = load_code(stm_codename)
 
 options = {
     "max_wallclock_seconds": 360,
@@ -57,12 +36,6 @@ options = {
         "num_mpiprocs_per_machine": 1,
     }
 }
-#
-#----Settings first  -----------------------------
-#
-settings_dict = {'additional_retrieve_list': ['aiida.BONDS', 'aiida.LDOS']}
-settings = Dict(dict=settings_dict)
-#---------------------------------------------------
 
 #
 # Structure -----------------------------------------
@@ -107,10 +80,13 @@ s.append_atom(position=(5.604, 0.000, 0.000), symbols=['H'])
 #
 # Parameters ---------------------------------------------------
 #
-ldos_block_content = "\n {e1} {e2} eV".format(e1=-5.0, e2=1.0)
-
 params_dict = {
-    'spin':'polarized',
+    'spin':'spin-orbit',
+    'md-typeofrun': 'cg',
+    'md-numcgsteps': 10,
+    'md-maxcgdispl': '0.1 Ang',
+    'md-maxforcetol': '0.04 eV/Ang',
+    'write-forces': True,
     'xc-functional': 'LDA',
     'xc-authors': 'CA',
     'mesh-cutoff': '250.000 Ry',
@@ -152,7 +128,7 @@ raw_pseudos = [("C.psf", ['C', 'Cred']), ("H.psf", ['H'])]
 
 for fname, kinds, in raw_pseudos:
     absname = os.path.realpath(
-        os.path.join(os.path.dirname(__file__), "data/sample-psf-family",
+        os.path.join(os.path.dirname(__file__), "../plugins/siesta/data/sample-psf-family",
                      fname))
     pseudo, created = PsfData.get_or_create(absname, use_first=True)
     if created:
@@ -167,29 +143,24 @@ for fname, kinds, in raw_pseudos:
 #--All the inputs of a Siesta calculations are listed in a dictionary--
 #
 inputs = {
-    'settings' : settings,
     'structure': s,
     'parameters': parameters,
     'code': code,
     'basis': basis,
     'pseudos': pseudos_dict,
-    'metadata': {
-        'options': options,
-        'label': "Benzene molecule",
+    'options': Dict(dict=options),
+    'emin': Float(-9.6),
+    'emax': Float(-1.6),
+    'stm_code': stm_code,
+    'stm_mode': Str("constant-height"),
+    'stm_value': Float(1.6),
+    'stm_spin': Str("non-collinear")
     }
-}
 
-if submit_test:
-    inputs["metadata"]["dry_run"] = True
-    inputs["metadata"]["store_provenance"] = False
-    process = submit(SiestaCalculation, **inputs)
-    #    subfolder, script_filename = calc.submit_test()
-    print("Submited test for calculation (uuid='{}')".format(process.uuid))
-    print("Check the folder submit_test for the result of the test")
+process = submit(SiestaSTMWorkChain, **inputs)
+print("Submitted workchain; ID={}".format(process.pk))
+print(
+    "For information about this workchain type: verdi process show {}".format(
+        process.pk))
+print("For a list of running processes type: verdi process list")
 
-else:
-    process = submit(SiestaCalculation, **inputs)
-    print("Submitted calculation; ID={}".format(process.pk))
-    print("For information about this calculation type: verdi process show {}".
-          format(process.pk))
-    print("For a list of running processes type: verdi process list")

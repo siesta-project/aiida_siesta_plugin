@@ -70,7 +70,7 @@ class SiestaBaseWorkChain(WorkChain):
         spec.input('structure', valid_type=orm.StructureData)
         spec.input_namespace('pseudos', required=False, dynamic=True)
         spec.input('pseudo_family', valid_type=orm.Str, required=False)
-        spec.input('parent_folder', valid_type=orm.RemoteData, required=False)
+        spec.input('parent_calc_folder', valid_type=orm.RemoteData, required=False)
         spec.input('kpoints', valid_type=orm.KpointsData, required=False)
         spec.input('bandskpoints', valid_type=orm.KpointsData, required=False)
         #Required by the plugin
@@ -197,10 +197,8 @@ class SiestaBaseWorkChain(WorkChain):
             self.ctx.want_band_structure = True
             self.ctx.inputs['bandskpoints'] = self.inputs.bandskpoints
 
-        #TO_DO soon, restart!
-        # if 'parent_folder' in self.inputs:
-        #     self.ctx.has_parent_folder = True
-        #     self.ctx.inputs['parent_folder'] = self.inputs.parent_folder
+        if 'parent_calc_folder' in self.inputs:
+             self.ctx.inputs['parent_calc_folder'] = self.inputs.parent_calc_folder
 
         # Prevent SiestaCalculation from being terminated by scheduler
         max_wallclock_seconds = self.ctx.inputs['metadata']['options'][
