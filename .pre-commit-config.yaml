@@ -4,7 +4,6 @@
   - id: trailing-whitespace
     exclude:
       (?x)(
-        ^aiida_siesta/workflows|
         ^aiida_siesta/examples|
         ^aiida_siesta/docs/|
         ^tests/
@@ -20,7 +19,6 @@
     args: ['-d']
     exclude:
      (?x)(
-        ^aiida_siesta/workflows|
         ^aiida_siesta/examples|
         ^aiida_siesta/docs/|
         ^tests/
@@ -30,7 +28,7 @@
     types: [file, python]
     exclude:
      (?x)(
-        ^aiida_siesta/workflows|
+        ^aiida_siesta/workflows/bands.py|
         ^aiida_siesta/parsers/json_time.py|
         ^aiida_siesta/examples|
         ^aiida_siesta/docs/|
