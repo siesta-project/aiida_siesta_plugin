@@ -5,6 +5,13 @@ Description
 -----------
 
 A plugin for Util/plstm of the Siesta distribution, a tool to simulate STM images.
+The code plstm is able to process the .LDOS file produced by Siesta. The .LDOS file 
+contains informations on the local density of states (LDOS) in an energy window. 
+In the Tersoff-Hamann approximation, the LDOS can be used as a proxy for the simulation 
+of STM experiments.
+This plugin requires in input the AiiDA folder where the .LDOS folder was generated 
+and few other parameters (see Inputs section). It produces an array that can be plotted to
+obtain the STM images.
 
 
 Supported Siesta versions
@@ -124,4 +131,4 @@ Errors
 Errors during the parsing stage are reported in the log of the calculation (accessible 
 with the ``verdi process report`` command). 
 
-
+.. _aiida guidelines: https://aiida-core.readthedocs.io/en/latest/get_started/computers.html

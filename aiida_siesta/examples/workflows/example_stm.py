@@ -6,19 +6,29 @@ from aiida_siesta.calculations.siesta import SiestaCalculation
 from aiida.plugins import DataFactory
 from aiida_siesta.workflows.stm import SiestaSTMWorkChain
 
-# There is no parsing for the ldos, but the file .LDOS can be
-# retrieved using the "settings" feature (see below).
-# The remote_folder node produced by this example, can 
-# be used as input of the stm examples in ../stm
-################################################################
+# This is an example for the submission of the STM WorkChain.
+# It shows how to select all the inputs of the WorkChain
+# and how to submit it.
+# For a quick run, type:
+# "runaiida example_stm.py SiestaCode@cmp StmCoode@cmp"
+# but, as any other example here, it is made to make the user
+# play with all the inputs of the WorkChain
+
 
 PsfData = DataFactory('siesta.psf')
 Dict = DataFactory('dict')
 KpointsData = DataFactory('array.kpoints')
 StructureData = DataFactory('structure')
 
-codename = 'SiestaHere@localhost'
-stm_codename = 'STMhere@localhost'
+
+try:
+    codename = sys.argv[1]
+except IndexError:
+    codename = 'SiestaHere@localhost'
+try:
+    stm_codename = sys.argv[2]
+except IndexError:
+    stm_codename = 'STMhere@localhost'
 
 #
 #------------------Code and computer options ---------------------------
