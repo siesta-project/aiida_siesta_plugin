@@ -284,6 +284,15 @@ aiida_siesta/examples/plugins/siesta.
   An optional dictionary that activates non-default operations. For a list of possible
   values to pass, see the section on :ref:`advanced features <siesta-advanced-features>`.
 
+.. |br| raw:: html
+
+    <br />
+
+* **parent_calc_folder**, class  :py:class:`RemoteData <aiida.orm.RemoteData>` , *Optional*
+
+  Optional port used to activate the :ref:`restart features <siesta-restart>`.
+
+
 Submitting the calculation
 --------------------------
 
@@ -438,7 +447,16 @@ accessed with the ``calculation.outputs`` method.
   SystLabel.bands is possible only after the conversion of Angstrom to Bohr.
   The bands are not rescaled by the Fermi energy. Tools for the generation
   of files that can be easly plot are available through ``bands.export``.
-  
+
+.. |br| raw:: html
+
+    <br />
+
+* **remote_folder**, :py:class:`RemoteData <aiida.orm.RemoteData>`
+
+  The working remote folder for the last calculation executed.
+
+
 No trajectories have been implemented yet.
 
 Errors
@@ -448,12 +466,15 @@ Errors during the parsing stage are reported in the log of the calculation (acce
 with the ``verdi process report`` command). 
 Moreover, they are stored in the **output_parameters** node under the key ``warnings``.
 
+.. _siesta-restart:
+
 Restarts
 --------
 
 A restarting capability is implemented through the optional input
 **parent_calc_folder**, :py:class:`RemoteData  <aiida.orm.RemoteData>`,
-which represents the remote scratch folder for a previous calculation.
+which represents the remote scratch folder (`remote_folder` output)
+of a previous calculation.
 
 The density-matrix file is copied from the old calculation scratch
 folder to the new calculation's one.
