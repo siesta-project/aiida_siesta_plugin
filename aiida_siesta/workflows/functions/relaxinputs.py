@@ -1,10 +1,21 @@
-from __future__ import absolute_import
 from aiida.engine import calcfunction, workfunction
 from aiida.orm import Bool
 from aiida_siesta.workflows.functions.protocols import ProtocolRegistry
 
 class SiestaRelaxationInputsGenerator(ProtocolRegistry):
-    
+    """
+    This class has two main purposes:
+    1) Provide a method (get_builder) that returns a builder for the WorkChain
+       SiestaBaseWorkChain with pre-compiled inputs according to a protocol and
+       some relaxation options. This builder can be submitted to perform a Siesta
+       relaxation.
+    2) Implement few methods that can be used for the creation of a GUI that
+       allow users to run a relaxation with Siesta after selecting options with
+       few clicks. The GUI is meant to be common for every plugin that can perform a 
+       relaxation. Implementations of each code will be collected in the GitHub 
+       repository aiidateam/aiida-common-workflows.
+    """
+
     _calc_types = {
             "relaxation": { 'code_plugin': 'siesta.siesta',
                             'description': 'These are calculations used for' 
@@ -96,6 +107,7 @@ class SiestaRelaxationInputsGenerator(ProtocolRegistry):
         basis = protocol_dict["basis"]
 
         #Pseudo fam
+        cls.is_pseudofamily_loaded(protocol)
         pseudo_fam = protocol_dict["pseudo_family"]
 
         builder = SiestaBaseWorkChain.get_builder()

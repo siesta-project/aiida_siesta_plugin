@@ -1,9 +1,13 @@
-from __future__ import absolute_import
 from aiida.engine import calcfunction, workfunction
 from aiida.orm import Bool
 from aiida_siesta.workflows.functions.protocols import ProtocolRegistry
 
 class SiestaBandsInputsGenerator(ProtocolRegistry):
+    """
+    This class is is similar to the SiestaRelaxInputsGenerator. It produces
+    as well a builder for SiestaBaseWorkChain, but with correct inputs to perform
+    a band structure analysis on a structure (without previous relaxation!!)
+    """
     
     _calc_types = {
             "bands": { 'code_plugin': 'siesta.siesta',
@@ -72,12 +76,13 @@ class SiestaBandsInputsGenerator(ProtocolRegistry):
         parameters["meshcutoff"]=str(meshcutoff)+" Ry"
         #Walltime equal to scheduler, prevents calc to be killed by scheduler (it is implemented 
         #in WorkChain as well, but this generator is more general
-        parameters['max-walltime'] = calc_engines["relaxation"]["options"]["max_wallclock_seconds"]
+        parameters['max-walltime'] = calc_engines["bands"]["options"]["max_wallclock_seconds"]
 
         #Basis
         basis = protocol_dict["basis"]
 
         #Pseudo fam
+        cls.is_pseudofamily_loaded(protocol)
         pseudo_fam = protocol_dict["pseudo_family"]
 
         #Bands
@@ -86,7 +91,7 @@ class SiestaBandsInputsGenerator(ProtocolRegistry):
                 'kpoint_distance': 0.05  # In units of b1, b2, b3 (Around 20 points per side...)
                 }
             result = get_explicit_kpoints_path(
-                    structure
+                    structure,
                     method='legacy',
                     **legacy_kpath_parameters)
             ok_structure = structure

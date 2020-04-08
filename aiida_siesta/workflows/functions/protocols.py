@@ -1,9 +1,30 @@
-from __future__ import absolute_import
-
 class ProtocolRegistry:
+    """
+    This class is meant to become the central engine for the management of protocols. 
+    With the word "protocol" we mean a series of suggested inputs for AiiDA
+    WorkChains that allow users to more easly authomatize their workflows.
+    Even though this approach could be general, at the moment I can only think 
+    about protocols in the context of DFT inputs (Siesta inputs in our case).
+    The choice of the inputs of a DFT simulation should be carefully tested
+    for any new system. Users must be aware of the limitations of using protocols,
+    but, in theory, this platform could become the place where we collect
+    the "know how" about Siesta inputs. We hope that, with time, more and more
+    protocols might be added to cover in a robust way entire categories of materials.
+    This is the very beginning of the development and, for the moment, only few
+    methods and two very basic protocols are implemented. The two protocols
+    are hard-coded here inside the class as private attributes, but surely
+    in the future they will be moved outside (maybe external json files).
+    Moreover the methods are just functions useful to retrieve information about
+    protocols, but in the future we will probably need some kind of protocol algebra 
+    for merging, overriding, etc. protocol values.
+    The management of the pseudos is, in particular, very fragile. It imposes that the user
+    loads a pseudo_family with the exact same name of the one hard-coded for the
+    protocol.
+    """
+    
     _protocol_registy = {
             "standard" : { 
-                "description": "blabla",
+                "description": "A standard list of inputs for Siesta. Never tested! Proof of concept at the moment.",
                 "parameters": {
                     'max-scfiterations': 50,
                     'dm-numberpulay': 4,
@@ -23,13 +44,13 @@ class ProtocolRegistry:
                     'pao-basis-size': 'DZ'
                     },
                 "kpoints" : {"distance" : 0.3 ,"offset" : [0., 0., 0.]},
-                "pseudo_family" : "sample_psf_family",#nc-fr-04_pbe_standard_psml",
+                "pseudo_family" : "nc-fr-04_pbe_standard_psml",
                 "threshold_forces" : 0.04, #in ev/ang
                 "threshold_stress" : 0.006241509125883258, #in ev/ang**3 = 1 GPa
                 },
                    
             "stringent" : { 
-                "description": "blublu",
+                "description": "Another test set.",
                 "parameters": {
                     'max-scfiterations': 50,
                     'dm-numberpulay': 4,
@@ -76,6 +97,21 @@ class ProtocolRegistry:
     def get_protocol(cls, key):
         if key in cls._protocol_registy:
             return cls._protocol_registy[key]
+        else:
+            raise ValueError("Wrong protocol: no protocol with name {} implemented".format(key))
+
+    @classmethod
+    def is_pseudofamily_loaded(cls, key):
+        from aiida.common import exceptions
+        from aiida.orm.groups import Group
+        if key in cls._protocol_registy:
+            try:
+                famname=cls._protocol_registy[key]["pseudo_family"]
+                Group.get(label=famname)
+            except: 
+                raise exceptions.NotExistent("You selected protocol {}, but the corresponding "
+                        "pseudo_family is not loaded. Please download {} from PseudoDojo and create "
+                        "a pseudo_family with the same name".format(key,famname))
         else:
             raise ValueError("Wrong protocol: no protocol with name {} implemented".format(key))
 

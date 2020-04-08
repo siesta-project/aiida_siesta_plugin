@@ -1,5 +1,11 @@
+"""
+This example shows how to use the protocol technology inside a
+workchain!
+Go at the end of the script to understand how to use this workchain!
+"""
+
 from aiida.orm import (Float, Str, ArrayData, Dict, StructureData)
-from aiida.engine import submit
+from aiida.engine import submit, run
 from aiida.engine import WorkChain, ToContext, calcfunction
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
 from aiida_siesta.workflows.functions.relaxinputs import SiestaRelaxationInputsGenerator
@@ -20,7 +26,8 @@ class SiestaRelaxWorkChainProtocol(WorkChain):
     """
     Workchain to relax a structure through Siesta. It make use of 
     protocols, the inputs are generated through the method get_builder
-    of the class  SiestaRelaxationInputsGenerator.
+    of the class  SiestaRelaxationInputsGenerator. The outputs
+    follows some standardization agreed at AiiDA Hackaton of Feb 2020.
     """
     def __init__(self, *args, **kwargs):
         super(SiestaRelaxWorkChainProtocol, self).__init__(*args, **kwargs)
@@ -67,12 +74,12 @@ class SiestaRelaxWorkChainProtocol(WorkChain):
                     threshold_forces=threshold_forces,
                     threshold_stress=threshold_stress
                     )
-        
-#        self.ctx.builder=builder
+       
+        ################################################################
+        #         HERE THE USER HAS THE FREEDOM TO CHANGE ANY          #
+        #        PARAMETER HE/SHE WANTS BEFORE SUMBITTING THE WC       #
+        ################################################################
 
-#        return
-
-#    def run_relax(self):
         self.report("Run SiestaWC")
         future = self.submit(builder)
         return ToContext(calc=future)
@@ -85,3 +92,58 @@ class SiestaRelaxWorkChainProtocol(WorkChain):
         self.out('forces', res_dict["forces"])
         self.out('stress', res_dict["stress"])
 
+
+#Here is the code to run the workchain! But be carefull, it can not
+#be run from here!!!!!!!!
+#Options:
+#1) copy the commented code below in a verdi shell and it will run
+#2) register this SiestaRelaxWorkChainProtocol as an entry point in
+#   setup.json and then you can copy the code below in any file and
+#   run it with runaiida, in that case you can replace "run" with "submit"
+
+
+#from workchain_relax_protocol import SiestaRelaxWorkChainProtocol
+#from aiida.orm import (Str, Dict, StructureData)
+#from aiida.engine import submit, run
+#
+#calc_engines = {
+#     'relaxation': {
+#         'code': 'SiestaHere@localhost',
+#         'options': {
+#             'resources': {'num_machines': 1, "num_mpiprocs_per_machine": 1},
+#             "max_wallclock_seconds": 360, #'queue_name': 'DevQ', 'withmpi': True, 'account': "tcphy113c"
+#         }}}
+#protocol="stringent"
+#relaxation_type = "atoms_only"
+#alat = 5.430  # angstrom
+#cell = [
+#    [
+#        0.5 * alat,
+#        0.5 * alat,
+#        0.,
+#    ],
+#    [
+#        0.,
+#        0.5 * alat,
+#        0.5 * alat,
+#    ],
+#    [
+#        0.5 * alat,
+#        0.,
+#        0.5 * alat,
+#    ],
+#]
+#structure = StructureData(cell=cell)
+#structure.append_atom(position=(0.000 * alat, 0.000 * alat, 0.000 * alat),
+#                      symbols=['Si'])
+#structure.append_atom(position=(0.250 * alat, 0.250 * alat, 0.250 * alat),
+#                      symbols=['Si'])
+#
+#inputs={
+#        "structure" : structure,
+#        "calc_engines" : Dict(dict=calc_engines),
+#        "protocol" : Str(protocol),
+#        "relaxation_type" : Str(relaxation_type),
+#    }
+#
+#run(SiestaRelaxWorkChainProtocol, **inputs)
