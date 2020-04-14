@@ -1,10 +1,10 @@
 def get_timing_info(json_file):
-    
+
     import json
 
     timing_decomp = {}
     global_time = None
-    
+
     try:
         data = json.load(open(json_file))
     except:
@@ -20,7 +20,7 @@ def get_timing_info(json_file):
     except:
         # wrong structure
         return global_time, timing_decomp
-        
+
     try:
         d2 = d1["IterGeom"]
         timing_decomp["state_init"] = d2["state_init"]["_time"]
@@ -72,8 +72,3 @@ def get_timing_info(json_file):
         pass
 
     return global_time, timing_decomp
-
-
-
-
-    
