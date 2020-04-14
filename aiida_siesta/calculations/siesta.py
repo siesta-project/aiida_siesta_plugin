@@ -408,7 +408,7 @@ class SiestaCalculation(CalcJob):
 
             # Write max wall-clock time
             infile.write("#\n# -- Max wall-clock time block\n#\n")
-            infile.write("max.walltime {}".format(metadataoption.max_wallclock_seconds))
+            infile.write("max.walltime {}\n".format(metadataoption.max_wallclock_seconds))
 
         # ====================== Code and Calc info ========================
         # Code information object and Calc information object are now
