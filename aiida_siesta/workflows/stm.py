@@ -11,7 +11,8 @@ from aiida_siesta.calculations.tkdict import FDFDict
 #be bad to use it. We are basically modifing one of the input nodes
 #before submitting it to the SiestaBaseWorkChain. The old parameters
 #are stored in the input port of SiestaSTMWorkChain, the new once
-#in the input port of the SiestaBaseWorkChain.
+#in the input port of the SiestaBaseWorkChain, but without @calcfunction,
+#the connection between them is lost.
 def strip_ldosblock(param):
 
     param_copy = param.clone()
@@ -21,8 +22,8 @@ def strip_ldosblock(param):
     return Dict(dict=translated_para)
 
 
-#Here instead is mandatory as we want to create something to return
-#in output
+#Here, instead, the use of @calcfunction is mandatory as we want to
+#create something to return in output
 @calcfunction
 def create_non_coll_array(**arrays):
     arraydata = ArrayData()
@@ -70,11 +71,9 @@ class SiestaSTMWorkChain(WorkChain):
         spec.output('output_structure', valid_type=StructureData, required=False)
         #spec.output('output_parameters', valid_type=Dict)
 
-        spec.exit_code(
-            160,
-            'ERROR_RELAXED_STRUCTURE_NOT_AVAILABLE',
-            message='Failed to get the output structure from the relaxation run'
-        )
+        spec.exit_code(200, 'ERROR_BASE_WC', message='The main SiestaBaseWorkChain failed')
+        spec.exit_code(201, 'ERROR_LDOS_WC', message='The SiestaBaseWorkChain to obtain the .LDOS file failed')
+        spec.exit_code(202, 'ERROR_STM_PLUGIN', message='The STM post-process failed')
 
     def checks(self):  # noqa: MC0001  - is mccabe too complex funct -
         """
@@ -150,7 +149,9 @@ class SiestaSTMWorkChain(WorkChain):
 
         self.ctx.spinstm = spinstm
 
-        #LDOS check, it can be defined in the siesta parameters or through "emax" and "emin"
+        #LDOS check, the inputs "emax" and "emin" define the energy range for the calculation of the
+        #ldos. If a block "localdensityofstates" is found in the parameters of the siesta calculation,
+        #a warining is issued and the block is stripped.
         self.ctx.ldosdefinedinparam = False
         for k, v in sorted(translatedkey.get_filtered_items()):
             if k == "%block localdensityofstates":
@@ -185,21 +186,36 @@ class SiestaSTMWorkChain(WorkChain):
         we can more effectivly select an energy range for the LDOS file.
         """
 
-        #Put error handling
-        self.report('Siesta calculation concluded succesfully')
+        if not self.ctx.workchain_base.is_finished_ok:
+            return self.exit_codes.ERROR_BASE_WC
 
-        efermi = self.ctx.workchain_base.outputs.output_parameters["E_Fermi"]
-        okemax = self.inputs.emax.value - efermi
-        okemin = self.inputs.emin.value - efermi
+        outwc = self.ctx.workchain_base.outputs
+
+        if "output_structure" in outwc:
+            self.report(
+                'First Siesta calculation concluded succesfully. In case a restart of the WorkChain is needed, '
+                'set node {} as parent_calc_folder and node {} as structure'.format(
+                    outwc.remote_folder.pk, outwc.output_structure.pk
+                )
+            )
+        else:
+            self.report(
+                'First Siesta calculation concluded succesfully. In case a restart of the '
+                'WorkChain is needed, set node {} as parent_calc_folder'.format(outwc.remote_folder.pk)
+            )
+
+        efermi = outwc.output_parameters["E_Fermi"]
+        okemax = self.inputs.emax.value + efermi
+        okemin = self.inputs.emin.value + efermi
         restart = self.ctx.workchain_base.get_builder_restart()
-        if "output_structure" in self.ctx.workchain_base.outputs:
-            restart.structure = self.ctx.workchain_base.outputs.output_structure
+        if "output_structure" in outwc:
+            restart.structure = outwc.output_structure
         ldos_e = "\n{0:.5f} {1:.5f} eV \n%endblock local-density-of-states".format(okemin, okemax)
         param_dict = restart.parameters.get_dict()
         param_dict["%block local-density-of-states"] = ldos_e
         #pop the relax keys??
         restart.parameters = Dict(dict=param_dict)
-        restart.parent_calc_folder = self.ctx.workchain_base.outputs.remote_folder
+        restart.parent_calc_folder = outwc.remote_folder
         settings_dict = {'additional_retrieve_list': ['aiida.BONDS', 'aiida.LDOS']}
         restart.settings = Dict(dict=settings_dict)
 
@@ -213,12 +229,16 @@ class SiestaSTMWorkChain(WorkChain):
         Run a STMCalculation with the relaxed_calculation parent folder
         """
 
-        #Put error handling here
-        self.report('Finished siesta run to obtain .LDOS file')
+        if not self.ctx.siesta_ldos.is_finished_ok:
+            return self.exit_codes.ERROR_LDOS_WC
 
-        # Get the remote folder of the last calculation in the previous workchain
         base_ldos = self.ctx.siesta_ldos
         remote_folder = base_ldos.outputs.remote_folder
+
+        self.report(
+            'Finished siesta run to obtain .LDOS file. The remote folder hosting the file '
+            'is in the node {}'.format(remote_folder.pk)
+        )
 
         if 'stm_options' in self.inputs:
             optio = self.inputs.stm_options.get_dict()
@@ -263,6 +283,9 @@ class SiestaSTMWorkChain(WorkChain):
         """
 
         from aiida.engine import ExitCode
+
+        if not self.ctx.siesta_ldos.is_finished_ok:
+            return self.exit_codes.ERROR_STM_PLUGIN
 
         if self.ctx.spinstm == "non-collinear":
             cumarray = {}

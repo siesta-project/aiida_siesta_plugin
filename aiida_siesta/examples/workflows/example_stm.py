@@ -164,7 +164,7 @@ inputs = {
     'stm_code': stm_code,
     'stm_mode': Str("constant-height"),
     'stm_value': Float(1.6),
-    'stm_spin': Str("non-collinear")
+    'stm_spin': Str("collinear")
     }
 
 process = submit(SiestaSTMWorkChain, **inputs)
