@@ -50,7 +50,8 @@
         ],
         "aiida.data": [
             "siesta.psf = aiida_siesta.data.psf:PsfData",
-            "siesta.psml = aiida_siesta.data.psml:PsmlData"
+            "siesta.psml = aiida_siesta.data.psml:PsmlData",
+	    "siesta.lua = aiida_siesta.data.lua:LUAData"
         ],
         "aiida.cmdline.data": [
             "psf = aiida_siesta.commands.data_psf:psfdata",

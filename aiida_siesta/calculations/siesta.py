@@ -3,10 +3,14 @@ from aiida import orm
 from aiida.common import CalcInfo, CodeInfo, InputValidationError
 from aiida.common.constants import elements
 from aiida.engine import CalcJob
-from aiida.orm import Dict, StructureData, BandsData, ArrayData
+#aakhtar
+#from aiida.orm import Dict, StructureData, BandsData, ArrayData
+from aiida.orm import Dict, StructureData, BandsData, ArrayData,SinglefileData,FolderData
+#aakhtar
 from aiida_siesta.calculations.tkdict import FDFDict
 from aiida_siesta.data.psf import PsfData
 from aiida_siesta.data.psml import PsmlData
+from aiida_siesta.data.lua  import LUAData
 
 # See the LICENSE.txt and AUTHORS.txt files.
 
@@ -53,8 +57,8 @@ class SiestaCalculation(CalcJob):
     # Default of the input.spec, it's just default, but user
     # could change the name
     _DEFAULT_PREFIX = 'aiida'
-    _DEFAULT_INPUT_FILE = 'aiida.fdf'
-    _DEFAULT_OUTPUT_FILE = 'aiida.out'
+    _DEFAULT_INPUT_FILE = 'aiidatest.fdf'
+    _DEFAULT_OUTPUT_FILE = 'aiidatest.out'
 
     # in restarts, it will copy from the parent the following
     # (fow now, just the density matrix file)
@@ -77,7 +81,11 @@ class SiestaCalculation(CalcJob):
         spec.input('parameters', valid_type=orm.Dict, help='Input parameters')
         spec.input('parent_calc_folder', valid_type=orm.RemoteData, required=False, help='Parent folder')
         spec.input_namespace('pseudos', valid_type=(PsfData, PsmlData), help='Input pseudo potentials', dynamic=True)
-
+        #aakhtar
+        #the LUAData added here the first option is just for onefile to send but the later one is the main one
+        spec.input('lua',valid_type=orm.SinglefileData,required=False,help='lua file')
+        spec.input_namespace('luafiles',valid_type=(LUAData),required=False, help='lua input file',dynamic=True)
+        #aakhtar
         # Metadada.options host the inputs that are not stored
         # as a separate node, but attached to `CalcJobNode`
         # as attributes. They are optional, since a default is
@@ -166,11 +174,30 @@ class SiestaCalculation(CalcJob):
                 'Pseudos: {} \n'.format(', '.join(list(pseudos.keys()))),
                 'Kinds: {}'.format(', '.join(list(kinds))),
             )
-
+      
         # List of the file to copy in the folder where the calculation
         # runs, for instance pseudo files
         local_copy_list = []
-
+        #aakhtar
+        #-------------------------------------------------------------------------
+        # Worked
+        # TODO: Have To cleanup later
+        #-------------------------------------------------------------------------
+        #luafile=self.inputs.lua
+        #local_copy_list.append((luafile.uuid,luafile.filename,luafile.filename))
+        #-------------------------------------------------------------------------
+        luafiles=self.inputs.luafiles
+        #lfname=luafile[kind.name]
+        #lfname = []
+        for name in luafiles.keys():
+            llua=luafiles[name]
+            if isinstance(llua, LUAData):
+                local_copy_list.append((llua.uuid,llua.filename,llua.filename))
+            
+        #local_copy_list.append((luafile.uuid,luafile.filename,luafile.filename))
+        #lua=FolderData(tree="/home/aakhtar/calculations/siesta/test-aiida/")
+        #local_copy_list.append((lua,"relax_cell_geometry.lua","test.lua"))
+        #aakhtar
         # List of files for restart
         remote_copy_list = []
 
@@ -258,6 +285,7 @@ class SiestaCalculation(CalcJob):
             # ... list of tuples with format ('node_uuid', 'filename', relativedestpath')
             # We probably should be pre-pending 'self._PSEUDO_SUBFOLDER' in the
             # last slot, for generality...
+            #aakhtar test
             if isinstance(psp, PsfData):
                 local_copy_list.append((psp.uuid, psp.filename, kind.name + ".psf"))
             elif isinstance(psp, PsmlData):
