@@ -185,10 +185,10 @@ def fit_and_final_dicts(**calcs):
         #residuals0 is a np array
 
     Dict = DataFactory("dict")
-    if fit_res is None:
-        result_dict = Dict(dict={'eos_data': eos})
-    else:
+    if fit_res:
         result_dict = Dict(dict={'eos_data': eos, "fit_res": fit_res})
+    else:
+        result_dict = Dict(dict={'eos_data': eos})
 
     return result_dict
 
