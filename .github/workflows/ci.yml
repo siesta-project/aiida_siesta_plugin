@@ -10,7 +10,7 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ['3.5','3.6','3.7']
+        python-version: ['3.6','3.7','3.8']
 
     steps:
     - uses: actions/checkout@v1
@@ -39,9 +39,6 @@ jobs:
         sudo systemctl status rabbitmq-server.service
     - name: Install python dependencies
       run: |
-        pip install Cython
-        pip install --upgrade setuptools
-        pip install numpy==1.16.4
         pip install -e .[dev]
         reentry scan
     - name: Run pytest

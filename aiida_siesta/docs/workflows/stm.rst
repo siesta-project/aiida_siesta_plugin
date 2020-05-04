@@ -5,12 +5,14 @@ Description
 -----------
 
 The **SiestaSTMWorkchain** workflow consists in 3 steps:
+
 * Performing of a siesta calculation on an input structure (including relaxation if needed) 
   through the **SiestaBaseWorkChain**.
 * Performing of a further siesta calculation aimed to produce a .LDOS file.
 * A call to the `plstm` code to post process the .LDOS file and
   create simulated STM images. The call is made via the
   STMCalculation plugin, which is also included in the `aiida_siesta` distribution.
+
 The .LDOS file contains informations on the local density
 of states (LDOS) in an energy window. The LDOS can be seen as a
 "partial charge density" to which only those wavefunctions with

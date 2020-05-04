@@ -176,6 +176,13 @@ detailed information on them can be found :ref:`here <siesta-plugin-inputs>`.
   The maximum number of iterations allowed in the restart cycle for
   calculations.
 
+.. |br| raw:: html
+
+    <br />
+
+* **parent_calc_folder**, class  :py:class:`RemoteData <aiida.orm.RemoteData>` , *Optional*
+
+  Optional port used to activate the restart features, as explained in the plugin documentation.
 
 Outputs
 -------

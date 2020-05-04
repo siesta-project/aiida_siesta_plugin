@@ -1,10 +1,5 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
-import six
-
 from aiida.orm import Code
-from aiida.orm import (Int, Str, Bool, Dict, StructureData, KpointsData,
-                       BandsData)
+from aiida.orm import (Int, Str, Bool, Dict, StructureData, KpointsData, BandsData)
 from aiida.engine.launch import submit, run
 from aiida.engine import WorkChain, ToContext, workfunction
 from aiida.common.links import LinkType
@@ -20,6 +15,7 @@ class SiestaBandsWorkChain(WorkChain):
     A separate bands workflow is only needed if we desire to separate the
     relaxation from the final run.
     """
+
     def __init__(self, *args, **kwargs):
         super(SiestaBandsWorkChain, self).__init__(*args, **kwargs)
 
@@ -43,18 +39,14 @@ class SiestaBandsWorkChain(WorkChain):
 
         # These will be inherited from the Base workchain outputs
         spec.output('bands', valid_type=BandsData)
-        spec.output('output_structure',
-                    valid_type=StructureData,
-                    required=False)
+        spec.output('output_structure', valid_type=StructureData, required=False)
 
         # This could be 'output_parameters', also inherited from the Base workchain, representing
         # the summary of energies, etc. coming out of the last SiestaCalculation run.
         # but its relevance is limited for a "band-structure" workflow. Left here for now for debugging.
         spec.output('output_parameters', valid_type=Dict)
 
-        spec.exit_code(140,
-                       'ERROR_PROTOCOL_NOT_FOUND',
-                       message='The protocol specified is not known')
+        spec.exit_code(140, 'ERROR_PROTOCOL_NOT_FOUND', message='The protocol specified is not known')
         spec.exit_code(
             160,
             'ERROR_RELAXED_STRUCTURE_NOT_AVAILABLE',
@@ -67,12 +59,10 @@ class SiestaBandsWorkChain(WorkChain):
         protocol, we define values for variables that affect the execution of the calculations
         """
         self.ctx.inputs = {
-            'code':
-            self.inputs.code,
+            'code': self.inputs.code,
             'parameters': {},
             'settings': {},
-            'options':
-            Dict(dict={
+            'options': Dict(dict={
                 'resources': {
                     'num_machines': 1
                 },
@@ -81,8 +71,7 @@ class SiestaBandsWorkChain(WorkChain):
         }
 
         if self.inputs.protocol == 'standard':
-            self.report('Using the "{}" protocol'.format(
-                self.inputs.protocol.value))
+            self.report('Using the "{}" protocol'.format(self.inputs.protocol.value))
             self.ctx.protocol = {
                 'kpoints_mesh_offset': [0., 0., 0.],
                 'kpoints_mesh_density': 0.2,
@@ -109,8 +98,7 @@ class SiestaBandsWorkChain(WorkChain):
             }
 
         elif self.inputs.protocol == 'fast':
-            self.report('Using the "{}" protocol'.format(
-                self.inputs.protocol.value))
+            self.report('Using the "{}" protocol'.format(self.inputs.protocol.value))
             self.ctx.protocol = {
                 'kpoints_mesh_offset': [0., 0., 0.],
                 'kpoints_mesh_density': 0.25,
@@ -136,8 +124,7 @@ class SiestaBandsWorkChain(WorkChain):
                 }
             }
         else:
-            self.report('Protocol {} not known'.format(
-                self.inputs.protocol.value))
+            self.report('Protocol {} not known'.format(self.inputs.protocol.value))
             return self.exit_codes.ERROR_PROTOCOL_NOT_FOUND
 
     def setup_structure(self):
@@ -153,11 +140,10 @@ class SiestaBandsWorkChain(WorkChain):
         """
 
         kpoints_mesh = KpointsData()
-        kpoints_mesh.set_cell_from_structure(
-            self.ctx.structure_initial_primitive)
+        kpoints_mesh.set_cell_from_structure(self.ctx.structure_initial_primitive)
         kpoints_mesh.set_kpoints_mesh_from_density(
-            distance=self.ctx.protocol['kpoints_mesh_density'],
-            offset=self.ctx.protocol['kpoints_mesh_offset'])
+            distance=self.ctx.protocol['kpoints_mesh_density'], offset=self.ctx.protocol['kpoints_mesh_offset']
+        )
 
         self.ctx.kpoints_mesh = kpoints_mesh
 
@@ -168,8 +154,7 @@ class SiestaBandsWorkChain(WorkChain):
         """
         structure = self.ctx.structure_initial_primitive
         pseudo_familyname = self.ctx.protocol['pseudo_familyname']
-        self.ctx.inputs['pseudos'] = get_pseudos_from_structure(
-            structure, pseudo_familyname)
+        self.ctx.inputs['pseudos'] = get_pseudos_from_structure(structure, pseudo_familyname)
 
     def setup_parameters(self):
         """
@@ -186,16 +171,14 @@ class SiestaBandsWorkChain(WorkChain):
                 pass  # No problem. No heuristics, no info
 
         meshcutoff = max(
-            self.ctx.protocol['min_meshcutoff'],
-            meshcutoff)  # In case we did not get anything, set a minimum value
+            self.ctx.protocol['min_meshcutoff'], meshcutoff
+        )  # In case we did not get anything, set a minimum value
 
         self.ctx.inputs['parameters'] = {
             'dm-tolerance': self.ctx.protocol['dm_convergence_threshold'],
-            'md-max-force-tol':
-            self.ctx.protocol['forces_convergence_threshold'],
+            'md-max-force-tol': self.ctx.protocol['forces_convergence_threshold'],
             'mesh-cutoff': "{} Ry".format(meshcutoff),
-            'electronic-temperature':
-            self.ctx.protocol['electronic_temperature'],
+            'electronic-temperature': self.ctx.protocol['electronic_temperature'],
             'md-type-of-run': self.ctx.protocol['md-type-of-run'],
             'md-num-cg-steps': self.ctx.protocol['md-num-cg-steps']
         }
@@ -227,9 +210,7 @@ class SiestaBandsWorkChain(WorkChain):
         inputs['max_iterations'] = Int(20)
 
         running = self.submit(SiestaBaseWorkChain, **inputs)
-        self.report(
-            'launched SiestaBaseWorkChain<{}> in relaxation mode'.format(
-                running.pk))
+        self.report('launched SiestaBaseWorkChain<{}> in relaxation mode'.format(running.pk))
 
         return ToContext(workchain_relax=running)
 
@@ -249,11 +230,10 @@ class SiestaBandsWorkChain(WorkChain):
         inputs = dict(self.ctx.inputs)
 
         kpoints_mesh = KpointsData()
-        kpoints_mesh.set_cell_from_structure(
-            self.ctx.structure_relaxed_primitive)
+        kpoints_mesh.set_cell_from_structure(self.ctx.structure_relaxed_primitive)
         kpoints_mesh.set_kpoints_mesh_from_density(
-            distance=self.ctx.protocol['kpoints_mesh_density'],
-            offset=self.ctx.protocol['kpoints_mesh_offset'])
+            distance=self.ctx.protocol['kpoints_mesh_density'], offset=self.ctx.protocol['kpoints_mesh_offset']
+        )
 
         # For the band-structure kath, it is advised to use the
         # 'seekpath' method, but we try the 'legacy' for now.  In some
@@ -267,19 +247,15 @@ class SiestaBandsWorkChain(WorkChain):
 
         legacy_kpath_parameters = Dict(
             dict={
-                'kpoint_distance':
-                0.05  # In units of b1, b2, b3 (Around 20 points per side...)
-            })
-        seekpath_kpath_parameters = Dict(dict={
-            'reference_distance': 0.02,
-            'symprec': 0.0001
-        })
+                'kpoint_distance': 0.05  # In units of b1, b2, b3 (Around 20 points per side...)
+            }
+        )
+        seekpath_kpath_parameters = Dict(dict={'reference_distance': 0.02, 'symprec': 0.0001})
         kpath_parameters = legacy_kpath_parameters
 
         result = get_explicit_kpoints_path(
-            self.ctx.structure_relaxed_primitive,
-            method='legacy',
-            **kpath_parameters.get_dict())
+            self.ctx.structure_relaxed_primitive, method='legacy', **kpath_parameters.get_dict()
+        )
         bandskpoints = result['explicit_kpoints']
         # The 'legacy' method presumably does not change the structure
         ## structure = result['primitive_structure']
@@ -295,9 +271,7 @@ class SiestaBandsWorkChain(WorkChain):
         inputs['settings'] = Dict(dict=inputs['settings'])
 
         running = self.submit(SiestaBaseWorkChain, **inputs)
-        self.report(
-            'launched SiestaBaseWorkChain<{}> in scf+bands mode'.format(
-                running.pk))
+        self.report('launched SiestaBaseWorkChain<{}> in scf+bands mode'.format(running.pk))
 
         return ToContext(workchain_base_bands=running)
 
@@ -313,16 +287,17 @@ class SiestaBandsWorkChain(WorkChain):
 
         #self.out('scf_plus_bands_summary', base_bands_results.output_parameters)
         #self.out('bands', base_bands_results.bands)
-        for name, port in six.iteritems(self.spec().outputs):
+        for name, port in self.spec().outputs.items():
 
             try:
-                node = base_bands.get_outgoing(
-                    link_label_filter=name).one().node
+                node = base_bands.get_outgoing(link_label_filter=name).one().node
             except ValueError:
                 if port.required:
                     self.report(
-                        "the process spec specifies the output '{}' as required but was not an output of {}<{}>"
-                        .format(name, base_bands, base_bands.pk))
+                        "the process spec specifies the output '{}' as required but was not an output of {}<{}>".format(
+                            name, base_bands, base_bands.pk
+                        )
+                    )
             else:
                 self.out(name, node)
                 #self.report("attaching the node {}<{}> as '{}'"

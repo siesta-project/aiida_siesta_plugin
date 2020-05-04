@@ -1,12 +1,10 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-from aiida_siesta.workflows.base import SiestaBaseWorkChain
 from aiida.plugins import DataFactory
 from aiida.common import AttributeDict
 from aiida.engine import WorkChain, calcfunction, ToContext
 from aiida.orm import Float
 from aiida_siesta.calculations.tkdict import FDFDict
+from aiida_siesta.workflows.base import SiestaBaseWorkChain
+
 
 @calcfunction
 def scale_to_vol(stru, vol):
@@ -20,9 +18,9 @@ def scale_to_vol(stru, vol):
 
     in_structure = stru.get_pymatgen()
     new = in_structure.copy()
-    new.scale_lattice(float(vol)*in_structure.num_sites)
+    new.scale_lattice(float(vol) * in_structure.num_sites)
     StructureData = DataFactory("structure")
-    structure  = StructureData(pymatgen_structure=new)
+    structure = StructureData(pymatgen_structure=new)
 
     return structure
 
@@ -41,7 +39,7 @@ def rescale(structure, scale):
     new_ase = the_ase.copy()
     new_ase.set_cell(the_ase.get_cell() * float(scale), scale_atoms=True)
     new_structure = DataFactory('structure')(ase=new_ase)
-    
+
     return new_structure
 
 
@@ -49,28 +47,28 @@ def rescale(structure, scale):
 def get_info(outpar, struct):
     """
     Calcfunction creating a dictionary with selected
-    inputs and results of a SiestaBaseWC, usefull for 
+    inputs and results of a SiestaBaseWC, usefull for
     the creation of the Equation of State.
     :param struct: Aiida structure of a SiestaBaseWC
-    :param outpar: The output_parameters of a SiestaBaseWC 
-    :return: A dictionary containing volume per atom and 
+    :param outpar: The output_parameters of a SiestaBaseWC
+    :return: A dictionary containing volume per atom and
              energy per atom.
     """
 
-    ev = {}
-    ev["vol"] = struct.get_cell_volume()/len(struct.sites)
-    ev["vol_units"] = 'ang^3/atom'
-    ev["en"] = outpar['E_KS']/len(struct.sites)
-    ev["en_units"] = outpar['E_KS_units']+'/atom'
+    evdict = {}
+    evdict["vol"] = struct.get_cell_volume() / len(struct.sites)
+    evdict["vol_units"] = 'ang^3/atom'
+    evdict["en"] = outpar['E_KS'] / len(struct.sites)
+    evdict["en_units"] = outpar['E_KS_units'] + '/atom'
     Dict = DataFactory('dict')
-    resultdict = Dict(dict=ev)
-    
+    resultdict = Dict(dict=evdict)
+
     return resultdict
 
 
-def delta_project_BM_fit(volumes, energies):
+def delta_project_BM_fit(volumes, energies):  #pylint: disable=invalid-name
     """
-    The fitting procedure implemented in this function 
+    The fitting procedure implemented in this function
     was copied from the Delta Project Code.
     https://github.com/molmod/DeltaCodesDFT/blob/master/eosfit.py
     It is introduced to fully uniform the delta test procedure
@@ -79,41 +77,39 @@ def delta_project_BM_fit(volumes, energies):
     """
 
     import numpy as np
-   
+
     #Does the fit always succeed?
-    fitdata = np.polyfit(volumes**(-2./3.), energies, 3, full=True)
+    fitdata = np.polyfit(volumes**(-2. / 3.), energies, 3, full=True)
     ssr = fitdata[1]
     sst = np.sum((energies - np.average(energies))**2.)
-    residuals0 = ssr/sst
-    deriv0 = np.poly1d(fitdata[0])
-    deriv1 = np.polyder(deriv0, 1)
-    deriv2 = np.polyder(deriv1, 1)
-    deriv3 = np.polyder(deriv2, 1)
+    residuals0 = ssr / sst
+    deriv0 = np.poly1d(fitdata[0])  #pylint: disable=invalid-name
+    deriv1 = np.polyder(deriv0, 1)  #pylint: disable=invalid-name
+    deriv2 = np.polyder(deriv1, 1)  #pylint: disable=invalid-name
+    deriv3 = np.polyder(deriv2, 1)  #pylint: disable=invalid-name
 
     volume0 = 0
     x = 0
     for x in np.roots(deriv1):
         if x > 0 and deriv2(x) > 0:
-            E0=deriv0(x)
-            volume0 = x**(-3./2.)
+            E0 = deriv0(x)  #pylint: disable=invalid-name
+            volume0 = x**(-3. / 2.)
             break
 
     #Here something checking if the fit is good!
-    #The choice of residuals0 > 0.01 it is not supported 
+    #The choice of residuals0 > 0.01 it is not supported
     #by a real scientific reason, just from experience.
     #Values ~ 0.1 are when fit random numbers, ~ 10^-5
     #appears for good fits. The check on the presence of
-    #a minmum covers the situations when an almost 
+    #a minmum covers the situations when an almost
     #linear dependence is fitted (very far from minimum)
     if volume0 == 0 or residuals0 > 0.01:
         return residuals0, volume0
-    else:
-        derivV2 = 4./9. * x**5. * deriv2(x)
-        derivV3 = (-20./9. * x**(13./2.) * deriv2(x) -
-            8./27. * x**(15./2.) * deriv3(x))
-        bulk_modulus0 = derivV2 / x**(3./2.)
-        bulk_deriv0 = -1 - x**(-3./2.) * derivV3 / derivV2
-        return E0, volume0, bulk_modulus0, bulk_deriv0
+    derivV2 = 4. / 9. * x**5. * deriv2(x)  #pylint: disable=invalid-name
+    derivV3 = (-20. / 9. * x**(13. / 2.) * deriv2(x) - 8. / 27. * x**(15. / 2.) * deriv3(x))  #pylint: disable=invalid-name
+    bulk_modulus0 = derivV2 / x**(3. / 2.)
+    bulk_deriv0 = -1 - x**(-3. / 2.) * derivV3 / derivV2
+    return E0, volume0, bulk_modulus0, bulk_deriv0
 
 
 #def standard_BM_fit(volumes, energies):
@@ -128,8 +124,8 @@ def delta_project_BM_fit(volumes, energies):
 #
 #    #Does the fit always succeed?
 #    params, covariance = curve_fit(
-#         birch_murnaghan, 
-#         xdata=volumes, 
+#         birch_murnaghan,
+#         xdata=volumes,
 #         ydata=energies,
 #         p0=(
 #            energies.min(),  # E0
@@ -147,7 +143,6 @@ def delta_project_BM_fit(volumes, energies):
 #        return residuals0, volume0
 #    else:
 #        return params[0], params[1], params[2], params[3]
-
 
 
 @calcfunction
@@ -170,12 +165,12 @@ def fit_and_final_dicts(**calcs):
         arg = calcs[cal]
         volu.append(arg["vol"])
         ener.append(arg["en"])
-        eos.append([arg["vol"],arg["en"],arg["vol_units"],arg["en_units"]])
+        eos.append([arg["vol"], arg["en"], arg["vol_units"], arg["en_units"]])
 
     volumes = np.array(volu)
     energies = np.array(ener)
     try:
-        E0, volume0, bulk_modulus0, bulk_deriv0 = delta_project_BM_fit(volumes,energies)
+        E0, volume0, bulk_modulus0, bulk_deriv0 = delta_project_BM_fit(volumes, energies)  #pylint: disable=invalid-name
         #E0, volume0, bulk_modulus0, bulk_deriv0 = standard_BM_fit(volumes,energies)
         fit_res = {}
         fit_res["Eo(eV/atom)"] = E0
@@ -183,17 +178,17 @@ def fit_and_final_dicts(**calcs):
         fit_res["Bo(eV/ang^3)"] = bulk_modulus0
         fit_res["Bo(GPa)"] = bulk_modulus0 * 160.21766208
         fit_res["B1"] = bulk_deriv0
-    except:
+    except:  # nopep8 #pylint: disable=bare-except
         fit_res = {}
-        residuals0, volume0 = delta_project_BM_fit(volumes,energies)
-        #In the future we could use these info to improve help, 
+        #residuals0, volume0 = delta_project_BM_fit(volumes, energies)
+        #In the future we could use these info to improve help,
         #residuals0 is a np array
 
     Dict = DataFactory("dict")
-    if fit_res is None:
-        result_dict = Dict(dict={'eos_data': eos})
-    else:
+    if fit_res:
         result_dict = Dict(dict={'eos_data': eos, "fit_res": fit_res})
+    else:
+        result_dict = Dict(dict={'eos_data': eos})
 
     return result_dict
 
@@ -201,9 +196,9 @@ def fit_and_final_dicts(**calcs):
 class EqOfStateFixedCellShape(WorkChain):
     """
     WorkChain to calculate the equation of state of a solid.
-    The cell shape is fixed, only the volume is rescaled. 
-    In particular the volumes considered are 7 equidistant volumes 
-    around a starting volume. The starting volume is 
+    The cell shape is fixed, only the volume is rescaled.
+    In particular the volumes considered are 7 equidistant volumes
+    around a starting volume. The starting volume is
     an optional input of the WorkChain (called volume_per_atom).
     If not specified, the input structure volume is used with no modifications.
     All the SiestaBaseWorkChain inputs are other inputs of the workchain.
@@ -214,57 +209,58 @@ class EqOfStateFixedCellShape(WorkChain):
     @classmethod
     def define(cls, spec):
         super(EqOfStateFixedCellShape, cls).define(spec)
-        spec.input("volume_per_atom",  
-                valid_type=Float, 
-                required=False, 
-                help="Volume per atom around which to perform the EqOfState"
-                )
-        spec.expose_inputs(SiestaBaseWorkChain, exclude=('metadata',))
-        spec.inputs._ports['pseudos'].dynamic = True #Temporary fix to issue #135 plumpy
-        spec.outline(
-            cls.initio,
-            cls.run_base_wcs,
-            cls.return_results
+        spec.input(
+            "volume_per_atom",
+            valid_type=Float,
+            required=False,
+            help="Volume per atom around which to perform the EqOfState"
         )
-        spec.output('results_dict', 
-                valid_type=DataFactory("dict"), 
-                required=True,
-                help="Containing the calculated E(V) data and, if the fit is sucessfull, "
-                    "the resulting fit parameters")
-        spec.output('equilibrium_structure', 
-                valid_type=DataFactory("structure"), 
-                required=False,
-                help="Equilibrium volume structure. Returned only if the fit is succesfull" )
+        spec.expose_inputs(SiestaBaseWorkChain, exclude=('metadata',))
+        spec.inputs._ports['pseudos'].dynamic = True  #Temporary fix to issue #135 plumpy
+        spec.outline(cls.initio, cls.run_base_wcs, cls.return_results)
+        spec.output(
+            'results_dict',
+            valid_type=DataFactory("dict"),
+            required=True,
+            help="Containing the calculated E(V) data and, if the fit is sucessfull, "
+            "the resulting fit parameters"
+        )
+        spec.output(
+            'equilibrium_structure',
+            valid_type=DataFactory("structure"),
+            required=False,
+            help="Equilibrium volume structure. Returned only if the fit is succesfull"
+        )
 
     def initio(self):
         self.ctx.scales = (0.94, 0.96, 0.98, 1., 1.02, 1.04, 1.06)
         self.report("Starting EqOfStateFixedCellShape Workchain")
         if "pseudo_family" not in self.inputs:
-            if not self.inputs.pseudos: 
-                raise ValueError(
-                'neither an explicit pseudos dictionary nor a pseudo_family was specified'
-                )
+            if not self.inputs.pseudos:
+                raise ValueError('neither an explicit pseudos dictionary nor a pseudo_family was specified')
         if "volume_per_atom" in self.inputs:
-            self.ctx.s0 = scale_to_vol(self.inputs.structure,self.inputs.volume_per_atom)
+            self.ctx.s0 = scale_to_vol(self.inputs.structure, self.inputs.volume_per_atom)
         else:
             self.ctx.s0 = self.inputs.structure
 
         test_input_params = FDFDict(self.inputs.parameters.get_dict())
         for k, v in sorted(test_input_params.get_filtered_items()):
-            if k == "mdvariablecell" or k == "mdrelaxcellonly":
+            if k in ('mdvariablecell', 'mdrelaxcellonly'):
                 if v is True or v == "T" or v == "true" or v == ".true.":
-                    self.report('WARNING: Relaxation with variable cell detected! '
-                            'No action taken, but are you sure this is what you want?' )
+                    self.report(
+                        'WARNING: Relaxation with variable cell detected! '
+                        'No action taken, but are you sure this is what you want?'
+                    )
 
     def run_base_wcs(self):
         calcs = {}
         for scale in self.ctx.scales:
-                scaled = rescale(self.ctx.s0, Float(scale))
-                inputs = AttributeDict(self.exposed_inputs(SiestaBaseWorkChain))
-                inputs["structure"] = scaled
-                future = self.submit(SiestaBaseWorkChain, **inputs)
-                self.report('Launching SiestaBaseWorkChain<{0}>, at volume rescaled of {1}'.format(future.pk,scale))
-                calcs[str(scale)] = future
+            scaled = rescale(self.ctx.s0, Float(scale))
+            inputs = AttributeDict(self.exposed_inputs(SiestaBaseWorkChain))
+            inputs["structure"] = scaled
+            future = self.submit(SiestaBaseWorkChain, **inputs)
+            self.report('Launching SiestaBaseWorkChain<{0}>, at volume rescaled of {1}'.format(future.pk, scale))
+            calcs[str(scale)] = future
         return ToContext(**calcs)  #Here it waits
 
     def return_results(self):
@@ -272,17 +268,17 @@ class EqOfStateFixedCellShape(WorkChain):
         collectwcinfo = {}
         for label in self.ctx.scales:
             wcnode = self.ctx[str(label)]
-            # To performe the eos with variable cell is wrong. We should 
-            # implement errors if there are siesta keywords that activate 
+            # To performe the eos with variable cell is wrong. We should
+            # implement errors if there are siesta keywords that activate
             # the relax cell in the parameter dict. For the moment the
             # use of output_structure should at least make the user realise
-            # that something is wrong (we expect to have structure converged 
+            # that something is wrong (we expect to have structure converged
             # to similar volums if you do relax cell)
-            if "output_structure" in wcnode.outputs: 
-                info = get_info(wcnode.outputs.output_parameters,wcnode.outputs.output_structure)
+            if "output_structure" in wcnode.outputs:
+                info = get_info(wcnode.outputs.output_parameters, wcnode.outputs.output_structure)
             else:
-                info = get_info(wcnode.outputs.output_parameters,wcnode.inputs.structure)
-            collectwcinfo["s"+str(label).replace(".","_")] = info
+                info = get_info(wcnode.outputs.output_parameters, wcnode.inputs.structure)
+            collectwcinfo["s" + str(label).replace(".", "_")] = info
 
         res_dict = fit_and_final_dicts(**collectwcinfo)
 
@@ -296,7 +292,3 @@ class EqOfStateFixedCellShape(WorkChain):
             self.report("WARNING: Birch-Murnaghan fit failed, check your results_dict['eos_data']")
 
         self.report('End of EqOfStateFixedCellShape Workchain')
-
-        return
-
-
