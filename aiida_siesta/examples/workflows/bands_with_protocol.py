@@ -19,25 +19,14 @@ calc_engines = {
              'resources': {'num_machines': 1, "num_mpiprocs_per_machine": 1}, 
              "max_wallclock_seconds": 360, #'queue_name': 'DevQ', 'withmpi': True, 'account': "tcphy113c"
          }}}
-#Commented code to check the step
-#for k in calc_engines.keys(): 
-#    if k not in SiestaBandsInputsGenerator.get_calc_types():
-#        raise ValueError("wrong key in calc_engines, "
-#           "check allowed keys doing SiestaRelaxationInputsGenerator.get_calc_types()")
 
 protocol="stringent"
-#if protocol not in SiestaBandsInputsGenerator.get_protocol_names():
-#   raise ValueError("wrong protocol name, "
-#           "check allowed protocols doing SiestaRelaxationInputsGenerator.get_calc_types()")
 
 #The authomatic generation of the high symmetry path (defining where to calculate the bands)
 #is usually performed by seekpath. Seekpath requires to change the input structure to follow
 #some convension. If the user doesn't want the cell to be touched, the "legacy" option
 #is available.
 path_generator = "seekpath"
-#if path_generator not in SiestaBandsInputsGenerator.get_path_generators():
-#   raise ValueError("wrong path_generator specification, "
-#           "check allowed path_generators doing SiestaRelaxationInputsGenerator.get_path_generators()")
 
 alat = 5.430  # angstrom
 cell = [

@@ -20,21 +20,10 @@ calc_engines = {
              'resources': {'num_machines': 1, "num_mpiprocs_per_machine": 1}, 
              "max_wallclock_seconds": 360, #'queue_name': 'DevQ', 'withmpi': True, 'account': "tcphy113c"
          }}}
-#Commented code to check the step
-#for k in calc_engines.keys(): 
-#    if k not in SiestaRelaxationInputsGenerator.get_calc_types():
-#        raise ValueError("wrong key in calc_engines, "
-#           "check allowed keys doing SiestaRelaxationInputsGenerator.get_calc_types()")
 
 protocol="stringent"
-#if protocol not in SiestaRelaxationInputsGenerator.get_protocol_names():
-#   raise ValueError("wrong protocol name, "
-#           "check allowed protocols doing SiestaRelaxationInputsGenerator.get_calc_types()")
 
 relaxation_type = "constant_volume"
-#if relaxation_type not in SiestaRelaxationInputsGenerator.get_relaxation_types():
-#   raise ValueError("wrong relaxation_type, "
-#           "check allowed relaxation_types doing SiestaRelaxationInputsGenerator.get_relaxation_types()")
 
 alat = 5.430  # angstrom
 cell = [
