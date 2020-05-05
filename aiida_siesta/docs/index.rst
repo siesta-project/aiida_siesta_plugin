@@ -72,8 +72,8 @@ SIESTA Workflows
    :maxdepth: 4
 
    workflows/base
+   workflows/bands_and_relax
    workflows/eos
-   workflows/bands
    workflows/stm
 ..
    

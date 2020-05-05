@@ -12,10 +12,22 @@ states, etc. The operations to be carried out are specified in a very
 flexible input format.  Accordingly, the **SiestaBaseWorkChain**
 has been designed to be able to run the most general SIESTA
 calculation, with support for most of the available options (limited
-only by corresponding support in the parser plugin). In addition, the
-workchain is able to restart a calculation in case of failure (lack of
+only by corresponding support in the parser plugin). The option specifications
+of the **SiestaBaseWorkChain** follow the conventions already presented in the
+:ref:`Siesta plugin <siesta-plugin-inputs>`. Therefore, for instance, the addition of
+the input keyword `bandskpoints` triggers the calculation of the band structure
+of a system, while it is sufficient to add the SIESTA MD keywords to the
+`parameters` input in order to perforem the relaxation of a structure.
+In addition to the Siesta plugin, however, the 
+workchain is able to automatically restart a calculation in case of failure (lack of
 electronic-structure or geometry relaxation convergence, termination due to
 walltime restrictions, etc).
+Therefore, the **SiestaBaseWorkChain** is the suggested tool to run Siesta calculations
+in the AiiDA framework. In fact, it retains the same level of flexibility of the most
+general Siesta calculation, but it adds robusness thanks to its ability
+to automatically respond to erros.
+Examples on the use of the **SiestaBaseWorkChain** are presented in the folder
+/aiida_siesta/examples/workflows.
 
 
 Supported Siesta versions
