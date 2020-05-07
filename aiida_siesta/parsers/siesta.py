@@ -276,106 +276,27 @@ class SiestaParser(Parser):
 
     def parse(self, **kwargs):
         """
-        Receives in input a dictionary of retrieved nodes.
-        Does all the logic here.
+        Receives in input a dictionary of retrieved nodes. Does all the logic here.
         """
         from aiida.engine import ExitCode
-
-        try:
-            output_folder = self.retrieved
-        except exceptions.NotExistent:
-            return self.exit_codes.ERROR_NO_RETRIEVED_FOLDER
-
-        #output_path is useless, but left it for the moment
-        #pylint: disable=unused-variable
-        output_path, messages_path, xml_path, json_path, bands_path = \
-            self._fetch_output_files(output_folder)
-
-        out_results = self._get_output_nodes(messages_path, xml_path, json_path, bands_path)
-
-        for line in out_results["warnings"]:
-            if u'GEOM_NOT_CONV' in line:
-                return self.exit_codes.GEOM_NOT_CONV
-            if u'SCF_NOT_CONV' in line:
-                return self.exit_codes.SCF_NOT_CONV
-
-        return ExitCode(0)
-
-    def _fetch_output_files(self, out_folder):
-        """
-        Checks the output folder for standard output and standard error
-        files, returns their absolute paths on success.
-
-        :param retrieved: A dictionary of retrieved nodes, as obtained from the
-          parser.
-        """
-        import os
-
-        list_of_files = out_folder._repository.list_object_names()
-
-        output_path = None
-        messages_path = None
-        xml_path = None
-        json_path = None
-        bands_path = None
-
-        if self.node.get_option('output_filename') in list_of_files:
-            output_path = os.path.join(
-                out_folder._repository._get_base_folder().abspath, self.node.get_option('output_filename')
-            )
-        else:
-            raise OutputParsingError("Output file not retrieved")
-
-        namexmlfile = str(self.node.get_option('prefix')) + ".xml"
-        if namexmlfile in list_of_files:
-            xml_path = os.path.join(out_folder._repository._get_base_folder().abspath, namexmlfile)
-        else:
-            raise OutputParsingError("Xml file not retrieved")
-
-        if self.node.process_class._JSON_FILE in list_of_files:
-            json_path = os.path.join(
-                out_folder._repository._get_base_folder().abspath, self.node.process_class._JSON_FILE
-            )
-
-        if self.node.process_class._MESSAGES_FILE in list_of_files:
-            messages_path = os.path.join(
-                out_folder._repository._get_base_folder().abspath, self.node.process_class._MESSAGES_FILE
-            )
-
-        namebandsfile = str(self.node.get_option('prefix')) + ".bands"
-        if namebandsfile in list_of_files:
-            bands_path = os.path.join(out_folder._repository._get_base_folder().abspath, namebandsfile)
-
-        if bands_path is None:
-            if "bandskpoints" in self.node.inputs:
-                raise OutputParsingError("bands file not retrieved")
-
-        return output_path, messages_path, xml_path, json_path, bands_path
-
-    def _get_output_nodes(self, messages_path, xml_path, json_path, bands_path):
-        """
-        Extracts output nodes from the standard output and standard error
-        files. (And XML and JSON files)
-        """
 
         parser_version = '1.0.1'
         parser_info = {}
         parser_info['parser_info'] = 'AiiDA Siesta Parser V. {}'.format(parser_version)
-        parser_info['parser_warnings'] = []
 
-        #No need for checks anymore
+        try:
+            output_folder = self.retrieved
+        except exceptions.NotExistent:
+            raise OutputParsingError("Folder not retrieved")
 
+        messages_path, xml_path, json_path, bands_path = \
+            self._fetch_output_files(output_folder)
+
+        if xml_path is None:
+            raise OutputParsingError("Xml file not retrieved")
         xmldoc = get_parsed_xml_doc(xml_path)
-
-        in_struc = self.node.inputs.structure
-
         result_dict = get_dict_from_xml_doc(xmldoc)
 
-        # Add timing information
-        #if json_path is None:
-        ###TO DO###
-        #Not sure how to implement what once was logger.info
-        #Also not sure I understood the purpose of this file
         if json_path is not None:
             from .json_time import get_timing_info
             global_time, timing_decomp = get_timing_info(json_path)
@@ -385,45 +306,44 @@ class SiestaParser(Parser):
                 result_dict["global_time"] = global_time
                 result_dict["timing_decomposition"] = timing_decomp
 
-        # Add warnings
         if messages_path is None:
             # Perhaps using an old version of Siesta
             warnings_list = ['WARNING: No MESSAGES file...']
         else:
             successful, warnings_list = self.get_warnings_from_file(messages_path)  #pylint: disable=unused-variable
-        ###TO DO### or maybe not
-        #How do we process this successfull booelan?
-
         result_dict["warnings"] = warnings_list
 
         # Add parser info dictionary
         parsed_dict = dict(list(result_dict.items()) + list(parser_info.items()))
 
         output_data = Dict(dict=parsed_dict)
-
         self.out('output_parameters', output_data)
 
         # If the structure has changed, save it
+        in_struc = self.node.inputs.structure
         if is_variable_geometry(xmldoc):
-            # Get the input structure to copy its site names,
-            # as the CML file traditionally contained only the
+            # Get the input structure to copy its site names, as the CML file traditionally contained only the
             # atomic symbols.
-            #
             struc = get_last_structure(xmldoc, in_struc)
-            # result_list.append((self.get_linkname_outstructure(),struc))
             self.out('output_structure', struc)
 
-        # Save forces and stress in an ArrayData object
         forces, stress = get_final_forces_and_stress(xmldoc)
-
         if forces is not None and stress is not None:
-            # from aiida.orm.nodes.array import ArrayData
             from aiida.orm import ArrayData
             arraydata = ArrayData()
             arraydata.set_array('forces', np.array(forces))
             arraydata.set_array('stress', np.array(stress))
-            # result_list.append((self.get_linkname_fs_and_stress(),arraydata))
             self.out('forces_and_stress', arraydata)
+
+        for line in parsed_dict["warnings"]:
+            if u'GEOM_NOT_CONV' in line:
+                return self.exit_codes.GEOM_NOT_CONV
+            if u'SCF_NOT_CONV' in line:
+                return self.exit_codes.SCF_NOT_CONV
+
+        if bands_path is None:
+            if "bandskpoints" in self.node.inputs:
+                return self.exit_codes.BANDS_FILE_NOT_PRODUCED
 
         # Parse band-structure information if available
         if bands_path is not None:
@@ -439,18 +359,48 @@ class SiestaParser(Parser):
             bandsparameters = Dict(dict={"kp_coordinates": coords})
             self.out('bands_parameters', bandsparameters)
 
-        return result_dict
+        return ExitCode(0)
+
+    def _fetch_output_files(self, out_folder):
+        """
+        Checks the output folder for standard output and standard error files, returns their absolute paths
+        or "None" in case the file is not found in the remote folder.
+        """
+        import os
+
+        list_of_files = out_folder._repository.list_object_names()
+
+        messages_path = None
+        xml_path = None
+        json_path = None
+        bands_path = None
+
+        namexmlfile = str(self.node.get_option('prefix')) + ".xml"
+        if namexmlfile in list_of_files:
+            xml_path = os.path.join(out_folder._repository._get_base_folder().abspath, namexmlfile)
+
+        if self.node.process_class._JSON_FILE in list_of_files:
+            json_path = os.path.join(
+                out_folder._repository._get_base_folder().abspath, self.node.process_class._JSON_FILE
+            )
+
+        if self.node.process_class._MESSAGES_FILE in list_of_files:
+            messages_path = os.path.join(
+                out_folder._repository._get_base_folder().abspath, self.node.process_class._MESSAGES_FILE
+            )
+
+        namebandsfile = str(self.node.get_option('prefix')) + ".bands"
+        if namebandsfile in list_of_files:
+            bands_path = os.path.join(out_folder._repository._get_base_folder().abspath, namebandsfile)
+
+        return messages_path, xml_path, json_path, bands_path
 
     def get_warnings_from_file(self, messages_path):
         """
-     Generates a list of warnings from the 'MESSAGES' file, which
-     contains a line per message, prefixed with 'INFO',
-     'WARNING' or 'FATAL'.
+     Generates a list of warnings from the 'MESSAGES' file, which  contains a line per message,
+     prefixed with 'INFO', 'WARNING' or 'FATAL'.
 
-     :param messages_path:
-
-     Returns a boolean indicating success (True) or failure (False)
-     and a list of strings.
+     Returns a boolean indicating success (True) or failure (False) and a list of strings.
      """
         f = open(messages_path)
         lines = f.read().split('\n')  # There will be a final '' element
@@ -467,8 +417,7 @@ class SiestaParser(Parser):
         if there_are_fatals:
             return False, lines[:-1]  # Remove last (empty) element
 
-        # Make sure that the job did finish (and was not interrupted
-        # externally)
+        # Make sure that the job did finish (and was not interrupted externally)
 
         normal_end = False
         for line in lines:
@@ -482,7 +431,6 @@ class SiestaParser(Parser):
 
         # (Insert any other "non-success" conditions before next section)
         # (e.g.: be very picky about (some) 'WARNING:' messages)
-
         # Return with success flag
 
         return True, lines[:-1]  # Remove last (empty) element

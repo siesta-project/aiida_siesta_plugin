@@ -106,7 +106,7 @@ class SiestaCalculation(CalcJob):
         spec.default_output_node = 'output_parameters'
 
         # Error handeling
-        spec.exit_code(100, 'ERROR_NO_RETRIEVED_FOLDER', message='Retrieved-folder data node could not be accessed.')
+        spec.exit_code(140, 'BANDS_FILE_NOT_PRODUCED', message='Bands analysis was requested, but file is not present')
         spec.exit_code(120, 'SCF_NOT_CONV', message='Calculation did not reach scf convergence!')
         spec.exit_code(130, 'GEOM_NOT_CONV', message='Calculation did not reach geometry convergence!')
 
