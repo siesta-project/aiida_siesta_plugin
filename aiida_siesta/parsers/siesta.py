@@ -116,12 +116,11 @@ def is_variable_geometry(xmldoc):
 
     itemlist = xmldoc.getElementsByTagName('module')
     for item in itemlist:
-        # Check the type of the first "step" module, which is a "geometry" one
-        if 'serial' in list(item.attributes.keys()):
-            if 'dictRef' in list(item.attributes.keys()):
-                if not item.attributes['dictRef'].value == "Single-Point":
-                    return True
-
+        # Check there is a step which is a "geometry optimization" one
+        if 'dictRef' in list(item.attributes.keys()):
+            if item.attributes['dictRef'].value == "Geom. Optim":
+                return True
+            
     return False
 
 
@@ -321,7 +320,7 @@ class SiestaParser(Parser):
 
         # If the structure has changed, save it
         in_struc = self.node.inputs.structure
-        if is_variable_geometry(xmldoc):
+        if parsed_dict['variable_geometry']:
             # Get the input structure to copy its site names, as the CML file traditionally contained only the
             # atomic symbols.
             struc = get_last_structure(xmldoc, in_struc)
