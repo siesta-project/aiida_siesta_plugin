@@ -13,7 +13,10 @@ from aiida.tools import get_explicit_kpoints_path
 def test_base(aiida_profile, fixture_sandbox, generate_calc_job, 
     fixture_code, generate_structure, generate_kpoints_mesh, generate_basis,
     generate_param, generate_psf_data, generate_psml_data, file_regression):
-    """Test that single calculation is submitted."""
+    """
+    Test that single calculation is submitted with the right content of the 
+    aiida.fdf file.
+    """
 
     entry_point_name = 'siesta.siesta'
 
@@ -109,7 +112,9 @@ def test_base(aiida_profile, fixture_sandbox, generate_calc_job,
 def test_blocked_keyword(aiida_profile, fixture_sandbox, generate_calc_job, 
     fixture_code, generate_structure, generate_kpoints_mesh, generate_basis,
     generate_param, generate_psf_data, generate_psml_data, file_regression):
-    """Test that single calculation is submitted."""
+    """
+    Test that the plugin is able to detect the forbidden keyword 'system-name'.
+    """
 
     entry_point_name = 'siesta.siesta'
 
@@ -147,7 +152,10 @@ def test_blocked_keyword(aiida_profile, fixture_sandbox, generate_calc_job,
 def test_bandslines(aiida_profile, fixture_sandbox, generate_calc_job,
     fixture_code, generate_structure, generate_kpoints_mesh, generate_basis,
     generate_param, generate_psf_data, generate_psml_data, file_regression):
-    """Test that single calculation is submitted."""
+    """
+    Test that the fdf file contains the correct information when a band structure
+    calculation is required by the user and he/she specifies a band path.
+    """
 
     entry_point_name = 'siesta.siesta'
 
@@ -200,7 +208,10 @@ def test_bandslines(aiida_profile, fixture_sandbox, generate_calc_job,
 def test_bandspoints(aiida_profile, fixture_sandbox, generate_calc_job,
     fixture_code, generate_structure, generate_kpoints_mesh, generate_basis,
     generate_param, generate_psf_data, generate_psml_data, file_regression):
-    """Test that single calculation is submitted."""
+    """
+    Test that the fdf file contains the correct information when a band structure
+    calculation is required by the user and he/she specifies single k-points.
+    """
 
     entry_point_name = 'siesta.siesta'
 

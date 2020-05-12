@@ -3,6 +3,7 @@ dmmixingweight 0.3
 dmnumberpulay 4
 dmtolerance 0.001
 electronictemperature 25 meV
+geometrymustconverge T
 latticeconstant 1.0 Ang
 maxscfiterations 50
 mdmaxcgdispl 0.1 Ang

@@ -99,7 +99,27 @@ aiida_siesta/examples/plugins/siesta.
   inserted in the database, so it should not be used in the input script
   (or removed before assigning the dictionary to the Dict
   instance). For legibility, a single dash ('-') is suggested, as in the
-  examples above.
+  examples above. Moreover, because the parameters are passed through a python 
+  dictionary, if, by mistake, the user passes the same keyword two (or more) 
+  times, only the last specification will be considered. For instance::
+
+     parameters = Dict(dict={
+       "mesh-cutoff": "200 Ry",
+       "mesh-cutoff": "300 Ry",
+       })
+
+  will set a `mesh-cutoff` of `300 Ry`. This is the opposite respect to what is done 
+  in the Siesta code, where the first assignment is the selected one. Please note that 
+  this applies also to keywords that correspond to the same fdf variable. For instance::
+
+     parameters = Dict(dict={
+       "mesh-cutoff": "200 Ry",
+       "Mesh-Cut-off": "300 Ry",
+       })
+
+  will run a calculation with `mesh-cutoff` equal to `300 Ry`, whithout raising any
+  error.
+
 
 .. |br| raw:: html
 

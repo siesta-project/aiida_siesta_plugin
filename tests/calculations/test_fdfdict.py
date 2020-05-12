@@ -1,8 +1,9 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 
 def test_fdfdict():
+    """
+    Simple test of a FDFDict class instance.
+    """
     from aiida_siesta.calculations.tkdict import FDFDict
 
     f = FDFDict()
