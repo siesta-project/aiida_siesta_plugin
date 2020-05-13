@@ -13,8 +13,21 @@ from aiida.common import exceptions
 #####################################################
 
 
-def text_to_array(text, dtype):
-    return np.array(text.replace("\n", "").split(), dtype=dtype)
+def get_min_split(output_path):
+    """
+    Extract the minimum split_norm parameter from output_path.
+    """
+
+    thefile = open(output_path)
+    lines = thefile.read().split('\n')
+
+    for line in lines:
+        if "split_norm" in line:
+            words = line.split()
+
+    min_sp = words[4]
+
+    return float(min_sp[:-1])
 
 
 def get_parsed_xml_doc(xml_path):
@@ -254,13 +267,16 @@ class SiestaParser(Parser):
         except exceptions.NotExistent:
             raise OutputParsingError("Folder not retrieved")
 
-        messages_path, xml_path, json_path, bands_path = \
+        output_path, messages_path, xml_path, json_path, bands_path = \
             self._fetch_output_files(output_folder)
 
         if xml_path is None:
             raise OutputParsingError("Xml file not retrieved")
         xmldoc = get_parsed_xml_doc(xml_path)
         result_dict = get_dict_from_xml_doc(xmldoc)
+
+        if output_path is None:
+            raise OutputParsingError("output file not retrieved")
 
         output_dict = dict(list(result_dict.items()) + list(parser_info.items()))
 
@@ -317,10 +333,14 @@ class SiestaParser(Parser):
             # errors. They might apprear as WARNING (therefore with succesful True) or FATAL
             # (succesful False)
             for line in from_message:
-                if u'GEOM_NOT_CONV' in line:
-                    return self.exit_codes.GEOM_NOT_CONV
+                if u'split options' in line:
+                    min_slit = get_min_split(output_path)
+                    self.logger.error("Error in split_norm option. Minimum value is {}".format(min_slit))
+                    return self.exit_codes.SPLIT_NORM
                 if u'SCF_NOT_CONV' in line:
                     return self.exit_codes.SCF_NOT_CONV
+                if u'GEOM_NOT_CONV' in line:
+                    return self.exit_codes.GEOM_NOT_CONV
 
         #Because no known error has been found, attempt to parse bands if requested
         if bands_path is None:
@@ -362,10 +382,15 @@ class SiestaParser(Parser):
 
         list_of_files = out_folder._repository.list_object_names()
 
+        output_path = None
         messages_path = None
         xml_path = None
         json_path = None
         bands_path = None
+
+        if self.node.get_option('output_filename') in list_of_files:
+            oufil = self.node.get_option('output_filename')
+            output_path = os.path.join(out_folder._repository._get_base_folder().abspath, oufil)
 
         namexmlfile = str(self.node.get_option('prefix')) + ".xml"
         if namexmlfile in list_of_files:
@@ -385,7 +410,7 @@ class SiestaParser(Parser):
         if namebandsfile in list_of_files:
             bands_path = os.path.join(out_folder._repository._get_base_folder().abspath, namebandsfile)
 
-        return messages_path, xml_path, json_path, bands_path
+        return output_path, messages_path, xml_path, json_path, bands_path
 
     def _get_warnings_from_file(self, messages_path):
         """

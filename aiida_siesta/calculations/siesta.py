@@ -95,9 +95,7 @@ class SiestaCalculation(CalcJob):
         spec.exit_code(450, 'SCF_NOT_CONV', message='Calculation did not reach scf convergence!')
         spec.exit_code(451, 'GEOM_NOT_CONV', message='Calculation did not reach geometry convergence!')
         spec.exit_code(350, 'UNEXPECTED_TERMINATION', message='Statement "Job completed" not detected, unknown error')
-
-
-#to DO SOON: improve help for pseudo.
+        spec.exit_code(449, 'SPLIT_NORM', message='Split_norm parameter too small')
 
     def prepare_for_submission(self, folder):  # noqa: MC0001  - is mccabe too complex funct -
         """

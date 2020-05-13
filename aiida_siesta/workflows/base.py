@@ -103,7 +103,11 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
         max_wallclock_seconds = self.ctx.inputs['metadata']['options']['max_wallclock_seconds']
         self.ctx.inputs['parameters']['max-walltime'] = max_wallclock_seconds
 
-    @process_handler(exit_codes=SiestaCalculation.exit_codes.GEOM_NOT_CONV)  #pylint: disable = no-member
+        #Note: To pass pure dictionaries or orm.Dict is the same as the WorkChain
+        #will take care of wrapping in orm.Dict the pure python dict before submission,
+        #however this influences the way you fix problems in the hadlers above.
+
+    @process_handler(priority=70, exit_codes=SiestaCalculation.exit_codes.GEOM_NOT_CONV)  #pylint: disable = no-member
     def handle_error_geom_not_conv(self, node):
         """
         At the end of the scf cycle, the geometry convergence was not
@@ -123,7 +127,7 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
 
         return ProcessHandlerReport(do_break=True)
 
-    @process_handler(exit_codes=SiestaCalculation.exit_codes.SCF_NOT_CONV)  #pylint: disable = no-member
+    @process_handler(priority=80, exit_codes=SiestaCalculation.exit_codes.SCF_NOT_CONV)  #pylint: disable = no-member
     def handle_error_scf_not_conv(self, node):
         """
         SCF convergence was not reached.  We need to restart from the
@@ -132,8 +136,50 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
 
         self.report('SiestaCalculation<{}> did not achieve scf convergence.'.format(node.pk))
 
+        #We need to take care here of passing the
+        #output geometry of old_calc to the new calculation
+        if node.outputs.output_parameters.attributes["variable_geometry"]:
+            self.ctx.inputs['structure'] = node.outputs.output_structure
+
         #The presence of `parent_calc_folder` triggers the real restart
         #meaning the copy of the .DM and the addition of use-saved-dm to the parameters
         self.ctx.inputs['parent_calc_folder'] = node.outputs.remote_folder
+
+        #Should be also increase the number of scf max iterations?
+
+        return ProcessHandlerReport(do_break=True)
+
+    @process_handler(priority=90, exit_codes=SiestaCalculation.exit_codes.SPLIT_NORM)  #pylint: disable = no-member
+    def handle_error_split_norm(self, node):
+        """
+        The split_norm parameter was too small.  We need to change it and restart.
+        The minimum split_norm is stored in the logs of the old calculation.
+        """
+
+        from aiida_siesta.calculations.tkdict import FDFDict
+
+        self.report('SiestaCalculation<{}> crashed with split_norm issue.'.format(node.pk))
+
+        #This error happens only at the beginning of the run, therefore no real restart needed.
+        #Just a new calculation with a new split_norm.
+        #self.ctx.inputs['parent_calc_folder'] = node.outputs.remote_folder
+
+        #Retrive the minimum split norm from the logs of failed calc.
+        logs = orm.Log.objects.get_logs_for(node)
+        for log in logs:
+            if "Error in split_norm option" in log.message:
+                mylog = log.message.split()
+        new_split_norm = float(mylog[-1]) + 0.001
+
+        #As we don't know if the user passed the split norm in "pao-split-norm" syntax
+        #(remember that every fdf variant is allowed), we translate the original dict in
+        #a FDFDict that is aware of the equivalent keyword. Therefore changing
+        #"pao-split-norm" ensures now to override the split norm option, even if
+        #it was passed with an equivalent format ("Pao-splitnorm" for instance).
+        #A FDFDict is not accepted in the context, but it is accepted in orm.Dict.
+        transl_basis = FDFDict(self.ctx.inputs["basis"])
+        transl_basis["pao-split-norm"] = new_split_norm
+        new_basis = orm.Dict(dict=transl_basis)
+        self.ctx.inputs["basis"] = new_basis.get_dict()
 
         return ProcessHandlerReport(do_break=True)
