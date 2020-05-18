@@ -13,21 +13,43 @@ from aiida.common import exceptions
 #####################################################
 
 
-def get_min_split(output_path):
+def is_polarization_problem(output_path):
     """
-    Extract the minimum split_norm parameter from output_path.
+    Check the presence of polarization errors.
     """
 
     thefile = open(output_path)
     lines = thefile.read().split('\n')
 
     for line in lines:
+        if "POLARIZATION: Iteration to find the polarization" in line:
+            return True
+
+    return False
+
+
+def get_min_split(output_path):
+    """
+    Check the presence of split_norm errors in the .out.
+    If present, extract the minimum split_norm parameter. If not, return None.
+    """
+
+    thefile = open(output_path)
+    lines = thefile.read().split('\n')
+
+    min_split_norm = None
+    split_norm_error = False
+
+    for line in lines:
         if "split_norm" in line:
+            split_norm_error = True
             words = line.split()
 
-    min_sp = words[4]
+    if split_norm_error:
+        min_sp = words[4]
+        min_split_norm = float(min_sp[:-1])
 
-    return float(min_sp[:-1])
+    return min_split_norm
 
 
 def get_parsed_xml_doc(xml_path):
@@ -334,9 +356,16 @@ class SiestaParser(Parser):
             # (succesful False)
             for line in from_message:
                 if u'split options' in line:
-                    min_slit = get_min_split(output_path)
-                    self.logger.error("Error in split_norm option. Minimum value is {}".format(min_slit))
-                    return self.exit_codes.SPLIT_NORM
+                    min_split = get_min_split(output_path)
+                    if min_split:
+                        self.logger.error("Error in split_norm option. Minimum value is {}".format(min_split))
+                        return self.exit_codes.SPLIT_NORM
+                if u'sys::die' in line:
+                    #This is the situation when siesta dies with no specified error
+                    #to be reported in "MESSAGES", unfortunately some interesting cases
+                    #are treated in this way, we explore the .out file for more insights.
+                    if is_polarization_problem(output_path):
+                        return self.exit_codes.BASIS_POLARIZ
                 if u'SCF_NOT_CONV' in line:
                     return self.exit_codes.SCF_NOT_CONV
                 if u'GEOM_NOT_CONV' in line:

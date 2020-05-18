@@ -96,6 +96,7 @@ class SiestaCalculation(CalcJob):
         spec.exit_code(451, 'GEOM_NOT_CONV', message='Calculation did not reach geometry convergence!')
         spec.exit_code(350, 'UNEXPECTED_TERMINATION', message='Statement "Job completed" not detected, unknown error')
         spec.exit_code(449, 'SPLIT_NORM', message='Split_norm parameter too small')
+        spec.exit_code(448, 'BASIS_POLARIZ', message='Problems in the polarization of a basis element')
 
     def prepare_for_submission(self, folder):  # noqa: MC0001  - is mccabe too complex funct -
         """
