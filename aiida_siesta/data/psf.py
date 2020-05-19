@@ -3,11 +3,8 @@ This module manages the PSF pseudopotentials in the local repository.
 """
 
 import io
-from aiida.common.utils import classproperty
 from aiida.common.files import md5_file
 from aiida.orm.nodes import SinglefileData
-
-PSFGROUP_TYPE = 'data.psf.family'
 
 
 def get_pseudos_from_structure(structure, family_name):
@@ -64,6 +61,7 @@ def upload_psf_family(folder, group_label, group_description, stop_if_existing=T
     from aiida.common import AIIDA_LOGGER as aiidalogger
     from aiida.common.exceptions import UniquenessError
     from aiida.orm.querybuilder import QueryBuilder
+    from aiida_siesta.groups.pseudos import PsfFamily
 
     if not os.path.isdir(folder):
         raise ValueError("folder must be a directory")
@@ -79,9 +77,7 @@ def upload_psf_family(folder, group_label, group_description, stop_if_existing=T
     nfiles = len(files)
 
     automatic_user = orm.User.objects.get_default()
-    group, group_created = orm.Group.objects.get_or_create(
-        label=group_label, type_string=PSFGROUP_TYPE, user=automatic_user
-    )
+    group, group_created = PsfFamily.objects.get_or_create(label=group_label, user=automatic_user)
 
     if group.user.email != automatic_user.email:
         raise UniquenessError(
@@ -257,10 +253,6 @@ class PsfData(SinglefileData):
 
         return (pseudos[0], False)
 
-    @classproperty
-    def psffamily_type_string(cls):  # pylint: disable=no-self-argument,no-self-use
-        return PSFGROUP_TYPE
-
     def store(self, *args, **kwargs):  # pylint: disable=arguments-differ
         """
         Store the node, reparsing the file so that the md5 and the element
@@ -327,11 +319,11 @@ class PsfData(SinglefileData):
         """
         Get the list of all psf family names to which the pseudo belongs
         """
-        from aiida.orm import Group
         from aiida.orm import QueryBuilder
+        from aiida_siesta.groups.pseudos import PsfFamily
 
         query = QueryBuilder()
-        query.append(Group, filters={'type_string': {'==': self.psffamily_type_string}}, tag='group', project='label')
+        query.append(PsfFamily, tag='group', project='label')
         query.append(PsfData, filters={'id': {'==': self.id}}, with_group='group')
 
         return [_[0] for _ in query.all()]
@@ -388,9 +380,9 @@ class PsfData(SinglefileData):
         """
         Return the PsfFamily group with the given name.
         """
-        from aiida.orm import Group
+        from aiida_siesta.groups.pseudos import PsfFamily
 
-        return Group.get(label=group_label, type_string=cls.psffamily_type_string)
+        return PsfFamily.get(label=group_label)
 
     @classmethod
     def get_psf_groups(cls, filter_elements=None, user=None):
@@ -405,14 +397,12 @@ class PsfData(SinglefileData):
                If defined, it should be either a DbUser instance, or a string
                for the username (that is, the user email).
         """
-        from aiida.orm import Group
         from aiida.orm import QueryBuilder
         from aiida.orm import User
+        from aiida_siesta.groups.pseudos import PsfFamily
 
         query = QueryBuilder()
-        filters = {'type_string': {'==': cls.psffamily_type_string}}
-
-        query.append(Group, filters=filters, tag='group', project='*')
+        query.append(PsfFamily, tag='group', project='*')
 
         if user:
             query.append(User, filters={'email': {'==': user}}, with_group='group')
@@ -423,6 +413,6 @@ class PsfData(SinglefileData):
         if filter_elements is not None:
             query.append(PsfData, filters={'attributes.element': {'in': filter_elements}}, with_group='group')
 
-        query.order_by({Group: {'id': 'asc'}})
+        query.order_by({PsfFamily: {'id': 'asc'}})
 
         return [_[0] for _ in query.all()]
