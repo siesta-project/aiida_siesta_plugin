@@ -328,8 +328,13 @@ class PsfData(SinglefileData):
         Get the list of all psf family names to which the pseudo belongs
         """
         from aiida.orm import Group
+        from aiida.orm import QueryBuilder
 
-        return [_.name for _ in Group.query(nodes=self, type_string=self.psffamily_type_string)]
+        query = QueryBuilder()
+        query.append(Group, filters={'type_string': {'==': self.psffamily_type_string}}, tag='group', project='label')
+        query.append(PsfData, filters={'id': {'==': self.id}}, with_group='group')
+
+        return [_[0] for _ in query.all()]
 
     @property
     def element(self):
@@ -401,24 +406,23 @@ class PsfData(SinglefileData):
                for the username (that is, the user email).
         """
         from aiida.orm import Group
+        from aiida.orm import QueryBuilder
+        from aiida.orm import User
 
-        group_query_params = {"type_string": cls.psffamily_type_string}
+        query = QueryBuilder()
+        filters = {'type_string': {'==': cls.psffamily_type_string}}
 
-        if user is not None:
-            group_query_params['user'] = user
+        query.append(Group, filters=filters, tag='group', project='*')
+
+        if user:
+            query.append(User, filters={'email': {'==': user}}, with_group='group')
 
         if isinstance(filter_elements, str):
             filter_elements = [filter_elements]
 
         if filter_elements is not None:
-            actual_filter_elements = {_.capitalize() for _ in filter_elements}
+            query.append(PsfData, filters={'attributes.element': {'in': filter_elements}}, with_group='group')
 
-            group_query_params['node_attributes'] = {'element': actual_filter_elements}
+        query.order_by({Group: {'id': 'asc'}})
 
-        all_psf_groups = Group.query(**group_query_params)
-
-        groups = [(g.name, g) for g in all_psf_groups]
-        # Sort by name
-        groups.sort()
-        # Return the groups, without name
-        return [_[1] for _ in groups]
+        return [_[0] for _ in query.all()]
