@@ -199,11 +199,9 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
         return ProcessHandlerReport(do_break=True)
 
     @process_handler(priority=89, exit_codes=SiestaCalculation.exit_codes.BASIS_POLARIZ)  #pylint: disable = no-member
-    def handle_error_basis_pol(self, node):
+    def handle_error_basis_pol(self, node):  #pylint: disable = unused-argument
         """
         For the moment, we don't handle this error, but we terminate the WorkChain with
         a specific error code.
         """
-        from aiida.engine import ExitCode
-
         return ProcessHandlerReport(True, self.exit_codes.ERROR_BASIS_POL)
