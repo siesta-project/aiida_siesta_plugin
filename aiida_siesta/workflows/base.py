@@ -45,6 +45,7 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
         spec.input('options', valid_type=orm.Dict)
 
         spec.outline(
+            cls.preprocess,
             cls.setup,
             cls.prepare_inputs,
             while_(cls.should_run_process)(
@@ -52,6 +53,7 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
                 cls.inspect_process,
             ),
             cls.results,
+            cls.postprocess,
         )
 
         spec.output('forces_and_stress', valid_type=orm.ArrayData, required=False)
@@ -59,6 +61,13 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
         spec.output('output_structure', valid_type=orm.StructureData, required=False)
         spec.output('output_parameters', valid_type=orm.Dict)
         spec.output('remote_folder', valid_type=orm.RemoteData)
+
+        spec.exit_code(403, 'ERROR_BASIS_POL', message='Basis polarization problem.')
+
+    def preprocess(self):
+        """
+        Here a higher level WorkChain could put preprocesses
+        """
 
     def prepare_inputs(self):
         """
@@ -106,6 +115,11 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
         #Note: To pass pure dictionaries or orm.Dict is the same as the WorkChain
         #will take care of wrapping in orm.Dict the pure python dict before submission,
         #however this influences the way you fix problems in the hadlers above.
+
+    def postprocess(self):
+        """
+        Here a higher level WorkChain could put postprocesses
+        """
 
     @process_handler(priority=70, exit_codes=SiestaCalculation.exit_codes.GEOM_NOT_CONV)  #pylint: disable = no-member
     def handle_error_geom_not_conv(self, node):
@@ -183,3 +197,13 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
         self.ctx.inputs["basis"] = new_basis.get_dict()
 
         return ProcessHandlerReport(do_break=True)
+
+    @process_handler(priority=89, exit_codes=SiestaCalculation.exit_codes.BASIS_POLARIZ)  #pylint: disable = no-member
+    def handle_error_basis_pol(self, node):
+        """
+        For the moment, we don't handle this error, but we terminate the WorkChain with
+        a specific error code.
+        """
+        from aiida.engine import ExitCode
+
+        return ProcessHandlerReport(True, self.exit_codes.ERROR_BASIS_POL)
