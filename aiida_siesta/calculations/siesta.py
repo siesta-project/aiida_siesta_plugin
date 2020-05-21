@@ -176,6 +176,11 @@ class SiestaCalculation(CalcJob):
                         "You cannot specify explicitly the '{}' flag in the "
                         "input parameters".format(input_params.get_last_key(key))
                     )
+                if "pao" in key:
+                    raise InputValidationError(
+                        "You can not put PAO options in the parameters input port "
+                        "they belong to the basis input port "
+                    )
 
         input_params.update({'system-name': self.inputs.metadata.options.prefix})
         input_params.update({'system-label': self.inputs.metadata.options.prefix})

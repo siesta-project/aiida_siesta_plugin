@@ -122,7 +122,8 @@ def test_blocked_keyword(aiida_profile, fixture_sandbox, generate_calc_job,
     psml = generate_psml_data('Si')
 
     parameters = generate_param()
-    parameters.set_attribute('system-name',"whatever")
+    #parameters.set_attribute('system-name',"whatever")
+    parameters.set_attribute('pao-sp',"whatever")
 
     inputs = {
         'code': fixture_code(entry_point_name),

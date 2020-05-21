@@ -185,14 +185,26 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
                 mylog = log.message.split()
         new_split_norm = float(mylog[-1]) + 0.001
 
-        #As we don't know if the user passed the split norm in "pao-split-norm" syntax
-        #(remember that every fdf variant is allowed), we translate the original dict in
-        #a FDFDict that is aware of the equivalent keyword. Therefore changing
-        #"pao-split-norm" ensures now to override the split norm option, even if
-        #it was passed with an equivalent format ("Pao-splitnorm" for instance).
+        #We want to understand the presence of "pao-split-norm" in input and:
+        #1) if present, we change its value to the minimum allowed
+        #2) if not present, we activate pao-SplitTailNorm
+        #As we don't know in which sintax the user passed "pao-split-norm (remember
+        #that every fdf variant is allowed), we translate the original dict in
+        #a FDFDict that is aware of the equivalent keyword.
         #A FDFDict is not accepted in the context, but it is accepted in orm.Dict.
         transl_basis = FDFDict(self.ctx.inputs["basis"])
-        transl_basis["pao-split-norm"] = new_split_norm
+        glob_split_norm = False
+        for key in transl_basis:
+            if key == "paosplitnorm":
+                glob_split_norm = True
+
+        if glob_split_norm:
+            self.report('Resetting the pao-split-norm global value')
+            transl_basis["pao-split-norm"] = new_split_norm
+        else:
+            self.report('Adding pao-SplitTailNorm to solve the split_norm problem')
+            transl_basis["pao-SplitTailNorm"] = True
+
         new_basis = orm.Dict(dict=transl_basis)
         self.ctx.inputs["basis"] = new_basis.get_dict()
 
