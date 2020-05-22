@@ -55,6 +55,10 @@
         "aiida.cmdline.data": [
             "psf = aiida_siesta.commands.data_psf:psfdata",
             "psml = aiida_siesta.commands.data_psml:psmldata"
-        ]
+        ],
+	"aiida.groups": [
+      	    "data.psf.family = aiida_siesta.groups.pseudos:PsfFamily",
+            "data.psml.family = aiida_siesta.groups.pseudos:PsmlFamily"
+    	]
     }
 }
