@@ -36,7 +36,7 @@ class STMCalculation(CalcJob):
         spec.input(
             'spin_option',
             valid_type=orm.Str,
-            default=orm.Str("q"),
+            default=lambda: orm.Str("q"),
             help='Spin option, follows plstm sintax: '
             '"q" no spin, "s" total spin, "x","y","z" the three '
             'spin components (only available in non-collinear case)'
