@@ -7,22 +7,49 @@ from aiida.common import exceptions
 
 # See the LICENSE.txt and AUTHORS.txt files.
 
-# TO DO Get modules metadata from setup script.
-
-# List of scalar values from CML to be transferred to AiiDA
-#pylint: disable=invalid-name
-standard_output_list = [
-    'siesta:FreeE', 'siesta:E_KS', 'siesta:Ebs', 'siesta:E_Fermi', 'siesta:stot'
-]  ## leave svec for later
-
 #####################################################
 # BEGINNING OF SET OF AUXILIARY FUNCTIONS           #
 # They should probably be put in a separate module  #
 #####################################################
 
 
-def text_to_array(text, dtype):
-    return np.array(text.replace("\n", "").split(), dtype=dtype)
+def is_polarization_problem(output_path):
+    """
+    Check the presence of polarization errors.
+    """
+
+    thefile = open(output_path)
+    lines = thefile.read().split('\n')
+
+    for line in lines:
+        if "POLARIZATION: Iteration to find the polarization" in line:
+            return True
+
+    return False
+
+
+def get_min_split(output_path):
+    """
+    Check the presence of split_norm errors in the .out.
+    If present, extract the minimum split_norm parameter. If not, return None.
+    """
+
+    thefile = open(output_path)
+    lines = thefile.read().split('\n')
+
+    min_split_norm = None
+    split_norm_error = False
+
+    for line in lines:
+        if "split_norm" in line:
+            split_norm_error = True
+            words = line.split()
+
+    if split_norm_error:
+        min_sp = words[4]
+        min_split_norm = float(min_sp[:-1])
+
+    return min_split_norm
 
 
 def get_parsed_xml_doc(xml_path):
@@ -33,48 +60,41 @@ def get_parsed_xml_doc(xml_path):
         xmldoc = minidom.parse(xml_path)
     except EOFError:
         raise OutputParsingError("Faulty Xml File")
-        #xmldoc = None
-
-    # We might want to add some extra consistency checks
 
     return xmldoc
 
 
 def get_dict_from_xml_doc(xmldoc):
 
+    # List of scalar values from CML to be transferred to AiiDA
+    #pylint: disable=invalid-name
+    standard_output_list = ['siesta:FreeE', 'siesta:E_KS', 'siesta:Ebs', 'siesta:E_Fermi', 'siesta:stot']
+
     # Scalar items
-
     scalar_dict = {}
-
     # Metadata items
     itemlist = xmldoc.getElementsByTagName('metadata')
+    # Transform metagata in scalar
     for item in itemlist:
-        #
-        # Maybe make sure that 'name' does not contain
-        # forbidden characters
-        #
+        # Maybe make sure that 'name' does not contain forbidden characters
         name = item.attributes['name'].value
         value = item.attributes['content'].value
         scalar_dict[name] = value
 
-    # Scalar output items
-    # From the last "SCF Finalization" module
-    # This means that we do not record non-converged values
-
+    # Look for "SCF Finalization" module, present if at least one scf converged
     itemlist = xmldoc.getElementsByTagName('module')
-
     scf_final = None
     for item in itemlist:
         if 'title' in list(item.attributes.keys()):
             # Get last scf finalization module
             if item.attributes['title'].value == "SCF Finalization":
                 scf_final = item
+    # In a geom_optimization run, we catch the data of last run even if the
+    # geom_optimization failed
 
     if scf_final is not None:
-
         # wrapped in <property> elements with a <scalar> child
         props = scf_final.getElementsByTagName('property')
-
         for prop in props:
             if 'dictRef' in list(prop.attributes.keys()):
                 name = prop.attributes['dictRef'].value
@@ -86,17 +106,15 @@ def get_dict_from_xml_doc(xmldoc):
                     unit_name = units[loc_colon + 1:]
                     loc_colon = name.find(':')
                     reduced_name = name[loc_colon + 1:]
-
                     # Put units in separate entries, as in QE
                     # Use numbers (floats) instead of strings
-
                     scalar_dict[reduced_name] = float(value)
                     scalar_dict[reduced_name + "_units"] = unit_name
 
+    #Detect if it was a geometry optimization (relax) or a single point calculation
     scalar_dict['variable_geometry'] = is_variable_geometry(xmldoc)
-    #
+
     # Sizes of orbital set (and non-zero interactions), and mesh
-    #
     no_u, nnz, mesh = get_sizes_info(xmldoc)
     if no_u is not None:
         scalar_dict['no_u'] = no_u
@@ -116,11 +134,10 @@ def is_variable_geometry(xmldoc):
 
     itemlist = xmldoc.getElementsByTagName('module')
     for item in itemlist:
-        # Check the type of the first "step" module, which is a "geometry" one
-        if 'serial' in list(item.attributes.keys()):
-            if 'dictRef' in list(item.attributes.keys()):
-                if not item.attributes['dictRef'].value == "Single-Point":
-                    return True
+        # Check there is a step which is a "geometry optimization" one
+        if 'dictRef' in list(item.attributes.keys()):
+            if item.attributes['dictRef'].value == "Geom. Optim":
+                return True
 
     return False
 
@@ -157,10 +174,8 @@ def get_sizes_info(xmldoc):
 def get_last_structure(xmldoc, input_structure):
 
     itemlist = xmldoc.getElementsByTagName('module')
-    #
-    # Use the last "geometry" module, and not the
-    # "Finalization" one.
 
+    # Use the last "geometry" module, and not the "Finalization" one.
     finalmodule = None
     for item in itemlist:
         # Get a "geometry" module by the criteria:
@@ -169,13 +184,10 @@ def get_last_structure(xmldoc, input_structure):
                 if item.attributes['dictRef'].value != "SCF":
                     finalmodule = item
 
-    # In case there is no appropriate data, fall back and
-    # at least return the initial structure
-    # (this should not be necessary, as the initial Geometry module
-    # is opened very soon)
+    # In case there is no appropriate data, fall back and at least return the initial structure
+    # (this should not be necessary, as the initial Geometry module is opened very soon)
     if finalmodule is None:
-        #self.logger.warning("Returning input structure in output_structure node")
-        return input_structure
+        return False, input_structure
 
     atoms = finalmodule.getElementsByTagName('atom')
     cellvectors = finalmodule.getElementsByTagName('latticeVector')
@@ -194,28 +206,24 @@ def get_last_structure(xmldoc, input_structure):
         data = latt.childNodes[0].data.split()
         cell.append([float(s) for s in data])
 
-    # Generally it is better to pass the input structure
-    # and reset the data, since site 'names' are not handled by
-    # the CML file (at least not in Siesta versions <= 4.0)
-
+    # Generally it is better to pass the input structure and reset the data, since site
+    # 'names' are not handled by the CML file (at least not in Siesta versions <= 4.0)
     stru = input_structure.clone()
     stru.reset_cell(cell)
     new_pos = [atom[1] for atom in atomlist]
     stru.reset_sites_positions(new_pos)
 
-    return stru
+    return True, stru
 
 
 def get_final_forces_and_stress(xmldoc):
     #
     # Extracts final forces and stress as lists of lists...
-    #
     itemlist = xmldoc.getElementsByTagName('module')
 
     # Note: In modern versions of Siesta, forces and stresses
     # are written in the "SCF Finalization" modules at the end
     # of each geometry step.
-
     # Search for the last one of those modules
 
     scf_final = None
@@ -261,53 +269,143 @@ def get_final_forces_and_stress(xmldoc):
 ##################################
 
 
-class SiestaOutputParsingError(OutputParsingError):
-    pass
-
-
-class SiestaCMLParsingError(OutputParsingError):
-    pass
-
-
 class SiestaParser(Parser):
     """
     Parser for the output of Siesta.
     """
 
-    def parse(self, **kwargs):
+    def parse(self, **kwargs):  # noqa: MC0001  - is mccabe too complex funct -
         """
-        Receives in input a dictionary of retrieved nodes.
-        Does all the logic here.
+        Receives in input a dictionary of retrieved nodes. Does all the logic here.
         """
         from aiida.engine import ExitCode
+
+        parser_version = '1.0.1'
+        parser_info = {}
+        parser_info['parser_info'] = 'AiiDA Siesta Parser V. {}'.format(parser_version)
 
         try:
             output_folder = self.retrieved
         except exceptions.NotExistent:
-            return self.exit_codes.ERROR_NO_RETRIEVED_FOLDER
+            raise OutputParsingError("Folder not retrieved")
 
-        #output_path is useless, but left it for the moment
-        #pylint: disable=unused-variable
         output_path, messages_path, xml_path, json_path, bands_path = \
             self._fetch_output_files(output_folder)
 
-        out_results = self._get_output_nodes(messages_path, xml_path, json_path, bands_path)
+        if xml_path is None:
+            raise OutputParsingError("Xml file not retrieved")
+        xmldoc = get_parsed_xml_doc(xml_path)
+        result_dict = get_dict_from_xml_doc(xmldoc)
 
-        for line in out_results["warnings"]:
-            if u'GEOM_NOT_CONV' in line:
-                return self.exit_codes.GEOM_NOT_CONV
-            if u'SCF_NOT_CONV' in line:
-                return self.exit_codes.SCF_NOT_CONV
+        if output_path is None:
+            raise OutputParsingError("output file not retrieved")
+
+        output_dict = dict(list(result_dict.items()) + list(parser_info.items()))
+
+        warnings_list = []
+
+        if json_path is not None:
+            from .json_time import get_timing_info
+            global_time, timing_decomp = get_timing_info(json_path)
+            if global_time is None:
+                warnings_list.append(["Cannot fully parse the time.json file"])
+            else:
+                output_dict["global_time"] = global_time
+                output_dict["timing_decomposition"] = timing_decomp
+
+        have_errors_to_analyse = False
+        if messages_path is None:
+            # Perhaps using an old version of Siesta
+            warnings_list.append(['WARNING: No MESSAGES file, could not check if calculation terminated correctly'])
+        else:
+            have_errors_to_analyse = True
+            #succesful when "INFO: Job completed" is present in message files
+            succesful, from_message = self._get_warnings_from_file(messages_path)
+            warnings_list.append(from_message)
+        output_dict["warnings"] = warnings_list
+
+        # An output_parametrs port is always return, even if only parser's info are present
+        output_data = Dict(dict=output_dict)
+        self.out('output_parameters', output_data)
+
+        # If the structure has changed, save it
+        if output_dict['variable_geometry']:
+            in_struc = self.node.inputs.structure
+            # The next function never fails. If problems arise, the initial structure is
+            # returned. The input structure is also necessary because the CML file
+            # traditionally contains only the atomic symbols and not the site names.
+            success, struc = get_last_structure(xmldoc, in_struc)
+            if not success:
+                self.logger.warning("Problem in parsing final structure, returning inp structure in output_structure")
+            self.out('output_structure', struc)
+
+        # Attempt to parse forces and stresses. In case of failure "None" is returned.
+        # Therefore the function never crashes
+        forces, stress = get_final_forces_and_stress(xmldoc)
+        if forces is not None and stress is not None:
+            from aiida.orm import ArrayData
+            arraydata = ArrayData()
+            arraydata.set_array('forces', np.array(forces))
+            arraydata.set_array('stress', np.array(stress))
+            self.out('forces_and_stress', arraydata)
+
+        # Error analysis
+        if have_errors_to_analyse:
+            # No metter if "INFO: Job completed" is present (succesfull) or not, we check for known
+            # errors. They might apprear as WARNING (therefore with succesful True) or FATAL
+            # (succesful False)
+            for line in from_message:
+                if u'split options' in line:
+                    min_split = get_min_split(output_path)
+                    if min_split:
+                        self.logger.error("Error in split_norm option. Minimum value is {}".format(min_split))
+                        return self.exit_codes.SPLIT_NORM
+                if u'sys::die' in line:
+                    #This is the situation when siesta dies with no specified error
+                    #to be reported in "MESSAGES", unfortunately some interesting cases
+                    #are treated in this way, we explore the .out file for more insights.
+                    if is_polarization_problem(output_path):
+                        return self.exit_codes.BASIS_POLARIZ
+                if u'SCF_NOT_CONV' in line:
+                    return self.exit_codes.SCF_NOT_CONV
+                if u'GEOM_NOT_CONV' in line:
+                    return self.exit_codes.GEOM_NOT_CONV
+
+        #Because no known error has been found, attempt to parse bands if requested
+        if bands_path is None:
+            if "bandskpoints" in self.node.inputs:
+                return self.exit_codes.BANDS_FILE_NOT_PRODUCED
+        # Parse band-structure information if available
+        if bands_path is not None:
+            #bands, coords = self._get_bands(bands_path)
+            bands = self._get_bands(bands_path)
+            from aiida.orm import BandsData
+            arraybands = BandsData()
+            bkp = self.node.inputs.bandskpoints  #Temporary workaround due to a bug
+            #bkp._set_reciprocal_cell()         #in KpointData (issue #2749)
+            arraybands.set_kpoints(bkp.get_kpoints(cartesian=True))
+            arraybands.labels = bkp.labels
+            arraybands.set_bands(bands, units="eV")
+            self.out('bands', arraybands)
+            #bandsparameters = Dict(dict={"kp_coordinates": coords})
+            #self.out('bands_parameters', bandsparameters)
+
+        #At the very end, return a particular exit code if "INFO: Job completed"
+        #was not present in the MESSAGES file, but no known error is detected.
+        if have_errors_to_analyse:
+            if not succesful:
+                self.logger.error(
+                    'The calculation finished without "INFO: Job completed", but no '
+                    'error could be processed. Might be that the calculation was killed externally'
+                )
+                return self.exit_codes.UNEXPECTED_TERMINATION
 
         return ExitCode(0)
 
     def _fetch_output_files(self, out_folder):
         """
-        Checks the output folder for standard output and standard error
-        files, returns their absolute paths on success.
-
-        :param retrieved: A dictionary of retrieved nodes, as obtained from the
-          parser.
+        Checks the output folder for standard output and standard error files, returns their absolute paths
+        or "None" in case the file is not found in the remote folder.
         """
         import os
 
@@ -320,17 +418,12 @@ class SiestaParser(Parser):
         bands_path = None
 
         if self.node.get_option('output_filename') in list_of_files:
-            output_path = os.path.join(
-                out_folder._repository._get_base_folder().abspath, self.node.get_option('output_filename')
-            )
-        else:
-            raise OutputParsingError("Output file not retrieved")
+            oufil = self.node.get_option('output_filename')
+            output_path = os.path.join(out_folder._repository._get_base_folder().abspath, oufil)
 
         namexmlfile = str(self.node.get_option('prefix')) + ".xml"
         if namexmlfile in list_of_files:
             xml_path = os.path.join(out_folder._repository._get_base_folder().abspath, namexmlfile)
-        else:
-            raise OutputParsingError("Xml file not retrieved")
 
         if self.node.process_class._JSON_FILE in list_of_files:
             json_path = os.path.join(
@@ -346,154 +439,47 @@ class SiestaParser(Parser):
         if namebandsfile in list_of_files:
             bands_path = os.path.join(out_folder._repository._get_base_folder().abspath, namebandsfile)
 
-        if bands_path is None:
-            if "bandskpoints" in self.node.inputs:
-                raise OutputParsingError("bands file not retrieved")
-
         return output_path, messages_path, xml_path, json_path, bands_path
 
-    def _get_output_nodes(self, messages_path, xml_path, json_path, bands_path):
+    def _get_warnings_from_file(self, messages_path):
         """
-        Extracts output nodes from the standard output and standard error
-        files. (And XML and JSON files)
-        """
+     Generates a list of warnings from the 'MESSAGES' file, which  contains a line per message,
+     prefixed with 'INFO', 'WARNING' or 'FATAL'.
 
-        parser_version = '1.0.1'
-        parser_info = {}
-        parser_info['parser_info'] = 'AiiDA Siesta Parser V. {}'.format(parser_version)
-        parser_info['parser_warnings'] = []
-
-        #No need for checks anymore
-
-        xmldoc = get_parsed_xml_doc(xml_path)
-
-        in_struc = self.node.inputs.structure
-
-        result_dict = get_dict_from_xml_doc(xmldoc)
-
-        # Add timing information
-        #if json_path is None:
-        ###TO DO###
-        #Not sure how to implement what once was logger.info
-        #Also not sure I understood the purpose of this file
-        if json_path is not None:
-            from .json_time import get_timing_info
-            global_time, timing_decomp = get_timing_info(json_path)
-            if global_time is None:
-                raise OutputParsingError("Cannot fully parse the time.json file")
-            else:
-                result_dict["global_time"] = global_time
-                result_dict["timing_decomposition"] = timing_decomp
-
-        # Add warnings
-        if messages_path is None:
-            # Perhaps using an old version of Siesta
-            warnings_list = ['WARNING: No MESSAGES file...']
-        else:
-            successful, warnings_list = self.get_warnings_from_file(messages_path)  #pylint: disable=unused-variable
-        ###TO DO### or maybe not
-        #How do we process this successfull booelan?
-
-        result_dict["warnings"] = warnings_list
-
-        # Add parser info dictionary
-        parsed_dict = dict(list(result_dict.items()) + list(parser_info.items()))
-
-        output_data = Dict(dict=parsed_dict)
-
-        self.out('output_parameters', output_data)
-
-        # If the structure has changed, save it
-        if is_variable_geometry(xmldoc):
-            # Get the input structure to copy its site names,
-            # as the CML file traditionally contained only the
-            # atomic symbols.
-            #
-            struc = get_last_structure(xmldoc, in_struc)
-            # result_list.append((self.get_linkname_outstructure(),struc))
-            self.out('output_structure', struc)
-
-        # Save forces and stress in an ArrayData object
-        forces, stress = get_final_forces_and_stress(xmldoc)
-
-        if forces is not None and stress is not None:
-            # from aiida.orm.nodes.array import ArrayData
-            from aiida.orm import ArrayData
-            arraydata = ArrayData()
-            arraydata.set_array('forces', np.array(forces))
-            arraydata.set_array('stress', np.array(stress))
-            # result_list.append((self.get_linkname_fs_and_stress(),arraydata))
-            self.out('forces_and_stress', arraydata)
-
-        # Parse band-structure information if available
-        if bands_path is not None:
-            bands, coords = self.get_bands(bands_path)
-            from aiida.orm import BandsData
-            arraybands = BandsData()
-            f = self.node.inputs.bandskpoints  #Temporary workaround due to a bug
-            #f._set_reciprocal_cell()         #in KpointData (issue #2749)
-            arraybands.set_kpoints(f.get_kpoints(cartesian=True))
-            arraybands.labels = f.labels
-            arraybands.set_bands(bands, units="eV")
-            self.out('bands', arraybands)
-            bandsparameters = Dict(dict={"kp_coordinates": coords})
-            self.out('bands_parameters', bandsparameters)
-
-        return result_dict
-
-    def get_warnings_from_file(self, messages_path):
-        """
-     Generates a list of warnings from the 'MESSAGES' file, which
-     contains a line per message, prefixed with 'INFO',
-     'WARNING' or 'FATAL'.
-
-     :param messages_path:
-
-     Returns a boolean indicating success (True) or failure (False)
-     and a list of strings.
+     Returns a boolean indicating success (True) or failure (False) and a list of strings.
      """
-        f = open(messages_path)
-        lines = f.read().split('\n')  # There will be a final '' element
+        thefile = open(messages_path)
+        lines = thefile.read().split('\n')  # There will be a final '' element
 
         import re
 
         # Search for 'FATAL:' messages, log them, and return immediately
-        there_are_fatals = False
+        normal_end = False
         for line in lines:
             if re.match('^FATAL:.*$', line):
                 self.logger.error(line)
-                there_are_fatals = True
-
-        if there_are_fatals:
-            return False, lines[:-1]  # Remove last (empty) element
-
-        # Make sure that the job did finish (and was not interrupted
-        # externally)
-
-        normal_end = False
-        for line in lines:
+            if re.match('^WARNING:.*$', line):
+                self.logger.warning(line)
             if re.match('^INFO: Job completed.*$', line):
                 normal_end = True
 
-        if normal_end is False:
-            lines[-1] = 'FATAL: ABNORMAL_EXTERNAL_TERMINATION'
-            self.logger.error("Calculation interrupted externally")
-            return False, lines
+        #If there is "INFO: Job completed" we return True and possible warnings
+        #in a list (lines)
+        if normal_end:
+            return True, lines[:-1]
 
-        # (Insert any other "non-success" conditions before next section)
-        # (e.g.: be very picky about (some) 'WARNING:' messages)
+        #Otherwise we return False and possible FATAL, WARNING in a list. If
+        #no FATAL, WARNING are present, this means that MESSAGES file is eampty.
+        #Therefore the list is eampty but the Bool knows that something was wrong.
+        return False, lines[:-1]
 
-        # Return with success flag
-
-        return True, lines[:-1]  # Remove last (empty) element
-
-    def get_bands(self, bands_path):
+    def _get_bands(self, bands_path):
         # The parsing is different depending on whether I have Bands or Points.
         # I recognise these two situations by looking at bandskpoints.label
         # (like I did in the plugin)
         tottx = []
-        f = open(bands_path)
-        tottx = f.read().split()
+        thefile = open(bands_path)
+        tottx = thefile.read().split()
 
         #ef = float(tottx[0])
         if self.node.inputs.bandskpoints.labels is None:
@@ -501,7 +487,7 @@ class SiestaParser(Parser):
             nbands, nspins, nkpoints = int(tottx[3]), int(tottx[4]), int(tottx[5])
             spinup = np.zeros((nkpoints, nbands))
             spindown = np.zeros((nkpoints, nbands))
-            coords = np.zeros(nkpoints)
+            #coords = np.zeros(nkpoints)
             if nspins == 2:
                 block_length = nbands * 2
             else:
@@ -519,19 +505,17 @@ class SiestaParser(Parser):
             nbands, nspins, nkpoints = int(tottx[5]), int(tottx[6]), int(tottx[7])
             spinup = np.zeros((nkpoints, nbands))
             spindown = np.zeros((nkpoints, nbands))
-            coords = np.zeros(nkpoints)
+            #coords = np.zeros(nkpoints)
             if nspins == 2:
                 block_length = nbands * 2
             else:
                 block_length = nbands
 
             for i in range(nkpoints):
-                coords[i] = float(tottx[i * (block_length + 1) + 8])
-
+                #coords[i] = float(tottx[i * (block_length + 1) + 8])
                 for j in range(nbands):
                     spinup[i, j] = (float(tottx[i * (block_length + 1) + 8 + j + 1]))
                     if nspins == 2:
-                        # Probably wrong! - need to test!!!
                         spindown[i, j] = (float(tottx[i * (nbands * 2 + 1) + 8 + j + 1 + nbands]))
         if nspins == 2:
             bands = (spinup, spindown)
@@ -540,4 +524,4 @@ class SiestaParser(Parser):
         else:
             raise NotImplementedError('nspins=4: non collinear bands not implemented yet')
 
-        return (bands, coords)
+        return bands  #, coords

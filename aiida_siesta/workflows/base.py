@@ -1,59 +1,31 @@
 from aiida import orm
-from aiida.common import EntryPointError
-from aiida.common.lang import override
-from aiida.engine import WorkChain, ToContext, append_, while_
-from aiida.common import AttributeDict, AiidaException
-from aiida.plugins.entry_point import get_entry_point_names, load_entry_point
+from aiida.engine import BaseRestartWorkChain, ProcessHandlerReport, process_handler, while_
 from aiida_siesta.data.common import get_pseudos_from_structure
 from aiida_siesta.calculations.siesta import SiestaCalculation
 
-from .utils import register_error_handler, ErrorHandlerReport
+
+def prepare_pseudo_inputs(structure, pseudos, pseudo_family):
+
+    if pseudos and pseudo_family:
+        raise ValueError('you cannot specify both "pseudos" and "pseudo_family"')
+    elif pseudos is None and pseudo_family is None:
+        raise ValueError('neither an explicit pseudos dictionary nor a pseudo_family was specified')
+    elif pseudo_family:
+        # This will already raise some exceptions
+        pseudos = get_pseudos_from_structure(structure, pseudo_family.value)
+
+    for kind in structure.get_kind_names():
+        if kind not in pseudos:
+            raise ValueError('no pseudo available for element {}'.format(kind))
+
+    return pseudos
 
 
-class UnexpectedCalculationFailure(AiidaException):
-    """Raised when a calculation has failed for an unknown reason."""
-    pass  #pylint: disable=unnecessary-pass
-
-
-class SiestaBaseWorkChain(WorkChain):
+class SiestaBaseWorkChain(BaseRestartWorkChain):
     """
     Base Workchain to launch a total energy calculation via Siesta
     """
-
-    _calculation_class = SiestaCalculation
-    _error_handler_entry_point = 'aiida_siesta.workflow_error_handlers.base'
-
-    def __init__(self, *args, **kwargs):
-        super(SiestaBaseWorkChain, self).__init__(*args, **kwargs)
-
-    #Next two functions are needed only if you specify an error handler registry and
-    #you give it an entry point. It is not defined at the moment!
-    @override
-    def load_instance_state(self, saved_state, load_context):
-        """Load the process instance from a saved state.
-        :param saved_state: saved state of existing process instance
-        :param load_context: context for loading instance state
-        """
-        super(SiestaBaseWorkChain, self).load_instance_state(saved_state, load_context)
-        self._load_error_handlers()
-
-    def _load_error_handlers(self):
-        # If an error handler entry point is defined, load them. If the plugin cannot be loaded log it and pass
-        if self._error_handler_entry_point is not None:
-            for entry_point_name in get_entry_point_names(self._error_handler_entry_point):
-                try:
-                    load_entry_point(self._error_handler_entry_point, entry_point_name)
-                    self.logger.info(
-                        "loaded the '{}' entry point for the '{}' error handlers category".format(
-                            entry_point_name, self._error_handler_entry_point
-                        )
-                    )
-                except EntryPointError as exception:
-                    self.logger.warning(
-                        "failed to load the '{}' entry point for the '{}' error handlers: '{}'".format(
-                            entry_point_name, self._error_handler_entry_point, exception
-                        )
-                    )
+    _process_class = SiestaCalculation
 
     @classmethod
     def define(cls, spec):
@@ -72,31 +44,17 @@ class SiestaBaseWorkChain(WorkChain):
         #Required by any CalcJob
         spec.input('options', valid_type=orm.Dict)
 
-        spec.input(
-            'max_iterations',
-            valid_type=orm.Int,
-            default=orm.Int(5),
-            help='maximum number of iterations the workchain will restart the calculation to finish successfully'
-        )
-        spec.input(
-            'clean_workdir',
-            valid_type=orm.Bool,
-            default=orm.Bool(False),
-            help='if True, work directories of all called calculation will be cleaned at the end of execution'
-        )
-
         spec.outline(
+            cls.preprocess,
             cls.setup,
-            cls.validate_pseudo_potentials,
-            while_(cls.should_run_siesta)(
-                cls.run_siesta,
-                cls.inspect_siesta,
+            cls.prepare_inputs,
+            while_(cls.should_run_process)(
+                cls.run_process,
+                cls.inspect_process,
             ),
-            cls.run_results,
+            cls.results,
+            cls.postprocess,
         )
-
-        # commented out, since it's more clear to provide list of outputs explicitly:
-        # spec.dynamic_output()
 
         spec.output('forces_and_stress', valid_type=orm.ArrayData, required=False)
         spec.output('bands', valid_type=orm.BandsData, required=False)
@@ -104,66 +62,34 @@ class SiestaBaseWorkChain(WorkChain):
         spec.output('output_parameters', valid_type=orm.Dict)
         spec.output('remote_folder', valid_type=orm.RemoteData)
 
-        spec.exit_code(
-            100,
-            'ERROR_ITERATION_RETURNED_NO_CALCULATION',
-            message='the run_calculation step did not successfully add a calculation node to the context'
-        )
-        spec.exit_code(
-            101, 'ERROR_MAXIMUM_ITERATIONS_EXCEEDED', message='the maximum number of iterations was exceeded'
-        )
-        spec.exit_code(
-            102,
-            'ERROR_UNEXPECTED_CALCULATION_STATE',
-            message='the calculation finished with an unexpected calculation state'
-        )
-        spec.exit_code(
-            103,
-            'ERROR_SECOND_CONSECUTIVE_SUBMISSION_FAILURE',
-            message='the calculation failed to submit, twice in a row'
-        )
-        spec.exit_code(
-            104,
-            'ERROR_SECOND_CONSECUTIVE_UNHANDLED_FAILURE',
-            message='the calculation failed for an unknown reason, twice in a row'
-        )
+        spec.exit_code(403, 'ERROR_BASIS_POL', message='Basis polarization problem.')
 
-        spec.exit_code(
-            301,
-            'ERROR_INVALID_INPUT_PSEUDO_POTENTIALS',
-            message="the passed 'pseudos' or 'pseudo_family' could not be used to get the necessary potentials"
-        )
+    def preprocess(self):
+        """
+        Here a higher level WorkChain could put preprocesses
+        """
 
-        spec.exit_code(501, 'ERROR_WORKFLOW_FAILED', message="Workflow did not succeed")
-
-    def setup(self):
+    def prepare_inputs(self):
         """
         Initialize context variables
         """
-        #self.report("Entering setup in Base Workchain")
+        self.report("Preparing inputs of the SiestaBaseWorkChain")
 
-        self.ctx.calc_name = 'SiestaCalculation'
-        self.ctx.unexpected_failure = False
-        self.ctx.submission_failure = False
-        self.ctx.max_iterations = self.inputs.max_iterations.value
-        self.ctx.restart_calc = None
-        self.ctx.is_finished = False
-        self.ctx.iteration = 0
-        #
-        self.ctx.scf_did_not_converge = False
-        self.ctx.geometry_did_not_converge = False
-        self.ctx.want_band_structure = False
-        self.ctx.out_of_time = False
+        structure = self.inputs.structure
+        pseudo_family = self.inputs.get('pseudo_family', None)
+        #The port 'pseudos' is an 'input_namespace', therefore is never undefined in the
+        #current aiida implementation (see Issue #142 plumpy), but it is an empty dictionary
+        #if pseudos are not passed in input.
+        #Therefore 'pseudos = self.inputs.get('pseudos', None)' never gives None. Better:
+        pseudos = None
+        if "pseudos" in self.inputs:  #in case in the future Issue #142 will be solved
+            if self.inputs.pseudos:
+                pseudos = self.inputs.pseudos
 
-        # Define inputs for the context of the workflow
-        # the orm.Dict are back to be dictionaries because in this
-        # way one can modify them. prepare_process_inputs reverts
-        # them to orm.Dict
-        # The few mandatory inputs (pseudo is handled later):
         self.ctx.inputs = {
             'code': self.inputs.code,
-            'structure': self.inputs.structure,
-            'pseudos': {},
+            'structure': structure,
+            'pseudos': prepare_pseudo_inputs(structure, pseudos, pseudo_family),
             'parameters': self.inputs.parameters.get_dict(),
             'metadata': {
                 'options': self.inputs.options.get_dict(),
@@ -179,7 +105,6 @@ class SiestaBaseWorkChain(WorkChain):
         if 'bandskpoints' in self.inputs:
             self.ctx.want_band_structure = True
             self.ctx.inputs['bandskpoints'] = self.inputs.bandskpoints
-
         if 'parent_calc_folder' in self.inputs:
             self.ctx.inputs['parent_calc_folder'] = self.inputs.parent_calc_folder
 
@@ -187,337 +112,108 @@ class SiestaBaseWorkChain(WorkChain):
         max_wallclock_seconds = self.ctx.inputs['metadata']['options']['max_wallclock_seconds']
         self.ctx.inputs['parameters']['max-walltime'] = max_wallclock_seconds
 
-    def prepare_pseudo_inputs(self, structure, pseudos=None, pseudo_family=None):  #pylint: disable=no-self-use
-        from aiida.orm import Str
+        #Note: To pass pure dictionaries or orm.Dict is the same as the WorkChain
+        #will take care of wrapping in orm.Dict the pure python dict before submission,
+        #however this influences the way you fix problems in the hadlers above.
 
-        if pseudos and pseudo_family:
-            raise ValueError('you cannot specify both "pseudos" and "pseudo_family"')
-        elif pseudos is None and pseudo_family is None:
-            raise ValueError('neither an explicit pseudos dictionary nor a pseudo_family was specified')
-        elif pseudo_family:
-            # This will already raise some exceptions, potentially, like the ones below
-            pseudos = get_pseudos_from_structure(structure, pseudo_family.value)
-        elif isinstance(pseudos, (str, Str)):
-            raise TypeError(
-                'you passed "pseudos" as a string - maybe you wanted to pass it as "pseudo_family" instead?'
-            )
-
-        for kind in structure.get_kind_names():
-            if kind not in pseudos:
-                raise ValueError('no pseudo available for element {}'.format(kind))
-
-        return pseudos
-
-    def validate_pseudo_potentials(self):
+    def postprocess(self):
         """
-        Validate the inputs related to pseudopotentials to check that we have the minimum required
-        amount of information to be able to run a SiestaCalculation
-        """
-        structure = self.inputs.structure
-        pseudos = self.inputs.get('pseudos', None)
-        pseudo_family = self.inputs.get('pseudo_family', None)
-
-        try:
-            self.ctx.inputs['pseudos'] = self.prepare_pseudo_inputs(structure, pseudos, pseudo_family)
-        except ValueError as exception:
-            self.report('{}'.format(exception))
-            return self.exit_codes.ERROR_INVALID_INPUT_PSEUDO_POTENTIALS
-
-    def should_run_siesta(self):
-        """
-        Return whether a siesta restart calculation should be run, which
-        is the case as long as the last calculation was not converged
-        successfully and the maximum number of restarts has not yet
-        been exceeded
-        """
-        #pylint: disable=superfluous-parens
-        return ((not self.ctx.is_finished) and (self.ctx.iteration < self.ctx.max_iterations))
-
-    def prepare_process_inputs(self, inputs):  #pylint: disable=no-self-use
-        """
-        Prepare the inputs for submission for the given process, according
-        to its spec. That is to say that when an input is found in the
-        inputs that corresponds to an input port in the spec of the
-        process that expects a Dict, yet the value in the inputs is a
-        plain dictionary, the value will be wrapped in by the Dict
-        class to create a valid input.
-
-        :param process: sub class of Process for which to prepare the inputs dictionary
-        :param inputs: a dictionary of inputs intended for submission of the process
-        :return: a dictionary with all bare dictionaries wrapped in Dict if dictated by process spec
-
-        """
-        prepared_inputs = AttributeDict()
-        process_spec = SiestaCalculation.spec()
-
-        for key, value in inputs.items():
-
-            if key not in process_spec.inputs:
-                continue
-
-            if process_spec.inputs[key].valid_type == orm.Dict and isinstance(value, dict):
-                prepared_inputs[key] = orm.Dict(dict=value)
-            else:
-                prepared_inputs[key] = value
-
-        return prepared_inputs
-
-    def run_siesta(self):
-        """
-        Run a new SiestaCalculation or restart from a previous
-        SiestaCalculation run in this workchain
-
+        Here a higher level WorkChain could put postprocesses
         """
 
-        self.ctx.iteration += 1
-
-        # wrapping inputs to Dict if they are dicts, or returning raw
-        try:
-            wrapped_inputs = self.ctx.inputs
-        except AttributeError:
-            raise ValueError('no calculation input dictionary was defined in self.ctx.inputs')
-
-        inputs = self.prepare_process_inputs(wrapped_inputs)
-        calculation = self.submit(SiestaCalculation, **inputs)
-        self.report('launching {}<{}> iteration #{}'.format(self.ctx.calc_name, calculation.pk, self.ctx.iteration))
-
-        return ToContext(calculations=append_(calculation))
-
-    def inspect_siesta(self):
+    @process_handler(priority=70, exit_codes=SiestaCalculation.exit_codes.GEOM_NOT_CONV)  #pylint: disable = no-member
+    def handle_error_geom_not_conv(self, node):
         """
-        Analyse the results of the previous SiestaCalculation, checking
-        whether it finished successfully, or if not troubleshoot the
-        cause and adapt the input parameters accordingly before
-        restarting, or abort if unrecoverable error was found
+        At the end of the scf cycle, the geometry convergence was not
+        reached.  We need to restart from the previous calculation
         """
-        try:
-            calculation = self.ctx.calculations[self.ctx.iteration - 1]
-        except IndexError:
-            self.report('iteration {} finished without returning a {}'.format(self.ctx.iteration, self.ctx.calc_name))
-            return self.exit_codes.ERROR_ITERATION_RETURNED_NO_CALCULATION
 
-        exit_code = None
+        self.report('SiestaCalculation<{}> did not reach geometry convergence'.format(node.pk))
 
-        # Done: successful completion of last calculation
-        if calculation.is_finished_ok:
-            #self.report('{}<{}> completed successfully'
-            #            .format(self.ctx.calc_name, calculation.pk))
-            self.ctx.restart_calc = calculation
-            self.ctx.is_finished = True
+        # We need to take care here of passing the
+        # output geometry of old_calc to the new calculation
+        if node.outputs.output_parameters.attributes["variable_geometry"]:
+            self.ctx.inputs['structure'] = node.outputs.output_structure
 
-        # Abort: exceeded maximum number of retries
-        elif self.ctx.iteration >= self.inputs.max_iterations.value:
-            self.report(
-                'reached the maximumm number of iterations {}: last ran {}<{}>'.format(
-                    self.inputs.max_iterations.value, self.ctx.calc_name, calculation.pk
-                )
-            )
-            exit_code = self.exit_codes.ERROR_MAXIMUM_ITERATIONS_EXCEEDED
+        #The presence of `parent_calc_folder` triggers the real restart
+        #meaning the copy of the .DM and the addition of `use-saved-dm` to the parameters
+        self.ctx.inputs['parent_calc_folder'] = node.outputs.remote_folder
 
-        # Retry or abort: calculation finished or failed
+        return ProcessHandlerReport(do_break=True)
+
+    @process_handler(priority=80, exit_codes=SiestaCalculation.exit_codes.SCF_NOT_CONV)  #pylint: disable = no-member
+    def handle_error_scf_not_conv(self, node):
+        """
+        SCF convergence was not reached.  We need to restart from the
+        previous calculation without changing any of the input parameters.
+        """
+
+        self.report('SiestaCalculation<{}> did not achieve scf convergence.'.format(node.pk))
+
+        #We need to take care here of passing the
+        #output geometry of old_calc to the new calculation
+        if node.outputs.output_parameters.attributes["variable_geometry"]:
+            self.ctx.inputs['structure'] = node.outputs.output_structure
+
+        #The presence of `parent_calc_folder` triggers the real restart
+        #meaning the copy of the .DM and the addition of use-saved-dm to the parameters
+        self.ctx.inputs['parent_calc_folder'] = node.outputs.remote_folder
+
+        #Should be also increase the number of scf max iterations?
+
+        return ProcessHandlerReport(do_break=True)
+
+    @process_handler(priority=90, exit_codes=SiestaCalculation.exit_codes.SPLIT_NORM)  #pylint: disable = no-member
+    def handle_error_split_norm(self, node):
+        """
+        The split_norm parameter was too small.  We need to change it and restart.
+        The minimum split_norm is stored in the logs of the old calculation.
+        """
+
+        from aiida_siesta.calculations.tkdict import FDFDict
+
+        self.report('SiestaCalculation<{}> crashed with split_norm issue.'.format(node.pk))
+
+        #This error happens only at the beginning of the run, therefore no real restart needed.
+        #Just a new calculation with a new split_norm.
+        #self.ctx.inputs['parent_calc_folder'] = node.outputs.remote_folder
+
+        #Retrive the minimum split norm from the logs of failed calc.
+        logs = orm.Log.objects.get_logs_for(node)
+        for log in logs:
+            if "Error in split_norm option" in log.message:
+                mylog = log.message.split()
+        new_split_norm = float(mylog[-1]) + 0.001
+
+        #We want to understand the presence of "pao-split-norm" in input and:
+        #1) if present, we change its value to the minimum allowed
+        #2) if not present, we activate pao-SplitTailNorm
+        #As we don't know in which sintax the user passed "pao-split-norm (remember
+        #that every fdf variant is allowed), we translate the original dict in
+        #a FDFDict that is aware of the equivalent keyword.
+        #A FDFDict is not accepted in the context, but it is accepted in orm.Dict.
+        transl_basis = FDFDict(self.ctx.inputs["basis"])
+        glob_split_norm = False
+        for key in transl_basis:
+            if key == "paosplitnorm":
+                glob_split_norm = True
+
+        if glob_split_norm:
+            self.report('Resetting the pao-split-norm global value')
+            transl_basis["pao-split-norm"] = new_split_norm
         else:
+            self.report('Adding pao-SplitTailNorm to solve the split_norm problem')
+            transl_basis["pao-SplitTailNorm"] = True
 
-            # Calculation was at least submitted successfully, so we reset the flag
-            self.ctx.submission_failure = False
+        new_basis = orm.Dict(dict=transl_basis)
+        self.ctx.inputs["basis"] = new_basis.get_dict()
 
-            # calculation failed, try to salvage it or handle any unexpected failures
-            try:
-                exit_code = self._handle_calculation_failure(calculation)
-            except UnexpectedCalculationFailure as exception:
-                exit_code = self._handle_unexpected_failure(calculation, exception)
-                self.ctx.unexpected_failure = True
+        return ProcessHandlerReport(do_break=True)
 
-        return exit_code
-
-    def run_results(self):
+    @process_handler(priority=89, exit_codes=SiestaCalculation.exit_codes.BASIS_POLARIZ)  #pylint: disable = no-member
+    def handle_error_basis_pol(self, node):  #pylint: disable = unused-argument
         """
-        Attach the output parameters and retrieved folder of the last
-        calculation to the outputs
-
+        For the moment, we don't handle this error, but we terminate the WorkChain with
+        a specific error code.
         """
-
-        for name, port in self.spec().outputs.items():
-
-            try:
-                node = self.ctx.restart_calc.get_outgoing(link_label_filter=name).one().node
-            except ValueError:
-                if port.required:
-                    self.report(
-                        "the process spec specifies the output '{}' as required but was not an output of {}<{}>".format(
-                            name, self.ctx.calc_name, self.ctx.restart_calc.pk
-                        )
-                    )
-            else:
-                self.out(name, node)
-                #self.report("attaching the node {}<{}> as '{}'"
-                #            .format(node.__class__.__name__, node.pk, name))
-
-        self.report('Base workchain completed after {} iterations'.format(self.ctx.iteration))
-
-    def on_terminated(self):
-        """
-        If the clean_workdir input was set to True, recursively collect
-        all called Calculations by ourselves and our called
-        descendants, and clean the remote folder for the CalcJobNode
-        instances
-
-        """
-        super(SiestaBaseWorkChain, self).on_terminated()
-
-        if self.inputs.clean_workdir.value is False:
-            return
-
-        cleaned_calcs = []
-
-        for called_descendant in self.calc.called_descendants:
-            if isinstance(called_descendant, orm.CalcJobNode):
-                try:
-                    called_descendant.outputs.remote_folder._clean()
-                    cleaned_calcs.append(called_descendant.pk)
-                except (IOError, OSError, KeyError):
-                    pass
-
-        if cleaned_calcs:
-            self.report('cleaned remote folders of calculations: {}'.format(' '.join(cleaned_calcs)))
-
-    def _handle_submission_failure(self, calculation):
-        """
-        The submission of the calculation has failed. If the
-        submission_failure flag is set to true, this is the second
-        consecutive submission failure and we abort the workchain
-        Otherwise we restart once more.
-
-        """
-        if not self.ctx.submission_failure:
-            self.report('submission for {}<{}> failed, restarting once more'.format(self.ctx.calc_name, calculation.pk))
-        else:
-            self.report(
-                'submission for {}<{}> failed for the second consecutive time'.format(
-                    self.ctx.calc_name, calculation.pk
-                )
-            )
-            return self.exit_codes.ERROR_SECOND_CONSECUTIVE_SUBMISSION_FAILURE
-
-    def _handle_unexpected_failure(self, calculation, exception=None):
-        """
-        The calculation has failed for an unknown reason and could not be
-        handled. If the unexpected_failure flag is true, this is the
-        second consecutive unexpected failure and we abort the
-        workchain.  Otherwise we restart once more.
-
-        """
-        if exception:
-            self.report('{}'.format(exception))
-
-        if not self.ctx.unexpected_failure:
-            self.report(
-                'failure of {}<{}> could not be handled, restarting once more'.format(
-                    self.ctx.calc_name, calculation.pk
-                )
-            )
-        else:
-            self.report(
-                'failure of {}<{}> could not be handled for a second consecutive time'.format(
-                    self.ctx.calc_name, calculation.pk
-                )
-            )
-            return self.exit_codes.ERROR_SECOND_CONSECUTIVE_UNHANDLED_FAILURE
-
-    def _handle_calculation_failure(self, calculation):
-        """
-        The calculation has failed so we try to analyze the reason and
-        change the inputs accordingly for the next calculation. If the
-        calculation failed, but did so cleanly, we set it as the
-        restart_calc, in all other cases we do not replace the
-        restart_calc
-
-        """
-        try:
-            calculation.outputs.output_parameters.get_dict()['warnings']
-            # _ = outputs['warnings']
-            # _ = outputs['parser_warnings']
-        except (AttributeError, KeyError) as exception:
-            raise UnexpectedCalculationFailure(exception)
-
-        is_handled = False
-        handler_report = None
-
-        # Sort the handlers based on their priority in reverse order
-        handlers = sorted(self._error_handlers, key=lambda x: x.priority, reverse=True)
-
-        if not handlers:
-            raise UnexpectedCalculationFailure('no calculation error handlers were registered')
-
-        for handler in handlers:
-            # print(handler)
-            handler_report = handler.method(self, calculation)
-
-            # If at least one error is handled, we consider the
-            # calculation failure handled
-            if handler_report and handler_report.is_handled:
-                is_handled = True
-
-            # After certain error handlers, we may want to skip all
-            # other error handling
-            if handler_report and handler_report.do_break:
-                break
-
-        # If none of the executed error handlers reported that they
-        # handled an error, the failure reason is unknown
-        if not is_handled:
-            raise UnexpectedCalculationFailure('calculation failure was not handled')
-
-        # The last called error handler may not necessarily have
-        # returned a handler report
-        if handler_report:
-            return handler_report.exit_code
-
-        return
-
-
-@register_error_handler(SiestaBaseWorkChain, 130)
-def _handle_error_geom_not_conv(self, calculation):
-    """
-    At the end of the scf cycle, the geometry convergence was not
-    reached.  We need to restart from the previous calculation
-    """
-
-    self.report('SiestaCalculation<{}> did not reach geometry convergence. Will restart.'.format(calculation.pk))
-
-    gcalc = calculation
-    # We need to take care here of passing the
-    # output geometry of old_calc to the new calculation
-    if gcalc.outputs.output_parameters.attributes["variable_geometry"]:
-        self.ctx.inputs['structure'] = gcalc.outputs.output_structure
-
-    #The most important line. The presence of
-    #parent_calc_folder triggers the real restart
-    #meaning the copy of the .DM and the
-    #addition of use-saved-dm to the parameters
-
-    self.ctx.inputs['parent_calc_folder'] = gcalc.outputs.remote_folder
-
-    self.ctx.restart_calc = calculation
-
-    return ErrorHandlerReport(True, False)
-
-
-@register_error_handler(SiestaBaseWorkChain, 120)
-def _handle_error_scf_not_conv(self, calculation):
-    """
-    SCF convergence was not reached.  We need to restart from the
-    previous calculation without changing any of the input parameters.
-    """
-
-    self.report('SiestaCalculation<{}> did not achieve scf convergence. Will restart.'.format(calculation.pk))
-
-    # The most important line. The presence of
-    # parent_calc_folder triggers the real restart
-    # meaning the copy of the .DM and the
-    # addition of use-saved-dm to the parameters
-
-    self.ctx.inputs['parent_calc_folder'] = calculation.outputs.remote_folder
-
-    self.ctx.restart_calc = calculation
-
-    return ErrorHandlerReport(True, False)
+        return ProcessHandlerReport(True, self.exit_codes.ERROR_BASIS_POL)

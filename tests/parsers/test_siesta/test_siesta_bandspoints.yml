@@ -25,6 +25,7 @@ output_parameters:
   FreeE: -212.765618
   FreeE_units: eV
   dc:contributor: Siesta-CML
+  global_time: 6.396
   mesh:
   - 36
   - 36
@@ -32,7 +33,6 @@ output_parameters:
   nnz: 19594
   no_u: 26
   parser_info: AiiDA Siesta Parser V. 1.0.1
-  parser_warnings: []
   siesta:Arch: gfortran-esl-bundle-0.4
   siesta:EndTime: 2020-01-07T14-53-55
   siesta:Flags: 'mpif90 -O2 -fbacktrace '
@@ -44,6 +44,16 @@ output_parameters:
   siesta:StartTime: 2020-01-07T14-53-51
   siesta:Version: MaX-1.0-3
   siesta:run_UUID: f44daa90-3165-11ea-6209-6169ffb35de7
+  timing_decomposition:
+    compute_DM: 0.651
+    nlefsm-1: 0.084
+    nlefsm-2: 0.107
+    post-SCF: 1.868
+    setup_H: 2.108
+    setup_H0: 1.414
+    siesta: 6.396
+    siesta_analysis: 0.007
+    state_init: 0.261
   variable_geometry: true
   warnings:
-  - 'WARNING: No MESSAGES file...'
+  - - 'INFO: Job completed'
