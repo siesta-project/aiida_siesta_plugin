@@ -26,6 +26,7 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
     Base Workchain to launch a total energy calculation via Siesta
     """
     _process_class = SiestaCalculation
+    _proc_exit_cod = _process_class.exit_codes
 
     @classmethod
     def define(cls, spec):
@@ -63,6 +64,7 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
         spec.output('remote_folder', valid_type=orm.RemoteData)
 
         spec.exit_code(403, 'ERROR_BASIS_POL', message='Basis polarization problem.')
+        spec.exit_code(404, 'ERROR_BANDS_PARSING', message='Error in the parsing of bands')
 
     def preprocess(self):
         """
@@ -121,7 +123,7 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
         Here a higher level WorkChain could put postprocesses
         """
 
-    @process_handler(priority=70, exit_codes=SiestaCalculation.exit_codes.GEOM_NOT_CONV)  #pylint: disable = no-member
+    @process_handler(priority=70, exit_codes=_proc_exit_cod.GEOM_NOT_CONV)  #pylint: disable = no-member
     def handle_error_geom_not_conv(self, node):
         """
         At the end of the scf cycle, the geometry convergence was not
@@ -141,7 +143,7 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
 
         return ProcessHandlerReport(do_break=True)
 
-    @process_handler(priority=80, exit_codes=SiestaCalculation.exit_codes.SCF_NOT_CONV)  #pylint: disable = no-member
+    @process_handler(priority=80, exit_codes=_proc_exit_cod.SCF_NOT_CONV)  #pylint: disable = no-member
     def handle_error_scf_not_conv(self, node):
         """
         SCF convergence was not reached.  We need to restart from the
@@ -163,7 +165,7 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
 
         return ProcessHandlerReport(do_break=True)
 
-    @process_handler(priority=90, exit_codes=SiestaCalculation.exit_codes.SPLIT_NORM)  #pylint: disable = no-member
+    @process_handler(priority=90, exit_codes=_proc_exit_cod.SPLIT_NORM)  #pylint: disable = no-member
     def handle_error_split_norm(self, node):
         """
         The split_norm parameter was too small.  We need to change it and restart.
@@ -210,10 +212,24 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
 
         return ProcessHandlerReport(do_break=True)
 
-    @process_handler(priority=89, exit_codes=SiestaCalculation.exit_codes.BASIS_POLARIZ)  #pylint: disable = no-member
+    @process_handler(priority=89, exit_codes=_proc_exit_cod.BASIS_POLARIZ)  #pylint: disable = no-member
     def handle_error_basis_pol(self, node):  #pylint: disable = unused-argument
         """
         For the moment, we don't handle this error, but we terminate the WorkChain with
         a specific error code.
         """
         return ProcessHandlerReport(True, self.exit_codes.ERROR_BASIS_POL)
+
+    #pylint: disable = no-member
+    @process_handler(priority=60, exit_codes=[_proc_exit_cod.BANDS_PARSE_FAIL, _proc_exit_cod.BANDS_FILE_NOT_PRODUCED])
+    def handle_error_bands(self, node):  #pylint: disable = unused-argument
+        """
+        If an error in the parsing of bands occour, we return the output paramter node that should
+        be produced anyway by SiestaCalculation and then we stop the workchain with a specific
+        error code
+        """
+        for name in node.outputs:
+            output = node.get_outgoing(link_label_filter=name).one().node
+            self.out(name, output)
+
+        return ProcessHandlerReport(True, self.exit_codes.ERROR_BANDS_PARSING)

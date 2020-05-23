@@ -212,3 +212,40 @@ def test_siesta_no_geom_conv(aiida_profile, fixture_localhost, generate_calc_job
     assert 'output_structure' in results
 
     data_regression.check({'output_parameters': results['output_parameters'].get_dict()})
+
+
+def test_siesta_bands_error(aiida_profile, fixture_localhost, generate_calc_job_node,
+    generate_parser, generate_structure, data_regression):
+    """
+    Test parsing of bands in a situation when the bands file is truncated.
+    Also the time.json and MESSAGES file are added, therefore their parsing is tested as well. The MESSAGES
+    file is the standard containing only "INFO: Job completed". 
+    """
+
+    name = 'bands_error'
+    entry_point_calc_job = 'siesta.siesta'
+    entry_point_parser = 'siesta.parser'
+
+    structure=generate_structure()
+    bandskpoints = orm.KpointsData()
+    kpp = [(0.500,  0.250, 0.750), (0.500,  0.500, 0.500), (0., 0., 0.)]
+    bandskpoints.set_cell(structure.cell, structure.pbc)
+    bandskpoints.set_kpoints(kpp)
+
+    inputs = AttributeDict({
+        'structure': structure,
+        'bandskpoints': bandskpoints
+    })
+
+    attributes=AttributeDict({'input_filename':'aiida.fdf', 'output_filename':'aiida.out', 'prefix':'aiida'})
+
+    node = generate_calc_job_node(entry_point_calc_job, fixture_localhost, name, inputs, attributes)
+    parser = generate_parser(entry_point_parser)
+    results, calcfunction = parser.parse_from_node(node, store_provenance=False)
+
+    assert calcfunction.is_finished
+    assert calcfunction.exception is None
+    assert not calcfunction.is_finished_ok
+    assert calcfunction.exit_message == 'Failure while parsing the bands file'
+    assert 'output_parameters' in results
+    assert 'output_structure' in results
