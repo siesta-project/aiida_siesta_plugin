@@ -38,11 +38,9 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
         spec.input('parent_calc_folder', valid_type=orm.RemoteData, required=False)
         spec.input('kpoints', valid_type=orm.KpointsData, required=False)
         spec.input('bandskpoints', valid_type=orm.KpointsData, required=False)
-        #Required by the plugin
         spec.input('parameters', valid_type=orm.Dict)
         spec.input('basis', valid_type=orm.Dict, required=False)
         spec.input('settings', valid_type=orm.Dict, required=False)
-        #Required by any CalcJob
         spec.input('options', valid_type=orm.Dict)
 
         spec.outline(
@@ -224,9 +222,10 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
     @process_handler(priority=60, exit_codes=[_proc_exit_cod.BANDS_PARSE_FAIL, _proc_exit_cod.BANDS_FILE_NOT_PRODUCED])
     def handle_error_bands(self, node):  #pylint: disable = unused-argument
         """
-        If an error in the parsing of bands occour, we return the output paramter node that should
-        be produced anyway by SiestaCalculation and then we stop the workchain with a specific
-        error code
+        If an error in the parsing of bands occours in the SiestaCalculation (node here), we expose all 
+        the output ports node that have been produced (SiestaCalculation is designed to produce the
+        output_parameter and stress/forcess port before the check on the bands outputs) and then we 
+        stop the workchain with a specific error code.
         """
         for name in node.outputs:
             output = node.get_outgoing(link_label_filter=name).one().node
