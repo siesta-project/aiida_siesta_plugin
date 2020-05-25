@@ -222,9 +222,9 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
     @process_handler(priority=60, exit_codes=[_proc_exit_cod.BANDS_PARSE_FAIL, _proc_exit_cod.BANDS_FILE_NOT_PRODUCED])
     def handle_error_bands(self, node):  #pylint: disable = unused-argument
         """
-        If an error in the parsing of bands occours in the SiestaCalculation (node here), we expose all 
+        If an error in the parsing of bands occours in the SiestaCalculation (node here), we expose all
         the output ports node that have been produced (SiestaCalculation is designed to produce the
-        output_parameter and stress/forcess port before the check on the bands outputs) and then we 
+        output_parameter and stress/forcess port before the check on the bands outputs) and then we
         stop the workchain with a specific error code.
         """
         for name in node.outputs:
