@@ -2,8 +2,8 @@
 File showcasing the submission of a SiestaBaseWorkChain in order to calculate bands dispersions using
 inputs generated through the method `get_builder` of the class `SiestaBandsInputsGenerator`.
 """
-
-from aiida_siesta.workflows.functions.bandsinputs import SiestaBandsInputsGenerator
+import sys
+from aiida_siesta.workflows.utils.bandsinputs import SiestaBandsInputsGenerator
 from aiida.engine import submit
 from aiida.orm import Dict, StructureData
 
@@ -20,7 +20,7 @@ calc_engines = {
              "max_wallclock_seconds": 360, #'queue_name': 'DevQ', 'withmpi': True, 'account': "tcphy113c"
          }}}
 
-protocol="stringent"
+protocol="standard_delta"
 
 #The authomatic generation of the high symmetry path (defining where to calculate the bands)
 #is usually performed by seekpath. Seekpath requires to change the input structure to follow

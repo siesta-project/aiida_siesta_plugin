@@ -1,12 +1,13 @@
 """
 File showcasing the submission of a SiestaBaseWorkChain with the task of doing a structure
 relaxation and using inputs generated through the method `get_builder` of the 
-class `SiestaRelaxationInputsGenerator`.
+class `SiestaRelaxInputsGenerator`.
 """
-
-from aiida_siesta.workflows.functions.relaxinputs import SiestaRelaxationInputsGenerator
+import sys
+from aiida_siesta.workflows.utils.relaxinputs import SiestaRelaxInputsGenerator
 from aiida.engine import submit
 from aiida.orm import Dict, StructureData
+
 
 try:
     codename = sys.argv[1]
@@ -21,9 +22,9 @@ calc_engines = {
              "max_wallclock_seconds": 360, #'queue_name': 'DevQ', 'withmpi': True, 'account': "tcphy113c"
          }}}
 
-protocol="stringent"
+protocol="standard_delta"
 
-relaxation_type = "constant_volume"
+relaxation_type = "atoms_only"
 
 alat = 5.430  # angstrom
 cell = [
@@ -51,7 +52,7 @@ structure.append_atom(position=(0.250 * alat, 0.250 * alat, 0.250 * alat),
 
 #We now create an instance of the class, but it is not
 #neccesarry as get_builder is classmethod
-rel_inp_gen = SiestaRelaxationInputsGenerator()
+rel_inp_gen = SiestaRelaxInputsGenerator()
 
 # This is the main call: we get a builder for the `SiestaBaseWorkChain`, pre-filled, 
 # with unstored nodes (unless they are taken from the DB, e.g. pseudos)

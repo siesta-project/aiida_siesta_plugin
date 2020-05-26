@@ -1,6 +1,6 @@
 In this folder we collect few scripts to show how to run workchains.
 Users should take these scripts as templates and adapt them to their own case.
-Except for workchain_relax_protocol.py, all the other script can be run through:
+All the other script can be run through:
 	runaiida script.py code@computer {stmcode@computer}
 However, similarly to the case of plugin examples, the user should make sure that the 
 computational resources selected in the script are compatible with their "computer"
@@ -10,6 +10,3 @@ that the first set sends a WorkChain with inputs that are all selected inside th
 the second makes use of the protocol technology to automatically suggest 
 inputs for the WorkChain. The protocol approach still leaves compleate freedom
 to change the inputs before submission (see relax_with_protocol.py).
-The workchain_relax_protocol.py and workchain_bandgap_protocol.py
-have a more convoluted submission procedure, but they are good examples on how to 
-create WorkChains wrapping another WorkChain.
