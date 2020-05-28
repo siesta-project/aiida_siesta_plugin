@@ -91,6 +91,7 @@ class SiestaCalculation(CalcJob):
         spec.default_output_node = 'output_parameters'
 
         # Exit codes for specific errors. Useful for error handeling in workchains
+        spec.exit_code(453, 'BANDS_PARSE_FAIL', message='Failure while parsing the bands file')
         spec.exit_code(452, 'BANDS_FILE_NOT_PRODUCED', message='Bands analysis was requested, but file is not present')
         spec.exit_code(450, 'SCF_NOT_CONV', message='Calculation did not reach scf convergence!')
         spec.exit_code(451, 'GEOM_NOT_CONV', message='Calculation did not reach geometry convergence!')

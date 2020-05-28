@@ -375,14 +375,15 @@ class SiestaParser(Parser):
         if bands_path is None:
             if "bandskpoints" in self.node.inputs:
                 return self.exit_codes.BANDS_FILE_NOT_PRODUCED
-        # Parse band-structure information if available
-        if bands_path is not None:
+        else:
             #bands, coords = self._get_bands(bands_path)
-            bands = self._get_bands(bands_path)
+            try:
+                bands = self._get_bands(bands_path)
+            except (ValueError, IndexError):
+                return self.exit_codes.BANDS_PARSE_FAIL
             from aiida.orm import BandsData
             arraybands = BandsData()
-            bkp = self.node.inputs.bandskpoints  #Temporary workaround due to a bug
-            #bkp._set_reciprocal_cell()         #in KpointData (issue #2749)
+            bkp = self.node.inputs.bandskpoints
             arraybands.set_kpoints(bkp.get_kpoints(cartesian=True))
             arraybands.labels = bkp.labels
             arraybands.set_bands(bands, units="eV")
@@ -453,7 +454,7 @@ class SiestaParser(Parser):
 
         import re
 
-        # Search for 'FATAL:' messages, log them, and return immediately
+        # Search for 'FATAL:' and 'WARNING:' messages, log them
         normal_end = False
         for line in lines:
             if re.match('^FATAL:.*$', line):
@@ -522,6 +523,6 @@ class SiestaParser(Parser):
         elif nspins == 1:
             bands = spinup
         else:
-            raise NotImplementedError('nspins=4: non collinear bands not implemented yet')
+            raise ValueError('detected nspin > 2, something wrong')
 
         return bands  #, coords
