@@ -58,7 +58,6 @@ class SiestaBandsInputsGenerator(ProtocolRegistry):
         except KeyError:
             raise ValueError("Wrong path generator type: no path_generator with name {} implemented".format(key))
 
-    #pylint: disable=too-many-statements
     def get_builder(self, structure, calc_engines, protocol, path_generator):
 
         from aiida_siesta.workflows.base import SiestaBaseWorkChain
@@ -67,10 +66,12 @@ class SiestaBandsInputsGenerator(ProtocolRegistry):
         from aiida.tools import get_explicit_kpoints_path
 
         #Checks
-        if protocol not in self.get_protocol_names():
+        #Checks
+        if not self.is_valid_protocol(protocol):
             import warnings
-            warnings.warn("no protocol implemented with name {}, using default standard".format(protocol))
-            protocol = self.get_default_protocol_name()
+            defpro = self.get_default_protocol_name()
+            warnings.warn("no protocol implemented with name `{0}`, using default `{1}`".format(protocol, defpro))
+            protocol = defpro
         if path_generator not in self.get_path_generators():
             raise ValueError(
                 "Wrong path generator type: no path_generator with name {} implemented".format(path_generator)
@@ -80,46 +81,8 @@ class SiestaBandsInputsGenerator(ProtocolRegistry):
 
         #Initialization
         protocol_dict = self.get_protocol(protocol)
-        atomic_heuristics = protocol_dict["atomic_heuristics"]
 
-        #K points
-        kpoints_mesh = KpointsData()
-        kpoints_mesh.set_cell_from_structure(structure)
-        kp_dict = protocol_dict["kpoints"]
-        kpoints_mesh.set_kpoints_mesh_from_density(distance=kp_dict["distance"], offset=kp_dict["offset"])
-
-        #Parameters, including scf and relax options
-        #scf
-        parameters = protocol_dict["parameters"].copy()
-        #meshcutoff = 0
-        min_meshcutoff = parameters["min_meshcut"]  # In Rydberg (!)
-        del parameters["min_meshcut"]
-        #Part of atom-dependent mesh cut need to be discussed
-        #for kind in structure.get_kind_names():
-        #    if atomic_heuristics[kind]:
-        #        cutoff = atomic_heuristics[kind]['cutoff']
-        #        meshcutoff = max(meshcutoff, cutoff)
-        #meshcutoff = max(min_meshcutoff, meshcutoff)
-        #parameters["meshcutoff"] = str(meshcutoff) + " Ry"
-        parameters["meshcutoff"] = str(min_meshcutoff) + " Ry"
-
-        #Basis
-        basis = protocol_dict["basis"]
-        for kind in structure.get_kind_names():
-            try:
-                cust_basis = atomic_heuristics[kind]["basis"]
-                if 'split-norm' in cust_basis:
-                    basis["PaoSplitTailNorm"] = True
-                if 'polarization' in cust_basis:
-                    basis['%block PaoPolarizationScheme'
-                         ] = "\n {} non-perturbative\n%endblock PaoPolarizationScheme".format(kind)
-            except KeyError:
-                pass
-
-        #Pseudo fam
-        pseudo_fam = protocol_dict["pseudo_family"]
-
-        #Bands
+        #Bandskpoints (might change structure)
         if path_generator == "legacy":
             legacy_kpath_parameters = {
                 'kpoint_distance': 0.05  # In units of b1, b2, b3 (Around 20 points per side...)
@@ -133,12 +96,32 @@ class SiestaBandsInputsGenerator(ProtocolRegistry):
         bandskpoints = KpointsData()
         bandskpoints = result['explicit_kpoints']
 
+        #Parameters
+        parameters = self._get_param(protocol, ok_structure)
+
+        #Basis
+        basis = self._get_basis(protocol, ok_structure)
+
+        #Kpoints
+        if "kpoints" in protocol_dict:
+            kpoints_mesh = KpointsData()
+            kpoints_mesh.set_cell_from_structure(ok_structure)
+            kp_dict = protocol_dict["kpoints"]
+            if "offset" in kp_dict:
+                kpoints_mesh.set_kpoints_mesh_from_density(distance=kp_dict["distance"], offset=kp_dict["offset"])
+            else:
+                kpoints_mesh.set_kpoints_mesh_from_density(distance=kp_dict["distance"])
+
+        #Pseudo fam
+        pseudo_fam = protocol_dict["pseudo_family"]
+
         #builder construction
         builder = SiestaBaseWorkChain.get_builder()
         builder.structure = ok_structure
         builder.basis = Dict(dict=basis)
         builder.parameters = Dict(dict=parameters)
-        builder.kpoints = kpoints_mesh
+        if "kpoints" in protocol_dict:
+            builder.kpoints = kpoints_mesh
         builder.pseudo_family = Str(pseudo_fam)
         builder.options = Dict(dict=calc_engines['bands']["options"])
         builder.code = load_code(calc_engines['bands']["code"])

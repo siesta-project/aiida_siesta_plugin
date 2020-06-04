@@ -31,6 +31,18 @@ class ProtocolRegistry:
     with open(filepath) as thefile:
         _protocols = yaml.full_load(thefile)
 
+    if 'AIIDA_SIESTA_PROTOCOLS' in os.environ:
+        bisfilepath = os.environ['AIIDA_SIESTA_PROTOCOLS']
+        try:
+            with open(bisfilepath) as thefile:
+                _custom_protocols = yaml.full_load(thefile)
+        except (IsADirectoryError, FileNotFoundError):
+            raise RuntimeError(
+                'The environment variable devoted to custom protocols (AIIDA_SIESTA_PROTOCOLS) is set '
+                'to a not existent file'
+            )
+        _protocols = {**_protocols, **_custom_protocols}
+
     _default_protocol = 'standard_delta'
 
     def __init__(self, *args, **kwargs):
@@ -50,9 +62,17 @@ class ProtocolRegistry:
                 raise_invalid('protocol `{}` is not a dictionary'.format(k))
 
             if 'description' not in v:
-                raise_invalid('protocol `{}` does not define the key `description`'.format(k))
+                raise_invalid('protocol `{}` does not define the mandatory key `description`'.format(k))
 
-            if 'pseudo_family' in v:
+            if 'parameters' not in v:
+                raise_invalid('protocol `{}` does not define the mandatory key `parameters`'.format(k))
+
+            if 'basis' not in v:
+                raise_invalid('protocol `{}` does not define the mandatory key `basis`'.format(k))
+
+            if 'pseudo_family' not in v:
+                raise_invalid('protocol `{}` does not define the mandatory key `pseudo_family`'.format(k))
+            else:
                 famname = self._protocols[k]["pseudo_family"]
                 try:
                     Group.get(label=famname)
@@ -85,3 +105,62 @@ class ProtocolRegistry:
             return self._protocols[key]
         except KeyError:
             raise ValueError("Wrong protocol: no protocol with name {} implemented".format(key))
+
+    def _get_param(self, key, structure):
+        """
+        Heuristics are applied, a dictionary with the parameters is returned
+        """
+        parameters = self._protocols[key]["parameters"].copy()
+
+        if "atomic_heuristics" in self._protocols[key]:
+            atomic_heuristics = self._protocols[key]["atomic_heuristics"]
+
+            for kind in structure.get_kind_names():
+                need_to_apply = False
+                try:
+                    cust_param = atomic_heuristics[kind]["parameters"]
+                    need_to_apply = True
+                except KeyError:
+                    pass
+                if need_to_apply:
+                    if 'mesh-cutoff' in cust_param:
+                        parameters["mesh-cutoff"] = cust_param["mesh-cutoff"]
+
+        return parameters
+
+    def _get_basis(self, key, structure):
+        """
+        Heuristics are applied, a dictionary with the basis is returned
+        """
+        basis = self._protocols[key]["basis"].copy()
+
+        if "atomic_heuristics" in self._protocols[key]:  #pylint: disable=too-many-nested-blocks
+            atomic_heuristics = self._protocols[key]["atomic_heuristics"]
+
+            for kind in structure.get_kind_names():
+                need_to_apply = False
+                try:
+                    cust_basis = atomic_heuristics[kind]["basis"]
+                    need_to_apply = True
+                except KeyError:
+                    pass
+                if need_to_apply:
+                    if 'split-norm' in cust_basis:
+                        if cust_basis['split-norm'] == "tail":
+                            basis["pao-split-tail-norm"] = True
+                        else:
+                            if kind == "H":
+                                basis["pao-split-norm-H"] = cust_basis['split-norm']
+                            else:
+                                basis["pao-split-norm"] = cust_basis['split-norm']
+                    if 'polarization' in cust_basis:
+                        basis['%block PaoPolarizationScheme'
+                             ] = "\n {} non-perturbative\n%endblock PaoPolarizationScheme".format(kind)
+                    if 'energy-shift' in cust_basis:
+                        basis["pao-energy-shift"] = cust_basis['energy-shift']
+                    if 'size' in cust_basis:
+                        basis['%block pao-bases-sizes'] = "\n {} {}\n%endblock paobasissizes".format(
+                            kind, cust_basis['size']
+                        )
+
+        return basis

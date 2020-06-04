@@ -76,40 +76,20 @@ class SiestaRelaxInputsGenerator(ProtocolRegistry):
         from aiida.orm import load_code
 
         #Checks
-        if protocol not in self.get_protocol_names():
+        if not self.is_valid_protocol(protocol):
             import warnings
-            warnings.warn("no protocol implemented with name {}, using default standard".format(protocol))
-            protocol = self.get_default_protocol_name()
+            defpro = self.get_default_protocol_name()
+            warnings.warn("no protocol implemented with name `{0}`, using default `{1}`".format(protocol, defpro))
+            protocol = defpro
         if relaxation_type not in self.get_relaxation_types():
             raise ValueError("Wrong relaxation type: no relax_type with name {} implemented".format(relaxation_type))
         if 'relaxation' not in calc_engines:
             raise ValueError("Wrong syntax in `calc_engines`. Check method `how_to_pass_computation_options`.")
 
-        #Initialization
         protocol_dict = self.get_protocol(protocol)
-        atomic_heuristics = protocol_dict["atomic_heuristics"]
 
-        #K points
-        kpoints_mesh = KpointsData()
-        kpoints_mesh.set_cell_from_structure(structure)
-        kp_dict = protocol_dict["kpoints"]
-        kpoints_mesh.set_kpoints_mesh_from_density(distance=kp_dict["distance"], offset=kp_dict["offset"])
-
-        #Parameters, including scf and relax options
-        #scf
-        parameters = protocol_dict["parameters"].copy()
-        #meshcutoff = 0
-        min_meshcutoff = parameters["min_meshcut"]  # In Rydberg (!)
-        del parameters["min_meshcut"]
-        #Part of atom-dependent mesh cut need to be discussed
-        #for kind in structure.get_kind_names():
-        #    if atomic_heuristics[kind]:
-        #        cutoff = atomic_heuristics[kind]['cutoff']
-        #        meshcutoff = max(meshcutoff, cutoff)
-        #meshcutoff = max(min_meshcutoff, meshcutoff)
-        #parameters["meshcutoff"] = str(meshcutoff) + " Ry"
-        parameters["meshcutoff"] = str(min_meshcutoff) + " Ry"
-        #relaxation
+        #Parameters
+        parameters = self._get_param(protocol, structure)
         parameters["md-type-of-run"] = "cg"
         parameters["md-num-cg-steps"] = 100
         if relaxation_type == "variable_cell":
@@ -118,24 +98,28 @@ class SiestaRelaxInputsGenerator(ProtocolRegistry):
             parameters["md-variable-cell"] = True
             parameters["md-constant-volume"] = True
         if not threshold_forces:
-            threshold_forces = protocol_dict["threshold_forces"]
+            if "threshold-forces" in protocol_dict:
+                threshold_forces = protocol_dict["threshold-forces"]
         if not threshold_stress:
-            threshold_stress = protocol_dict["threshold_stress"]
-        parameters["md-max-force-tol"] = str(threshold_forces) + " eV/Ang"
-        parameters["md-max-stress-tol"] = str(threshold_stress) + " eV/Ang**3"
+            if "threshold-stress" in protocol_dict:
+                threshold_stress = protocol_dict["threshold-stress"]
+        if threshold_forces:
+            parameters["md-max-force-tol"] = str(threshold_forces) + " eV/Ang"
+        if threshold_stress:
+            parameters["md-max-stress-tol"] = str(threshold_stress) + " eV/Ang**3"
 
         #Basis
-        basis = protocol_dict["basis"]
-        for kind in structure.get_kind_names():
-            try:
-                cust_basis = atomic_heuristics[kind]["basis"]
-                if 'split-norm' in cust_basis:
-                    basis["PaoSplitTailNorm"] = True
-                if 'polarization' in cust_basis:
-                    basis['%block PaoPolarizationScheme'
-                         ] = "\n {} non-perturbative\n%endblock PaoPolarizationScheme".format(kind)
-            except KeyError:
-                pass
+        basis = self._get_basis(protocol, structure)
+
+        #Kpoints
+        if "kpoints" in protocol_dict:
+            kpoints_mesh = KpointsData()
+            kpoints_mesh.set_cell_from_structure(structure)
+            kp_dict = protocol_dict["kpoints"]
+            if "offset" in kp_dict:
+                kpoints_mesh.set_kpoints_mesh_from_density(distance=kp_dict["distance"], offset=kp_dict["offset"])
+            else:
+                kpoints_mesh.set_kpoints_mesh_from_density(distance=kp_dict["distance"])
 
         #Pseudo fam
         pseudo_fam = protocol_dict["pseudo_family"]
@@ -145,7 +129,8 @@ class SiestaRelaxInputsGenerator(ProtocolRegistry):
         builder.structure = structure
         builder.basis = Dict(dict=basis)
         builder.parameters = Dict(dict=parameters)
-        builder.kpoints = kpoints_mesh
+        if "kpoints" in protocol_dict:
+            builder.kpoints = kpoints_mesh
         builder.pseudo_family = Str(pseudo_fam)
         builder.options = Dict(dict=calc_engines['relaxation']["options"])
         builder.code = load_code(calc_engines['relaxation']["code"])
