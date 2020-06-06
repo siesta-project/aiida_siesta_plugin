@@ -33,7 +33,7 @@ Examples on the use of the **SiestaBaseWorkChain** are presented in the folder
 Supported Siesta versions
 -------------------------
 
-At least 4.0.1 of the 4.0 series, and 4.1-b3 of the 4.1 series, which
+At least 4.0.1 of the 4.0 series, 4.1-b3 of the 4.1 series and the MaX-1.0 release, which
 can be found in the development platform
 (https://gitlab.com/siesta-project/siesta).
 
@@ -42,8 +42,34 @@ can be found in the development platform
 Inputs
 ------
 
-Most inputs of the WorkChain are mirroring the plugin inputs. Therefore more
+Most inputs of the WorkChain are mirroring the siesta plugin inputs. Therefore, more
 detailed information on them can be found :ref:`here <siesta-plugin-inputs>`.
+The only difference is regarding the way the computational resources are passed.
+The siesta plugin make use of `metadada.options` for this task, here, instead, we have
+a dedicated input node. This node is the first point in the following list, describing
+all the inputs of the WorkChain.
+
+* **options**, class :py:class:`Dict <aiida.orm.Dict>`, *Mandatory*
+
+  Execution options. In this dictionary the computational resources and
+  scheduler specifications (queue, account, etc ..) must be specified.
+  An example is::
+        options = Dict(
+             dict={
+                'max_wallclock_seconds': 360,
+                'withmpi': True,
+                'account': 'tcphy113c',
+                'queue_name': 'DevQ',
+                'resources': {'num_machines': 1,'num_mpiprocs_per_machine': 2},
+                }
+             )
+
+  The `resources` and `max_wallclock_seconds` are required by AiiDA, the rest of the options
+  depend on the scheduler of the machine one is submitting to.
+
+.. |br| raw:: html
+
+    <br />
 
 * **code**,  class :py:class:`Code  <aiida.orm.Code>`, *Mandatory*
 
@@ -87,8 +113,8 @@ detailed information on them can be found :ref:`here <siesta-plugin-inputs>`.
   nodes to be inserted in the database, so it should not be used
   in the input script (or removed before assigning the dictionary to
   the Dict instance). For legibility, a single dash ('-') is suggested, as in the
-  examples above.
-  See the plugin documentation for more details.
+  examples above. See the plugin documentation for more details on the blocked
+  items.
 
 .. |br| raw:: html
 
@@ -98,11 +124,11 @@ detailed information on them can be found :ref:`here <siesta-plugin-inputs>`.
   OR class :py:class:`PsmlData <aiida_siesta.data.psml.PsmlData>`, *Optional*
 
   A dictionary of PsfData or PsmlData objects representing the pseudopotentials for
-  the calculation. If it is not input, a **pseudo_family** specification
-  must be used (see below).
-  
-  The PsfData and PsmlData classes have been implemented along the lines of the Upf class for QE.
-  See the plugin documentation for more details.
+  the calculation. See the plugin documentation for more details.
+  In contrast to the case of the siesta plugin, the **pseudos** input
+  is not mandatory. The **SiestaBaseWorkChain** supports, in fact, the direct use of
+  **pseudo_family** (see below). If **pseudos** is not in input, a **pseudo_family** 
+  specification must be used.
 
 .. |br| raw:: html
 
@@ -110,8 +136,9 @@ detailed information on them can be found :ref:`here <siesta-plugin-inputs>`.
 
 * **pseudo_family**, class :py:class:`Str <aiida.orm.Str>`, *Optional*
 
-  String representing the name of the pseudopotential family (that can
-  be uploaded via the `verdi data psf` or `verdi data psml` CLI interface) to be used.
+  String representing the name of a pseudopotential family stored in the database.
+  Pseudofamilies can be uploaded in the database via the `verdi data psf uploadfamily` 
+  or `verdi data psml uploadfamily` CLI interface.
 
 .. |br| raw:: html
 
@@ -123,8 +150,8 @@ detailed information on them can be found :ref:`here <siesta-plugin-inputs>`.
   follows the same structure as the **parameters** element, including
   the allowed use of fdf-block items. This raw interface allows a
   direct translation of the myriad basis-set options supported by the
-  Siesta program. In future we might have a more structured input for
-  basis-set information. See the plugin documentation for more details.
+  Siesta program. If not specified, a calculation with only the gamma 
+  point is performed. See the plugin documentation for more details.
 
 .. |br| raw:: html
 
@@ -135,7 +162,6 @@ detailed information on them can be found :ref:`here <siesta-plugin-inputs>`.
   Reciprocal space points for the full sampling of the BZ during the
   self-consistent-field iteration. It must be given in mesh form. There is no support
   yet for Siesta's kgrid-cutoff keyword. See the plugin documentation for more details.
-  
   If this node is not present, only the Gamma point is used for sampling.
 
 .. |br| raw:: html
@@ -149,7 +175,6 @@ detailed information on them can be found :ref:`here <siesta-plugin-inputs>`.
   point and number of points, or as a complete automatic path, using the
   functionality of modern versions of the class. See the plugin documentation 
   for more details.
-  
   If this node is not present, no band structure is computed.
 
 .. |br| raw:: html
@@ -165,19 +190,10 @@ detailed information on them can be found :ref:`here <siesta-plugin-inputs>`.
 
     <br />
 
-* **options**, class :py:class:`Dict <aiida.orm.Dict>`, *Mandatory*
-
-  Execution options. In this dictionary the computational resources and 
-  scheduler specifications (queue, account, etc ..) must be specified.
-
-.. |br| raw:: html
-
-    <br />
-
 * **clean_workdir**, class :py:class:`Bool <aiida.orm.Bool>`, *Optional*
 
   If true, work directories of all called calculations will be cleaned
-  out.
+  out. Default is false.
 
 .. |br| raw:: html
 
@@ -186,7 +202,11 @@ detailed information on them can be found :ref:`here <siesta-plugin-inputs>`.
 * **max_iterations**, class :py:class:`Int <aiida.orm.Int>`, *Optional*
 
   The maximum number of iterations allowed in the restart cycle for
-  calculations.
+  calculations. The **SiestaBaseWorkChain** tries to deal with some 
+  common siesta errors (see `here <basewc-error>`) and restart the calculation with appropriate
+  modifications. The integer **max_iterations** is the maximum number
+  of times the restart is performed no matter what error is recorded.
+  The input is optional, if not specified, the default `Int(5)` is used.
 
 .. |br| raw:: html
 
@@ -196,8 +216,30 @@ detailed information on them can be found :ref:`here <siesta-plugin-inputs>`.
 
   Optional port used to activate the restart features, as explained in the plugin documentation.
 
+
+Submitting the WorkChain
+------------------------
+
+WorkChains are submitted in AiiDA exacly like any other calculation. Therefore::
+        from aiida_siesta.workflows.base import SiestaBaseWorkChain
+        from aiida.engine import
+        builder = SiestaBaseWorkChain.get_builder()
+        builder.options = options
+        ... All the inputs here ...
+        submit(builder) #or run
+
+There is no need to set the computational resources with the metadata as they are already
+defined in the input `options`, however `builder.metadata.label` and `builder.metadata.description`
+could be used to label and describe the WorkChain.
+Again, the use of the `builder` is not mandatory, the inputs can be passed as arguments of
+`sumbit`/`run` as explained in the siesta plugin section.
+
 Outputs
 -------
+
+The outputs of the **SiestaBaseWorkChain** mirror exactly the one of the siesta plugin.
+Therefore all the information can be obtained in the corresponding section.
+We list here the outputs.
 
 * **output_parameters** :py:class:`Dict <aiida.orm.Dict>` 
 
@@ -238,6 +280,74 @@ Outputs
 
 * **remote_folder**, :py:class:`RemoteData <aiida.orm.RemoteData>`
 
-  The working remote folder for the last calculation executed.
+  The working remote folder for the last calculation executed. As the **SiestaBaseWorkChain**
+  automatically restarts the calculation in case of common failures, the very last
+  siesta calculation is considered the interesting one for a further manual restart.
+  Therefore its folder is returned in this node.
 
+
+.. _basewc-error:
+
+Error handling
+--------------
+
+We list here the errors that are handled by the **SiestaBaseWorkChain** and the
+corresponding action taken. The error are actually detected by the siesta parser,
+in the WorkChain, the handling is performed.
+
+* **SCF_NOT_CONV**
+
+  When the convergence of the self-consistent cycle is not reached in `max-scf-iterations` or
+  in the allocated `max_walltime`, siesta raises the **SCF_NOT_CONV** error.
+  The **SiestaBaseWorkChain** is able to detect this error and restart the calculation with no
+  modifications on the input parameters.
+
+.. |br| raw:: html
+
+    <br />
+
+* **GEOM_NOT_CONV**
+
+  When the convergence of the geometry (during a relaxation) is not reached
+  in the allocated `max_walltime`, siesta raises the **GEOM_NOT_CONV** error.
+  The **SiestaBaseWorkChain** is able to detect this error and restart the calculation with no
+  modifications on the input parameters.
+
+.. |br| raw:: html
+
+    <br />
+
+* **SPLIT_NORM**
+
+  The **SiestaBaseWorkChain** deals with problems connected to the basis set creation.
+  If a "too small split-norm" error is detected, the WorkChains reacts in two ways.
+  If a global split-norm was defined in input through `pao-split-norm`, its value is reset to
+  the minimum acceptable. If no global split-norm was defined the option `pao-split-tail-norm = True`
+  is set.
+
+Two more errors are detected by the WorkChain, but not handled at the moment,
+only a specific error code is returned as output without attempting a restart.
+
+* **BASIS_POLARIZ**
+
+  If an error on the polarization of one orbital is detected, the error code 403 is returned.
+  The solution to this problem is to set the "non-perturbative" polarization scheme for the
+  element that presents an error, however this possibility is available only in recent
+  versions of AiiDA, making inconvenient to treat automatically the resolution of this error.
+
+.. |br| raw:: html
+
+    <br />
+
+* **ERROR_BANDS**
+
+  If a calculation of the electronic bands is requested, but
+  an error in the parsing of the bands file is detected, the error code 404 is returned.
+  In this case, the WorkChain will anyway return all the other outputs because the checks
+  on the bands file are always performed at the very end of the calculation.
+
+The **SiestaBaseWorkChain** also inherits the error codes of the **BaseRestartWorkChain**
+of the aiida-core distribution. For instance,
+if an unexpected error is raised twice, the workchain finishes with exit code 402, if the
+maximum number of iterations is reached, error 401 is returned. More at ... 
 
