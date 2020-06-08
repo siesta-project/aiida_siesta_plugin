@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 import itertools
 from functools import partial
 import numpy as np
@@ -29,7 +30,7 @@ def accept_python_types(spec):
 
     spec.input = partial(spec.input, serializer=serializer)
 
-class BaseIteratorWorkChain(WorkChain):
+class BaseIteratorWorkChain(WorkChain, ABC):
     '''
     General workflow that runs SIESTA simulations iteratively.
 
@@ -116,8 +117,11 @@ class BaseIteratorWorkChain(WorkChain):
         elif hasattr(self, '_default_values_list') and 'init_value' not in self.inputs:
             iterable = iter(self._default_values_list)
         else:
-            init_val = self.inputs.init_value.value if 'init_value' in self.inputs else self._default_init
-            step = self.inputs.step.value if 'step' in self.inputs else self._default_step
+            try:
+                init_val = self.inputs.init_value.value if 'init_value' in self.inputs else self._default_init
+                step = self.inputs.step.value if 'step' in self.inputs else self._default_step
+            except:
+                raise ValueError('You must specify either a "values_list" or an "init_value" and "step" so that we can build it for you')
 
             iterable = itertools.count(init_val, step) 
 
@@ -187,6 +191,17 @@ class BaseIteratorWorkChain(WorkChain):
         calculation = self.submit(SiestaBaseWorkChain, **inputs)
 
         return ToContext(calculation=calculation)
+
+    @abstractmethod
+    def add_inputs(self):
+        '''
+        This method should be implemented in child classes.
+
+        It takes all the inputs of the SIESTA calculation and it is expected to modify them
+        in place according to the current iteration. See `ParameterIterator` and `AttributeIterator` 
+        for examples of this. 
+        '''
+        pass
 
     def process_calc(self):
         pass
@@ -341,6 +356,10 @@ class EnergyShiftIterator(BasisParameterIterator):
     _units = 'Ry'
 
 
+# Instead of defining classes for each param/attribute, another approach
+# could be to have dicts defining "defaults" for each parameter attribute.
+# For more complicated cases like kpoints we do need to define a new class though.
+
 basis_params = FDFDict(
     paobasissize={
         'defaults': {
@@ -364,15 +383,41 @@ params = FDFDict(
     }
 )
 
-attributes = {}
+# These are all the valid attributes for inputs (I believe)
+attributes = {
+    'code': {},
+    'structure': {},
+    'parameters': {},
+    'pseudos': {},
+    'basis': {},
+    'settings': {},
+    'parent_calc_folder': {},
+}
 
 preset_iters = {
     ParameterIterator: params,
     BasisParameterIterator: basis_params,
-    AttributeIterator: attributes
+    AttributeIterator: attributes,
+    KpointComponentIterator: {'kpoints': {}}
 }
 
 def get_iterator_and_defaults(iterate_over):
+    '''
+    Gets the appropiate iterator for a given parameter.
+
+    Parameters
+    -----------
+    iterate_over: str
+        The parameter/basis parameter/attribute that we want
+        to iterate over
+
+    Returns
+    -----------
+    Iterator
+        the specific iterator class that should be used.
+    dict
+        the default settings that should be passed.
+    '''
 
     for IteratorClass, presets in preset_iters.items():
 
@@ -408,10 +453,23 @@ def get_iterator_and_defaults(iterate_over):
     return IteratorClass, defaults
 
 def iterate(over, call_method='run', **kwargs):
+    '''
+    Launches an aiida job to iterate through a parameter/basis parameter or attribute.
+
+    Parameters
+    -----------
+    over: str
+        the name of the parameter, basis parameter or attribute that you want to iterate
+        over.
+    call_method: {'run', 'submit'}, optional
+        how the aiida job should be launched.
+    **kwargs:
+        All the extra keyword arguments that go directly into launching the job. 
+    '''
     from aiida.engine import run, submit
 
     Iterator, defaults = get_iterator_and_defaults(over)
 
     execute = run if call_method is 'run' else submit
 
-    return execute(Iterator, *args, **{**defaults, **kwargs})
+    return execute(Iterator, **{**defaults, **kwargs})

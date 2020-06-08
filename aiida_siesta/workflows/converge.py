@@ -38,7 +38,7 @@ def generate_new_kpoints(old_kpoints, component, val):
 
     return new_kpoints
 
-class BaseConvergenceWorkchain(BaseIteratorWorkChain):
+class BaseConvergencePlugin:
     '''
     General workflow that finds the converged value for a parameter.
 
@@ -101,7 +101,7 @@ class BaseConvergenceWorkchain(BaseIteratorWorkChain):
 
     def return_results(self):
         '''
-        Takes care of returning the results of the workchain to the user
+        Takes care of returning the results of the Plugin to the user
         '''
 
         converged = Bool(self.converged)
@@ -116,16 +116,16 @@ class BaseConvergenceWorkchain(BaseIteratorWorkChain):
         self.out('attempted_values', variable_values)
         self.out('target_values', target_values)
 
-class ParameterConvergence(BaseConvergenceWorkchain, ParameterIterator):
+class ParameterConvergence(BaseConvergencePlugin, ParameterIterator):
     pass
 
-class BasisParameterConvergence(BaseConvergenceWorkchain, BasisParameterIterator):
+class BasisParameterConvergence(BaseConvergencePlugin, BasisParameterIterator):
     pass
 
-class AttributeConvergence(BaseConvergenceWorkchain, AttributeIterator):
+class AttributeConvergence(BaseConvergencePlugin, AttributeIterator):
     pass
 
-class KpointComponentConvergence(BaseConvergenceWorkchain, KpointComponentIterator):
+class KpointComponentConvergence(BaseConvergencePlugin, KpointComponentIterator):
     pass
 
 class KpointsConvergence(WorkChain):
@@ -228,25 +228,73 @@ class KpointsConvergence(WorkChain):
         self.out('final_target_value', self.ctx.last_process.outputs['final_target_value'])
 
 def iterator_to_converger(IteratorClass):
+    '''
+    Finds the appropiate convergence workflow for a given iterator.
+
+    Ideally, one could just "plug" the BaseConvergencePlugin to the iterator,
+    but Aiida does not like dinamically defined classes, so classes must exist beforehand.
+
+    That's why `ParameterConvergence`, `BasisParameterConvergence` and `AttributeConvergence`
+    are defined in this file.
+
+    Parameters
+    -----------
+    IteratorClass: Iterator
+        the iterator class that you want to get a convergence workflow for
+
+    Returns
+    -----------
+    Converger
+        the corresponding convergence workflow
+    '''
     
     for Converger in [ParameterConvergence, BasisParameterConvergence, AttributeConvergence]:
         if IteratorClass in Converger.__mro__:
             return Converger
 
 def get_converger_and_defaults(iterate_over):
+    '''
+    Gets the appropiate iterator for a given parameter.
+
+    Parameters
+    -----------
+    iterate_over: str
+        The parameter/basis parameter/attribute that we want
+        to converge
+
+    Returns
+    -----------
+    Converger
+        the specific convergence workflow that should be used.
+    dict
+        the default settings that should be passed.
+    '''
 
     Iterator, defaults = get_iterator_and_defaults(iterate_over)
 
     return iterator_to_converger(Iterator), defaults
 
-def converge(over, *args, call_method='run', **kwargs):
+def converge(over, call_method='run', **kwargs):
+    '''
+    Launches an aiida job to iterate through a parameter/basis parameter or attribute.
+
+    Parameters
+    -----------
+    over: str
+        the name of the parameter, basis parameter or attribute that you want to iterate
+        over.
+    call_method: {'run', 'submit'}, optional
+        how the aiida job should be launched.
+    **kwargs:
+        All the extra keyword arguments that go directly into launching the job. 
+    '''
     from aiida.engine import run, submit
 
     Converger, defaults = get_converger_and_defaults(over)
 
     execute = run if call_method is 'run' else submit
 
-    return execute(Converger, *args, **{**defaults, **kwargs})
+    return execute(Converger, **{**defaults, **kwargs})
 
 
 
