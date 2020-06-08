@@ -4,7 +4,8 @@ from aiida.engine import WorkChain, calcfunction, while_, ToContext
 from aiida.orm import Float, Str, List, KpointsData, Bool, Int
 from aiida.common import AttributeDict
 
-from .iterate import BaseIteratorWorkChain ,ParameterIterator, BasisParameterIterator, AttributeIterator, get_iterator_and_defaults
+from .iterate import BaseIteratorWorkChain ,ParameterIterator, BasisParameterIterator,  \
+                AttributeIterator, KpointComponentIterator, get_iterator_and_defaults
 
 @calcfunction
 def generate_convergence_results(variable_values, target_values, converged):
@@ -37,7 +38,7 @@ def generate_new_kpoints(old_kpoints, component, val):
 
     return new_kpoints
 
-class BaseConvergence(BaseIteratorWorkChain):
+class BaseConvergenceWorkchain(BaseIteratorWorkChain):
     '''
     General workflow that finds the converged value for a parameter.
 
@@ -98,7 +99,6 @@ class BaseConvergence(BaseIteratorWorkChain):
 
         self.ctx.target_values.append(simulation_outputs[self.inputs.target.value])
 
-
     def return_results(self):
         '''
         Takes care of returning the results of the workchain to the user
@@ -116,16 +116,17 @@ class BaseConvergence(BaseIteratorWorkChain):
         self.out('attempted_values', variable_values)
         self.out('target_values', target_values)
 
-class ParameterConvergence(BaseConvergence, ParameterIterator):
+class ParameterConvergence(BaseConvergenceWorkchain, ParameterIterator):
     pass
 
-class BasisParameterConvergence(BaseConvergence, BasisParameterIterator):
+class BasisParameterConvergence(BaseConvergenceWorkchain, BasisParameterIterator):
     pass
 
-class AttributeConvergence(BaseConvergence, AttributeIterator):
+class AttributeConvergence(BaseConvergenceWorkchain, AttributeIterator):
     pass
 
-
+class KpointComponentConvergence(BaseConvergenceWorkchain, KpointComponentIterator):
+    pass
 
 class KpointsConvergence(WorkChain):
         
