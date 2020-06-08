@@ -1,20 +1,20 @@
 from abc import ABC, abstractmethod
 import itertools
 from functools import partial
-import numpy as np
 
 from aiida.plugins import DataFactory
-from aiida.engine import WorkChain, calcfunction, while_, ToContext
-from aiida.orm import Float, Str, List, KpointsData, Bool, Int
+from aiida.engine import WorkChain, while_, ToContext
+from aiida.orm import Float, Str, List, KpointsData, Int
 from aiida.orm.nodes.data.base import to_aiida_type
 from aiida.common import AttributeDict
 
 from ..calculations.tkdict import FDFDict
 from .base import SiestaBaseWorkChain
 
+
 def accept_python_types(spec):
     '''
-    Receives a ProcessSpec object and sets the serializer 
+    Receives a ProcessSpec object and sets the serializer
     for the inputs to `aiida.orm.nodes.data.base.to_aiida_type`.
 
     In this way, the user will be able to pass python objects, which
@@ -24,11 +24,14 @@ def accept_python_types(spec):
     def serializer(obj):
 
         if isinstance(obj, list):
-            return List(list=obj)
+            serialized = List(list=obj)
         else:
-            return to_aiida_type(obj)
+            serialized = to_aiida_type(obj)
+
+        return serialized
 
     spec.input = partial(spec.input, serializer=serializer)
+
 
 class BaseIteratorWorkChain(WorkChain, ABC):
     '''
@@ -46,14 +49,11 @@ class BaseIteratorWorkChain(WorkChain, ABC):
 
         # Define the outline of the workflow, i.e. the order in which methods
         # should be executed
-        spec.outline(
-            cls.initialize,
-            while_(cls.next_step)(
-                cls.run_calc,
-                cls.process_calc,
-            ),
-            cls.return_results
-        )
+        spec.outline(cls.initialize,
+                     while_(cls.next_step)(
+                         cls.run_calc,
+                         cls.process_calc,
+                     ), cls.return_results)
 
         # Define all the inputs that this workchain expects
 
@@ -62,24 +62,9 @@ class BaseIteratorWorkChain(WorkChain, ABC):
         accept_python_types(spec)
 
         # Inputs related to the variable parameter
-        spec.input(
-            "init_value",
-            valid_type=(Int, Float),
-            required=False,
-            help="The inital value of the parameter."
-        )
-        spec.input(
-            "step",
-            valid_type=(Int, Float),
-            required=False,
-            help="The step to apply for each iteration."
-        )
-        spec.input(
-            'steps',
-            valid_type=Int,
-            required=False,
-            help="The maximum number of steps to take"
-        )
+        spec.input("init_value", valid_type=(Int, Float), required=False, help="The inital value of the parameter.")
+        spec.input("step", valid_type=(Int, Float), required=False, help="The step to apply for each iteration.")
+        spec.input('steps', valid_type=Int, required=False, help="The maximum number of steps to take")
         spec.input(
             "values_list",
             valid_type=List,
@@ -98,7 +83,7 @@ class BaseIteratorWorkChain(WorkChain, ABC):
         )
         spec.expose_inputs(SiestaBaseWorkChain, exclude=('metadata',))
         spec.inputs._ports['pseudos'].dynamic = True
-        
+
         # Define what are the outputs that this workchain will return
         spec.output('attempted_values')
 
@@ -120,12 +105,15 @@ class BaseIteratorWorkChain(WorkChain, ABC):
             try:
                 init_val = self.inputs.init_value.value if 'init_value' in self.inputs else self._default_init
                 step = self.inputs.step.value if 'step' in self.inputs else self._default_step
-            except:
-                raise ValueError('You must specify either a "values_list" or an "init_value" and "step" so that we can build it for you')
+            except Exception:
+                raise ValueError(
+                    'You must specify either a "values_list" or an "init_value" and "step"'
+                    ' so that we can build it for you'
+                )
 
-            iterable = itertools.count(init_val, step) 
+            iterable = itertools.count(init_val, step)
 
-        return iterable    
+        return iterable
 
     def next_step(self):
         '''
@@ -156,7 +144,7 @@ class BaseIteratorWorkChain(WorkChain, ABC):
         except StopIteration:
             # However, it's possible that there are no more values to try
             return False
-        
+
         return True
 
     # The only logic BaseIteratorWorkChain knows is to run until there are no more
@@ -186,43 +174,45 @@ class BaseIteratorWorkChain(WorkChain, ABC):
         inputs = AttributeDict(self.exposed_inputs(SiestaBaseWorkChain))
         # Let the
         self.add_inputs(inputs)
-        
+
         # Run the SIESTA simulation and store the results
         calculation = self.submit(SiestaBaseWorkChain, **inputs)
 
         return ToContext(calculation=calculation)
 
     @abstractmethod
-    def add_inputs(self):
+    def add_inputs(self, inputs):
         '''
         This method should be implemented in child classes.
 
         It takes all the inputs of the SIESTA calculation and it is expected to modify them
-        in place according to the current iteration. See `ParameterIterator` and `AttributeIterator` 
-        for examples of this. 
+        in place according to the current iteration. See `ParameterIterator` and `AttributeIterator`
+        for examples of this.
         '''
-        pass
 
     def process_calc(self):
-        pass
+        '''
+        Here, one could process the results of the simulation
+        (which has been put into context)
+        '''
 
     def return_results(self):
         '''
         Takes care of returning the results of the workchain to the user.
         '''
-        pass
+
 
 class ParameterIterator(BaseIteratorWorkChain):
 
     _units = None
 
     @classmethod
-    def define(self, spec):
+    def define(cls, spec):
         super().define(spec)
 
         # If the user is using directly this class, give the option to choose
         # the parameter they want to converge
-        if not hasattr(self, '_parameter'):
+        if not hasattr(cls, '_parameter'):
             spec.input(
                 'parameter',
                 valid_type=Str,
@@ -231,7 +221,7 @@ class ParameterIterator(BaseIteratorWorkChain):
             )
 
             spec.input('units', valid_type=Str, required=False, help='The units of the parameter')
-    
+
     def initialize(self):
         super().initialize()
 
@@ -254,7 +244,7 @@ class ParameterIterator(BaseIteratorWorkChain):
         parameters = getattr(inputs, attr, DataFactory('dict')())
         parameters = FDFDict(parameters.get_dict())
 
-        val = self.current_val 
+        val = self.current_val
 
         units = getattr(self.inputs, 'units', self._units)
         if units is not None:
@@ -266,19 +256,21 @@ class ParameterIterator(BaseIteratorWorkChain):
         new_parameters = DataFactory('dict')(dict={key: val for key, (val, _) in parameters._storage.items()})
         setattr(inputs, attr, new_parameters)
 
+
 class BasisParameterIterator(ParameterIterator):
     _parameters_attribute = 'basis'
+
 
 class AttributeIterator(BaseIteratorWorkChain):
 
     @classmethod
-    def define(self, spec):
+    def define(cls, spec):
         super().define(spec)
 
         # If the user is using directly this class, give the option to choose
         # the parameter they want to converge
-        if not hasattr(self, '_attribute'):
-            # We are going to add here inputs specific to converging a parameter 
+        if not hasattr(cls, '_attribute'):
+            # We are going to add here inputs specific to converging a parameter
             spec.input(
                 'attribute',
                 valid_type=Str,
@@ -302,10 +294,12 @@ class AttributeIterator(BaseIteratorWorkChain):
 
         setattr(inputs, self.ctx.attribute, self.current_val)
 
+
 class BasisSizeIterator(BasisParameterIterator):
 
     _parameter = 'pao-basissize'
     _default_values_list = ['SZ', 'SZP', 'DZ', 'DZP', 'TZ', 'TZP']
+
 
 class MeshCutoffIterator(ParameterIterator):
 
@@ -313,6 +307,7 @@ class MeshCutoffIterator(ParameterIterator):
     _units = 'Ry'
     _default_init = 100
     _default_step = 100
+
 
 class KpointComponentIterator(AttributeIterator):
 
@@ -323,13 +318,8 @@ class KpointComponentIterator(AttributeIterator):
         super().define(spec)
 
         # Inputs related to the variable parameter
-        spec.input(
-            "component",
-            valid_type=Int,
-            required=False,
-            help="The k component to converge. One of {0,1,2}"
-        )
-    
+        spec.input("component", valid_type=Int, required=False, help="The k component to converge. One of {0,1,2}")
+
     @property
     def current_val(self):
 
@@ -340,8 +330,8 @@ class KpointComponentIterator(AttributeIterator):
             mesh, offset = self.inputs.kpoints.get_kpoints_mesh()
         else:
             # Otherwise we will just create it
-            mesh = [1,1,1]
-            offset = [0,0,0]
+            mesh = [1, 1, 1]
+            offset = [0, 0, 0]
 
         mesh[self.inputs.component.value] = int(k_val)
 
@@ -349,6 +339,7 @@ class KpointComponentIterator(AttributeIterator):
         k_mesh.set_kpoints_mesh(mesh, offset)
 
         return k_mesh
+
 
 class EnergyShiftIterator(BasisParameterIterator):
 
@@ -360,31 +351,19 @@ class EnergyShiftIterator(BasisParameterIterator):
 # could be to have dicts defining "defaults" for each parameter attribute.
 # For more complicated cases like kpoints we do need to define a new class though.
 
-basis_params = FDFDict(
-    paobasissize={
-        'defaults': {
-            'values_list': ['SZ', 'SZP', 'DZ', 'DZP', 'TZ', 'TZP']
-        }
-    },
-    paoenergyshift={
-        'defaults': {
-            'units': 'Ry'
-        }
-    }
+_BASIS_PARAMS = FDFDict(
+    paobasissize={'defaults': {
+        'values_list': ['SZ', 'SZP', 'DZ', 'DZP', 'TZ', 'TZP']
+    }},
+    paoenergyshift={'defaults': {
+        'units': 'Ry'
+    }}
 )
 
-params = FDFDict(
-    meshcutoff={
-        'defaults': {
-            'units': 'Ry',
-            'init_value': 100,
-            'step': 100
-        }
-    }
-)
+_PARAMS = FDFDict(meshcutoff={'defaults': {'units': 'Ry', 'init_value': 100, 'step': 100}})
 
 # These are all the valid attributes for inputs (I believe)
-attributes = {
+_ATTRIBUTES = {
     'code': {},
     'structure': {},
     'parameters': {},
@@ -394,12 +373,15 @@ attributes = {
     'parent_calc_folder': {},
 }
 
-preset_iters = {
-    ParameterIterator: params,
-    BasisParameterIterator: basis_params,
-    AttributeIterator: attributes,
-    KpointComponentIterator: {'kpoints': {}}
+PRESET_ITERS = {
+    ParameterIterator: _PARAMS,
+    BasisParameterIterator: _BASIS_PARAMS,
+    AttributeIterator: _ATTRIBUTES,
+    KpointComponentIterator: {
+        'kpoints': {}
+    }
 }
+
 
 def get_iterator_and_defaults(iterate_over):
     '''
@@ -449,8 +431,9 @@ def get_iterator_and_defaults(iterate_over):
         defaults['parameter'] = iterate_over
     elif IteratorClass is AttributeIterator:
         defaults['attribute'] = iterate_over
-        
+
     return IteratorClass, defaults
+
 
 def iterate(over, call_method='run', **kwargs):
     '''
@@ -464,12 +447,12 @@ def iterate(over, call_method='run', **kwargs):
     call_method: {'run', 'submit'}, optional
         how the aiida job should be launched.
     **kwargs:
-        All the extra keyword arguments that go directly into launching the job. 
+        All the extra keyword arguments that go directly into launching the job.
     '''
     from aiida.engine import run, submit
 
     Iterator, defaults = get_iterator_and_defaults(over)
 
-    execute = run if call_method is 'run' else submit
+    execute = run if call_method == 'run' else submit
 
     return execute(Iterator, **{**defaults, **kwargs})
