@@ -69,8 +69,8 @@ class ProtocolRegistry:
             if "mesh-cutoff" in v["parameters"]:
                 try:
                     float(v["parameters"]["mesh-cutoff"].split()[0])
-                    v["parameters"]["mesh-cutoff"].split()[1]
-                except (ValueError,IndexError):
+                    str(v["parameters"]["mesh-cutoff"].split()[1])
+                except (ValueError, IndexError):
                     raise_invalid('protocol `{}` contains wrong format of `mesh-cutoff` in `parameters`'.format(k))
 
             if 'basis' not in v:
@@ -118,7 +118,7 @@ class ProtocolRegistry:
         """
         parameters = self._protocols[key]["parameters"].copy()
 
-        if "atomic_heuristics" in self._protocols[key]:
+        if "atomic_heuristics" in self._protocols[key]:  #pylint: disable=too-many-nested-blocks
             atomic_heuristics = self._protocols[key]["atomic_heuristics"]
 
             if 'mesh-cutoff' in parameters:
@@ -145,11 +145,11 @@ class ProtocolRegistry:
                             meshcut_units = cust_param["mesh-cutoff"].split()[1]
 
             if meshcut_glob:
-                parameters["mesh-cutoff"] = "{0} {1}".format(meshcut_glob,meshcut_units)
+                parameters["mesh-cutoff"] = "{0} {1}".format(meshcut_glob, meshcut_units)
 
         return parameters
 
-    def _get_basis(self, key, structure):
+    def _get_basis(self, key, structure):  # noqa: MC0001  - is mccabe too complex funct -
         """
         Heuristics are applied, a dictionary with the basis is returned
         """
@@ -197,7 +197,7 @@ class ProtocolRegistry:
                     if 'energy-shift' in cust_basis:
                         cust_en_shift = cust_basis["energy-shift"].split()[0]
                         #cust_en_shif-units = cust_basis["energy-shift"].split()[1]
-                        if ene_shift_glob: 
+                        if ene_shift_glob:
                             if float(cust_en_shift) < float(ene_shift_glob):
                                 ene_shift_glob = cust_en_shift
                         else:
@@ -205,22 +205,22 @@ class ProtocolRegistry:
                             en_shift_units = cust_basis["energy-shift"].split()[1]
                     if 'size' in cust_basis:
                         size_dict[kind.name] = cust_basis['size']
-            
+
             #Define the new basis dictionary
             if split_norm_glob:
                 basis["pao-split-norm"] = split_norm_glob
             if ene_shift_glob:
-                basis["pao-energy-shift"] = "{0} {1}".format(ene_shift_glob,en_shift_units)
+                basis["pao-energy-shift"] = "{0} {1}".format(ene_shift_glob, en_shift_units)
             if pol_dict:
                 card = '\n'
-                for k,v in pol_dict.items():
-                    card = card + '  {0}  {1} \n'.format(k,v)
+                for k, v in pol_dict.items():
+                    card = card + '  {0}  {1} \n'.format(k, v)
                 card = card + '%endblock paopolarizationscheme'
                 basis['%block pao-polarization-scheme'] = card
             if size_dict:
                 card = '\n'
-                for k,v in size_dict.items():
-                    card = card + '  {0}  {1} \n'.format(k,v)
+                for k, v in size_dict.items():
+                    card = card + '  {0}  {1} \n'.format(k, v)
                 card = card + '%endblock paobasessizes'
                 basis['%block pao-bases-sizes'] = card
 
