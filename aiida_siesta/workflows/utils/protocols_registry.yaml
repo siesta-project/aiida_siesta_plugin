@@ -17,13 +17,18 @@ standard_delta:
     distance: 0.1
     offset: [0., 0., 0.]
   atomic_heuristics:
+    C:
+      basis:
+        size: 'SZ' #Basis size block
+        energy-shift: '80 meV' #Applies globally if smaller that global pao-energy-shift
+        split-norm: 0.3 #Applies globally except hydrogen(splitnormH) if larger then global pao-split-norm
     H:
       parameters:
-        mesh-cutoff: '200 Ry' #Applies globally
+        mesh-cutoff: '200 Ry' #Applies globally if bigger that global mesh-cutoff
       basis:
         size: 'DZDP' #Basis size block
-        energy-shift: '120 meV' #Applies globally
-        split-norm: 0.3 #Applies globally except hydrogen(splitnormH)
+        energy-shift: '80 meV' #Applies globally if smaller that global pao-energy-shift
+        split-norm: 0.3 #Applies globally except hydrogen(splitnormH) if larger then global pao-split-norm
     He:
       parameters:
         mesh-cutoff: '200 Ry' #Applies globally

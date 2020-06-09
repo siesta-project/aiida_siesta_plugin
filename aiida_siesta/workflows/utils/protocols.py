@@ -66,6 +66,12 @@ class ProtocolRegistry:
 
             if 'parameters' not in v:
                 raise_invalid('protocol `{}` does not define the mandatory key `parameters`'.format(k))
+            if "mesh-cutoff" in v["parameters"]:
+                try:
+                    float(v["parameters"]["mesh-cutoff"].split()[0])
+                    v["parameters"]["mesh-cutoff"].split()[1]
+                except (ValueError,IndexError):
+                    raise_invalid('protocol `{}` contains wrong format of `mesh-cutoff` in `parameters`'.format(k))
 
             if 'basis' not in v:
                 raise_invalid('protocol `{}` does not define the mandatory key `basis`'.format(k))
@@ -115,16 +121,31 @@ class ProtocolRegistry:
         if "atomic_heuristics" in self._protocols[key]:
             atomic_heuristics = self._protocols[key]["atomic_heuristics"]
 
-            for kind in structure.get_kind_names():
+            if 'mesh-cutoff' in parameters:
+                meshcut_glob = parameters["mesh-cutoff"].split()[0]
+                meshcut_units = parameters["mesh-cutoff"].split()[1]
+            else:
+                meshcut_glob = None
+
+            for kind in structure.kinds:
                 need_to_apply = False
                 try:
-                    cust_param = atomic_heuristics[kind]["parameters"]
+                    cust_param = atomic_heuristics[kind.symbol]["parameters"]
                     need_to_apply = True
                 except KeyError:
                     pass
                 if need_to_apply:
                     if 'mesh-cutoff' in cust_param:
-                        parameters["mesh-cutoff"] = cust_param["mesh-cutoff"]
+                        cust_meshcut = cust_param["mesh-cutoff"].split()[0]
+                        if meshcut_glob:
+                            if float(cust_meshcut) > float(meshcut_glob):
+                                meshcut_glob = cust_meshcut
+                        else:
+                            meshcut_glob = cust_meshcut
+                            meshcut_units = cust_param["mesh-cutoff"].split()[1]
+
+            if meshcut_glob:
+                parameters["mesh-cutoff"] = "{0} {1}".format(meshcut_glob,meshcut_units)
 
         return parameters
 
@@ -137,10 +158,24 @@ class ProtocolRegistry:
         if "atomic_heuristics" in self._protocols[key]:  #pylint: disable=too-many-nested-blocks
             atomic_heuristics = self._protocols[key]["atomic_heuristics"]
 
-            for kind in structure.get_kind_names():
+            #Initializations
+            if 'pao-split-norm' in basis:
+                split_norm_glob = basis["pao-split-norm"]
+            else:
+                split_norm_glob = None
+            if 'pao-energy-shift' in basis:
+                ene_shift_glob = basis["pao-energy-shift"].split()[0]
+                en_shift_units = basis["pao-energy-shift"].split()[1]
+            else:
+                ene_shift_glob = None
+            pol_dict = {}
+            size_dict = {}
+
+            #Run through all the heuristics
+            for kind in structure.kinds:
                 need_to_apply = False
                 try:
-                    cust_basis = atomic_heuristics[kind]["basis"]
+                    cust_basis = atomic_heuristics[kind.symbol]["basis"]
                     need_to_apply = True
                 except KeyError:
                     pass
@@ -149,18 +184,44 @@ class ProtocolRegistry:
                         if cust_basis['split-norm'] == "tail":
                             basis["pao-split-tail-norm"] = True
                         else:
-                            if kind == "H":
-                                basis["pao-split-norm-H"] = cust_basis['split-norm']
+                            if kind.symbol == "H":
+                                basis["pao-split-norm-h"] = cust_basis['split-norm']
                             else:
-                                basis["pao-split-norm"] = cust_basis['split-norm']
+                                if split_norm_glob:
+                                    if float(cust_basis['split-norm']) > float(split_norm_glob):
+                                        split_norm_glob = cust_basis['split-norm']
+                                else:
+                                    split_norm_glob = cust_basis['split-norm']
                     if 'polarization' in cust_basis:
-                        basis['%block PaoPolarizationScheme'
-                             ] = "\n {} non-perturbative\n%endblock PaoPolarizationScheme".format(kind)
+                        pol_dict[kind.name] = cust_basis['polarization']
                     if 'energy-shift' in cust_basis:
-                        basis["pao-energy-shift"] = cust_basis['energy-shift']
+                        cust_en_shift = cust_basis["energy-shift"].split()[0]
+                        #cust_en_shif-units = cust_basis["energy-shift"].split()[1]
+                        if ene_shift_glob: 
+                            if float(cust_en_shift) < float(ene_shift_glob):
+                                ene_shift_glob = cust_en_shift
+                        else:
+                            ene_shift_glob = cust_en_shift
+                            en_shift_units = cust_basis["energy-shift"].split()[1]
                     if 'size' in cust_basis:
-                        basis['%block pao-bases-sizes'] = "\n {} {}\n%endblock paobasissizes".format(
-                            kind, cust_basis['size']
-                        )
+                        size_dict[kind.name] = cust_basis['size']
+            
+            #Define the new basis dictionary
+            if split_norm_glob:
+                basis["pao-split-norm"] = split_norm_glob
+            if ene_shift_glob:
+                basis["pao-energy-shift"] = "{0} {1}".format(ene_shift_glob,en_shift_units)
+            if pol_dict:
+                card = '\n'
+                for k,v in pol_dict.items():
+                    card = card + '  {0}  {1} \n'.format(k,v)
+                card = card + '%endblock paopolarizationscheme'
+                basis['%block pao-polarization-scheme'] = card
+            if size_dict:
+                card = '\n'
+                for k,v in size_dict.items():
+                    card = card + '  {0}  {1} \n'.format(k,v)
+                card = card + '%endblock paobasessizes'
+                basis['%block pao-bases-sizes'] = card
 
         return basis
