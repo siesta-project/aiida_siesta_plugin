@@ -54,3 +54,15 @@ class BandgapWorkChain(SiestaBaseWorkChain):
         e_fermi = out_par.get_dict()['E_Fermi']
         res_dict = get_bandgap(orm.Float(e_fermi), self.outputs["bands"])
         self.out('band_gap_info', res_dict)
+
+    #pylint: disable=signature-differs
+    @classmethod
+    def get_filled_builder(cls, structure, calc_engines, protocol, path_generator, relaxation_type=None):
+
+        from aiida_siesta.workflows.utils.bandgap_inp_gen import BandgapWorkChainInputsGenerator
+
+        gen = BandgapWorkChainInputsGenerator()
+
+        build = gen.get_builder(structure, calc_engines, protocol, path_generator, relaxation_type)
+
+        return build

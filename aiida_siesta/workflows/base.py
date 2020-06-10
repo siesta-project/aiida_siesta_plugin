@@ -232,3 +232,14 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
             self.out(name, output)
 
         return ProcessHandlerReport(True, self.exit_codes.ERROR_BANDS_PARSING)
+
+    @classmethod
+    def get_filled_builder(cls, structure, calc_engines, protocol, path_generator=None, relaxation_type=None):
+
+        from aiida_siesta.workflows.utils.base_inp_gen import BaseWorkChainInputsGenerator
+
+        gen = BaseWorkChainInputsGenerator()
+
+        build = gen.get_builder(structure, calc_engines, protocol, path_generator, relaxation_type)
+
+        return build

@@ -9,6 +9,9 @@ standard_delta:
     electronic-temperature: '25 meV'
     write-forces: True
     mesh-cutoff: '100 Ry'
+  relax:
+    md-max-force-tol: '0.04 eV/ang'
+    md-max-stress-tol: '1 GPa'
   basis:
     pao-energy-shift: '100 meV'
     pao-basis-size: 'DZ'
@@ -78,8 +81,6 @@ standard_delta:
     Lu:
       basis:
         split-norm: "tail"
-  threshold-forces: 0.04  #in ev/ang
-  threshold-stress: 0.006241509125883258 #in ev/ang**3 = 1 GPa
 
 stringent_delta:
   description: 'Another test set.'
@@ -92,6 +93,9 @@ stringent_delta:
     electronic-temperature: '25 meV'
     write-forces: True
     mesh-cutoff: '500 Ry'
+  relax:
+    md-max-force-tol: '0.01 eV/ang'
+    md-max-stress-tol: '0.5 GPa'
   basis:
     pao-energy-shift: '100 meV'
     pao-basis-size: 'DZP'
@@ -165,5 +169,3 @@ stringent_delta:
     Lu:
       basis:
         split-norm: "tail"
-  threshold-forces: 0.03  #in ev/ang
-  threshold-stress: 0.005  #in ev/ang**3
