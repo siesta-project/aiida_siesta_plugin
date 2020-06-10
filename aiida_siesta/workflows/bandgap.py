@@ -59,10 +59,4 @@ class BandgapWorkChain(SiestaBaseWorkChain):
     @classmethod
     def get_filled_builder(cls, structure, calc_engines, protocol, path_generator, relaxation_type=None):
 
-        from aiida_siesta.workflows.utils.bandgap_inp_gen import BandgapWorkChainInputsGenerator
-
-        gen = BandgapWorkChainInputsGenerator()
-
-        build = gen.get_builder(structure, calc_engines, protocol, path_generator, relaxation_type)
-
-        return build
+        return super().get_filled_builder(structure, calc_engines, protocol, path_generator, relaxation_type)

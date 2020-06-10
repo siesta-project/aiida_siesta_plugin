@@ -240,6 +240,19 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
 
         gen = BaseWorkChainInputsGenerator()
 
-        build = gen.get_builder(structure, calc_engines, protocol, path_generator, relaxation_type)
+        inputs = gen.get_inputs(structure, calc_engines, protocol, path_generator, relaxation_type)
 
-        return build
+        builder = cls.get_builder()
+
+        builder.structure = inputs["structure"]
+        builder.basis = inputs["basis"]
+        builder.parameters = inputs["parameters"]
+        if inputs["kpoints"]:
+            builder.kpoints = inputs["kpoints"]
+        if inputs["bandskpoints"]:
+            builder.bandskpoints = inputs["bandskpoints"]
+        builder.pseudo_family = inputs["pseudo_fam"]
+        builder.options = inputs["options"]
+        builder.code = inputs["code"]
+
+        return builder

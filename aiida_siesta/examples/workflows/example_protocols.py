@@ -2,7 +2,8 @@
 File showcasing the submission of a SiestaBaseWorkChain using the protocol system.
 """
 import sys
-from aiida_siesta.workflows.utils.base_inp_gen import BaseWorkchainInputsGenerator
+from aiida_siesta.workflows.base import SiestaBaseWorkChain
+from aiida_siesta.workflows.utils.base_inp_gen import BaseWorkChainInputsGenerator
 from aiida.engine import submit
 from aiida.orm import Dict, StructureData
 
@@ -46,19 +47,21 @@ relaxation_type = "atoms_only"
 
 
 #We have now two options, either call the input generator:
-inp_gen = BaseWorkchainInputsGenerator()
-builder = inp_gen.get_builder(structure=structure, calc_engines=calc_engines, protocol=protocol)
+inp_gen = BaseWorkChainInputsGenerator()
+#builder = inp_gen.get_builder(structure=structure, calc_engines=calc_engines, protocol=protocol)
+#builder = inp_gen.get_builder(structure, calc_engines, protocol, path_generator=path_generator, relaxation_type=relaxation_type)
 
 #or access directly the method directly from the SiestaBaseWorkChain
-builder = SiestaBaseWorkChain.get_filled_builder(structure=structure, calc_engines=calc_engines, protocol=protocol)
+builder = SiestaBaseWorkChain.get_filled_builder(structure, calc_engines, protocol)
+#builder = inp_gen.get_builder(structure, calc_engines, protocol, path_generator, relaxation_type)
 
 #The only advantage to use the input generator is that it has also some
 #methods to guide the construction, like:
-#inp_gen.get_relaxation_types()
-#inp_gen.get_protocols_names()
-#inp_gen.how_to_pass_computation_resources()
+print(inp_gen.get_relaxation_types())
+print(inp_gen.get_protocol_names())
+print(inp_gen.how_to_pass_computation_options())
 
-# As we get the builder suggested inputs, before submission any user has complete
+# As we get the builder and not stored nodes, before submission any user has complete
 # freedom to change something before submission.
 # If no change is performed, just submitting the builder should still work and produce sensible results.
 new_params = builder.parameters.get_dict()

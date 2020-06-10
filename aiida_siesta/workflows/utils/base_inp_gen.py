@@ -86,9 +86,8 @@ class BaseWorkChainInputsGenerator(ProtocolRegistry):
             raise ValueError("Wrong path generator type: no path_generator with name {} implemented".format(key))
 
     # noqa: MC0001  - is mccabe too complex funct -
-    def get_builder(self, structure, calc_engines, protocol, path_generator=None, relaxation_type=None):  # noqa: MC0001
+    def get_inputs(self, structure, calc_engines, protocol, path_generator=None, relaxation_type=None):  # noqa: MC0001
 
-        from aiida_siesta.workflows.base import SiestaBaseWorkChain
         from aiida.orm import (Str, KpointsData, Dict)
         from aiida.orm import load_code
         from aiida.tools import get_explicit_kpoints_path
@@ -126,6 +125,7 @@ class BaseWorkChainInputsGenerator(ProtocolRegistry):
             bandskpoints = result['explicit_kpoints']
         else:
             ok_structure = structure
+            bandskpoints = None
 
         #Parameters
         parameters = self._get_param(protocol, ok_structure)
@@ -153,21 +153,45 @@ class BaseWorkChainInputsGenerator(ProtocolRegistry):
                 kpoints_mesh.set_kpoints_mesh_from_density(distance=kp_dict["distance"], offset=kp_dict["offset"])
             else:
                 kpoints_mesh.set_kpoints_mesh_from_density(distance=kp_dict["distance"])
+        else:
+            kpoints_mesh = None
 
         #Pseudo fam
-        pseudo_fam = protocol_dict["pseudo_family"]
+        pseudo_fam = Str(protocol_dict["pseudo_family"])
 
-        #builder construction
+        #Computational resources
+        options = Dict(dict=calc_engines['siesta']["options"])
+        code = load_code(calc_engines['siesta']["code"])
+
+        inputs = {
+            'structure': ok_structure,
+            'parameters': Dict(dict=parameters),
+            'code': code,
+            'basis': Dict(dict=basis),
+            'kpoints': kpoints_mesh,
+            'pseudo_fam': pseudo_fam,
+            'options': options,
+            'bandskpoints': bandskpoints
+        }
+
+        return inputs
+
+    def get_builder(self, structure, calc_engines, protocol, path_generator=None, relaxation_type=None):
+
+        from aiida_siesta.workflows.base import SiestaBaseWorkChain
+
+        inputs = self.get_inputs(structure, calc_engines, protocol, path_generator, relaxation_type)
+
         builder = SiestaBaseWorkChain.get_builder()
-        builder.structure = ok_structure
-        builder.basis = Dict(dict=basis)
-        builder.parameters = Dict(dict=parameters)
-        if "kpoints" in protocol_dict:
-            builder.kpoints = kpoints_mesh
-        if path_generator:
-            builder.bandskpoints = bandskpoints
-        builder.pseudo_family = Str(pseudo_fam)
-        builder.options = Dict(dict=calc_engines['siesta']["options"])
-        builder.code = load_code(calc_engines['siesta']["code"])
+        builder.structure = inputs["structure"]
+        builder.basis = inputs["basis"]
+        builder.parameters = inputs["parameters"]
+        if inputs["kpoints"]:
+            builder.kpoints = inputs["kpoints"]
+        if inputs["bandskpoints"]:
+            builder.bandskpoints = inputs["bandskpoints"]
+        builder.pseudo_family = inputs["pseudo_fam"]
+        builder.options = inputs["options"]
+        builder.code = inputs["code"]
 
         return builder
