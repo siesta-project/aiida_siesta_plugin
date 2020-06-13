@@ -54,9 +54,3 @@ class BandgapWorkChain(SiestaBaseWorkChain):
         e_fermi = out_par.get_dict()['E_Fermi']
         res_dict = get_bandgap(orm.Float(e_fermi), self.outputs["bands"])
         self.out('band_gap_info', res_dict)
-
-    #pylint: disable=signature-differs
-    @classmethod
-    def get_filled_builder(cls, structure, calc_engines, protocol, path_generator, relaxation_type=None):
-
-        return super().get_filled_builder(structure, calc_engines, protocol, path_generator, relaxation_type)

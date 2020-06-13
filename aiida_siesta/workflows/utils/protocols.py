@@ -1,11 +1,13 @@
 import os
+from abc import ABCMeta, abstractmethod
 import yaml
 from aiida.orm.groups import Group
 from aiida.common import exceptions
 
 
-class ProtocolRegistry:
+class ProtocolManager(metaclass=ABCMeta):
     """
+    Subclass should define _calc_types
     This class is meant to become the central engine for the management of protocols.
     With the word "protocol" we mean a series of suggested inputs for AiiDA
     WorkChains that allow users to more easly authomatize their workflows.
@@ -45,18 +47,21 @@ class ProtocolRegistry:
 
     _default_protocol = 'standard_delta'
 
-    def __init__(self, *args, **kwargs):
-        """Construct an instance of the protocol registry, validating the class attributes set by the sub class."""
-        super().__init__(*args, **kwargs)
+    _calc_types = None
+
+    def __init__(self):
+        """
+        Construct an instance of ProtocolManager, validating the class attribute _calc_types set by the sub class
+        and the presence of correct sintax in the protocols files (can be set by user).
+        """
 
         def raise_invalid(message):
             raise RuntimeError('invalid protocol registry `{}`: '.format(self.__class__.__name__) + message)
 
+        #Here we implement the checks on mandatory inputs and structure we want for each protocol.
         if not isinstance(self._protocols, dict):
             raise_invalid('protocols not collected in a dictionary')
 
-        #Here we implement the checks on mandatory inputs we want for each protocol.
-        #for the moment just a description
         for k, v in self._protocols.items():
             if not isinstance(self._protocols[k], dict):
                 raise_invalid('protocol `{}` is not a dictionary'.format(k))
@@ -71,7 +76,10 @@ class ProtocolRegistry:
                     float(v["parameters"]["mesh-cutoff"].split()[0])
                     str(v["parameters"]["mesh-cutoff"].split()[1])
                 except (ValueError, IndexError):
-                    raise_invalid('protocol `{}` contains wrong format of `mesh-cutoff` in `parameters`'.format(k))
+                    raise_invalid(
+                        'Wrong format of `mesh-cutoff` in `parameters` of protocol '
+                        '`{}`. Value and units required'.format(k)
+                    )
 
             if 'basis' not in v:
                 raise_invalid('protocol `{}` does not define the mandatory key `basis`'.format(k))
@@ -91,6 +99,13 @@ class ProtocolRegistry:
         if self._default_protocol not in self._protocols:
             raise_invalid('default protocol `{}` is not a defined protocol'.format(self._default_protocol))
 
+        #here check that the subclass defines the attribute _calc_types
+        if self._calc_types is None:
+            message = 'invalid inputs generator `{}`: does not define `_calc_types`'.format(self.__class__.__name__)
+            raise RuntimeError(message)
+
+    #Some methods to return informations about the protocols
+    #available and the _calc_types, describing the use of resources
     def is_valid_protocol(self, name):
         return name in self._protocols
 
@@ -112,9 +127,17 @@ class ProtocolRegistry:
         except KeyError:
             raise ValueError("Wrong protocol: no protocol with name {} implemented".format(key))
 
+    def how_to_pass_computation_options(self):
+        print(
+            "The computational resources are passed to get_builder with the "
+            "argument `calc_engines`. It is a dictionary with the following structure:"
+        )
+        return self._calc_types  #.values()
+
     def _get_param(self, key, structure):
         """
-        Heuristics are applied, a dictionary with the parameters is returned
+        Method to construct the `parameters` input. Heuristics are applied, a dictionary
+        with the parameters is returned.
         """
         parameters = self._protocols[key]["parameters"].copy()
 
@@ -149,8 +172,19 @@ class ProtocolRegistry:
 
         return parameters
 
+    def _add_relaxation_options(self, key, orig_param):
+        if "relax" in self._protocols[key]:
+            #in case of keys that are present in both dictionaries, the value
+            #of the second dictionary is stored!
+            parameters = {**orig_param, **self._protocols[key]["relax"]}
+        else:
+            parameters = orig_param.copy()
+
+        return parameters
+
     def _get_basis(self, key, structure):  # noqa: MC0001  - is mccabe too complex funct -
         """
+        Method to construct the `basis` input.
         Heuristics are applied, a dictionary with the basis is returned
         """
         basis = self._protocols[key]["basis"].copy()
@@ -159,15 +193,15 @@ class ProtocolRegistry:
             atomic_heuristics = self._protocols[key]["atomic_heuristics"]
 
             #Initializations
-            if 'pao-split-norm' in basis:
-                split_norm_glob = basis["pao-split-norm"]
-            else:
-                split_norm_glob = None
-            if 'pao-energy-shift' in basis:
-                ene_shift_glob = basis["pao-energy-shift"].split()[0]
-                en_shift_units = basis["pao-energy-shift"].split()[1]
-            else:
-                ene_shift_glob = None
+            #if 'pao-split-norm' in basis:
+            #    split_norm_glob = basis["pao-split-norm"]
+            #else:
+            #    split_norm_glob = None
+            #if 'pao-energy-shift' in basis:
+            #    ene_shift_glob = basis["pao-energy-shift"].split()[0]
+            #    en_shift_units = basis["pao-energy-shift"].split()[1]
+            #else:
+            #    ene_shift_glob = None
             pol_dict = {}
             size_dict = {}
 
@@ -183,34 +217,34 @@ class ProtocolRegistry:
                     if 'split-norm' in cust_basis:
                         if cust_basis['split-norm'] == "tail":
                             basis["pao-split-tail-norm"] = True
-                        else:
-                            if kind.symbol == "H":
-                                basis["pao-split-norm-h"] = cust_basis['split-norm']
-                            else:
-                                if split_norm_glob:
-                                    if float(cust_basis['split-norm']) > float(split_norm_glob):
-                                        split_norm_glob = cust_basis['split-norm']
-                                else:
-                                    split_norm_glob = cust_basis['split-norm']
+                    #    else:
+                    #        if kind.symbol == "H":
+                    #            basis["pao-split-norm-h"] = cust_basis['split-norm']
+                    #        else:
+                    #            if split_norm_glob:
+                    #                if float(cust_basis['split-norm']) > float(split_norm_glob):
+                    #                    split_norm_glob = cust_basis['split-norm']
+                    #            else:
+                    #                split_norm_glob = cust_basis['split-norm']
                     if 'polarization' in cust_basis:
                         pol_dict[kind.name] = cust_basis['polarization']
-                    if 'energy-shift' in cust_basis:
-                        cust_en_shift = cust_basis["energy-shift"].split()[0]
-                        #cust_en_shif-units = cust_basis["energy-shift"].split()[1]
-                        if ene_shift_glob:
-                            if float(cust_en_shift) < float(ene_shift_glob):
-                                ene_shift_glob = cust_en_shift
-                        else:
-                            ene_shift_glob = cust_en_shift
-                            en_shift_units = cust_basis["energy-shift"].split()[1]
+                    #if 'energy-shift' in cust_basis:
+                    #    cust_en_shift = cust_basis["energy-shift"].split()[0]
+                    #cust_en_shif-units = cust_basis["energy-shift"].split()[1]
+                    #    if ene_shift_glob:
+                    #        if float(cust_en_shift) < float(ene_shift_glob):
+                    #            ene_shift_glob = cust_en_shift
+                    #    else:
+                    #        ene_shift_glob = cust_en_shift
+                    #        en_shift_units = cust_basis["energy-shift"].split()[1]
                     if 'size' in cust_basis:
                         size_dict[kind.name] = cust_basis['size']
 
             #Define the new basis dictionary
-            if split_norm_glob:
-                basis["pao-split-norm"] = split_norm_glob
-            if ene_shift_glob:
-                basis["pao-energy-shift"] = "{0} {1}".format(ene_shift_glob, en_shift_units)
+            #if split_norm_glob:
+            #    basis["pao-split-norm"] = split_norm_glob
+            #if ene_shift_glob:
+            #    basis["pao-energy-shift"] = "{0} {1}".format(ene_shift_glob, en_shift_units)
             if pol_dict:
                 card = '\n'
                 for k, v in pol_dict.items():
@@ -225,3 +259,34 @@ class ProtocolRegistry:
                 basis['%block pao-bases-sizes'] = card
 
         return basis
+
+    def _get_kpoints(self, key, structure):
+        from aiida.orm import KpointsData
+        if "kpoints" in self._protocols[key]:
+            kpoints_mesh = KpointsData()
+            kpoints_mesh.set_cell_from_structure(structure)
+            kp_dict = self._protocols[key]["kpoints"]
+            if "offset" in kp_dict:
+                kpoints_mesh.set_kpoints_mesh_from_density(distance=kp_dict["distance"], offset=kp_dict["offset"])
+            else:
+                kpoints_mesh.set_kpoints_mesh_from_density(distance=kp_dict["distance"])
+        else:
+            kpoints_mesh = None
+
+        return kpoints_mesh
+
+    def _get_pseudo_fam(self, key):
+        from aiida.orm import Str
+        return Str(self._protocols[key]["pseudo_family"])
+
+    @abstractmethod
+    def get_inputs_dict(self, structure, calc_engines, protocol):
+        """
+        Return a dictionary with all the inputs, according to protocol
+        """
+
+    @abstractmethod
+    def get_builder(self, structure, calc_engines, protocol):
+        """
+        Return a builder, prefilled.
+        """

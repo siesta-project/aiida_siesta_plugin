@@ -1,7 +1,7 @@
-from aiida_siesta.workflows.utils.protocols import ProtocolRegistry
+from aiida_siesta.workflows.utils.protocols import ProtocolManager
 
 
-class BaseWorkChainInputsGenerator(ProtocolRegistry):
+class BaseWorkChainInputsGenerator(ProtocolManager):
     """
     This class has two main purposes:
     1) Provide a method (get_builder) that returns a builder for the WorkChain
@@ -31,7 +31,7 @@ class BaseWorkChainInputsGenerator(ProtocolRegistry):
         "it does not make much sense to specify a target stress or pressure in this "
         "case, except for anisotropic (traceless) stresses"
     }
-    _path_generators = {
+    _bands_path_generators = {
         "seekpath":
         "primitive cell always used. Always ok",
         "legacy":
@@ -39,9 +39,16 @@ class BaseWorkChainInputsGenerator(ProtocolRegistry):
         "of the input sturcture (no primitive cell). Not guaranteed to give correct paths",
     }
 
-    def __init__(self, *args, **kwargs):
-        """Construct an instance of the inputs generator, validating the class attributes."""
-        super().__init__(*args, **kwargs)
+    def __init__(self, workchain_class):
+        """
+        Construct an instance of the inputs generator, validating the class attributes.
+        """
+
+        super().__init__()
+
+        print(workchain_class.get_name())
+
+        self._workchain_class = workchain_class
 
         def raise_invalid(message):
             raise RuntimeError('invalid protocol registry `{}`: '.format(self.__class__.__name__) + message)
@@ -54,19 +61,14 @@ class BaseWorkChainInputsGenerator(ProtocolRegistry):
             message = 'invalid inputs generator `{}`: does not define `_relax_types`'.format(self.__class__.__name__)
             raise RuntimeError(message)
 
-        if self._path_generators is None:
-            message = 'invalid inputs generator `{}`: does not define `_path_generators`'.format(
+        if self._bands_path_generators is None:
+            message = 'invalid inputs generator `{}`: does not define `_bands_path_generators`'.format(
                 self.__class__.__name__
             )
             raise RuntimeError(message)
 
-    def how_to_pass_computation_options(self):
-        print(
-            "The computational resources are passed to get_builder with the "
-            "argument `calc_engines`. It is a dictionary with the following structure:"
-        )
-        return self._calc_types  #.values()
-
+    #Some methods to return info about options that the get_builder of this class
+    #can obtain as optional input parameters.
     def get_relaxation_types(self):
         return list(self._relax_types.keys())
 
@@ -76,26 +78,31 @@ class BaseWorkChainInputsGenerator(ProtocolRegistry):
         except KeyError:
             raise ValueError("Wrong relaxation type: no relax_type with name {} implemented".format(key))
 
-    def get_path_generators(self):
-        return list(self._path_generators.keys())
+    def get_bands_path_generators(self):
+        return list(self._bands_path_generators.keys())
 
-    def get_path_generator_info(self, key):
+    def get_bands_path_generator_info(self, key):
         try:
-            return self._path_generators[key]
+            return self._bands_path_generators[key]
         except KeyError:
-            raise ValueError("Wrong path generator type: no path_generator with name {} implemented".format(key))
+            raise ValueError("Wrong path generator type: no bands_path_generator with name {} implemented".format(key))
 
     # noqa: MC0001  - is mccabe too complex funct -
-    def get_inputs(self, structure, calc_engines, protocol, path_generator=None, relaxation_type=None):  # noqa: MC0001
+    def get_inputs_dict(self, structure, calc_engines, protocol, bands_path_generator=None, relaxation_type=None):
+        """
+        Method return a dictionary with the inputs of a SiestaBaseWorkChain, obtained accordind
+        to the protocol, structure, calc_engines passed by the user (optionally bands_path_generator
+        and relaxation_typ as well)
+        """
 
-        from aiida.orm import (Str, KpointsData, Dict)
+        from aiida.orm import (Dict, KpointsData)
         from aiida.orm import load_code
         from aiida.tools import get_explicit_kpoints_path
 
         #Checks
-        if path_generator:
-            if path_generator not in self.get_path_generators():
-                raise ValueError("No `path_generator` with name {} implemented".format(path_generator))
+        if bands_path_generator:
+            if bands_path_generator not in self.get_bands_path_generators():
+                raise ValueError("No `bands_path_generator` with name {} implemented".format(bands_path_generator))
         if relaxation_type:
             if relaxation_type not in self.get_relaxation_types():
                 raise ValueError("No `relaxation_type` with name {} implemented".format(relaxation_type))
@@ -107,11 +114,11 @@ class BaseWorkChainInputsGenerator(ProtocolRegistry):
         if 'siesta' not in calc_engines:
             raise ValueError("Wrong syntax in `calc_engines`. Check method `how_to_pass_computation_options`.")
 
-        protocol_dict = self.get_protocol(protocol)
+        #protocol_dict = self.get_protocol(protocol)
 
         #Bandskpoints (might change structure)
-        if path_generator:
-            if path_generator == "legacy":
+        if bands_path_generator:
+            if bands_path_generator == "legacy":
                 legacy_kpath_parameters = {
                     'kpoint_distance': 0.05  # In units of b1, b2, b3 (Around 20 points per side...)
                 }
@@ -128,9 +135,10 @@ class BaseWorkChainInputsGenerator(ProtocolRegistry):
             bandskpoints = None
 
         #Parameters
-        parameters = self._get_param(protocol, ok_structure)
+        prot_param = self._get_param(protocol, ok_structure)
         #Add relaxation options in case requested
         if relaxation_type:
+            parameters = self._add_relaxation_options(protocol, prot_param)
             parameters["md-type-of-run"] = "cg"
             parameters["md-num-cg-steps"] = 100
             if relaxation_type == "variable_cell":
@@ -138,26 +146,15 @@ class BaseWorkChainInputsGenerator(ProtocolRegistry):
             if relaxation_type == "constant_volume":
                 parameters["md-variable-cell"] = True
                 parameters["md-constant-volume"] = True
-            if "relax" in protocol_dict:
-                parameters = {**parameters, **protocol_dict["relax"]}
 
         #Basis
         basis = self._get_basis(protocol, ok_structure)
 
         #Kpoints (might not be present, for molecules for instance)
-        if "kpoints" in protocol_dict:
-            kpoints_mesh = KpointsData()
-            kpoints_mesh.set_cell_from_structure(ok_structure)
-            kp_dict = protocol_dict["kpoints"]
-            if "offset" in kp_dict:
-                kpoints_mesh.set_kpoints_mesh_from_density(distance=kp_dict["distance"], offset=kp_dict["offset"])
-            else:
-                kpoints_mesh.set_kpoints_mesh_from_density(distance=kp_dict["distance"])
-        else:
-            kpoints_mesh = None
+        kpoints_mesh = self._get_kpoints(protocol, ok_structure)
 
         #Pseudo fam
-        pseudo_fam = Str(protocol_dict["pseudo_family"])
+        pseudo_fam = self._get_pseudo_fam(protocol)
 
         #Computational resources
         options = Dict(dict=calc_engines['siesta']["options"])
@@ -176,13 +173,13 @@ class BaseWorkChainInputsGenerator(ProtocolRegistry):
 
         return inputs
 
-    def get_builder(self, structure, calc_engines, protocol, path_generator=None, relaxation_type=None):
+    def get_builder(self, structure, calc_engines, protocol, bands_path_generator=None, relaxation_type=None):
 
-        from aiida_siesta.workflows.base import SiestaBaseWorkChain
+        #from aiida_siesta.workflows.base import SiestaBaseWorkChain
 
-        inputs = self.get_inputs(structure, calc_engines, protocol, path_generator, relaxation_type)
+        inputs = self.get_inputs_dict(structure, calc_engines, protocol, bands_path_generator, relaxation_type)
 
-        builder = SiestaBaseWorkChain.get_builder()
+        builder = self._workchain_class.get_builder()
         builder.structure = inputs["structure"]
         builder.basis = inputs["basis"]
         builder.parameters = inputs["parameters"]
