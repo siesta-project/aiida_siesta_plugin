@@ -146,6 +146,8 @@ class BaseWorkChainInputsGenerator(ProtocolManager):
             if relaxation_type == "constant_volume":
                 parameters["md-variable-cell"] = True
                 parameters["md-constant-volume"] = True
+        else:
+            parameters = prot_param.copy()
 
         #Basis
         basis = self._get_basis(protocol, ok_structure)

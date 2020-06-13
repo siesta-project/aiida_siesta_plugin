@@ -1,4 +1,5 @@
 from aiida import orm
+from aiida.common.lang import classproperty
 from aiida.engine import calcfunction
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
 
