@@ -55,3 +55,8 @@ class BandgapWorkChain(SiestaBaseWorkChain):
         e_fermi = out_par.get_dict()['E_Fermi']
         res_dict = get_bandgap(orm.Float(e_fermi), self.outputs["bands"])
         self.out('band_gap_info', res_dict)
+
+    @classproperty
+    def inputs_generator(cls):  # pylint: disable=no-self-argument
+        from aiida_siesta.workflows.utils.input_generators import BandgapWorkChainInputsGenerator
+        return BandgapWorkChainInputsGenerator(cls)

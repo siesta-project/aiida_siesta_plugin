@@ -1,3 +1,4 @@
+from aiida.plugins import WorkflowFactory
 from aiida_siesta.workflows.utils.protocols import ProtocolManager
 
 
@@ -6,10 +7,11 @@ class BaseWorkChainInputsGenerator(ProtocolManager):
     This class has two main purposes:
     1) Provide a method (get_builder) that returns a builder for the WorkChain
        SiestaBaseWorkChain with pre-compiled inputs according to a protocol and
-       some relaxation/bands options. This builder can be submitted to perform a Siesta
-       scf, scf+bands, relaxation.
+       some relaxation/bands options.
     2) Implement few methods that can be used to explore the relaxation types available,
-       the bands options and protocols options (inherited by ProtocolRegistry)
+       the bands options and protocols options (inherited by ProtocolManager)
+    When instanciated, it requires the SiestaBaseWorkChain class as input. This is needed to avoid
+    cyclic dependence.
     """
 
     _calc_types = {
@@ -41,21 +43,31 @@ class BaseWorkChainInputsGenerator(ProtocolManager):
 
     def __init__(self, workchain_class):
         """
-        Construct an instance of the inputs generator, validating the class attributes.
+        Construct an instance of the inputs generator, validating the class attributes
+        and the passing of the correct WorkChain as workchain_class.
         """
 
         super().__init__()
 
-        print(workchain_class.get_name())
+        self._checks_attrs()
+
+        accepted_class = WorkflowFactory("siesta.base").get_name()
+        try:
+            inp_class = workchain_class.get_name()
+        except AttributeError:
+            raise RuntimeError('Class `{0}` only accepts `{1}`'.format(self.__class__.__name__, accepted_class))
+        if inp_class is not accepted_class:
+            raise RuntimeError('Class `{0}` only accepts `{1}`'.format(self.__class__.__name__, accepted_class))
 
         self._workchain_class = workchain_class
 
+    def _checks_attrs(self):
+        """
+        Checks the presence of attributs specific of the present workchain
+        """
+
         def raise_invalid(message):
             raise RuntimeError('invalid protocol registry `{}`: '.format(self.__class__.__name__) + message)
-
-        if self._calc_types is None:
-            message = 'invalid inputs generator `{}`: does not define `_calc_types`'.format(self.__class__.__name__)
-            raise RuntimeError(message)
 
         if self._relax_types is None:
             message = 'invalid inputs generator `{}`: does not define `_relax_types`'.format(self.__class__.__name__)
@@ -87,7 +99,6 @@ class BaseWorkChainInputsGenerator(ProtocolManager):
         except KeyError:
             raise ValueError("Wrong path generator type: no bands_path_generator with name {} implemented".format(key))
 
-    # noqa: MC0001  - is mccabe too complex funct -
     def get_inputs_dict(self, structure, calc_engines, protocol, bands_path_generator=None, relaxation_type=None):
         """
         Method return a dictionary with the inputs of a SiestaBaseWorkChain, obtained accordind
@@ -113,8 +124,6 @@ class BaseWorkChainInputsGenerator(ProtocolManager):
             protocol = defpro
         if 'siesta' not in calc_engines:
             raise ValueError("Wrong syntax in `calc_engines`. Check method `how_to_pass_computation_options`.")
-
-        #protocol_dict = self.get_protocol(protocol)
 
         #Bandskpoints (might change structure)
         if bands_path_generator:
@@ -177,8 +186,6 @@ class BaseWorkChainInputsGenerator(ProtocolManager):
 
     def get_builder(self, structure, calc_engines, protocol, bands_path_generator=None, relaxation_type=None):
 
-        #from aiida_siesta.workflows.base import SiestaBaseWorkChain
-
         inputs = self.get_inputs_dict(structure, calc_engines, protocol, bands_path_generator, relaxation_type)
 
         builder = self._workchain_class.get_builder()
@@ -194,3 +201,38 @@ class BaseWorkChainInputsGenerator(ProtocolManager):
         builder.code = inputs["code"]
 
         return builder
+
+
+class BandgapWorkChainInputsGenerator(BaseWorkChainInputsGenerator):
+
+    def __init__(self, workchain_class):
+        """
+        Construct an instance of the inputs generator, validating the class attributes
+        and the passing of the correct WorkChain as workchain_class.
+        """
+
+        #This calss the __init__ of BaseWorkChainInputsGenerator's father, meaning ProtocolManager
+        super(BaseWorkChainInputsGenerator, self).__init__()
+
+        self._checks_attrs()
+
+        accepted_class = WorkflowFactory("siesta.bandgap").get_name()
+        try:
+            inp_class = workchain_class.get_name()
+        except AttributeError:
+            raise RuntimeError('Class `{0}` only accepts `{1}`'.format(self.__class__.__name__, accepted_class))
+        if inp_class is not accepted_class:
+            raise RuntimeError('Class `{0}` only accepts `{1}`'.format(self.__class__.__name__, accepted_class))
+
+        self._workchain_class = workchain_class
+
+    def get_inputs_dict(self, structure, calc_engines, protocol, bands_path_generator=None, relaxation_type=None):
+
+        if not bands_path_generator:
+            raise RuntimeError(
+                'Method `get_inputs_dict` of class `{0}` requires `bands_path_generator`'.format(
+                    self.__class__.__name__
+                )
+            )
+
+        return super().get_inputs_dict(structure, calc_engines, protocol, bands_path_generator, relaxation_type)

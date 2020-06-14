@@ -55,10 +55,22 @@ class ProtocolManager(metaclass=ABCMeta):
         and the presence of correct sintax in the protocols files (can be set by user).
         """
 
+        #Here we chack that each protocols implement correct syntax and mandatory entries
+        self._protocols_checks()
+
+        #Here check that the subclass defines the attribute _calc_types
+        if self._calc_types is None:
+            message = 'invalid inputs generator `{}`: does not define `_calc_types`'.format(self.__class__.__name__)
+            raise RuntimeError(message)
+
+    def _protocols_checks(self):
+        """
+        Here implemented all the checks on the correct structure of each protocol
+        """
+
         def raise_invalid(message):
             raise RuntimeError('invalid protocol registry `{}`: '.format(self.__class__.__name__) + message)
 
-        #Here we implement the checks on mandatory inputs and structure we want for each protocol.
         if not isinstance(self._protocols, dict):
             raise_invalid('protocols not collected in a dictionary')
 
@@ -98,11 +110,6 @@ class ProtocolManager(metaclass=ABCMeta):
 
         if self._default_protocol not in self._protocols:
             raise_invalid('default protocol `{}` is not a defined protocol'.format(self._default_protocol))
-
-        #here check that the subclass defines the attribute _calc_types
-        if self._calc_types is None:
-            message = 'invalid inputs generator `{}`: does not define `_calc_types`'.format(self.__class__.__name__)
-            raise RuntimeError(message)
 
     #Some methods to return informations about the protocols
     #available and the _calc_types, describing the use of resources
@@ -192,16 +199,6 @@ class ProtocolManager(metaclass=ABCMeta):
         if "atomic_heuristics" in self._protocols[key]:  #pylint: disable=too-many-nested-blocks
             atomic_heuristics = self._protocols[key]["atomic_heuristics"]
 
-            #Initializations
-            #if 'pao-split-norm' in basis:
-            #    split_norm_glob = basis["pao-split-norm"]
-            #else:
-            #    split_norm_glob = None
-            #if 'pao-energy-shift' in basis:
-            #    ene_shift_glob = basis["pao-energy-shift"].split()[0]
-            #    en_shift_units = basis["pao-energy-shift"].split()[1]
-            #else:
-            #    ene_shift_glob = None
             pol_dict = {}
             size_dict = {}
 
@@ -217,34 +214,11 @@ class ProtocolManager(metaclass=ABCMeta):
                     if 'split-norm' in cust_basis:
                         if cust_basis['split-norm'] == "tail":
                             basis["pao-split-tail-norm"] = True
-                    #    else:
-                    #        if kind.symbol == "H":
-                    #            basis["pao-split-norm-h"] = cust_basis['split-norm']
-                    #        else:
-                    #            if split_norm_glob:
-                    #                if float(cust_basis['split-norm']) > float(split_norm_glob):
-                    #                    split_norm_glob = cust_basis['split-norm']
-                    #            else:
-                    #                split_norm_glob = cust_basis['split-norm']
                     if 'polarization' in cust_basis:
                         pol_dict[kind.name] = cust_basis['polarization']
-                    #if 'energy-shift' in cust_basis:
-                    #    cust_en_shift = cust_basis["energy-shift"].split()[0]
-                    #cust_en_shif-units = cust_basis["energy-shift"].split()[1]
-                    #    if ene_shift_glob:
-                    #        if float(cust_en_shift) < float(ene_shift_glob):
-                    #            ene_shift_glob = cust_en_shift
-                    #    else:
-                    #        ene_shift_glob = cust_en_shift
-                    #        en_shift_units = cust_basis["energy-shift"].split()[1]
                     if 'size' in cust_basis:
                         size_dict[kind.name] = cust_basis['size']
 
-            #Define the new basis dictionary
-            #if split_norm_glob:
-            #    basis["pao-split-norm"] = split_norm_glob
-            #if ene_shift_glob:
-            #    basis["pao-energy-shift"] = "{0} {1}".format(ene_shift_glob, en_shift_units)
             if pol_dict:
                 card = '\n'
                 for k, v in pol_dict.items():

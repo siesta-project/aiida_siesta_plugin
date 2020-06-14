@@ -235,6 +235,6 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
         return ProcessHandlerReport(True, self.exit_codes.ERROR_BANDS_PARSING)
 
     @classproperty
-    def inputs_gen(cls):  # pylint: disable=no-self-argument
-        from aiida_siesta.workflows.utils.base_inp_gen import BaseWorkChainInputsGenerator
+    def inputs_generator(cls):  # pylint: disable=no-self-argument
+        from aiida_siesta.workflows.utils.input_generators import BaseWorkChainInputsGenerator
         return BaseWorkChainInputsGenerator(cls)
