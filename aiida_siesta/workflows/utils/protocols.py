@@ -7,25 +7,33 @@ from aiida.common import exceptions
 
 class ProtocolManager(metaclass=ABCMeta):
     """
-    Subclass should define _calc_types
+    This class is the parent class of any <WorkChain>InputsGenerator. A series of classes meant
+    to facilitate the choice of inputs for the corresponding <WorkChain>.
     This class is meant to become the central engine for the management of protocols.
-    With the word "protocol" we mean a series of suggested inputs for AiiDA
-    WorkChains that allow users to more easly authomatize their workflows.
-    Even though this approach could be general, at the moment we only think
-    about protocols in the context of DFT inputs (Siesta inputs in our case).
-    The choice of the inputs of a DFT simulation should be carefully tested
-    for any new system. Users must be aware of the limitations of using protocols,
-    but, in theory, this platform could become the place where we collect
-    the "know how" about Siesta inputs. We hope that, with time, more and more
-    protocols might be added to cover in a robust way entire categories of materials.
-    This is the very beginning of the development and, for the moment, only few
-    methods and two very basic protocols are implemented.
-    Moreover the methods are just functions useful to retrieve information about
-    protocols, but in the future we will probably need some kind of protocol algebra
-    for merging, overriding, etc. protocol values.
-    The management of the pseudos is, in particular, very fragile. It imposes that the user
-    loads a pseudo_family with the exact same name of the one hard-coded for the
-    protocol.
+    With the word "protocol" we mean a series of suggested inputs for AiiDA WorkChains that allow
+    users to more easly authomatize their workflows. Even though this approach could be general, at
+    the moment we only think about protocols in the context of DFT inputs (Siesta inputs in our case).
+    The choice of the inputs of a DFT simulation should be carefully tested for any new system.
+    Users must be aware of the limitations of using protocols, but, in theory, this platform could
+    become the place where we collect the "knowledge" about Siesta inputs. We hope that, with time,
+    more and more protocols might be added to cover in a robust way entire categories of materials.
+    This is the very beginning of the development and, for the moment, this engine is only able
+    to collect protocol information from external files (a default `protocols_registry.yaml`
+    and a custum-protocols file that a user put in the 'AIIDA_SIESTA_PROTOCOLS' environment variable)
+    and build all the "core inputs" of a siesta calculation starting from a structure (some
+    element-specific additions are performed - we call them atom_heuristics) and the choice
+    of having a relaxation and spin options. In the future we will probably need some kind of protocol
+    algebra for merging, overriding, etc. protocols. This "core inputs" are then used by <WorkChain>
+    specific input generators to create a ready-to submit sets of inputs.
+    The management of the pseudos is, at the moment, very fragile. It imposes that the user
+    loads a pseudo_family with the exact same name of the one hard-coded for the protocol.
+    Some other methods are implemented with the scope to access information about protocols and
+    the API to use the protocols.
+    This is an abstract class. Subclasses (the actual generators of inputs) should define the
+    variable _calc_types (containing the schema for the computational resources to use) and the
+    methods `get_inputs_dict` and `get_filled_builder`. The first one returns the list of inputs
+    in a dictionary. The second return a builder, pre-compiled, for the <WorkChain>, ready to be
+    submitted (but could be modified before submission)
     """
 
     filepath = os.path.join(os.path.dirname(__file__), 'protocols_registry.yaml')
@@ -52,7 +60,7 @@ class ProtocolManager(metaclass=ABCMeta):
     def __init__(self):
         """
         Construct an instance of ProtocolManager, validating the class attribute _calc_types set by the sub class
-        and the presence of correct sintax in the protocols files (can be set by user).
+        and the presence of correct sintax in the protocols files (custom protocols can be set by users).
         """
 
         #Here we chack that each protocols implement correct syntax and mandatory entries
@@ -90,7 +98,7 @@ class ProtocolManager(metaclass=ABCMeta):
                 except (ValueError, IndexError):
                     raise_invalid(
                         'Wrong format of `mesh-cutoff` in `parameters` of protocol '
-                        '`{}`. Value and units required'.format(k)
+                        '`{}`. Value and units are required'.format(k)
                     )
 
             if 'basis' not in v:
@@ -136,7 +144,7 @@ class ProtocolManager(metaclass=ABCMeta):
 
     def how_to_pass_computation_options(self):
         print(
-            "The computational resources are passed to get_builder with the "
+            "The computational resources are passed to get_filled_builder with the "
             "argument `calc_engines`. It is a dictionary with the following structure:"
         )
         return self._calc_types  #.values()
@@ -157,6 +165,7 @@ class ProtocolManager(metaclass=ABCMeta):
             else:
                 meshcut_glob = None
 
+            #Run through heuristics
             for kind in structure.kinds:
                 need_to_apply = False
                 try:
@@ -166,33 +175,93 @@ class ProtocolManager(metaclass=ABCMeta):
                     pass
                 if need_to_apply:
                     if 'mesh-cutoff' in cust_param:
-                        cust_meshcut = cust_param["mesh-cutoff"].split()[0]
+                        try:
+                            cust_meshcut = float(cust_param["mesh-cutoff"].split()[0])
+                        except (ValueError, IndexError):
+                            raise RuntimeError(
+                                "Wrong `mesh-cutoff` value for heuristc "
+                                "{0} of protocol {1}".format(kind.symbol, key)
+                            )
                         if meshcut_glob:
-                            if float(cust_meshcut) > float(meshcut_glob):
+                            if cust_meshcut > float(meshcut_glob):
                                 meshcut_glob = cust_meshcut
                         else:
                             meshcut_glob = cust_meshcut
-                            meshcut_units = cust_param["mesh-cutoff"].split()[1]
+                            try:
+                                meshcut_units = cust_param["mesh-cutoff"].split()[1]
+                            except (ValueError, IndexError):
+                                raise RuntimeError(
+                                    "Wrong `mesh-cutoff` units for heuristc "
+                                    "{0} of protocol {1}".format(kind.symbol, key)
+                                )
 
             if meshcut_glob:
                 parameters["mesh-cutoff"] = "{0} {1}".format(meshcut_glob, meshcut_units)
 
         return parameters
 
-    def _add_relaxation_options(self, key, orig_param):
-        if "relax" in self._protocols[key]:
-            #in case of keys that are present in both dictionaries, the value
+    def _add_spin_options(self, key, orig_param):
+        """
+        Add to the parameters dictionary some additional parameters, called
+        only if a calculation with spin polarization is requested.
+        """
+        if "spin_additions" in self._protocols[key]:
+            #Check if mesh-cutoff is defined in "relax_additions" and has correct sintax
+            if "mesh-cutoff" in self._protocols[key]["spin_additions"]:
+                try:
+                    v = self._protocols[key]["spin_additions"]
+                    float(v["mesh-cutoff"].split()[0])
+                    str(v["mesh-cutoff"].split()[1])
+                except (ValueError, IndexError):
+                    raise RuntimeError(
+                        'Wrong format of `mesh-cutoff` in `spin_additions` of protocol '
+                        '`{}`. Value and units are required'.format(key)
+                    )
+            #Merege the two dictionary in case of keys that are present in both dictionaries, the value
             #of the second dictionary is stored!
-            parameters = {**orig_param, **self._protocols[key]["relax"]}
+            parameters = {**orig_param, **self._protocols[key]["spin_additions"]}
+            #Reset back mesh-cutoff if it was bigger in the original set.
+            if "mesh-cutoff" in orig_param:
+                if float(orig_param["mesh-cutoff"].split()[0]) > float(parameters["mesh-cutoff"].split()[0]):
+                    parameters["mesh-cutoff"] = orig_param["mesh-cutoff"]
         else:
             parameters = orig_param.copy()
 
         return parameters
 
-    def _get_basis(self, key, structure):  # noqa: MC0001  - is mccabe too complex funct -
+    def _add_relaxation_options(self, key, orig_param):
+        """
+        Add to the parameters dictionary some additional parameters, called
+        only if a relaxation is requested
+        """
+        if "relax_additions" in self._protocols[key]:
+            #Check if mesh-cutoff is defined in "relax_additions" and has correct sintax
+            if "mesh-cutoff" in self._protocols[key]["relax_additions"]:
+                try:
+                    v = self._protocols[key]["relax_additions"]
+                    float(v["mesh-cutoff"].split()[0])
+                    str(v["mesh-cutoff"].split()[1])
+                except (ValueError, IndexError):
+                    raise RuntimeError(
+                        'Wrong format of `mesh-cutoff` in `relax_additions` of protocol '
+                        '`{}`. Value and units are required'.format(key)
+                    )
+            #Merege the two dictionary in case of keys that are present in both dictionaries, the value
+            #of the second dictionary is stored!
+            parameters = {**orig_param, **self._protocols[key]["relax_additions"]}
+            #Reset back mesh-cutoff if it was bigger in the original set.
+            if "mesh-cutoff" in orig_param:
+                if float(orig_param["mesh-cutoff"].split()[0]) > float(parameters["mesh-cutoff"].split()[0]):
+                    parameters["mesh-cutoff"] = orig_param["mesh-cutoff"]
+        else:
+            parameters = orig_param.copy()
+
+        return parameters
+
+    def _get_basis(self, key, structure):
         """
         Method to construct the `basis` input.
-        Heuristics are applied, a dictionary with the basis is returned
+        Heuristics are applied, a dictionary with the basis is returned.
         """
         basis = self._protocols[key]["basis"].copy()
 
@@ -211,9 +280,8 @@ class ProtocolManager(metaclass=ABCMeta):
                 except KeyError:
                     pass
                 if need_to_apply:
-                    if 'split-norm' in cust_basis:
-                        if cust_basis['split-norm'] == "tail":
-                            basis["pao-split-tail-norm"] = True
+                    if 'split-tail-norm' in cust_basis:
+                        basis["pao-split-tail-norm"] = True
                     if 'polarization' in cust_basis:
                         pol_dict[kind.name] = cust_basis['polarization']
                     if 'size' in cust_basis:
@@ -260,7 +328,7 @@ class ProtocolManager(metaclass=ABCMeta):
         """
 
     @abstractmethod
-    def get_builder(self, structure, calc_engines, protocol):
+    def get_filled_builder(self, structure, calc_engines, protocol):
         """
         Return a builder, prefilled.
         """

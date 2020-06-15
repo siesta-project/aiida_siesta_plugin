@@ -1,6 +1,8 @@
 standard_delta:
   description: 'A standard list of inputs for Siesta. Never tested! Proof of concept at the moment.'
   parameters:
+    xc-functional: "GGA"
+    xc-authors: "PBE"
     max-scf-iterations: 50
     scf-mixer-history: 5
     scf-mixer-weight: 0.1
@@ -9,7 +11,12 @@ standard_delta:
     electronic-temperature: '25 meV'
     write-forces: True
     mesh-cutoff: '100 Ry'
-  relax:
+  spin_additions:
+    mesh-cutoff: '400 Ry'
+    scf-dm-tolerance: 1.e-2
+    write-mulliken-pop: 1
+  relax_additions:
+    scf-dm-tolerance: 1.e-4
     md-max-force-tol: '0.04 eV/ang'
     md-max-stress-tol: '1 GPa'
   basis:
@@ -23,69 +30,65 @@ standard_delta:
     C:
       basis:
         size: 'SZ' #Basis size block
-        energy-shift: '80 meV' #Applies globally if smaller that global pao-energy-shift
-        split-norm: 0.3 #Applies globally except hydrogen(splitnormH) if larger then global pao-split-norm
     H:
       parameters:
         mesh-cutoff: '200 Ry' #Applies globally if bigger that global mesh-cutoff
       basis:
         size: 'DZDP' #Basis size block
-        energy-shift: '80 meV' #Applies globally if smaller that global pao-energy-shift
-        split-norm: 0.3 #Applies globally except hydrogen(splitnormH) if larger then global pao-split-norm
     He:
       parameters:
         mesh-cutoff: '200 Ry' #Applies globally
       basis:
         size: 'DZDP' #Basis size block
-        energy-shift: '120 meV' #Applies globally
-        split-norm: 0.1 #Applies globally except hydrogen(splitnormH)
     Li:
       basis:
-        split-norm: 'tail'
+        split-tail-norm: True
     Na:
       basis:
-        split-norm: 'tail'
+        split-tail-norm: True
     K:
       basis:
-        split-norm: "tail"
+        split-tail-norm: True
     Ca:
       basis:
-        split-norm: "tail"
+        split-tail-norm: True
     Sc:
       basis:
-        split-norm: "tail"
+        split-tail-norm: True
     Rb:
       basis:
-        split-norm: "tail"
+        split-tail-norm: True
     Sr:
       basis:
-        split-norm: "tail"
+        split-tail-norm: True
     Y:
       basis:
-        split-norm: "tail"
+        split-tail-norm: True
     Zr:
       basis:
-        split-norm: "tail"
+        split-tail-norm: True
     Nb:
       basis:
-        split-norm: "tail"
+        split-tail-norm: True
     Mo:
       basis:
-        split-norm: "tail"
+        split-tail-norm: True
     Cs:
       basis:
-        split-norm: "tail"
+        split-tail-norm: True
     Ba:
       basis:
-        split-norm: "tail"
+        split-tail-norm: True
     Lu:
       basis:
-        split-norm: "tail"
+        split-tail-norm: True
 
 stringent_delta:
   description: 'Another test set.'
   parameters:
-    max-scf-iterations: 50
+    xc-functional: "GGA"
+    xc-authors: "PBE"
+    max-scf-iterations: 100
     scf-mixer-history: 5
     scf-mixer-weight: 0.1
     scf-dm-tolerance: 1.e-3
@@ -106,27 +109,27 @@ stringent_delta:
   atomic_heuristics:
     Li:
       basis:
-        split-norm: 'tail'
+        split-tail-norm: 'tail'
         polarization: 'non-perturbative'
     Be:
       basis:
         polarization: 'non-perturbative'
     Na:
       basis:
-        split-norm: 'tail'
+        split-tail-norm: 'tail'
         polarization: 'non-perturbative'
     Mg:
       basis:
         polarization: 'non-perturbative'
     K:
       basis:
-        split-norm: "tail"
+        split-tail-norm: True
     Ca:
       basis:
-        split-norm: "tail"
+        split-tail-norm: True
     Sc:
       basis:
-        split-norm: "tail"
+        split-tail-norm: True
     Ga:
       basis:
         polarization: 'non-perturbative'
@@ -141,31 +144,31 @@ stringent_delta:
         polarization: 'non-perturbative'
     Rb:
       basis:
-        split-norm: "tail"
+        split-tail-norm: True
     Sr:
       basis:
-        split-norm: "tail"
+        split-tail-norm: True
     Y:
       basis:
-        split-norm: "tail"
+        split-tail-norm: True
     Zr:
       basis:
-        split-norm: "tail"
+        split-tail-norm: True
     Nb:
       basis:
-        split-norm: "tail"
+        split-tail-norm: True
     Mo:
       basis:
-        split-norm: "tail"
+        split-tail-norm: True
     In:
       basis:
         polarization: 'non-perturbative'
     Cs:
       basis:
-        split-norm: "tail"
+        split-tail-norm: True
     Ba:
       basis:
-        split-norm: "tail"
+        split-tail-norm: True
     Lu:
       basis:
-        split-norm: "tail"
+        split-tail-norm: True
