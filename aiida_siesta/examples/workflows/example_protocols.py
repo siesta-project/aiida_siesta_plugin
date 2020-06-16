@@ -3,7 +3,6 @@ File showcasing the submission of a SiestaBaseWorkChain using the protocol syste
 """
 import sys
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
-from aiida_siesta.workflows.utils.base_inp_gen import BaseWorkChainInputsGenerator
 from aiida.engine import submit
 from aiida.orm import Dict, StructureData
 
@@ -45,17 +44,16 @@ path_generator = "seekpath"
 #At the moment the options "atoms_only", "variable_cell", "constant_volume" are available
 relaxation_type = "atoms_only"
 
+#Optionally, the spin polarization can be requested adding in inputs the `spin` parameter.
+#The options "polarized", "non-collinear", "spin-orbit" are available
+spin = "polarized"
 
-#We have now two options, either call the input generator:
-inp_gen = BaseWorkChainInputsGenerator()
-#builder = inp_gen.get_builder(structure=structure, calc_engines=calc_engines, protocol=protocol)
-#builder = inp_gen.get_builder(structure, calc_engines, protocol, path_generator=path_generator, relaxation_type=relaxation_type)
 
-#or access directly the method directly from the SiestaBaseWorkChain
-builder = SiestaBaseWorkChain.get_filled_builder(structure, calc_engines, protocol)
-#builder = inp_gen.get_builder(structure, calc_engines, protocol, path_generator, relaxation_type)
+inp_gen = SiestaBaseWorkChain.inputs_generator
+builder = inp_gen.get_filled_builder(structure, calc_engines, protocol)
+#builder = inp_gen.get_builder(structure, calc_engines, protocol, path_generator, relaxation_type, spin)
 
-#The only advantage to use the input generator is that it has also some
+#The inputs generator (inp_gen) has also some
 #methods to guide the construction, like:
 print(inp_gen.get_relaxation_types())
 print(inp_gen.get_protocol_names())
