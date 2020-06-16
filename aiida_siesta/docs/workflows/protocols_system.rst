@@ -4,16 +4,16 @@ The protocols system
 Description
 -----------
 
-As explained in the corresponding section, the **SiestaBandsWorkchain** workflow 
-can be used to perform simple DFT calculations, the relaxation of a structure and 
-to visualize the electronic bands of the system under investigation. 
+As explained in the corresponding sections, the **SiestaBandsWorkchain** workflow
+is the suggested tool to run siesta calculations in aiida.
 In order to use this tool, the user needs to manually select all the inputs of the workchain, 
-being careful to pass the correct specifications to perform the task (see examples/workflos/example_first.py).
+being careful to pass the correct specifications to perform the calculation
+(see examples/workflos/example_first.py).
 The package aiida_siesta provides also a set of pre-selected inputs to run a **SiestaBandsWorkchain**,
 supporting the tasks of the relaxation of a structure and the calculations of bands.
 In other words, the user can obtain a `builder` of the 
 **SiestaBaseWorkChain** that is ready to be submitted. This `builder`, in fact, is pre-filled
-with inputs selected according to very few options specified by the user.
+with inputs selected according to the structure under investigation and very few options specified by the user.
 The list of options is presented `here <how-to>`, however the main feature is the 
 use of *protocols*. A *protocol* groups operational parameters for a Siesta calculation
 and it is meant to offer a set of inputs with the desired balance of accuracy and efficiency.
@@ -21,12 +21,16 @@ At the moment only two protocols are shipped in the package, they are called
 *stringent_delta* and *standard_delta*. More on them is presented in the next to next subsection.
 It is important to note that the implemented protocols are not, for the moment,
 input parameters that are guaranteed to perform in any situation. They are only
-based on reasonable assumptions and few tests. However, in the packag,e it is also implemented
-a system that allows users to create their own protocols, as clarified in the next to next subsection.
+based on reasonable assumptions and few tests. However, in the package it is also implemented
+a system that allows users to create their own protocols, as clarified `here <custom-prot>`.
 Finally, it must be remembered that the `builder` produced according to a *protocol* and few other options is fully 
 modifiable before submission, leaving full flexibility to the user.
 We expect in the future to have more and more "know how" and improve the
 reliability and richness of the available *protocols*.
+We focus here on the description of the use of protocols for the **SiestaBandsWorkchain**,
+but the same system is available for all the workchains distributed in this package.
+A small paragraph in the documentation of each WorkChain will explain the details of
+the usage of protocols for that particular workchain.
 
 
 Supported Siesta versions
@@ -58,7 +62,7 @@ A description of the global variables of each protocol are now reported.
   electronic temp 25 meV, and a kpoint mesh with distance 0.2 are implemented.
   Concerning the trashold for convergence, we implement 1.e-3 tolerance for the density matrix,
   0.04 ev/ang for forces and 1 GPa for stress.
-  This choice op parameters have been tested on crystal elements of the Delta test (link) and ... 
+  This choice of parameters have been tested on crystal elements of the Delta test (link) and ... 
 
 * *stringent_delta*
   Pseudopotential ONCVPSPv0.4 (norm-conserving) of Pseudo Dojo in psml format, scalar relativistic,
@@ -77,7 +81,7 @@ Therefore a user, before using protocol, needs to download the correct pseudos a
 load them (verdi data psml uploadfamily) with the correct name.
 ---This last part will change soon, replaced with a proper setup-profile script ----
 
-Few more variables are set for both plugins. They are related to mixing options: 
+Few more variables are set for both protocols. They are related to mixing options: 
 scf-mixer-history is set to 5, and scf-mixer-weight is 0.1. As only the Max-1.0 version 
 of Siesta is supported, the default mixer is Pulay and the quantity mixed is the Hamiltonian.
 
@@ -88,73 +92,30 @@ peculiarities of particular elements. It is work in progress.
 The full list of global parameters are collected in the `protocol_registry.yaml` file, located in 
 aiida_siesta/workflows/utils. In there also the atom heuristics implemented can be explored.
 
-How to create my protocols
---------------------------
-
-The protocol system allows also to create customized protocol. In order to do that,
-a file similar to `aiida_siesta/workflows/utils/protocol_registry.yaml`
-must be created and here the custom protocols can be listed.
-Then the path of this file must be added to the environment variable `AIIDA_SIESTA_PROTOCOLS`.
-This will be sufficient to let aiida-siesta recognize the protocols.
-Of course the file containing the new protocols must have the same structure of `protocol_registry.yaml`.
-The protocol name should be the outer entry of the indentation.
-Some keyword are mandatory, they are `description`, `parameters`, `basis` and `pseudo_family`. The `pseudo_family`
-must contain the name of a family (Psml or Psf family) that has been already uploaded in the database.
-The `parameters` and `basis` entries are transformed into dictionaries and directly passed
-to AiiDA, but the syntax (lower case and '-' between words) must be respected as it is used
-to introduce atom heuristic changes.
-Optional entries are `kpoints` (distance and offset) and `relax` (containing the MD options,
-it is very important to confine here the relaxation options and not mix them with other parameters,
-this because there is a specific way to trigger relaxation in the protocol system, see next section).
-If some atom heuristics are wanted, the user should know that the following are allowed:
-for `parameters`, only the 'mesh-cutoff' is allowed (spin in the future) and the
-parameter applies globally. This means that if we define a mesh-cutoff heuristic for element
-"El", for a structure containing "El" the global 'mesh-cutoff' parameter will be substituted by
-the heuristic one. This is meant to signal elements that requires a bigger 'mesh-cutoff' than normal.
-If more elements in the structure have a custom 'mesh-cutoff', the biggest one will be selected.
-For `basis`, we allow 'split-norm', 'polarization', 'energy-shift', 'size'. The 'split-norm' and 'energy-shift' apply
-globally, exactly like 'mesh-cutoff'. The 'size' and' polarization' introduce instead a block
-reporting the change of pao size and polarization schema only for the element under definition.
 
 .. _how-to:
 
 How to use protocols
 --------------------
 
-In this section we explain how to obtain a pre-filled builder according to a protocol,
-that is ready to be submitted (or modified and then submitted).
-Two are the ways:
+In this section we explain how to obtain a pre-filled builder according to a protocol
+and an input structure, that is ready to be submitted (or modified and then submitted).
+It is accessed through the property `inputs_generator` of the **SiestaBaseWorkChain**, like 
+in this example::
 
-* Make use of the class **BaseWorkChainInputsGenerator**.
-  This class implements the method `get_builder` that return the pre filled `builder` for the 
-  **SiestaBaseWorkChain**.
-  Therefore something like::
-
-        inp_gen = BaseWorkChainInputsGenerator()
-        builder = inp_gen.get_builder(structure, calc_engines, protocol, path_generator, relaxation_type)
+        inp_gen = SiestaBaseWorkChain.inputs_generator
+        builder = inp_gen = get_filled_builder(structure, calc_engines, protocol)
         #here user can modify builder befor submission.
         submit(builder)
 
-  is sufficient to run the calculation. The parameters of `get_builder` are explained below.
-  
-* Call directly a filled builder from **SiestaBaseWorkChain**.
-  Through the class `get_filled_builder`::
-
-        builder = SiestaBaseWorkChain.get_filled_builder(structure, calc_engines, protocol)
-        #here user can modify builder befor submission.
-        submit(builder)
-
-  The parameters of `get_filled_builder` of **SiestaBaseWorkChain** are the same of
-  the `get_builder` of **BaseWorkChainInputsGenerator** and they are explained below.
-
-In addition to protocol name, few more more parameters are necessary to `get_builder` of **BaseWorkChainInputsGenerator**
-or `get_filled_builder` of **SiestaBaseWorkChain** in order to produce a correct builder. They are listed here:
+The parameters of `get_filled_builder` of **SiestaBaseWorkChain** are explained here:
 
 * **structure**, class :py:class:`StructureData <aiida.orm.StructureData>`, *Mandatory*
   A structure. See the plugin documentation for more details.
 
 * **calc_engine**, python `dict`, *Mandatory*
-  A dictionary containing the specifications of the code to run. An example::
+  A dictionary containing the specifications of the code to run and the computational
+  resources. An example::
 
         calc_engines = {
             'siesta': {
@@ -176,13 +137,13 @@ or `get_filled_builder` of **SiestaBaseWorkChain** in order to produce a correct
 * **protocol**, python `str`, *Mandatory*
   The protocol name, selected among the available ones, as explained in the previous section.
 
-* **path_generator**, python `str`. *Optional*
+* **bands_path_generator**, python `str`. *Optional*
   The presence of this parameter triggers the calculation of bands.
   Two are the available value to pass as `path_generator`: "seekpath" or "legacy".
   They set the way the path in k-space is produced. This path is used to display the
   bands. While "seekpath" modify the structure running the calculation on an equivalent "conventional" 
-  cell, "legacy" doesn't and preserves the input structure. However the "legacy" method is known to be wrong for 
-  some particular structure.
+  cell, "legacy" doesn't and preserves the input structure. However the "legacy" method is known to 
+  have bugs for certain structure cells.
 
 * **relaxation_type**, python `str`. *Optional*
   The presence of this parameter triggers the possibility to relax the structure.
@@ -190,16 +151,72 @@ or `get_filled_builder` of **SiestaBaseWorkChain** in order to produce a correct
   that should be self expalnatory.
   For the moment only the CG relaxation algorithm is implemented (in the future more will be added).
 
+* **spin**, python `str`. *Optional*
+  The presence of this parameter triggers the spin options.
+  The specifications of the spin are the one of modern version of Siesta, they are
+  "polarized", "non-collinear" and "spin-orbit".
+  If no spin option is defined, the calculation will not be spin polarized.
+
 An example of the use is in aiida_siesta/examples/workflows/example_protocol.py.
 
-We took the case of SiestaBaseWorkChain, but we implement a <WorkChain>InputsGenerator for each
-<WorkChain> distributed in the package, this is highlighted in the corresponding subsection of the
-<WorkChain> documentation.
-
-Other methods of **BaseWorkChainInputsGenerator**
--------------------------------------------------
-
-The only advantage of using the class **BaseWorkChainInputsGenerator** is that this class provides,
-on top of `get_builder` explained above, a lot of methods that facilitate the task of exploring
-the various options of the protocol system. For instance, there is a method listing all the available protocols,
+The method `get_filled_builder` is definitely the most important tool offered by the `inputs_generator`,
+however through this property of **SiestaBaseWorkChain** other methods that facilitate the task of exploring
+the various options of the protocol system are available. For instance, there is a method listing all the available protocols,
 the available relaxation types and so on.
+
+.. _custom-prot:
+
+How to create my protocols
+--------------------------
+
+The protocol system allows also to create customized protocol. In order to do that,
+a file similar to `aiida_siesta/workflows/utils/protocol_registry.yaml`
+must be created and here the custom protocols can be listed.
+Then the path of this file must be added to the environment variable `AIIDA_SIESTA_PROTOCOLS`.
+This will be sufficient to let aiida-siesta recognize the protocols.
+Of course the file containing the new protocols must have the same structure of `protocol_registry.yaml`.
+The protocol name should be the outer entry of the indentation.
+Some keyword are mandatory, they are `description`, `parameters`, `basis` and `pseudo_family`. The `pseudo_family`
+must contain the name of a family (Psml or Psf family) that has been already uploaded in the database.
+The number of elements covered by your pseudo family will limit the materials you
+can simulate with your protocol.
+The `parameters` and `basis` entries are transformed into dictionaries and passed
+to AiiDA after possible modifications due to atom heuristics or spin/relax additions.
+For this reason, the syntax (lower case and '-' between words) must be respected in full.
+Two optional keywords are `relax_additions` and `spin_additions`.
+This two entries are not meant to host the siesta keywords that activate the relaxation or spin options,
+but possible additions/modifications to the `parameters` entry, to apply in case of relaxation
+or spin. When the use of protocols is called and the relax/spin options are requested (see `here <how-to>`),
+the system will automatically take care of introducing the correct siesta keyword (`MD.TypeOfRun`, 
+`MD.VariableCell`, `spin` etc.) that are indispensable to run the task. However, it might happen that
+a user desires a more loose `scf-dm-tolerance` for the task of the relaxation or a different `scf-mixer-weight`
+when the spin is active. The `relax_additions` and `spin_additions` keywords have been created
+texactly for this purpose.
+Please be carefull that (except for the `mesh-cutoff`) if a keyword in `spin_additions` or 
+`relax_additions` is already present in `parameters`, its value in `parameters` will overriden.
+In other words, values in `spin_additions` or `relax_additions` have priority compared to the one
+in `parameters`. Moreover `relax_additions` has priority respect to `spin_additions`.
+For the `mesh-cutoff` the situation is different, because the highest value will always be
+considered, no metter where it is specified.
+Another optional entry is `kpoints`, where a `distance` and an `offset` only can be specified.
+The system will take care to create a uniform mesh for the structure under investigation with
+a density that correspond to a distance (in 1/Angstrom) between adjacent kpoints equal to `dinstance`.
+The final allowed (optional) keyword is `atomic_heuristics`. 
+In it, two only sub-keys are allowed: `parameters` and `basis`.
+In `parameters`,  only a 'mesh-cutoff' can be specified. This `mesh-cutoff` applies globally
+and only if it is the biggest one among the all `mesh-cutoff` that apply.
+This system is meant to signal elements that requires a bigger 'mesh-cutoff' than normal.
+For `basis`, we allow 'split-tail-norm', 'polarization' and 'size'. The 'size' and' polarization' introduce a block
+reporting the change of pao size and polarization schema only for the element under definition.
+The 'split-tail-norm' instead activate in siesta the key 'pao-split-tail-norm', that applies globally.
+We conclude this subsection with few more notes to keep in mind. First, the units mut be specified for each siesta keyword
+that require units and they must be consisten throughout the protocol. This means that it is not possible
+to define 'mesh-cutoff' in Ry in `parameters`, but in eV in the `atomic_heuristics`.
+Second, it is up to the creator to remember to introcude the correct 'xc-functional' and 'xc-authors'
+keywords in the protocol that matches the same exchange-correlation functional of the pseudos in the
+pseudo family. This also means that we do not support pseudos presenting
+different exchange-correlation functionals in the same family. Third, we impose a description for
+each protocol because in the description the creator must underline the limitations of the protocol.
+For instance, the case when a certain protocol do not support spin-orbit as the pseudos are not relativistics.
+The schema we presented here is certanly not perfect and it is far to cover all the possible situations,
+however it must be remembered that any user has always the chance to modify the inputs (builder) before submission.

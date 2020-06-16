@@ -1,5 +1,5 @@
 SIESTA Base workflow
-++++++++++++++++++++++
+++++++++++++++++++++
 
 Description
 -----------
@@ -217,6 +217,21 @@ all the inputs of the WorkChain.
   Optional port used to activate the restart features, as explained in the plugin documentation.
 
 
+Relaxation and bands
+--------------------
+As already mentioned in the introduction, in addition to simple scf calculations, the **SiestaBaseWorkChain** 
+can be used to perform the relaxation of a structure and the electronic bands calculations.
+For the electronic bands, however, we suggest the use of the **BandgapWorkChain** distributed in this package, because
+it adds the feature to automatically calculate the band gap.
+Concerning the relaxation of a structure, the **SiestaBaseWorkChain** simply exploits the internal relaxation
+implemented in Siesta in order to complete the task. The full set of a Siesta relaxation options can be
+accessed just adding the corresponding keyword and value in the `parameters` input dictionary. The only additional
+feature that the **SiestaBaseWorkChain** adds is that it requires to reach the target forces and stress
+to consider completed the task. If this does not happen in a single Siesta run, the workchain restarts
+automatically the relaxation. The maximum number of restarts is specified with the keyword `max_iterations`,
+as explained in the previous subsection.
+
+
 Submitting the WorkChain
 ------------------------
 
@@ -349,5 +364,6 @@ only a specific error code is returned as output without attempting a restart.
 The **SiestaBaseWorkChain** also inherits the error codes of the **BaseRestartWorkChain**
 of the aiida-core distribution. For instance,
 if an unexpected error is raised twice, the workchain finishes with exit code 402, if the
-maximum number of iterations is reached, error 401 is returned. More at ... 
+maximum number of iterations is reached, error 401 is returned. More in the section
+`BaseRestartWorkChain` of the aiida-core package.
 
