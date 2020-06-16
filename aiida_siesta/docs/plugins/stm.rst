@@ -17,8 +17,8 @@ obtain the STM images.
 Supported Siesta versions
 -------------------------
 
-At least 4.0.1 of the 4.0 series, and 4.1-b3 of the 4.1
-series, which can be found in the development platform (https://gitlab.com/siesta-project/siesta)
+At least 4.0.1 of the 4.0 series, 4.1-b3 of the 4.1 series and the MaX-1.0 release, 
+which can be found in the development platform (https://gitlab.com/siesta-project/siesta).
 
 Inputs
 ------
@@ -112,7 +112,7 @@ Outputs
 
   A collection of three 2D arrays (`grid_X`, `grid_Y`, `STM`) holding the section or
   topography information. They follow the `meshgrid` convention in
-  Numpy. A contour plot can be generated with the `get_stm_image.py`
+  Numpy. A heat-map plot can be generated with the `get_stm_image.py`
   script in the repository of examples.
 
 .. |br| raw:: html
