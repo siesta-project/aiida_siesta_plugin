@@ -284,6 +284,11 @@ class EosWorkChainInputsGenerator(BaseWorkChainInputsGenerator):
     presence of an unsupported relaxation.
     """
 
+    _relax_types = {
+        "atoms_only": "The lattice shape and volume are fixed, only the atomic positions are relaxed",
+        "constant_volume": "The cell volume is kept constant in a variable-cell relaxation"
+    }
+
     def __init__(self, workchain_class):
         """
         Construct an instance of the inputs generator, validating the class attributes
@@ -305,19 +310,19 @@ class EosWorkChainInputsGenerator(BaseWorkChainInputsGenerator):
 
         self._workchain_class = workchain_class
 
-    def get_inputs_dict(
-        self, structure, calc_engines, protocol, bands_path_generator=None, relaxation_type=None, spin=None
-    ):
+    #def get_inputs_dict(
+    #    self, structure, calc_engines, protocol, bands_path_generator=None, relaxation_type=None, spin=None
+    #):
 
-        if relaxation_type:
-            if relaxation_type == "variable_cell":
-                raise RuntimeError(
-                    'The relaxation type "variable_cell" is not allowed for class `{0}`'.format(
-                        self.__class__.__name__
-                    )
-                )
+    #    if relaxation_type:
+    #        if relaxation_type == "variable_cell":
+    #            raise RuntimeError(
+    #                'The relaxation type "variable_cell" is not allowed for class `{0}`'.format(
+    #                    self.__class__.__name__
+    #                )
+    #            )
 
-        return super().get_inputs_dict(structure, calc_engines, protocol, bands_path_generator, relaxation_type, spin)
+    #    return super().get_inputs_dict(structure, calc_engines, protocol, bands_path_generator, relaxation_type, spin)
 
 
 class StmWorkChainInputsGenerator(BaseWorkChainInputsGenerator):

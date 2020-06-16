@@ -2,6 +2,7 @@ from aiida.plugins import DataFactory
 from aiida.common import AttributeDict
 from aiida.engine import WorkChain, calcfunction, ToContext
 from aiida.orm import Float
+from aiida.common.lang import classproperty
 from aiida_siesta.calculations.tkdict import FDFDict
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
 
@@ -292,3 +293,8 @@ class EqOfStateFixedCellShape(WorkChain):
             self.report("WARNING: Birch-Murnaghan fit failed, check your results_dict['eos_data']")
 
         self.report('End of EqOfStateFixedCellShape Workchain')
+
+    @classproperty
+    def inputs_generator(cls):  # pylint: disable=no-self-argument
+        from aiida_siesta.workflows.utils.input_generators import EosWorkChainInputsGenerator
+        return EosWorkChainInputsGenerator(cls)
