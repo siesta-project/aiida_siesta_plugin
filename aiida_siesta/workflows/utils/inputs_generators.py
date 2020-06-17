@@ -1,8 +1,8 @@
 from aiida.plugins import WorkflowFactory
-from aiida_siesta.workflows.utils.protocols import ProtocolManager
+from aiida_siesta.workflows.utils.generator_metaclass import InputsGenerator
 
 
-class BaseWorkChainInputsGenerator(ProtocolManager):
+class BaseWorkChainInputsGenerator(InputsGenerator):
     """
     This class has two main purposes:
     1) Provide a method (get_filled_builder) that returns a builder for the WorkChain
@@ -21,6 +21,9 @@ class BaseWorkChainInputsGenerator(ProtocolManager):
             'aiida schema'
         }
     }
+
+    _workchain_class = WorkflowFactory("siesta.base")
+
     _relax_types = {
         "atoms_only": "The lattice shape and volume are fixed, only the atomic positions are relaxed",
         "variable_cell": "The lattice is relaxed together with the atomic coordinates",
@@ -39,7 +42,7 @@ class BaseWorkChainInputsGenerator(ProtocolManager):
         "spin-orbit": "Spin-orbit is activated",
     }
 
-    def __init__(self, workchain_class):
+    def __init__(self):
         """
         Construct an instance of the input generator, validating the class attributes
         and the passing of the correct WorkChain as workchain_class.
@@ -48,16 +51,6 @@ class BaseWorkChainInputsGenerator(ProtocolManager):
         super().__init__()
 
         self._checks_attrs()
-
-        accepted_class = WorkflowFactory("siesta.base").get_name()
-        try:
-            inp_class = workchain_class.get_name()
-        except AttributeError:
-            raise RuntimeError('Class `{0}` only accepts `{1}`'.format(self.__class__.__name__, accepted_class))
-        if inp_class is not accepted_class:
-            raise RuntimeError('Class `{0}` only accepts `{1}`'.format(self.__class__.__name__, accepted_class))
-
-        self._workchain_class = workchain_class
 
     def _checks_attrs(self):
         """
@@ -110,7 +103,7 @@ class BaseWorkChainInputsGenerator(ProtocolManager):
         except KeyError:
             raise ValueError("Wrong spin type: no spin with name {} implemented".format(key))
 
-    #pylint: disable=too-many-statements,too-many-branches
+    #pylint: disable=too-many-statements,too-many-branches,arguments-differ
     def get_inputs_dict(
         self, structure, calc_engines, protocol, bands_path_generator=None, relaxation_type=None, spin=None
     ):
@@ -200,13 +193,14 @@ class BaseWorkChainInputsGenerator(ProtocolManager):
             'code': code,
             'basis': Dict(dict=basis),
             'kpoints': kpoints_mesh,
-            'pseudo_fam': pseudo_fam,
+            'pseudo_family': pseudo_fam,
             'options': options,
             'bandskpoints': bandskpoints
         }
 
         return inputs
 
+    # pylint: disable=arguments-differ
     def get_filled_builder(
         self, structure, calc_engines, protocol, bands_path_generator=None, relaxation_type=None, spin=None
     ):
@@ -216,19 +210,9 @@ class BaseWorkChainInputsGenerator(ProtocolManager):
         relaxation_type and spin as well). Ready to be submitted.
         """
 
-        inputs = self.get_inputs_dict(structure, calc_engines, protocol, bands_path_generator, relaxation_type, spin)
+        inp_dict = self.get_inputs_dict(structure, calc_engines, protocol, bands_path_generator, relaxation_type, spin)
 
-        builder = self._workchain_class.get_builder()
-        builder.structure = inputs["structure"]
-        builder.basis = inputs["basis"]
-        builder.parameters = inputs["parameters"]
-        if inputs["kpoints"]:
-            builder.kpoints = inputs["kpoints"]
-        if inputs["bandskpoints"]:
-            builder.bandskpoints = inputs["bandskpoints"]
-        builder.pseudo_family = inputs["pseudo_fam"]
-        builder.options = inputs["options"]
-        builder.code = inputs["code"]
+        builder = self._fill_builder(inp_dict)
 
         return builder
 
@@ -241,26 +225,7 @@ class BandgapWorkChainInputsGenerator(BaseWorkChainInputsGenerator):
     presence of `bands_path_generator`. In fact the band calculation is required.
     """
 
-    def __init__(self, workchain_class):
-        """
-        Construct an instance of the inputs generator, validating the class attributes
-        and the passing of the correct WorkChain as workchain_class.
-        """
-
-        #This calss the __init__ of BaseWorkChainInputsGenerator's father, meaning ProtocolManager
-        super(BaseWorkChainInputsGenerator, self).__init__()
-
-        self._checks_attrs()
-
-        accepted_class = WorkflowFactory("siesta.bandgap").get_name()
-        try:
-            inp_class = workchain_class.get_name()
-        except AttributeError:
-            raise RuntimeError('Class `{0}` only accepts `{1}`'.format(self.__class__.__name__, accepted_class))
-        if inp_class is not accepted_class:
-            raise RuntimeError('Class `{0}` only accepts `{1}`'.format(self.__class__.__name__, accepted_class))
-
-        self._workchain_class = workchain_class
+    _workchain_class = WorkflowFactory("siesta.bandgap")
 
     def get_inputs_dict(
         self, structure, calc_engines, protocol, bands_path_generator=None, relaxation_type=None, spin=None
@@ -284,45 +249,12 @@ class EosWorkChainInputsGenerator(BaseWorkChainInputsGenerator):
     presence of an unsupported relaxation.
     """
 
+    _workchain_class = WorkflowFactory("siesta.eos")
+
     _relax_types = {
         "atoms_only": "The lattice shape and volume are fixed, only the atomic positions are relaxed",
         "constant_volume": "The cell volume is kept constant in a variable-cell relaxation"
     }
-
-    def __init__(self, workchain_class):
-        """
-        Construct an instance of the inputs generator, validating the class attributes
-        and the passing of the correct WorkChain as workchain_class.
-        """
-
-        #This calss the __init__ of BaseWorkChainInputsGenerator's father, meaning ProtocolManager
-        super(BaseWorkChainInputsGenerator, self).__init__()
-
-        self._checks_attrs()
-
-        accepted_class = WorkflowFactory("siesta.eos").get_name()
-        try:
-            inp_class = workchain_class.get_name()
-        except AttributeError:
-            raise RuntimeError('Class `{0}` only accepts `{1}`'.format(self.__class__.__name__, accepted_class))
-        if inp_class is not accepted_class:
-            raise RuntimeError('Class `{0}` only accepts `{1}`'.format(self.__class__.__name__, accepted_class))
-
-        self._workchain_class = workchain_class
-
-    #def get_inputs_dict(
-    #    self, structure, calc_engines, protocol, bands_path_generator=None, relaxation_type=None, spin=None
-    #):
-
-    #    if relaxation_type:
-    #        if relaxation_type == "variable_cell":
-    #            raise RuntimeError(
-    #                'The relaxation type "variable_cell" is not allowed for class `{0}`'.format(
-    #                    self.__class__.__name__
-    #                )
-    #            )
-
-    #    return super().get_inputs_dict(structure, calc_engines, protocol, bands_path_generator, relaxation_type, spin)
 
 
 class StmWorkChainInputsGenerator(BaseWorkChainInputsGenerator):
@@ -333,6 +265,8 @@ class StmWorkChainInputsGenerator(BaseWorkChainInputsGenerator):
     to pass computational resources for the stm plugin. The `get_inputs_dict` implements the selection
     of many more inputs related to the STM. Same the `get_filled_builder`.
     """
+
+    _workchain_class = WorkflowFactory("siesta.stm")
 
     _calc_types = {
         "siesta": {
@@ -353,27 +287,6 @@ class StmWorkChainInputsGenerator(BaseWorkChainInputsGenerator):
         "of the input sturcture (no primitive cell). Not guaranteed to give correct paths",
     }
 
-    def __init__(self, workchain_class):
-        """
-        Construct an instance of the inputs generator, validating the class attributes
-        and the passing of the correct WorkChain as workchain_class.
-        """
-
-        #This calss the __init__ of BaseWorkChainInputsGenerator's father, meaning ProtocolManager
-        super(BaseWorkChainInputsGenerator, self).__init__()
-
-        self._checks_attrs()
-
-        accepted_class = WorkflowFactory("siesta.stm").get_name()
-        try:
-            inp_class = workchain_class.get_name()
-        except AttributeError:
-            raise RuntimeError('Class `{0}` only accepts `{1}`'.format(self.__class__.__name__, accepted_class))
-        if inp_class is not accepted_class:
-            raise RuntimeError('Class `{0}` only accepts `{1}`'.format(self.__class__.__name__, accepted_class))
-
-        self._workchain_class = workchain_class
-
     def get_stm_modes(self):
         return list(self._stm_modes.keys())
 
@@ -383,9 +296,10 @@ class StmWorkChainInputsGenerator(BaseWorkChainInputsGenerator):
         except KeyError:
             raise ValueError("Wrong stm mode: no stm_mode with name {} implemented".format(key))
 
-    def get_stm_value_info(self):
+    def get_stm_value_info(self):  # pylint: disable=no-self-use
         return "Value of height in Ang or value of current in e/bohr**3 (float)"
 
+    # pylint: disable=arguments-differ
     def get_inputs_dict(
         self,
         structure,
@@ -404,8 +318,6 @@ class StmWorkChainInputsGenerator(BaseWorkChainInputsGenerator):
         siesta_in = super().get_inputs_dict(
             structure, calc_engines, protocol, bands_path_generator, relaxation_type, spin
         )
-
-        print(siesta_in)
 
         if stm_mode not in self._stm_modes:
             raise ValueError("Wrong stm mode: no stm_mode with name {} implemented".format(stm_mode))
@@ -433,6 +345,7 @@ class StmWorkChainInputsGenerator(BaseWorkChainInputsGenerator):
 
         return siesta_in
 
+    # pylint: disable=arguments-differ
     def get_filled_builder(
         self,
         structure,
@@ -445,27 +358,10 @@ class StmWorkChainInputsGenerator(BaseWorkChainInputsGenerator):
         spin=None
     ):
 
-        inputs = self.get_inputs_dict(
+        inp_dict = self.get_inputs_dict(
             structure, calc_engines, protocol, stm_mode, stm_value, bands_path_generator, relaxation_type, spin
         )
 
-        builder = self._workchain_class.get_builder()
-        builder.structure = inputs["structure"]
-        builder.basis = inputs["basis"]
-        builder.parameters = inputs["parameters"]
-        if inputs["kpoints"]:
-            builder.kpoints = inputs["kpoints"]
-        if inputs["bandskpoints"]:
-            builder.bandskpoints = inputs["bandskpoints"]
-        builder.pseudo_family = inputs["pseudo_fam"]
-        builder.options = inputs["options"]
-        builder.code = inputs["code"]
-        builder.stm_code = inputs["stm_code"]
-        builder.stm_options = inputs["stm_options"]
-        builder.stm_mode = inputs["stm_mode"]
-        builder.stm_value = inputs["stm_value"]
-        builder.stm_spin = inputs["stm_spin"]
-        builder.emin = inputs["emin"]
-        builder.emax = inputs["emax"]
+        builder = self._fill_builder(inp_dict)
 
         return builder

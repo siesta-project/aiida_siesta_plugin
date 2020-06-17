@@ -295,6 +295,6 @@ class EqOfStateFixedCellShape(WorkChain):
         self.report('End of EqOfStateFixedCellShape Workchain')
 
     @classproperty
-    def inputs_generator(cls):  # pylint: disable=no-self-argument
-        from aiida_siesta.workflows.utils.input_generators import EosWorkChainInputsGenerator
-        return EosWorkChainInputsGenerator(cls)
+    def inputs_generator(cls):  # pylint: disable=no-self-argument,no-self-use
+        from aiida_siesta.workflows.utils.inputs_generators import EosWorkChainInputsGenerator
+        return EosWorkChainInputsGenerator()

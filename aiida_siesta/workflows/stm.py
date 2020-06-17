@@ -309,6 +309,6 @@ class SiestaSTMWorkChain(WorkChain):
         return ExitCode(0)
 
     @classproperty
-    def inputs_generator(cls):  # pylint: disable=no-self-argument
-        from aiida_siesta.workflows.utils.input_generators import StmWorkChainInputsGenerator
-        return StmWorkChainInputsGenerator(cls)
+    def inputs_generator(cls):  # pylint: disable=no-self-argument,no-self-use
+        from aiida_siesta.workflows.utils.inputs_generators import StmWorkChainInputsGenerator
+        return StmWorkChainInputsGenerator()

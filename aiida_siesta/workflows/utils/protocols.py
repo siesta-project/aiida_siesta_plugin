@@ -1,13 +1,13 @@
 import os
-from abc import ABCMeta, abstractmethod
 import yaml
 from aiida.orm.groups import Group
 from aiida.common import exceptions
 
 
-class ProtocolManager(metaclass=ABCMeta):
+class ProtocolManager():
     """
-    This class is the parent class of any <WorkChain>InputsGenerator. A series of classes meant
+    This class is the parent class of the class InputsGenerator, the fundation block
+    of a series of classes <WorkChain>InputsGenerator with the scope
     to facilitate the choice of inputs for the corresponding <WorkChain>.
     This class is meant to become the central engine for the management of protocols.
     With the word "protocol" we mean a series of suggested inputs for AiiDA WorkChains that allow
@@ -29,23 +29,18 @@ class ProtocolManager(metaclass=ABCMeta):
     loads a pseudo_family with the exact same name of the one hard-coded for the protocol.
     Some other methods are implemented with the scope to access information about protocols and
     the API to use the protocols.
-    This is an abstract class. Subclasses (the actual generators of inputs) should define the
-    variable _calc_types (containing the schema for the computational resources to use) and the
-    methods `get_inputs_dict` and `get_filled_builder`. The first one returns the list of inputs
-    in a dictionary. The second return a builder, pre-compiled, for the <WorkChain>, ready to be
-    submitted (but could be modified before submission)
     """
 
-    filepath = os.path.join(os.path.dirname(__file__), 'protocols_registry.yaml')
+    _filepath = os.path.join(os.path.dirname(__file__), 'protocols_registry.yaml')
 
-    with open(filepath) as thefile:
-        _protocols = yaml.full_load(thefile)
+    with open(_filepath) as _thefile:
+        _protocols = yaml.full_load(_thefile)
 
     if 'AIIDA_SIESTA_PROTOCOLS' in os.environ:
-        bisfilepath = os.environ['AIIDA_SIESTA_PROTOCOLS']
+        _bisfilepath = os.environ['AIIDA_SIESTA_PROTOCOLS']
         try:
-            with open(bisfilepath) as thefile:
-                _custom_protocols = yaml.full_load(thefile)
+            with open(_bisfilepath) as _thefile:
+                _custom_protocols = yaml.full_load(_thefile)
         except (IsADirectoryError, FileNotFoundError):
             raise RuntimeError(
                 'The environment variable devoted to custom protocols (AIIDA_SIESTA_PROTOCOLS) is set '
@@ -55,8 +50,6 @@ class ProtocolManager(metaclass=ABCMeta):
 
     _default_protocol = 'standard_delta'
 
-    _calc_types = None
-
     def __init__(self):
         """
         Construct an instance of ProtocolManager, validating the class attribute _calc_types set by the sub class
@@ -65,11 +58,6 @@ class ProtocolManager(metaclass=ABCMeta):
 
         #Here we chack that each protocols implement correct syntax and mandatory entries
         self._protocols_checks()
-
-        #Here check that the subclass defines the attribute _calc_types
-        if self._calc_types is None:
-            message = 'invalid inputs generator `{}`: does not define `_calc_types`'.format(self.__class__.__name__)
-            raise RuntimeError(message)
 
     def _protocols_checks(self):
         """
@@ -141,13 +129,6 @@ class ProtocolManager(metaclass=ABCMeta):
             return self._protocols[key]
         except KeyError:
             raise ValueError("Wrong protocol: no protocol with name {} implemented".format(key))
-
-    def how_to_pass_computation_options(self):
-        print(
-            "The computational resources are passed to get_filled_builder with the "
-            "argument `calc_engines`. It is a dictionary with the following structure:"
-        )
-        return self._calc_types  #.values()
 
     def _get_param(self, key, structure):
         """
@@ -320,15 +301,3 @@ class ProtocolManager(metaclass=ABCMeta):
     def _get_pseudo_fam(self, key):
         from aiida.orm import Str
         return Str(self._protocols[key]["pseudo_family"])
-
-    @abstractmethod
-    def get_inputs_dict(self, structure, calc_engines, protocol):
-        """
-        Return a dictionary with all the inputs, according to protocol
-        """
-
-    @abstractmethod
-    def get_filled_builder(self, structure, calc_engines, protocol):
-        """
-        Return a builder, prefilled.
-        """
