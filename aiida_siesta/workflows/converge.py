@@ -2,8 +2,7 @@ from aiida.engine import WorkChain, calcfunction, while_, ToContext
 from aiida.orm import Float, Str, List, KpointsData, Bool, Int
 from aiida.common import AttributeDict
 
-from .iterate import ParameterIterator, BasisParameterIterator,  \
-                AttributeIterator, KpointComponentIterator, get_iterator_and_defaults
+from .iterate import SiestaIterator
 
 
 @calcfunction
@@ -53,6 +52,14 @@ class BaseConvergencePlugin:
 
         # The outline is defined by Iterator workflow, and most of the inputs too.
         # Threshold is an input that is specific to a convergence workflow.
+        # Inputs related to the parameter to converge
+        spec.input(
+            "target",
+            valid_type=Str,
+            required=False,
+            default=lambda: Str('E_KS'),
+            help="The parameter that you want to track."
+        )
         spec.input(
             "threshold",
             valid_type=(Int, Float),
@@ -118,19 +125,7 @@ class BaseConvergencePlugin:
         self.out('target_values', target_values)
 
 
-class ParameterConvergence(BaseConvergencePlugin, ParameterIterator):
-    pass
-
-
-class BasisParameterConvergence(BaseConvergencePlugin, BasisParameterIterator):
-    pass
-
-
-class AttributeConvergence(BaseConvergencePlugin, AttributeIterator):
-    pass
-
-
-class KpointComponentConvergence(BaseConvergencePlugin, KpointComponentIterator):
+class SiestaConverger(BaseConvergencePlugin, SiestaIterator):
     pass
 
 
@@ -227,55 +222,6 @@ class KpointsConvergence(WorkChain):
 
         self.out('converged_kpoints', self.ctx.kpoints)
         self.out('final_target_value', self.ctx.last_process.outputs['final_target_value'])
-
-
-def iterator_to_converger(IteratorClass):
-    '''
-    Finds the appropiate convergence workflow for a given iterator.
-
-    Ideally, one could just "plug" the BaseConvergencePlugin to the iterator,
-    but Aiida does not like dinamically defined classes, so classes must exist beforehand.
-
-    That's why `ParameterConvergence`, `BasisParameterConvergence` and `AttributeConvergence`
-    are defined in this file.
-
-    Parameters
-    -----------
-    IteratorClass: Iterator
-        the iterator class that you want to get a convergence workflow for
-
-    Returns
-    -----------
-    Converger
-        the corresponding convergence workflow
-    '''
-
-    for Converger in [ParameterConvergence, BasisParameterConvergence, AttributeConvergence]:
-        if IteratorClass in Converger.__mro__:
-            return Converger
-
-
-def get_converger_and_defaults(iterate_over):
-    '''
-    Gets the appropiate iterator for a given parameter.
-
-    Parameters
-    -----------
-    iterate_over: str
-        The parameter/basis parameter/attribute that we want
-        to converge
-
-    Returns
-    -----------
-    Converger
-        the specific convergence workflow that should be used.
-    dict
-        the default settings that should be passed.
-    '''
-
-    Iterator, defaults = get_iterator_and_defaults(iterate_over)
-
-    return iterator_to_converger(Iterator), defaults
 
 
 def converge(over, call_method='run', **kwargs):

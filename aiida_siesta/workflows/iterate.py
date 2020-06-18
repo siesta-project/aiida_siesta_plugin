@@ -3,45 +3,83 @@ import itertools
 from functools import partial
 
 from aiida.plugins import DataFactory
-from aiida.engine import WorkChain, while_, ToContext
-from aiida.orm import Float, Str, List, KpointsData, Int
+from aiida.engine import WorkChain, while_, ToContext, calcfunction
+from aiida.orm import Float, Str, List, KpointsData, Int, Node
 from aiida.orm.nodes.data.base import to_aiida_type
+from aiida.orm.utils import load_node
 from aiida.common import AttributeDict
 
 from ..calculations.tkdict import FDFDict
 from .base import SiestaBaseWorkChain
 
-
-def accept_python_types(spec):
+def normalize_list_to_pks(list_to_parse):
     '''
-    Receives a ProcessSpec object and sets the serializer
-    for the inputs to `aiida.orm.nodes.data.base.to_aiida_type`.
+    Parses a list of objects to a list of node pks.
 
-    In this way, the user will be able to pass python objects, which
-    will be automatically converted to aiida nodes.
+    This is done because aiida's List does not accept items with certain data structures
+    (e.g. StructureData). In this way, we normalize the input to a list of pk, so that at
+    each iteration we can access the value of the node.
     '''
 
-    def serializer(obj):
+    parsed_list = []
+    for obj in list_to_parse:
 
-        if isinstance(obj, list):
-            serialized = List(list=obj)
-        else:
-            serialized = to_aiida_type(obj)
+        if not isinstance(obj, Node):
+            obj = to_aiida_type(obj)
 
-        return serialized
+        if not obj.is_stored:
+            obj.store()
 
-    spec.input = partial(spec.input, serializer=serializer)
+        parsed_list.append(obj.pk)
+    
+    return List(list=parsed_list)
+
+# def accept_python_types(spec):
+#     '''
+#     Receives a ProcessSpec object and sets the serializer
+#     for the inputs to `aiida.orm.nodes.data.base.to_aiida_type`.
+
+#     In this way, the user will be able to pass python objects, which
+#     will be automatically converted to aiida nodes.
+#     '''
+
+#     def serializer(obj):
+
+#         if isinstance(obj, list):
+#             serialized = List(list=obj)
+#         else:
+#             serialized = to_aiida_type(obj)
+
+#         return serialized
+
+#     spec.input = partial(spec.input, serializer=serializer)
 
 
 class BaseIteratorWorkChain(WorkChain, ABC):
     '''
-    General workflow that runs SIESTA simulations iteratively.
+    General workflow that runs simulations iteratively.
 
-    The workflow itself can not be used. It relies in a method
+    The workchain itself can not be used.
+
+    To use it, you need to define classes that inherit from it.
+    These classes will have two main jobs:
+
+        - Specify the calculation that needs to run iteratively.
+    
+    It relies in a method
     called `add_inputs` to modify the inputs at each iteration.
     See `ParameterIterator` and `AttributeIterator` for an example
     of this.
     '''
+
+    # Here are some class variables that need to be defined
+    @property
+    @abstractmethod
+    def _process_class(self):
+        pass
+
+    _exclude_process_inputs = ()
+    _values_list_serializer = staticmethod(normalize_list_to_pks)
 
     @classmethod
     def define(cls, spec):
@@ -59,7 +97,7 @@ class BaseIteratorWorkChain(WorkChain, ABC):
 
         # With this, we will automatically accept python datatypes, saving the user
         # the hassle of passing aiida types
-        accept_python_types(spec)
+        # accept_python_types(spec)
 
         # Inputs related to the variable parameter
         spec.input("init_value", valid_type=(Int, Float), required=False, help="The inital value of the parameter.")
@@ -68,30 +106,19 @@ class BaseIteratorWorkChain(WorkChain, ABC):
         spec.input(
             "values_list",
             valid_type=List,
+            serializer=cls._values_list_serializer, # The values list will always be a list of node pks.
             required=False,
             help='''The list of values to try. Use this if `init_value` and `step` are not
             suitable for you. E.g. the values are strings or the steps are not regular.'''
         )
 
-        # Inputs related to the parameter to converge
-        spec.input(
-            "target",
-            valid_type=Str,
-            required=False,
-            default=lambda: Str('E_KS'),
-            help="The parameter that you want to track."
-        )
-        spec.expose_inputs(SiestaBaseWorkChain, exclude=('metadata',))
+        # We expose the inputs of the workchain that is run at each iteration
+        spec.expose_inputs(cls._process_class, exclude=cls._exclude_process_inputs, )
         spec.inputs._ports['pseudos'].dynamic = True
-
-        # Define what are the outputs that this workchain will return
-        spec.output('attempted_values')
 
     def initialize(self):
 
         self.ctx.variable_values = []
-        self.ctx.target_values = []
-
         self.ctx.values_iterable = self._get_iterable()
 
     def _get_iterable(self):
@@ -159,8 +186,11 @@ class BaseIteratorWorkChain(WorkChain, ABC):
         NOTE: Calling this method irreversibly 'outdates' the current value. Therefore
         it makes no sense to call it outside the `next_step` method.
         '''
-        return next(self.ctx.values_iterable)
 
+        next_pk = next(self.ctx.values_iterable)
+
+        return load_node(next_pk)
+    
     @property
     def current_val(self):
         return self.ctx.variable_values[-1]
@@ -171,14 +201,14 @@ class BaseIteratorWorkChain(WorkChain, ABC):
         '''
 
         # Get the general inputs for the siesta run
-        inputs = AttributeDict(self.exposed_inputs(SiestaBaseWorkChain))
-        # Let the
+        inputs = AttributeDict(self.exposed_inputs(self._process_class))
+
         self.add_inputs(inputs)
 
-        # Run the SIESTA simulation and store the results
-        calculation = self.submit(SiestaBaseWorkChain, **inputs)
+        # Run the workchain and store the results
+        workchain_futures = self.submit(self._process_class, **inputs)
 
-        return ToContext(calculation=calculation)
+        return ToContext(workchain_futures=workchain_futures)
 
     @abstractmethod
     def add_inputs(self, inputs):
@@ -201,10 +231,54 @@ class BaseIteratorWorkChain(WorkChain, ABC):
         Takes care of returning the results of the workchain to the user.
         '''
 
+class AttributeIterator(BaseIteratorWorkChain):
 
-class ParameterIterator(BaseIteratorWorkChain):
+    _attribute_required = True
 
-    _units = None
+    @classmethod
+    def define(cls, spec):
+        super().define(spec)
+
+        # If the user is using directly this class, give the option to choose
+        # the parameter they want to converge
+        if not hasattr(cls, '_attribute'):
+            # We are going to add here inputs specific to converging a parameter
+            spec.input(
+                'attribute',
+                valid_type=Str,
+                required=cls._attribute_required,
+                help='The attribute that you want to vary to find convergence'
+            )
+
+    def initialize(self, attribute=None):
+        super().initialize()
+
+        if attribute is None:
+            if hasattr(self, '_attribute'):
+                attribute = self._attribute
+            else:
+                attribute = self.inputs.attribute.value
+        
+        self.ctx.attribute = attribute
+
+    def parse_val(self, val, inputs):
+        return val
+
+    def add_inputs(self, inputs):
+        '''
+        Adds the attribute with the appropiate value to the inputs that go
+        to the SIESTA calculation.
+        '''
+
+        parsed_val = self.parse_val(self.current_val, inputs)
+
+        setattr(inputs, self.ctx.attribute, parsed_val)
+
+class SiestaIterator(AttributeIterator):
+
+    _process_class = SiestaBaseWorkChain
+    _exclude_inputs = ('metadata',)
+    _attribute = None
 
     @classmethod
     def define(cls, spec):
@@ -220,94 +294,77 @@ class ParameterIterator(BaseIteratorWorkChain):
                 help='The parameter that you want to vary to find convergence'
             )
 
-            spec.input('units', valid_type=Str, required=False, help='The units of the parameter')
+        spec.input('units', valid_type=Str, required=False, help='The units of the parameter')
 
     def initialize(self):
-        super().initialize()
 
         if hasattr(self, '_parameter'):
             self.ctx.parameter = self._parameter
         else:
             self.ctx.parameter = self.inputs.parameter.value
+        
+        attribute, parsing_func = self.attribute_and_parsing_func(self.ctx.parameter)
 
-    def add_inputs(self, inputs):
+        if parsing_func is not None:
+            self.parse_val = parsing_func
+
+        super().initialize(attribute=attribute)
+
+    @staticmethod
+    def attribute_and_parsing_func(parameter):
         '''
-        Adds the parameter with the appropiate value to the inputs that go
-        to the SIESTA calculation.
+        Chooses which attribute to use for that convergence parameter
         '''
 
-        # Maybe we want to update some parameters from a dict different
-        # than inputs.parameters(i.e. the basis dict)
-        attr = getattr(self, '_parameters_attribute', 'parameters')
-
-        # Convert the inputs to an fdf dict to avoid duplicate keys
-        parameters = getattr(inputs, attr, DataFactory('dict')())
-        parameters = FDFDict(parameters.get_dict())
-
-        val = self.current_val
-
-        units = getattr(self.inputs, 'units', self._units)
-        if units is not None:
-            val = f'{val} {getattr(units, "value", units)}'
-
-        parameters[self.ctx.parameter] = val
-
-        # And then just translate it again to a dict to use it for parameters
-        new_parameters = DataFactory('dict')(dict={key: val for key, (val, _) in parameters._storage.items()})
-        setattr(inputs, attr, new_parameters)
-
-
-class BasisParameterIterator(ParameterIterator):
-    _parameters_attribute = 'basis'
-
-
-class AttributeIterator(BaseIteratorWorkChain):
-
-    @classmethod
-    def define(cls, spec):
-        super().define(spec)
-
-        # If the user is using directly this class, give the option to choose
-        # the parameter they want to converge
-        if not hasattr(cls, '_attribute'):
-            # We are going to add here inputs specific to converging a parameter
-            spec.input(
-                'attribute',
-                valid_type=Str,
-                required=True,
-                help='The attribute that you want to vary to find convergence'
-            )
-
-    def initialize(self):
-        super().initialize()
-
-        if hasattr(self, '_attribute'):
-            self.ctx.attribute = self._attribute
+        if parameter in _INPUT_ATTRIBUTES['params']:
+            attribute = parameter
+            params_dict = _INPUT_ATTRIBUTES
+        elif parameter.startswith('pao'):
+            attribute = 'basis'
+            params_dict = _BASIS_PARAMS
+            parameter = FDFDict.translate_key(parameter)
         else:
-            self.ctx.attribute = self.inputs.attribute.value
+            attribute = 'parameters'
+            params_dict = _PARAMS
+            parameter = FDFDict.translate_key(parameter)
 
-    def add_inputs(self, inputs):
-        '''
-        Adds the attribute with the appropiate value to the inputs that go
-        to the SIESTA calculation.
-        '''
+        # Let's choose the parsing function
+        if parameter in params_dict['params']:
+            param_info = params_dict["params"].get(parameter, None)
 
-        setattr(inputs, self.ctx.attribute, self.current_val)
+            units = None
+            try:
+                units = param_info['defaults']['units']
+            except:
+                pass
 
+            
+            default_parse_func = params_dict.get('default_parse_func', None)
+            if default_parse_func is not None:
+                default_parse_func = partial(default_parse_func, parameter=parameter, units=units)
 
-class BasisSizeIterator(BasisParameterIterator):
+            if param_info is None:
+                parsing_func = default_parse_func
+            else:
+                parsing_func = param_info.get('parse_func', default_parse_func)
 
-    _parameter = 'pao-basissize'
-    _default_values_list = ['SZ', 'SZP', 'DZ', 'DZP', 'TZ', 'TZP']
+        return attribute, parsing_func
 
+def set_up_parameters_dict(val, inputs, parameter, attribute, units=None):
 
-class MeshCutoffIterator(ParameterIterator):
+    val = val.value
 
-    _parameter = 'meshcutoff'
-    _units = 'Ry'
-    _default_init = 100
-    _default_step = 100
+    # Convert the inputs to an fdf dict to avoid duplicate keys
+    parameters = getattr(inputs, attribute, DataFactory('dict')())
+    parameters = FDFDict(parameters.get_dict())
 
+    if units is not None:
+        val = f'{val} {getattr(units, "value", units)}'
+
+    parameters[parameter] = val
+
+    # And then just translate it again to a dict to use it for parameters
+    return DataFactory('dict')(dict={key: val for key, (val, _) in parameters._storage.items()})
 
 class KpointComponentIterator(AttributeIterator):
 
@@ -340,99 +397,42 @@ class KpointComponentIterator(AttributeIterator):
 
         return k_mesh
 
-
-class EnergyShiftIterator(BasisParameterIterator):
-
-    _parameter = 'pao-energyshift'
-    _units = 'Ry'
-
-
 # Instead of defining classes for each param/attribute, another approach
 # could be to have dicts defining "defaults" for each parameter attribute.
 # For more complicated cases like kpoints we do need to define a new class though.
 
-_BASIS_PARAMS = FDFDict(
-    paobasissize={'defaults': {
-        'values_list': ['SZ', 'SZP', 'DZ', 'DZP', 'TZ', 'TZP']
-    }},
-    paoenergyshift={'defaults': {
-        'units': 'Ry'
-    }}
-)
+_BASIS_PARAMS = {
+    'default_parse_func': partial(set_up_parameters_dict, attribute='basis'),
+    'params': FDFDict(
+        paobasissize={'defaults': {
+            'values_list': ['SZ', 'SZP', 'DZ', 'DZP', 'TZ', 'TZP']
+        }},
+        paoenergyshift={'defaults': {
+            'units': 'Ry'
+        }}
+    )
+}
 
-_PARAMS = FDFDict(meshcutoff={'defaults': {'units': 'Ry', 'init_value': 100, 'step': 100}})
+_PARAMS = {
+    'default_parse_func': partial(set_up_parameters_dict, attribute='parameters'),
+    'params': FDFDict(
+        meshcutoff={'defaults': {'units': 'Ry', 'init_value': 100, 'step': 100}}
+    )
+}
 
 # These are all the valid attributes for inputs (I believe)
-_ATTRIBUTES = {
-    'code': {},
-    'structure': {},
-    'parameters': {},
-    'pseudos': {},
-    'basis': {},
-    'settings': {},
-    'parent_calc_folder': {},
-}
-
-PRESET_ITERS = {
-    ParameterIterator: _PARAMS,
-    BasisParameterIterator: _BASIS_PARAMS,
-    AttributeIterator: _ATTRIBUTES,
-    KpointComponentIterator: {
-        'kpoints': {}
+_INPUT_ATTRIBUTES = {
+    'default_parse_func': None,
+    'params': {
+        'code': {},
+        'structure': {},
+        'parameters': {},
+        'pseudos': {},
+        'basis': {},
+        'settings': {},
+        'parent_calc_folder': {},
     }
 }
-
-
-def get_iterator_and_defaults(iterate_over):
-    '''
-    Gets the appropiate iterator for a given parameter.
-
-    Parameters
-    -----------
-    iterate_over: str
-        The parameter/basis parameter/attribute that we want
-        to iterate over
-
-    Returns
-    -----------
-    Iterator
-        the specific iterator class that should be used.
-    dict
-        the default settings that should be passed.
-    '''
-
-    for IteratorClass, presets in preset_iters.items():
-
-        # This try-except loop is a workaround because FDF dict
-        # does not have regular dict behavior.
-        # https://github.com/albgar/aiida_siesta_plugin/issues/47
-        try:
-            preset = presets[iterate_over]
-            if preset is None:
-                raise KeyError
-
-            defaults = preset.get("defaults", {})
-            break
-
-        except KeyError:
-            continue
-    else:
-        # If we haven't found it a default for it, we will try to
-        # assume it
-        if FDFDict.translate_key(iterate_over)[:3] == 'pao':
-            IteratorClass = BasisParameterIterator
-        else:
-            IteratorClass = ParameterIterator
-
-        defaults = {}
-
-    # Add the setting that will indicate what are we iterating over
-    if IteratorClass in (ParameterIterator, BasisParameterIterator):
-        defaults['parameter'] = iterate_over
-    elif IteratorClass is AttributeIterator:
-        defaults['attribute'] = iterate_over
-
-    return IteratorClass, defaults
 
 
 def iterate(over, call_method='run', **kwargs):
@@ -451,8 +451,6 @@ def iterate(over, call_method='run', **kwargs):
     '''
     from aiida.engine import run, submit
 
-    Iterator, defaults = get_iterator_and_defaults(over)
-
     execute = run if call_method == 'run' else submit
 
-    return execute(Iterator, **{**defaults, **kwargs})
+    return execute(SiestaIterator, **kwargs)
