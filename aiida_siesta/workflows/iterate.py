@@ -4,35 +4,13 @@ from functools import partial
 
 from aiida.plugins import DataFactory
 from aiida.engine import WorkChain, while_, ToContext, calcfunction
-from aiida.orm import Float, Str, List, KpointsData, Int, Node
+from aiida.orm import Float, Str, List, KpointsData, Int, Node, Dict
 from aiida.orm.nodes.data.base import to_aiida_type
 from aiida.orm.utils import load_node
 from aiida.common import AttributeDict
 
 from ..calculations.tkdict import FDFDict
 from .base import SiestaBaseWorkChain
-
-def normalize_list_to_pks(list_to_parse):
-    '''
-    Parses a list of objects to a list of node pks.
-
-    This is done because aiida's List does not accept items with certain data structures
-    (e.g. StructureData). In this way, we normalize the input to a list of pk, so that at
-    each iteration we can access the value of the node.
-    '''
-
-    parsed_list = []
-    for obj in list_to_parse:
-
-        if not isinstance(obj, Node):
-            obj = to_aiida_type(obj)
-
-        if not obj.is_stored:
-            obj.store()
-
-        parsed_list.append(obj.pk)
-    
-    return List(list=parsed_list)
 
 # def accept_python_types(spec):
 #     '''
@@ -79,7 +57,43 @@ class BaseIteratorWorkChain(WorkChain, ABC):
         pass
 
     _exclude_process_inputs = ()
-    _values_list_serializer = staticmethod(normalize_list_to_pks)
+
+    @classmethod
+    def _iterate_input_serializer(cls, iterate_input):
+        """
+        Parses the input of an the iterator workchain.
+        """
+
+        if isinstance(iterate_input, dict):
+            for key, val in iterate_input.items():
+                iterate_input[key] = cls._values_list_serializer(val)
+            
+            iterate_input = DataFactory('dict')(dict=iterate_input)
+
+        return iterate_input
+
+    @staticmethod
+    def _values_list_serializer(list_to_parse):
+        '''
+        Parses a list of objects to a list of node pks.
+
+        This is done because aiida's List does not accept items with certain data structures
+        (e.g. StructureData). In this way, we normalize the input to a list of pk, so that at
+        each iteration we can access the value of the node.
+        '''
+
+        parsed_list = []
+        for obj in list_to_parse:
+
+            if not isinstance(obj, Node):
+                obj = to_aiida_type(obj)
+
+            if not obj.is_stored:
+                obj.store()
+
+            parsed_list.append(obj.pk)
+        
+        return List(list=parsed_list)
 
     @classmethod
     def define(cls, spec):
@@ -89,8 +103,8 @@ class BaseIteratorWorkChain(WorkChain, ABC):
         # should be executed
         spec.outline(cls.initialize,
                      while_(cls.next_step)(
-                         cls.run_calc,
-                         cls.process_calc,
+                         cls.run_batch,
+                         cls.analyze_batch,
                      ), cls.return_results)
 
         # Define all the inputs that this workchain expects
@@ -100,16 +114,20 @@ class BaseIteratorWorkChain(WorkChain, ABC):
         # accept_python_types(spec)
 
         # Inputs related to the variable parameter
-        spec.input("init_value", valid_type=(Int, Float), required=False, help="The inital value of the parameter.")
-        spec.input("step", valid_type=(Int, Float), required=False, help="The step to apply for each iteration.")
-        spec.input('steps', valid_type=Int, required=False, help="The maximum number of steps to take")
         spec.input(
-            "values_list",
-            valid_type=List,
-            serializer=cls._values_list_serializer, # The values list will always be a list of node pks.
+            "iterate_over",
+            valid_type=DataFactory('dict'),
+            serializer=cls._iterate_input_serializer, # The values list will always be a list of node pks.
             required=False,
-            help='''The list of values to try. Use this if `init_value` and `step` are not
-            suitable for you. E.g. the values are strings or the steps are not regular.'''
+            help='''A dictionary that indicates what to iterate over'''
+        )
+        spec.input(
+            "iterate_mode", valid_type=Str, default=lambda: Str('zip'),
+            help="Indicates the way the parameters should be iterated."
+        )
+        spec.input(
+            "batch_size", valid_type=Int, default=lambda: Int(1),
+            help="The number of simulations that should run at the same time"
         )
 
         # We expose the inputs of the workchain that is run at each iteration
@@ -123,24 +141,22 @@ class BaseIteratorWorkChain(WorkChain, ABC):
 
     def _get_iterable(self):
 
-        # The values to try will be provided by an iterator
-        if 'values_list' in self.inputs:
-            iterable = iter(self.inputs.values_list.get_list())
-        elif hasattr(self, '_default_values_list') and 'init_value' not in self.inputs:
-            iterable = iter(self._default_values_list)
-        else:
-            try:
-                init_val = self.inputs.init_value.value if 'init_value' in self.inputs else self._default_init
-                step = self.inputs.step.value if 'step' in self.inputs else self._default_step
-            except Exception:
-                raise ValueError(
-                    'You must specify either a "values_list" or an "init_value" and "step"'
-                    ' so that we can build it for you'
-                )
+        iterate_over = self.inputs.iterate_over.get_dict()
+        iterate_mode = self.inputs.iterate_mode.value
 
-            iterable = itertools.count(init_val, step)
+        self.ctx.iteration_keys = tuple(iterate_over.keys())
+        self.ctx.iteration_vals = tuple(iterate_over[key] for key in self.ctx.iteration_keys)
+        self.ctx.iteration_keys = tuple(self._parse_key(key) for key in self.ctx.iteration_keys)
+
+        if iterate_mode == 'zip':
+            iterable = zip(*self.ctx.iteration_vals)
+        elif iterate_mode == 'product':
+            iterable = itertools.product(*self.ctx.iteration_vals)
 
         return iterable
+
+    def _parse_key(self, key):
+        return key
 
     def next_step(self):
         '''
@@ -157,17 +173,10 @@ class BaseIteratorWorkChain(WorkChain, ABC):
         if not self.should_proceed:
             return False
 
-        # Check if we already did the number of steps requested
-        # Remember that we've not yet appended the next value, that's
-        # why we check >= steps and not > steps.
-        if 'steps' in self.inputs and len(self.ctx.variable_values) >= self.inputs.steps.value:
-            return False
-
         # Otherwise, try to get a new value
         try:
-            self.ctx.variable_values.append(self._next_val())
+            self.store_next_val()
 
-            self.report(f'Next value: {self.ctx.variable_values[-1]}')
         except StopIteration:
             # However, it's possible that there are no more values to try
             return False
@@ -179,7 +188,7 @@ class BaseIteratorWorkChain(WorkChain, ABC):
     # This method may be overwritten by child classes (see ConvergenceWorkChain)
     should_proceed = True
 
-    def _next_val(self):
+    def next_val(self):
         '''
         Gets the next value to try.
 
@@ -187,31 +196,68 @@ class BaseIteratorWorkChain(WorkChain, ABC):
         it makes no sense to call it outside the `next_step` method.
         '''
 
-        next_pk = next(self.ctx.values_iterable)
+        next_pks = next(self.ctx.values_iterable)
+        
+        return tuple(load_node(next_pk) for next_pk in next_pks)
+    
+    def store_next_val(self):
 
-        return load_node(next_pk)
+        self.ctx.variable_values.append(self.next_val())
+
+        info = '\n\t'.join([f'"{key}": {val}' for key, val in zip(self.ctx.iteration_keys, self.current_val)])
+
+        self.report(f'Next values:{"{"}\n\t{info}\n{"}"}')
     
     @property
     def current_val(self):
         return self.ctx.variable_values[-1]
 
-    def run_calc(self):
+    def run_batch(self):
         '''
         Runs the calculation with the current value of the variable parameter.
         '''
 
+        self.ctx.last_step_processes = []
+
+        processes = {}
+        batch_size = self.inputs.batch_size.value
+        # Run as many processes as the "batch_size" input tells us to
+        for i in range(batch_size):
+
+            # If the batch size is bigger than 1, we need to retrieve more values
+            if i != 0:
+                try:
+                    self.store_next_val()
+                except StopIteration:
+                    # But maybe there aren't enough values. In that case
+                    # we will just run a smaller batch
+                    break
+
+            # Run the process and store the results
+            process_node = self.run_process()
+
+            self.ctx.last_step_processes.append(process_node.uuid)
+            processes[process_node.uuid] = process_node
+
+        self.report(f'Launched batch of {len(self.ctx.last_step_processes)}/{batch_size} processes')
+
+        return ToContext(**processes)
+
+    def run_process(self):
+
         # Get the general inputs for the siesta run
         inputs = AttributeDict(self.exposed_inputs(self._process_class))
 
-        self.add_inputs(inputs)
+        for key, val in zip(self.ctx.iteration_keys, self.current_val):
+            self.add_inputs(key, val, inputs)
 
-        # Run the workchain and store the results
-        workchain_futures = self.submit(self._process_class, **inputs)
+        # Run the process and store the results
+        process_node = self.submit(self._process_class, **inputs)
 
-        return ToContext(workchain_futures=workchain_futures)
+        return process_node
 
     @abstractmethod
-    def add_inputs(self, inputs):
+    def add_inputs(self, key, val, inputs):
         '''
         This method should be implemented in child classes.
 
@@ -220,59 +266,46 @@ class BaseIteratorWorkChain(WorkChain, ABC):
         for examples of this.
         '''
 
-    def process_calc(self):
+    def analyze_batch(self):
         '''
         Here, one could process the results of the simulation
         (which has been put into context)
         '''
+
+        for process_id in self.ctx.last_step_processes:
+
+            self.analyze_process(self.ctx[process_id])
+    
+    def analyze_process(self, process_node):
+        """
+        A child class has the oportunity to analyze a process here.
+        """
 
     def return_results(self):
         '''
         Takes care of returning the results of the workchain to the user.
         '''
 
+
 class AttributeIterator(BaseIteratorWorkChain):
 
-    _attribute_required = True
-
-    @classmethod
-    def define(cls, spec):
-        super().define(spec)
-
-        # If the user is using directly this class, give the option to choose
-        # the parameter they want to converge
-        if not hasattr(cls, '_attribute'):
-            # We are going to add here inputs specific to converging a parameter
-            spec.input(
-                'attribute',
-                valid_type=Str,
-                required=cls._attribute_required,
-                help='The attribute that you want to vary to find convergence'
-            )
-
-    def initialize(self, attribute=None):
-        super().initialize()
-
-        if attribute is None:
-            if hasattr(self, '_attribute'):
-                attribute = self._attribute
-            else:
-                attribute = self.inputs.attribute.value
-        
-        self.ctx.attribute = attribute
-
-    def parse_val(self, val, inputs):
+    def _parse_val(self, key, val, inputs):
         return val
 
-    def add_inputs(self, inputs):
+    def _attr_from_key(self, key):
+        return key
+
+    def add_inputs(self, key, val, inputs):
         '''
         Adds the attribute with the appropiate value to the inputs that go
         to the SIESTA calculation.
         '''
 
-        parsed_val = self.parse_val(self.current_val, inputs)
+        attribute = self._attr_from_key(key)
+        parsed_val = self._parse_val(key, val, inputs)
 
-        setattr(inputs, self.ctx.attribute, parsed_val)
+        setattr(inputs, attribute, parsed_val)
+
 
 class SiestaIterator(AttributeIterator):
 
@@ -284,31 +317,29 @@ class SiestaIterator(AttributeIterator):
     def define(cls, spec):
         super().define(spec)
 
-        # If the user is using directly this class, give the option to choose
-        # the parameter they want to converge
-        if not hasattr(cls, '_parameter'):
-            spec.input(
-                'parameter',
-                valid_type=Str,
-                required=True,
-                help='The parameter that you want to vary to find convergence'
-            )
-
         spec.input('units', valid_type=Str, required=False, help='The units of the parameter')
 
     def initialize(self):
+        self.ctx._attributes = {}
+        self.ctx._parsing_funcs = {}
 
-        if hasattr(self, '_parameter'):
-            self.ctx.parameter = self._parameter
-        else:
-            self.ctx.parameter = self.inputs.parameter.value
+        super().initialize()
+
+    def _parse_key(self, key):
         
-        attribute, parsing_func = self.attribute_and_parsing_func(self.ctx.parameter)
+        attribute, parsing_func = self.attribute_and_parsing_func(key)
 
-        if parsing_func is not None:
-            self.parse_val = parsing_func
+        self.ctx._attributes[key] = attribute
+        self.ctx._parsing_funcs[key] = parsing_func
 
-        super().initialize(attribute=attribute)
+        return key
+    
+    def _attr_from_key(self, key):
+        return self.ctx._attributes[key]
+
+    def _parse_val(self, key, val, inputs):
+
+        return self.ctx._parsing_funcs[key](val, inputs)
 
     @staticmethod
     def attribute_and_parsing_func(parameter):
@@ -346,6 +377,7 @@ class SiestaIterator(AttributeIterator):
             if param_info is None:
                 parsing_func = default_parse_func
             else:
+                attribute = param_info.get('attribute', attribute)
                 parsing_func = param_info.get('parse_func', default_parse_func)
 
         return attribute, parsing_func
@@ -366,36 +398,41 @@ def set_up_parameters_dict(val, inputs, parameter, attribute, units=None):
     # And then just translate it again to a dict to use it for parameters
     return DataFactory('dict')(dict={key: val for key, (val, _) in parameters._storage.items()})
 
-class KpointComponentIterator(AttributeIterator):
+def set_up_kpoint_grid(val, inputs, attribute='kpoints', mode='distance'):
 
-    _attribute = 'kpoints'
+    old_kpoints = getattr(inputs, attribute, None)
 
-    @classmethod
-    def define(cls, spec):
-        super().define(spec)
+    if old_kpoints is None:
+        old_kpoints = KpointsData()
 
-        # Inputs related to the variable parameter
-        spec.input("component", valid_type=Int, required=False, help="The k component to converge. One of {0,1,2}")
+    try:
+        mesh, offset = old_kpoints.get_kpoints_mesh()
+    except (KeyError, AttributeError):
+        mesh, offset = [1, 1, 1], [0, 0, 0]
 
-    @property
-    def current_val(self):
+    if not hasattr(old_kpoints, 'cell'):
+        old_kpoints.set_cell_from_structure(inputs.structure)
 
-        k_val = super().current_val
+    
+    cell = old_kpoints.cell
 
-        # If there is already some kpoints, then we are going to use them
-        if 'kpoints' in self.inputs:
-            mesh, offset = self.inputs.kpoints.get_kpoints_mesh()
-        else:
-            # Otherwise we will just create it
-            mesh = [1, 1, 1]
-            offset = [0, 0, 0]
+    if mode == 'distance':
+        new_kpoints = KpointsData()
+        new_kpoints.set_cell(cell)
+        new_kpoints.pbc = old_kpoints.pbc
+        new_kpoints.set_kpoints_mesh_from_density(val.value, offset=offset)
 
-        mesh[self.inputs.component.value] = int(k_val)
+    elif mode.endswith('component'):
 
-        k_mesh = KpointsData()
-        k_mesh.set_kpoints_mesh(mesh, offset)
+        component = [ax for ax in range(3) if mode.startswith(str(ax))][0]
 
-        return k_mesh
+        mesh[component] = val
+
+        new_kpoints = KpointsData()
+        new_kpoints.set_kpoints_mesh(mesh, offset)
+
+    return new_kpoints
+
 
 # Instead of defining classes for each param/attribute, another approach
 # could be to have dicts defining "defaults" for each parameter attribute.
@@ -431,26 +468,16 @@ _INPUT_ATTRIBUTES = {
         'basis': {},
         'settings': {},
         'parent_calc_folder': {},
+        'kpoints': {},
+        'kpoints_density':{
+            'attribute': 'kpoints',
+            'parse_func': set_up_kpoint_grid
+        },
+        **{
+            f'kpoints_{ax}': {
+                'attribute': 'kpoints',
+                'parse_func': partial(set_up_kpoint_grid, mode=f'{ax}component')
+            } for ax in range(3)
+        }
     }
 }
-
-
-def iterate(over, call_method='run', **kwargs):
-    '''
-    Launches an aiida job to iterate through a parameter/basis parameter or attribute.
-
-    Parameters
-    -----------
-    over: str
-        the name of the parameter, basis parameter or attribute that you want to iterate
-        over.
-    call_method: {'run', 'submit'}, optional
-        how the aiida job should be launched.
-    **kwargs:
-        All the extra keyword arguments that go directly into launching the job.
-    '''
-    from aiida.engine import run, submit
-
-    execute = run if call_method == 'run' else submit
-
-    return execute(SiestaIterator, **kwargs)

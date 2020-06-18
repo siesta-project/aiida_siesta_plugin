@@ -1,12 +1,13 @@
 from aiida.engine import WorkChain, calcfunction, while_, ToContext
 from aiida.orm import Float, Str, List, KpointsData, Bool, Int
+from aiida.plugins import DataFactory
 from aiida.common import AttributeDict
 
 from .iterate import SiestaIterator
 
 
 @calcfunction
-def generate_convergence_results(variable_values, target_values, converged):
+def generate_convergence_results(iteration_keys, variable_values, target_values, converged):
     '''
     Generates the final output of the convergence workflows.
     '''
@@ -16,26 +17,15 @@ def generate_convergence_results(variable_values, target_values, converged):
     }
 
     if converged:
-        final_value = variable_values[-2]
-        dtype = {str: Str, int: Int, float: Float}[type(final_value)]
 
-        convergence_results['final_value'] = dtype(final_value)
+        final_value = DataFactory('dict')(dict={
+            key: val for key, val in zip(iteration_keys, variable_values[-2])
+        })
+
+        convergence_results['final_value'] = final_value
         convergence_results['final_target_value'] = Float(target_values[-2])
 
     return convergence_results
-
-
-@calcfunction
-def generate_new_kpoints(old_kpoints, component, val):
-
-    mesh, offset = old_kpoints.get_kpoints_mesh()
-
-    mesh[component.value] = val
-
-    new_kpoints = KpointsData()
-    new_kpoints.set_kpoints_mesh(mesh, offset)
-
-    return new_kpoints
 
 
 class BaseConvergencePlugin:
@@ -75,8 +65,11 @@ class BaseConvergencePlugin:
             "Otherwise, this value makes no sense."
         )
         spec.output('final_target_value', help="The value of the target with convergence reached.")
-        spec.output('attempted_values')
-        spec.output('target_values')
+
+    def initialize(self):
+        super().initialize()
+
+        self.ctx.target_values = []
 
     @property
     def converged(self):
@@ -99,9 +92,9 @@ class BaseConvergencePlugin:
     def should_proceed(self):
         return not self.converged
 
-    def process_calc(self):
+    def analyze_process(self, process_node):
         # Append the value of the target property for the last run
-        results = self.ctx.calculation.outputs
+        results = process_node.outputs
 
         simulation_outputs = results.output_parameters.get_dict()
 
@@ -113,135 +106,14 @@ class BaseConvergencePlugin:
         '''
 
         converged = Bool(self.converged)
+        iteration_keys = List(list=list(self.ctx.iteration_keys))
         variable_values = List(list=self.ctx.variable_values)
         target_values = List(list=self.ctx.target_values)
 
         # Return the convergence results
-        self.out_many(generate_convergence_results(variable_values, target_values, converged))
-
-        # And the 'log' of the process (this nodes have already been registered because
-        # they are inputs of generate_convergence_results, which is a calcfunction)
-        self.out('attempted_values', variable_values)
-        self.out('target_values', target_values)
+        outputs = generate_convergence_results(iteration_keys, variable_values, target_values, converged) 
+        self.out_many(outputs)
 
 
 class SiestaConverger(BaseConvergencePlugin, SiestaIterator):
     pass
-
-
-class KpointsConvergence(WorkChain):
-
-    @classmethod
-    def define(cls, spec):
-        super().define(spec)
-
-        # Define the outline of the workflow, i.e. the order in which methods
-        # should be executed
-        spec.outline(
-            cls.initialize,
-            while_(cls.next_kpoint)(
-                cls.find_convergence,
-                cls.process_convergence_results,
-            ), cls.return_results
-        )
-
-        # Define all the inputs that this workchain expects
-
-        # Inputs related to the variable parameter
-        spec.input(
-            "order",
-            valid_type=List,
-            required=False,
-            default=lambda: List(list=[0, 1, 2]),
-            help="The order in which the kpoint components should be converged."
-        )
-
-        spec.expose_inputs(KpointComponentConvergence, exclude=('component',))
-        spec.inputs._ports['pseudos'].dynamic = True
-
-        # Define what are the outputs that this workchain will return
-        spec.output('converged_kpoints', help="The kpoints with all components converged")
-        spec.output('final_target_value')
-
-    def initialize(self):
-
-        self.ctx.convergence_inputs = AttributeDict(self.exposed_inputs(KpointComponentConvergence))
-
-        self.ctx.kpoints = KpointsData()
-        init_value = self.ctx.convergence_inputs.init_value
-
-        self.ctx.kpoints.set_kpoints_mesh([init_value.value] * 3)
-
-        self.ctx.left_to_converge = self.inputs.order.get_list()
-
-    def next_kpoint(self):
-        '''
-        Checks if there are components left to converge.
-
-        If there are, prepares things for next step
-        '''
-
-        if len(self.ctx.left_to_converge) == 0:
-            return False
-
-        self.ctx.component = self.ctx.left_to_converge.pop(0)
-
-        self.report(f'Starting to converge kpoint component {self.ctx.component}')
-
-        return True
-
-    def find_convergence(self):
-        '''
-        Executes the corresponding convergence workflow
-        '''
-
-        # There are two inputs that are provided by this workflow
-        # the rest are handled by KpointComponentConvergence
-        inputs = {**self.ctx.convergence_inputs, 'component': Int(self.ctx.component), 'kpoints': self.ctx.kpoints}
-
-        # Run the convergence workflow
-        process = self.submit(KpointComponentConvergence, **inputs)
-
-        # And make the workchain wait for the results
-        return ToContext(last_process=process)
-
-    def process_convergence_results(self):
-
-        convergence_output = self.ctx.last_process.outputs
-
-        if not convergence_output['converged']:
-            raise Exception(f"Component {self.ctx.component} didn't converge")
-
-        # If it did converge, update the kpoints
-        self.report(f'Kpoint component {self.ctx.component} converged at {convergence_output["final_value"].value}')
-        self.ctx.kpoints = generate_new_kpoints(
-            self.ctx.kpoints, Int(self.ctx.component), convergence_output['final_value']
-        )
-
-    def return_results(self):
-
-        self.out('converged_kpoints', self.ctx.kpoints)
-        self.out('final_target_value', self.ctx.last_process.outputs['final_target_value'])
-
-
-def converge(over, call_method='run', **kwargs):
-    '''
-    Launches an aiida job to iterate through a parameter/basis parameter or attribute.
-
-    Parameters
-    -----------
-    over: str
-        the name of the parameter, basis parameter or attribute that you want to iterate
-        over.
-    call_method: {'run', 'submit'}, optional
-        how the aiida job should be launched.
-    **kwargs:
-        All the extra keyword arguments that go directly into launching the job.
-    '''
-    from aiida.engine import run, submit
-
-    Converger, defaults = get_converger_and_defaults(over)
-
-    execute = run if call_method == 'run' else submit
-
-    return execute(Converger, **{**defaults, **kwargs})
