@@ -407,6 +407,16 @@ class InputIterator(BaseIteratorWorkChain):
         # We expose the inputs of the workchain that is run at each iteration
         spec.expose_inputs(cls._process_class, **cls._expose_inputs_kwargs)
 
+        # Get the list of inputs that the process class accepts.
+        cls._process_input_keys = list(cls._process_class._spec.inputs._ports.keys())
+        # And the ones that we have exposed.
+        cls._exposed_input_keys = spec._exposed_inputs[None][cls._process_class]
+
+        # Make the inputs that we have exposed not required (since if you iterate over,
+        # them you might not pass them directly)
+        for input_key in cls._exposed_input_keys:
+            spec.inputs._ports[input_key].required = False
+
     def run_process(self):
         '''
         Given a current value (self.current_val), runs the process.
@@ -574,10 +584,15 @@ class SiestaIterator(InputIterator):
         inputs: AttributeDict
             all the already existing inputs.
         '''
-        return self.ctx._parsing_funcs[key](val, inputs)
 
-    @staticmethod
-    def input_key_and_parsing_func(parameter):
+        parsing_func = self.ctx._parsing_funcs[key]
+
+        if parsing_func is not None:
+            val = parsing_func(val, inputs)
+
+        return val
+
+    def input_key_and_parsing_func(self, parameter):
         '''
         Chooses which input key and parsing function to use for a parameter key.
 
@@ -589,7 +604,7 @@ class SiestaIterator(InputIterator):
 
         # Find out to which of the three global dictionaries does the
         # parameter belong.
-        if parameter in _INPUT_ATTRIBUTES['params']:
+        if parameter in self._process_input_keys or parameter in _INPUT_ATTRIBUTES['params']:
             input_key = parameter
             params_dict = _INPUT_ATTRIBUTES
         elif parameter.startswith('pao'):
@@ -758,14 +773,6 @@ _PARAMS = {
 _INPUT_ATTRIBUTES = {
     'default_parse_func': None,
     'params': {
-        'code': {},
-        'structure': {},
-        'parameters': {},
-        'pseudos': {},
-        'basis': {},
-        'settings': {},
-        'parent_calc_folder': {},
-        'kpoints': {},
         'kpoints_density':{
             'input_key': 'kpoints',
             'parse_func': set_up_kpoint_grid
