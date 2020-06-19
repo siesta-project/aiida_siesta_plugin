@@ -1,13 +1,14 @@
-from aiida.engine import WorkChain, calcfunction, while_, ToContext
-from aiida.orm import Float, Str, List, KpointsData, Bool, Int
+import numpy as np
+
+from aiida.engine import calcfunction
+from aiida.orm import Float, Str, List, Bool, Int
 from aiida.plugins import DataFactory
-from aiida.common import AttributeDict
 
 from .iterate import SiestaIterator
 
 
 @calcfunction
-def generate_convergence_results(iteration_keys, variable_values, target_values, converged):
+def generate_convergence_results(iteration_keys, variable_values, target_values, converged, converged_index):
     '''
     Generates the final output of the convergence workflows.
     '''
@@ -18,22 +19,33 @@ def generate_convergence_results(iteration_keys, variable_values, target_values,
 
     if converged:
 
-        final_value = DataFactory('dict')(dict={
-            key: val for key, val in zip(iteration_keys, variable_values[-2])
+        converged_parameters = DataFactory('dict')(dict={
+            key: val for key, val in zip(iteration_keys, variable_values[converged_index.value])
         })
 
-        convergence_results['final_value'] = final_value
-        convergence_results['final_target_value'] = Float(target_values[-2])
+        convergence_results['converged_parameters'] = converged_parameters
+        convergence_results['converged_target_value'] = Float(target_values[converged_index.value])
 
     return convergence_results
 
 
 class BaseConvergencePlugin:
     '''
-    General workflow that finds the converged value for a parameter.
+    Plugin to add to an Iterator workchain to convert it to a convergence workflow.
 
-    There is no specificity in what should be converged or which parameter
-    should be varied.
+    To use it, just build a class that inherits from this plugin and the iterator
+    that you want to use.
+
+    Examples
+    -----------
+    class MyConverger(BaseConvergencePlugin, MyIterator):
+        pass
+
+    This class will now iterate as MyIterator while checking for convergence.
+
+    This class just checks between the difference in a target output between two
+    consecutive steps and compares it to a threshold. To implement a different
+    convergence algorithm, just overwrite the `converged` property.
     '''
 
     @classmethod
@@ -60,13 +72,18 @@ class BaseConvergencePlugin:
 
         spec.output('converged', help="Whether the target has converged")
         spec.output(
-            'final_value',
-            help="The value for the variable that was enough to achieve convergence. "
-            "Otherwise, this value makes no sense."
+            'converged_parameters',
+            required=False,
+            help="The values for the parameters that was enough to achieve convergence. "
+            "If converged is not achieved, it won't be returned",
+            
         )
-        spec.output('final_target_value', help="The value of the target with convergence reached.")
+        spec.output('converged_target_value', help="The value of the target with convergence reached.")
 
     def initialize(self):
+        """
+        Initialize the list with values of the target output.
+        """
         super().initialize()
 
         self.ctx.target_values = []
@@ -81,18 +98,26 @@ class BaseConvergencePlugin:
         if len(target_values) <= 1:
             converged = False
         else:
-            converged = abs(target_values[-2] - target_values[-1]) < self.inputs.threshold.value
+            diffs = abs(np.diff(target_values))
+            below_thresh = np.where(diffs < self.inputs.threshold.value)[0]
+
+            converged = len(below_thresh) > 0
+            if converged:
+                self.ctx.converged_index = below_thresh[0] + 1
+
             self.report(
-                f'Convergence criterium: {self.inputs.threshold.value}; Current diff: {abs(target_values[-2] - target_values[-1])}'
+                f'Convergence criterium: {self.inputs.threshold.value}; Last step diffs: {diffs[-len(self.ctx.last_step_processes):]}'
             )
 
         return converged
 
-    @property
     def should_proceed(self):
         return not self.converged
 
     def analyze_process(self, process_node):
+        """
+        Takes the output from the process and stores the value of the target.
+        """
         # Append the value of the target property for the last run
         results = process_node.outputs
 
@@ -100,20 +125,34 @@ class BaseConvergencePlugin:
 
         self.ctx.target_values.append(simulation_outputs[self.inputs.target.value])
 
+        super().analyze_process(process_node)
+
     def return_results(self):
         '''
-        Takes care of returning the results of the Plugin to the user
+        Takes care of returning the results of the convergence to the user
         '''
 
         converged = Bool(self.converged)
+        converged_index = Int(getattr(self.ctx, 'converged_index', -1))
         iteration_keys = List(list=list(self.ctx.iteration_keys))
         variable_values = List(list=self.ctx.variable_values)
         target_values = List(list=self.ctx.target_values)
 
-        # Return the convergence results
-        outputs = generate_convergence_results(iteration_keys, variable_values, target_values, converged) 
+        outputs = generate_convergence_results(iteration_keys, variable_values, target_values, converged, converged_index)
+
+        if converged:
+            self.report(f'\n\nConvergence has been reached! Converged parameters: {outputs["converged_parameters"].get_dict()}\n')
+        else:
+            self.report('\n\nWARNING: Workchain ended without finding convergence\n ')
+
         self.out_many(outputs)
+
+        super().return_results()
 
 
 class SiestaConverger(BaseConvergencePlugin, SiestaIterator):
-    pass
+    """
+    Converges a parameter in SIESTA.
+
+    The parameter specification works exactly the same as `SiestaIterator`
+    """

@@ -1,11 +1,8 @@
 #!/usr/bin/env runaiida
 
 '''
-This is an example of how to converge a parameter using the aiida_siesta
-plugin.
-
-More specifically, we will converge the mesh cutoff here, but you can do the
-same for other parameters/basis parameters/attributes...
+This is an example of how to launch multiple SIESTA simulations iterating
+over one or more parameters using the aiida_siesta plugin.
 '''
 
 #Not required by AiiDA
@@ -17,7 +14,7 @@ from aiida.engine import submit
 from aiida.orm import load_code
 from aiida.orm import Float, Dict, StructureData, KpointsData
 from aiida_siesta.data.psf import PsfData
-from aiida_siesta.workflows.iterate import SiestaConverger
+from aiida_siesta.workflows.iterate import SiestaIterator
 
 '''
 First of all, we need to setup all the inputs of the calculations.
@@ -130,15 +127,40 @@ inputs = {
 }
 
 # Up until this point, all the things done have been general to any SIESTA
-# simulation. Now, we will use the SiestaConverger to converge the mesh cutoff.
+# simulation. Now, we will use the SiestaIterator workflow to launch SIESTA
+# simulations iterating over parameters
 
 # Iterate over meshcutoff
-process = submit(SiestaConverger, **inputs,
+process = submit(SiestaIterator, **inputs,
     iterate_over={
         'meshcutoff': [100,200,300,400,500,600,700,800,900],
     },
     batch_size=Int(4)
 )
+
+# Iterate over meshcutoff and energyshift at the same time 
+process = submit(SiestaIterator, **inputs,
+    iterate_over={
+        'meshcutoff': [100,200,300],
+        'pao-energyshift': [0.02, 0.01, 0.05]
+    },
+)
+
+# This will run three simulations with these values (meshcutoff, energyshift)
+# (100, 0.02), (200, 0.01), (300, 0.05)
+
+# But what if you want to try all the combinations?
+# You can do so by setting the mode to "product"
+process = submit(SiestaIterator, **inputs,
+    iterate_over={
+        'meshcutoff': [100,200,300],
+        'pao-energyshift': [0.02, 0.01, 0.05]
+    },
+    iterate_mode=Str('product'),
+    batch_size=Int(3)
+)
+# This will run nine simulations with these values (meshcutoff, energyshift)
+# (100, 0.02), (100, 0.01), (300, 0.05), (100, 0.02), (100, 0.01) ...
 
 # Print some info
 print("Submitted workchain; ID={}".format(process.pk))
