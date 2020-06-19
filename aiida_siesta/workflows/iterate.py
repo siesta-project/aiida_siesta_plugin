@@ -603,7 +603,7 @@ class SiestaIterator(InputIterator):
 
         # Once we have the corresponding dict, we check if the parameter is defined.
         # If it is there, we get the dictionary that defines how it should be used
-        param_info = params_dict["params"][parameter].get(parameter, None)
+        param_info = params_dict["params"].get(parameter, None)
 
         # Try to get its default units
         units = None
