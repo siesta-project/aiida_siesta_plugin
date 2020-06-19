@@ -609,7 +609,7 @@ class SiestaIterator(InputIterator):
         units = None
         try:
             units = param_info['defaults']['units']
-        except (KeyError, AttributeError):
+        except (KeyError, AttributeError, TypeError):
             pass
 
         # Get the default parsing function for the global dictionary
