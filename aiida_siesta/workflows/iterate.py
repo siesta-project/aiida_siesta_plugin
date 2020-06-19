@@ -405,7 +405,7 @@ class InputIterator(BaseIteratorWorkChain):
         super().define(spec)
 
         # We expose the inputs of the workchain that is run at each iteration
-        spec.expose_inputs(cls._process_class, **cls.expose_inputs_kwargs)
+        spec.expose_inputs(cls._process_class, **cls._expose_inputs_kwargs)
 
     def run_process(self):
         '''
