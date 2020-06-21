@@ -3,8 +3,9 @@ import numpy as np
 from aiida.engine import calcfunction
 from aiida.orm import Float, Str, List, Bool, Int
 from aiida.plugins import DataFactory
+from aiida.common import AttributeDict
 
-from .iterate import SiestaIterator
+from .iterate import SiestaIterator, InputIterator
 
 
 @calcfunction
@@ -156,3 +157,120 @@ class SiestaConverger(BaseConvergencePlugin, SiestaIterator):
 
     The parameter specification works exactly the same as `SiestaIterator`
     """
+
+
+class SequentialConverger(InputIterator):
+    '''
+    Launches several convergence workchains sequentially.
+
+    At each step, it incorporates the already converged parameters from the previous one.
+
+    THIS CLASS CAN NOT BE USED DIRECTLY, you need to subclass it and specify a cls._process_class,
+    which should be the converger that you want to use.
+    '''
+
+    _process_class = None
+    _expose_inputs_kwargs = {'exclude': ("iterate_over",)}
+    _reuse_inputs = True
+
+    @classmethod
+    def define(cls, spec):
+        super().define(spec)
+
+        spec.output(
+            'converged_parameters',
+            required=False,
+            help="The values for the parameters that was enough to achieve convergence. "
+            "If converged is not achieved, it won't be returned",
+            
+        )
+        spec.output('converged_target_value', help="The value of the target with convergence reached.")
+
+    @classmethod
+    def _iterate_input_serializer(cls, iterate_over):
+        """
+        Parses the "iterate_over" key of the workchain.
+
+        Parameters
+        -----------
+        iterate_over: list of dict or aiida Dict
+
+            For each dictionary, each key is the name of a parameter we want to iterate
+            over (str) and each value is a list with all the values to iterate over for
+            that parameter.
+
+        Returns
+        -----------
+        aiida Dict
+            the parsed input.
+        """
+
+        if isinstance(iterate_over, list):
+            parsed_list = []
+            for step in iterate_over:
+                parsed_list.append(cls._iterate_input_serializer(step))
+            return cls._values_list_serializer(parsed_list)
+            
+        if isinstance(iterate_over, dict):
+            for key, val in iterate_over.items():
+                iterate_over[key] = cls._values_list_serializer(val)
+            
+            iterate_over = DataFactory('dict')(dict=iterate_over)
+
+        return iterate_over
+
+    def initialize(self):
+        super().initialize()
+
+        self.ctx.already_converged = {}
+        self.ctx._input_keys = {}
+        self.ctx._parsing_funcs = {}
+
+    def _get_iterator(self):
+        """
+        Builds the iterator that will generate values.
+        """
+
+        iterate_over = self.inputs.iterate_over.get_list()
+
+        self.ctx.iteration_keys = ("iterate_over",)
+
+        return zip(iterate_over)
+    
+    def analyze_process(self, process_node):
+
+        if process_node.outputs.converged:
+
+            # Get the parameters that have resulted in convergence
+            new_converged = process_node.outputs.converged_parameters.get_dict()
+
+            # Store them in what is going to be the final output
+            self.ctx.already_converged.update(new_converged)
+
+            # And now we are going to modify the inputs for the next step according
+            # to what has converged, so that the convergence of the next parameter already incorporates
+            # what we have found.
+            for key, val in new_converged.items():
+
+                # Get the last inputs
+                inputs = self.ctx.last_inputs
+
+                # Modify them accordingly. Note that since we are using cls._reuse_inputs = True,
+                # what we are modifying here will be used in the next iteration
+                self._process_class._parse_key(self, key)
+                val = self._process_class._parse_val(self, val, key, inputs)
+
+                key = self._process_class._attr_from_key(self, key)
+
+                self._process_class.add_inputs(self, key, val, inputs)
+            
+        self.ctx.last_target_value = process_node.outputs.converged_target_value
+
+    def return_results(self):
+
+        self.out('converged_parameters', DataFactory('dict')(dict=self.ctx.already_converged).store())
+        self.out('converged_target_value', self.ctx.last_target_value)
+
+
+class SiestaSequentialConverger(SequentialConverger):
+    _process_class = SiestaConverger

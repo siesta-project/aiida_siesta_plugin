@@ -1,23 +1,25 @@
 #!/usr/bin/env runaiida
 
 '''
-This is an example of how to converge a parameter using the aiida_siesta
+This is an example of how to converge multiple parameters sequentially using the aiida_siesta
 plugin.
 
-More specifically, we will converge the mesh cutoff here, but you can do the
-same for other parameters/basis parameters/attributes...
+It can be used for any parameter that the SiestaIterator understands. That is: fdf flags (including
+the ones related to the basis), input keys of the SiestaBaseWorkChain or additional key parameters that
+process the inputs for you to perform more complex input modifications. E.g: "kpoints_0", "kpoints_density"...
 '''
 
-#Not required by AiiDA
+# Not required by AiiDA
 import os.path as op
 import sys
 
-#AiiDA classes and functions
+# AiiDA classes and functions
 from aiida.engine import submit
 from aiida.orm import load_code
-from aiida.orm import Float, Dict, StructureData, KpointsData
+from aiida.orm import Float, Dict, StructureData, Str
 from aiida_siesta.data.psf import PsfData
-from aiida_siesta.workflows.iterate import SiestaConverger
+# The workchain that we are going to use to converge things.
+from aiida_siesta.workflows.converge import SiestaSequentialConverger
 
 '''
 First of all, we need to setup all the inputs of the calculations.
@@ -28,7 +30,7 @@ Basically, we will build an "inputs" dict at the end of the file, and all we are
 there is to build every part of it step by step.
 
 All this is general to any SIESTA calculation with AiiDa, so if you already know how it works,
-go to the end of the file, where we really do the iterate specific stuff.
+go to the end of the file, where we really do the convergence specific stuff.
 '''
 
 # Load the version of siesta that we are going to use
@@ -74,11 +76,6 @@ basis = Dict(
 Si DZP
 %endblock pao-basis-sizes""",
     })
-
-# Define the kpoints for the simulations. Note that this is not passed as
-# a normal fdf parameter, it has "its own input"
-kpoints = KpointsData()
-kpoints.set_kpoints_mesh([14, 14, 14])
 
 # Get the appropiate pseudos (in "real life", one could have a pseudos family defined
 # in aiida database with `verdi data psf uploadfamily <path to folder> <family name>`)
@@ -132,12 +129,36 @@ inputs = {
 # Up until this point, all the things done have been general to any SIESTA
 # simulation. Now, we will use the SiestaConverger to converge the mesh cutoff.
 
-# Iterate over meshcutoff
-process = submit(SiestaConverger, **inputs,
-    iterate_over={
-        'meshcutoff': [100,200,300,400,500,600,700,800,900],
-    },
-    batch_size=Int(4)
+# Now that we have all our inputs ready, we will just try to converge the kpoints,
+# the mesh cutoff and the energy shift. To do it, we just pass a list of dictionaries
+# to iterate_over. Each dictionary will be passed to the "iterate_over" input of the
+# SiestaConverger (which works exactly like the SiestaIterator). Therefore, each
+# dictionary contains information about what needs to be converged. 
+process = submit(SiestaSequentialConverger, **inputs,
+    iterate_over=[
+        # First we want to converge the kpoints by increasing all components
+        # at the same time.
+        {
+            'kpoints_0': [2,4,6,8,10,12,14,16,18,20],
+            'kpoints_1': [2,4,6,8,10,12,14,16,18,20],
+            'kpoints_2': [2,4,6,8,10,12,14,16,18,20],
+        },
+        # Then the mesh cutoff (using the default units, Ry)
+        {
+            'meshcutoff': [100, 200, 300, 400, 500, 600, 700,
+                            800, 900, 1000, 1100],
+        },
+        # And finally the energy shift (using the default units, Ry)
+        {
+            'pao-energyshift': [0.02, 0.015, 0.01, 0.005, 0.001]
+        },
+        # Note that we can converge the same parameters again if we wanted,
+        # so we could do another round of k point convergence here.
+    ],
+    # These are the defaults target and threshold, but we are going
+    # to pass them here to make it clear that this can be tuned.
+    target=Str('E_KS'),
+    threshold=Float(0.01)
 )
 
 # Print some info
