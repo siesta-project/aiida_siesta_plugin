@@ -14,7 +14,7 @@ supporting the tasks of the relaxation of a structure and the calculations of ba
 In other words, the user can obtain a `builder` of the 
 **SiestaBaseWorkChain** that is ready to be submitted. This `builder`, in fact, is pre-filled
 with inputs selected according to the structure under investigation and very few options specified by the user.
-The list of options is presented `here <how-to>`, however the main feature is the 
+The list of options is presented :ref:`here <how-to>`, however the main feature is the 
 use of *protocols*. A *protocol* groups operational parameters for a Siesta calculation
 and it is meant to offer a set of inputs with the desired balance of accuracy and efficiency.
 At the moment only two protocols are shipped in the package, they are called 
@@ -22,7 +22,7 @@ At the moment only two protocols are shipped in the package, they are called
 It is important to note that the implemented protocols are not, for the moment,
 input parameters that are guaranteed to perform in any situation. They are only
 based on reasonable assumptions and few tests. However, in the package it is also implemented
-a system that allows users to create their own protocols, as clarified `here <custom-prot>`.
+a system that allows users to create their own protocols, as clarified :ref:`here <custom-prot>`.
 Finally, it must be remembered that the `builder` produced according to a *protocol* and few other options is fully 
 modifiable before submission, leaving full flexibility to the user.
 We expect in the future to have more and more "know how" and improve the
@@ -104,16 +104,22 @@ It is accessed through the property `inputs_generator` of the **SiestaBaseWorkCh
 in this example::
 
         inp_gen = SiestaBaseWorkChain.inputs_generator
-        builder = inp_gen = get_filled_builder(structure, calc_engines, protocol)
+        builder = inp_gen.get_filled_builder(structure, calc_engines, protocol)
         #here user can modify builder befor submission.
         submit(builder)
 
 The parameters of `get_filled_builder` of **SiestaBaseWorkChain** are explained here:
 
 * **structure**, class :py:class:`StructureData <aiida.orm.StructureData>`, *Mandatory*
+
   A structure. See the plugin documentation for more details.
 
+.. |br| raw:: html
+
+    <br />
+
 * **calc_engine**, python `dict`, *Mandatory*
+
   A dictionary containing the specifications of the code to run and the computational
   resources. An example::
 
@@ -134,10 +140,20 @@ The parameters of `get_filled_builder` of **SiestaBaseWorkChain** are explained 
   will become fundamental for the use of protocols in more complicated workchain, involving not only
   the siesta plugin, but also, for instance, the stm plugin.
 
+.. |br| raw:: html
+
+    <br />
+
 * **protocol**, python `str`, *Mandatory*
+
   The protocol name, selected among the available ones, as explained in the previous section.
 
-* **bands_path_generator**, python `str`. *Optional*
+.. |br| raw:: html
+
+    <br />
+
+* **bands_path_generator**, python `str`, *Optional*
+
   The presence of this parameter triggers the calculation of bands.
   Two are the available value to pass as `path_generator`: "seekpath" or "legacy".
   They set the way the path in k-space is produced. This path is used to display the
@@ -145,13 +161,23 @@ The parameters of `get_filled_builder` of **SiestaBaseWorkChain** are explained 
   cell, "legacy" doesn't and preserves the input structure. However the "legacy" method is known to 
   have bugs for certain structure cells.
 
-* **relaxation_type**, python `str`. *Optional*
+.. |br| raw:: html
+
+    <br />
+
+* **relaxation_type**, python `str`, *Optional*
+
   The presence of this parameter triggers the possibility to relax the structure.
   The specifications of the relaxation_type are "atoms_only", "variable_cell" or "constant_volume",
   that should be self expalnatory.
   For the moment only the CG relaxation algorithm is implemented (in the future more will be added).
 
-* **spin**, python `str`. *Optional*
+.. |br| raw:: html
+
+    <br />
+
+* **spin**, python `str`, *Optional*
+
   The presence of this parameter triggers the spin options.
   The specifications of the spin are the one of modern version of Siesta, they are
   "polarized", "non-collinear" and "spin-orbit".
