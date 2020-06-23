@@ -16,7 +16,7 @@ import sys
 # AiiDA classes and functions
 from aiida.engine import submit
 from aiida.orm import load_code
-from aiida.orm import Float, Dict, StructureData, Str
+from aiida.orm import Float, Dict, StructureData, Str, Int
 from aiida_siesta.data.psf import PsfData
 # The workchain that we are going to use to converge things.
 from aiida_siesta.workflows.converge import SiestaSequentialConverger
@@ -134,7 +134,7 @@ inputs = {
 # to iterate_over. Each dictionary will be passed to the "iterate_over" input of the
 # SiestaConverger (which works exactly like the SiestaIterator). Therefore, each
 # dictionary contains information about what needs to be converged. 
-process = submit(SiestaSequentialConverger, **inputs,
+process = submit(SiestaSequentialConverger,
     iterate_over=[
         # First we want to converge the kpoints by increasing all components
         # at the same time.
@@ -155,10 +155,18 @@ process = submit(SiestaSequentialConverger, **inputs,
         # Note that we can converge the same parameters again if we wanted,
         # so we could do another round of k point convergence here.
     ],
-    # These are the defaults target and threshold, but we are going
-    # to pass them here to make it clear that this can be tuned.
-    target=Str('E_KS'),
-    threshold=Float(0.01)
+    # And now we are passing the inputs for the converger:
+    converger_inputs={
+        # All the general inputs for the siesta simulation
+        **inputs,
+        # These are the defaults target and threshold, but we are going
+        # to pass them here to make it clear that this can be tuned.
+        "target": Str('E_KS'),
+        "threshold": Float(0.01),
+        # And we also specify a batch size to submit more than one job at a time
+        "batch_size": Int(3)
+    }
+    
 )
 
 # Print some info

@@ -431,7 +431,12 @@ class InputIterator(BaseIteratorWorkChain):
         if self._reuse_inputs and hasattr(self.ctx, 'last_inputs'):
             inputs = self.ctx.last_inputs
         else:
-            inputs = AttributeDict(self.exposed_inputs(self._process_class))
+            inputs = AttributeDict(
+                self.exposed_inputs(
+                    self._process_class,
+                    namespace=self._expose_inputs_kwargs.get('namespace', None)
+                )
+            )
 
         # For each key and value in this step, modify the inputs.
         # This is done like this so that add_inputs is a simple method that

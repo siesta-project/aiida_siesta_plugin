@@ -170,12 +170,16 @@ class SequentialConverger(InputIterator):
     '''
 
     _process_class = None
-    _expose_inputs_kwargs = {'exclude': ("iterate_over",)}
+    _expose_inputs_kwargs = {'exclude': ("iterate_over",), "namespace": 'converger_inputs'}
     _reuse_inputs = True
 
     @classmethod
     def define(cls, spec):
         super().define(spec)
+
+        # In principle we should not allow to provide a batch size and we should force a value of 1
+        # But I don't know how to do it in a clean way.
+        spec.inputs.ports['batch_size'].default = lambda: Int(1)
 
         spec.output(
             'converged_parameters',
