@@ -4,7 +4,7 @@ from aiida.orm.groups import Group
 from aiida.common import exceptions
 
 
-class ProtocolManager():
+class ProtocolManager:
     """
     This class is the parent class of the class InputsGenerator, the fundation block
     of a series of classes <WorkChain>InputsGenerator with the scope
