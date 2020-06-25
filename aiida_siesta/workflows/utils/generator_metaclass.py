@@ -35,6 +35,13 @@ class InputsGenerator(ProtocolManager, metaclass=ABCMeta):
                 self.__class__.__name__
             )
             raise RuntimeError(message)
+        try:
+            self._workchain_class.get_builder()
+        except AttributeError:
+            message = 'invalid inputs generator `{}`: the defined `_workchain_class` is not a valid process'.format(
+                self.__class__.__name__
+            )
+            raise RuntimeError(message)
 
     def how_to_pass_computation_options(self):
         message = (

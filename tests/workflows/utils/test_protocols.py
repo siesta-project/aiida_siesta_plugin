@@ -7,8 +7,13 @@ from importlib import reload
 
 def test_registries(aiida_profile):
     """
-    Test that single calculation is submitted with the right content of the
-    aiida.fdf file.
+    Test that all the protocols are loaded, the one delivered in the package and
+    the custom ones. It also loads a protocol with missing mandatory entries and it
+    checks that an error is risen.
+    NOTE: One  must reload the protocols module after introducing the environment variable
+    "AIIDA_SIESTA_PROTOCOLS". Thi is because the "AIIDA_SIESTA_PROTOCOLS" is checked
+    in the class `ProtocolManager` and not in its __init__ (when you instanciate). 
+    Is it a problem?
     """
 
     #Here I fake the pseudofamilies
@@ -23,8 +28,8 @@ def test_registries(aiida_profile):
     #I must reload protocols module because the "AIIDA_SIESTA_PROTOCOLS" is checked
     #in the class, not in its __init__ (when you instanciate). Is it a problem?
     reload(protocols)
-    a=protocols.ProtocolManager()
-    assert 'standard_my' in a.get_protocol_names()
+    pmanager=protocols.ProtocolManager()
+    assert 'standard_my' in pmanager.get_protocol_names()
 
     filepath = os.path.join(basepath, 'fixtures/protocols/registries/wrong_prot.yaml')
     os.environ["AIIDA_SIESTA_PROTOCOLS"] = filepath
@@ -33,11 +38,40 @@ def test_registries(aiida_profile):
 
     import pytest
     with pytest.raises(RuntimeError):
-        a=protocols.ProtocolManager()
+        pmanager=protocols.ProtocolManager()
 
-    #assert 'standard_my' in a.get_protocol_names()
+    #A reset of the environment variable is needed at the end, otherwise it
+    #messes up the other tests
+    del os.environ['AIIDA_SIESTA_PROTOCOLS']
+    reload(protocols)
 
 
-#def test_methods(aiida_profile):
-    
+def test_methods(aiida_profile):
+    """
+    Test the 5 public methods of the class `ProtocolManager`
+    """
 
+    #Here I fake the pseudofamilies
+    PsmlFamily.objects.get_or_create("nc-sr-04_pbe_standard_psml")
+    PsmlFamily.objects.get_or_create("nc-sr-04_pbe_stringent_psml")
+
+    pmanager=protocols.ProtocolManager()
+        
+    assert pmanager.is_valid_protocol("standard_delta")
+    assert not pmanager.is_valid_protocol("yoyo")
+
+    reflist = ["standard_delta","stringent_delta"]
+    plist = pmanager.get_protocol_names()
+    assert plist == list(reflist)
+
+    assert pmanager.get_default_protocol_name() == "standard_delta"
+
+    import pytest
+    with pytest.raises(ValueError):
+        pmanager.get_protocol_info("yoyo")
+    assert pmanager.get_protocol_info("standard_delta") == pmanager._protocols["standard_delta"]["description"]
+
+    import pytest
+    with pytest.raises(ValueError):
+        pmanager.get_protocol("yoyo")
+    assert pmanager.get_protocol("standard_delta") == pmanager._protocols["standard_delta"]
