@@ -10,6 +10,7 @@ In order to use this tool, the user needs to manually select all the inputs of t
 being careful to pass the correct specifications to perform the calculation
 (see examples/workflos/example_first.py).
 The package aiida_siesta provides also a set of pre-selected inputs to run a **SiestaBandsWorkchain**,
+and the other WorkChains,
 supporting the tasks of the relaxation of a structure and the calculations of bands.
 In other words, the user can obtain a `builder` of the 
 **SiestaBaseWorkChain** that is ready to be submitted. This `builder`, in fact, is pre-filled
@@ -18,7 +19,7 @@ The list of options is presented :ref:`here <how-to>`, however the main feature 
 use of *protocols*. A *protocol* groups operational parameters for a Siesta calculation
 and it is meant to offer a set of inputs with the desired balance of accuracy and efficiency.
 At the moment only two protocols are shipped in the package, they are called 
-*stringent_delta* and *standard_delta*. More on them is presented in the next to next subsection.
+*stringent* and *standard*. More on them is presented in the next to next subsection.
 It is important to note that the implemented protocols are not, for the moment,
 input parameters that are guaranteed to perform in any situation. They are only
 based on reasonable assumptions and few tests. However, in the package it is also implemented
@@ -55,28 +56,32 @@ This is the very beginning of the development and, for the moment, only
 two very basic protocols are implemented.
 A description of the global variables of each protocol are now reported.
 
-* *standard_delta*
+* *standard*
   Pseudopotential ONCVPSPv0.4 (norm-conserving) of Pseudo Dojo in psml format, scalar relativistic,
-  PBE and with *standard* accuracy. See Pseudo Dojo website for more info (link).
+  PBE and with *standard* accuracy. See PseudoDojo website for more info (http://www.pseudo-dojo.org/).
   Basis set apply globally, with size DZ and energy-shift of 100 meV. Meshcutoff is 100 Ry,
   electronic temp 25 meV, and a kpoint mesh with distance 0.2 are implemented.
   Concerning the trashold for convergence, we implement 1.e-3 tolerance for the density matrix,
   0.04 ev/ang for forces and 1 GPa for stress.
-  This choice of parameters have been tested on crystal elements of the Delta test (link) and ... 
+  This choice of inputs (plus some atom heuristics - see below) have been run for a all
+  the crystal elements up to the element Po (excluding lanthanides) but performances have not been tested.
 
-* *stringent_delta*
+* *stringent*
   Pseudopotential ONCVPSPv0.4 (norm-conserving) of Pseudo Dojo in psml format, scalar relativistic,
-  PBE and with *stringent* accuracy. See Pseudo Dojo website for more info (link).
-  Basis set apply globally, with size DZP and energy-shift of 100 meV. Meshcutoff is 500 Ry,
+  PBE and with *stringent* accuracy. See Pseudo Dojo website for more info (http://www.pseudo-dojo.org/).
+  Basis set apply globally, with size DZP and energy-shift of 50 meV. Meshcutoff is 500 Ry,
   electronic temp 25 meV, and a kpoint mesh with distance 0.062 are implemented.
   Concerning the trashold for convergence, we implement 1.e-4 tolerance for the density matrix,
-  0.03 ev/ang for forces and 0.005 ev/ang^3 for stress.
-  This choice op parameters have been tested on crystal elements of the Delta test (link) and ...
+  0.01 ev/ang for forces and 0.05 GPa for stress.
+  This choice of parameters (plus some atom heuristics - see below)
+  have been tested on crystal elements up to the element Po (excluding
+  lanthanides and noble gasses) and compared with the reference equation of state of the
+  `DeltaTest`_ project, resulting values of delta below 10 meV
 
 The management of the pseudos is, at the moment, very fragile. It imposes that the user
 loads a pseudo_family with the correct name that is hard-coded for the each protocol.
-This name are 'nc-sr-04_pbe_standard_psml' and 'nc-sr-04_pbe_stringent_psml' for *standard_delta* and
-*stringent_delta* protocols respectively.
+This name are 'nc-sr-04_pbe_standard_psml' and 'nc-sr-04_pbe_stringent_psml' for *standard* and
+*stringent* protocols respectively.
 Therefore a user, before using protocol, needs to download the correct pseudos and
 load them (verdi data psml uploadfamily) with the correct name.
 ---This last part will change soon, replaced with a proper setup-profile script ----
@@ -86,7 +91,7 @@ scf-mixer-history is set to 5, and scf-mixer-weight is 0.1. As only the Max-1.0 
 of Siesta is supported, the default mixer is Pulay and the quantity mixed is the Hamiltonian.
 
 The details explained above for the two implemented plugins refer to the global variables, however
-each protocol implements also a dictionary called  *atomic_heuristics*. This dictionary is intended to encode the
+each protocol implements also a dictionary called *atomic_heuristics*. This dictionary is intended to encode the
 peculiarities of particular elements. It is work in progress.
 
 The full list of global parameters are collected in the `protocol_registry.yaml` file, located in 
@@ -195,24 +200,29 @@ the available relaxation types and so on.
 How to create my protocols
 --------------------------
 
-The protocol system allows also to create customized protocol. In order to do that,
-a file similar to `aiida_siesta/workflows/utils/protocol_registry.yaml`
-must be created and here the custom protocols can be listed.
+The protocol system allows also to create customized protocol. To this end, a
+file similar to `aiida_siesta/workflows/utils/protocol_registry.yaml`
+must be created, listing the custom protocols.
 Then the path of this file must be added to the environment variable `AIIDA_SIESTA_PROTOCOLS`.
 This will be sufficient to let aiida-siesta recognize the protocols.
-Of course the file containing the new protocols must have the same structure of `protocol_registry.yaml`.
+
+The file containing the customized protocols must have the same structure of `protocol_registry.yaml`.
 The protocol name should be the outer entry of the indentation.
-Some keyword are mandatory, they are `description`, `parameters`, `basis` and `pseudo_family`. The `pseudo_family`
+For each protocol, some keyword are mandatory. They are `description`, `parameters`, `basis` and `pseudo_family`. 
+
+The `pseudo_family`
 must contain the name of a family (Psml or Psf family) that has been already uploaded in the database.
 The number of elements covered by your pseudo family will limit the materials you
 can simulate with your protocol.
+
 The `parameters` and `basis` entries are transformed into dictionaries and passed
 to AiiDA after possible modifications due to atom heuristics or spin/relax additions.
 For this reason, the syntax (lower case and '-' between words) must be respected in full.
+
 Two optional keywords are `relax_additions` and `spin_additions`.
 This two entries are not meant to host the siesta keywords that activate the relaxation or spin options,
 but possible additions/modifications to the `parameters` entry, to apply in case of relaxation
-or spin. When the use of protocols is called and the relax/spin options are requested (see `here <how-to>`),
+or spin. When the use of protocols is called and the relax/spin options are requested (see `here <how-to>`_),
 the system will automatically take care of introducing the correct siesta keyword (`MD.TypeOfRun`, 
 `MD.VariableCell`, `spin` etc.) that are indispensable to run the task. However, it might happen that
 a user desires a more loose `scf-dm-tolerance` for the task of the relaxation or a different `scf-mixer-weight`
@@ -222,11 +232,13 @@ Please be carefull that (except for the `mesh-cutoff`) if a keyword in `spin_add
 `relax_additions` is already present in `parameters`, its value in `parameters` will overriden.
 In other words, values in `spin_additions` or `relax_additions` have priority compared to the one
 in `parameters`. Moreover `relax_additions` has priority respect to `spin_additions`.
-For the `mesh-cutoff` the situation is different, because the highest value will always be
+For the `mesh-cutoff` the situation is different, because the biggest value will always be
 considered, no metter where it is specified.
+
 Another optional entry is `kpoints`, where a `distance` and an `offset` only can be specified.
 The system will take care to create a uniform mesh for the structure under investigation with
 a density that correspond to a distance (in 1/Angstrom) between adjacent kpoints equal to `dinstance`.
+
 The final allowed (optional) keyword is `atomic_heuristics`. 
 In it, two only sub-keys are allowed: `parameters` and `basis`.
 In `parameters`,  only a 'mesh-cutoff' can be specified. This `mesh-cutoff` applies globally
@@ -235,6 +247,7 @@ This system is meant to signal elements that requires a bigger 'mesh-cutoff' tha
 For `basis`, we allow 'split-tail-norm', 'polarization' and 'size'. The 'size' and' polarization' introduce a block
 reporting the change of pao size and polarization schema only for the element under definition.
 The 'split-tail-norm' instead activate in siesta the key 'pao-split-tail-norm', that applies globally.
+
 We conclude this subsection with few more notes to keep in mind. First, the units mut be specified for each siesta keyword
 that require units and they must be consisten throughout the protocol. This means that it is not possible
 to define 'mesh-cutoff' in Ry in `parameters`, but in eV in the `atomic_heuristics`.
@@ -246,3 +259,5 @@ each protocol because in the description the creator must underline the limitati
 For instance, the case when a certain protocol do not support spin-orbit as the pseudos are not relativistics.
 The schema we presented here is certanly not perfect and it is far to cover all the possible situations,
 however it must be remembered that any user has always the chance to modify the inputs (builder) before submission.
+
+.. _DeltaTest: https://molmod.ugent.be/deltacodesdft

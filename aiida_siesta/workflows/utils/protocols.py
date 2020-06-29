@@ -48,7 +48,7 @@ class ProtocolManager:
             )
         _protocols = {**_protocols, **_custom_protocols}
 
-    _default_protocol = 'standard_delta'
+    _default_protocol = 'standard'
 
     def __init__(self):
         """

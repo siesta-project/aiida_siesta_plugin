@@ -57,21 +57,21 @@ def test_methods(aiida_profile):
 
     pmanager=protocols.ProtocolManager()
         
-    assert pmanager.is_valid_protocol("standard_delta")
+    assert pmanager.is_valid_protocol("standard")
     assert not pmanager.is_valid_protocol("yoyo")
 
-    reflist = ["standard_delta","stringent_delta"]
+    reflist = ["standard","stringent"]
     plist = pmanager.get_protocol_names()
     assert plist == list(reflist)
 
-    assert pmanager.get_default_protocol_name() == "standard_delta"
+    assert pmanager.get_default_protocol_name() == "standard"
 
     import pytest
     with pytest.raises(ValueError):
         pmanager.get_protocol_info("yoyo")
-    assert pmanager.get_protocol_info("standard_delta") == pmanager._protocols["standard_delta"]["description"]
+    assert pmanager.get_protocol_info("standard") == pmanager._protocols["standard"]["description"]
 
     import pytest
     with pytest.raises(ValueError):
         pmanager.get_protocol("yoyo")
-    assert pmanager.get_protocol("standard_delta") == pmanager._protocols["standard_delta"]
+    assert pmanager.get_protocol("standard") == pmanager._protocols["standard"]
