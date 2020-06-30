@@ -57,12 +57,15 @@ class SiestaCalculation(CalcJob):
     # Default of the input.spec, it's just default, but user
     # could change the name
     _DEFAULT_PREFIX = 'aiida'
-    _DEFAULT_INPUT_FILE = 'aiidatest.fdf'
-    _DEFAULT_OUTPUT_FILE = 'aiidatest.out'
+    _DEFAULT_INPUT_FILE = 'aiida.fdf'
+    _DEFAULT_OUTPUT_FILE = 'aiida.out'
 
     # in restarts, it will copy from the parent the following
     # (fow now, just the density matrix file)
-    _restart_copy_from = os.path.join(_OUTPUT_SUBFOLDER, '*.DM')
+    # aakhtar
+    #_restart_copy_from = os.path.join(_OUTPUT_SUBFOLDER, '*.DM')
+    _restart_copy_from = os.path.join(_OUTPUT_SUBFOLDER, '*.DM*')
+    # aakhtar
 
     # in restarts, it will copy the previous folder in the following one
     _restart_copy_to = _OUTPUT_SUBFOLDER
