@@ -44,7 +44,6 @@
         ],
         "aiida.workflows": [
             "siesta.base = aiida_siesta.workflows.base:SiestaBaseWorkChain",
-            "siesta.bands = aiida_siesta.workflows.bands:SiestaBandsWorkChain",
 	    "siesta.eos = aiida_siesta.workflows.eos:EqOfStateFixedCellShape",
 	    "siesta.bandgap = aiida_siesta.workflows.bandgap:BandgapWorkChain",
             "siesta.stm = aiida_siesta.workflows.stm:SiestaSTMWorkChain"

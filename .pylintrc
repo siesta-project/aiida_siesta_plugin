@@ -64,7 +64,7 @@ disable=bad-continuation,
         inconsistent-return-statements,
         import-outside-toplevel,
 	missing-docstring,
-	protected-access
+	protected-access,
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option

@@ -1,6 +1,7 @@
 from aiida.orm import (Str, Float, Code, Dict, ArrayData, StructureData)
 from aiida.common import AttributeDict
 from aiida.engine import WorkChain, calcfunction, ToContext
+from aiida.common.lang import classproperty
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
 from aiida_siesta.calculations.stm import STMCalculation
 from aiida_siesta.calculations.tkdict import FDFDict
@@ -306,3 +307,8 @@ class SiestaSTMWorkChain(WorkChain):
 
         self.report('STM workchain succesfully completed')
         return ExitCode(0)
+
+    @classproperty
+    def inputs_generator(cls):  # pylint: disable=no-self-argument,no-self-use
+        from aiida_siesta.workflows.utils.inputs_generators import StmWorkChainInputsGenerator
+        return StmWorkChainInputsGenerator(cls)

@@ -1,0 +1,12 @@
+In this folder we collect few scripts to show how to run workchains.
+Users should take these scripts as templates and adapt them to their own case.
+All the other script can be run through:
+	runaiida script.py code@computer {stmcode@computer}
+However, similarly to the case of plugin examples, the user should make sure that the 
+computational resources selected in the script are compatible with their "computer"
+(for instance queue and account").
+The difference between the scripts "example_*" and "*with_protocol.py" is the fact
+that the first set sends a WorkChain with inputs that are all selected inside the script,
+the second makes use of the protocol technology to automatically suggest 
+inputs for the WorkChain. The protocol approach still leaves compleate freedom
+to change the inputs before submission (see relax_with_protocol.py).
