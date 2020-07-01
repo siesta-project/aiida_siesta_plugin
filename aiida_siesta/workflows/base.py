@@ -1,4 +1,5 @@
 from aiida import orm
+from aiida.common.lang import classproperty
 from aiida.engine import BaseRestartWorkChain, ProcessHandlerReport, process_handler, while_
 from aiida_siesta.data.common import get_pseudos_from_structure
 from aiida_siesta.calculations.siesta import SiestaCalculation
@@ -232,3 +233,8 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
             self.out(name, output)
 
         return ProcessHandlerReport(True, self.exit_codes.ERROR_BANDS_PARSING)
+
+    @classproperty
+    def inputs_generator(cls):  # pylint: disable=no-self-argument,no-self-use
+        from aiida_siesta.workflows.utils.inputs_generators import BaseWorkChainInputsGenerator
+        return BaseWorkChainInputsGenerator(cls)
