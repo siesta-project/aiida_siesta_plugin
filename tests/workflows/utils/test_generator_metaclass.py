@@ -23,7 +23,6 @@ def test_validation(aiida_profile):
     class SubInputsGenerator(InputsGenerator):
 
         _calc_types = None
-        _workchain_class = None
 
         def get_inputs_dict(self, structure, calc_engines, protocol, **kwargs):
 
@@ -35,12 +34,11 @@ def test_validation(aiida_profile):
 
     import pytest
     with pytest.raises(RuntimeError):
-        SubInputsGenerator()
+        SubInputsGenerator(WorkflowFactory("siesta.base"))
 
     class SubInputsGenerator(InputsGenerator):
 
         _calc_types = {"si":{"code": "pp", "resources": "tt"}}
-        _workchain_class = "ww"
 
         def get_inputs_dict(self, structure, calc_engines, protocol, **kwargs):
 
@@ -49,25 +47,23 @@ def test_validation(aiida_profile):
         def get_filled_builder(self, structure, calc_engines, protocol, **kwargs):
 
             pass
-
-    import pytest
-    with pytest.raises(RuntimeError):
-        SubInputsGenerator()
-
-
-    class SubInputsGenerator(InputsGenerator):
-
-        _calc_types = {"si":{"code": "pp", "resources": "tt"}}
-        _workchain_class = WorkflowFactory("siesta.base")
 
     import pytest
     with pytest.raises(TypeError):
         SubInputsGenerator()
 
+
     class SubInputsGenerator(InputsGenerator):
 
         _calc_types = {"si":{"code": "pp", "resources": "tt"}}
-        _workchain_class = WorkflowFactory("siesta.base")
+
+    import pytest
+    with pytest.raises(TypeError):
+        SubInputsGenerator(WorkflowFactory("siesta.base"))
+
+    class SubInputsGenerator(InputsGenerator):
+
+        _calc_types = {"si":{"code": "pp", "resources": "tt"}}
 
         def get_inputs_dict(self, structure, calc_engines, protocol, **kwargs):
 
@@ -77,5 +73,5 @@ def test_validation(aiida_profile):
 
             pass
 
-    subinpgen=SubInputsGenerator() 
+    subinpgen=SubInputsGenerator(WorkflowFactory("siesta.base")) 
     assert  subinpgen.how_to_pass_computation_options()[1] == {"si":{"code": "pp", "resources": "tt"}}

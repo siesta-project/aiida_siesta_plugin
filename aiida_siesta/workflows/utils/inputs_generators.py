@@ -1,4 +1,3 @@
-from aiida.plugins import WorkflowFactory
 from aiida_siesta.workflows.utils.generator_metaclass import InputsGenerator
 
 
@@ -22,8 +21,6 @@ class BaseWorkChainInputsGenerator(InputsGenerator):
         }
     }
 
-    _workchain_class = WorkflowFactory("siesta.base")
-
     _relax_types = {
         "atoms_only": "The lattice shape and volume are fixed, only the atomic positions are relaxed",
         "variable_cell": "The lattice is relaxed together with the atomic coordinates",
@@ -41,38 +38,6 @@ class BaseWorkChainInputsGenerator(InputsGenerator):
         "non-collinear": "Non-collinear spin option",
         "spin-orbit": "Spin-orbit is activated",
     }
-
-    def __init__(self):
-        """
-        Construct an instance of the input generator, validating the class attributes
-        and the passing of the correct WorkChain as workchain_class.
-        """
-
-        super().__init__()
-
-        self._checks_attrs()
-
-    def _checks_attrs(self):
-        """
-        Checks the presence of attributs specific of the present workchain
-        """
-
-        def raise_invalid(message):
-            raise RuntimeError('invalid protocol registry `{}`: '.format(self.__class__.__name__) + message)
-
-        if self._relax_types is None:
-            message = 'invalid inputs generator `{}`: does not define `_relax_types`'.format(self.__class__.__name__)
-            raise RuntimeError(message)
-
-        if self._bands_path_generators is None:
-            message = 'invalid inputs generator `{}`: does not define `_bands_path_generators`'.format(
-                self.__class__.__name__
-            )
-            raise RuntimeError(message)
-
-        if self._spins is None:
-            message = 'invalid inputs generator `{}`: does not define `_spins`'.format(self.__class__.__name__)
-            raise RuntimeError(message)
 
     #Some methods to return info about options that the get_filled_builder of this class
     #can obtain as optional input parameters.
@@ -225,8 +190,6 @@ class BandgapWorkChainInputsGenerator(BaseWorkChainInputsGenerator):
     presence of `bands_path_generator`. In fact the band calculation is required.
     """
 
-    _workchain_class = WorkflowFactory("siesta.bandgap")
-
     def get_inputs_dict(
         self, structure, calc_engines, protocol, bands_path_generator=None, relaxation_type=None, spin=None
     ):
@@ -249,8 +212,6 @@ class EosWorkChainInputsGenerator(BaseWorkChainInputsGenerator):
     presence of an unsupported relaxation.
     """
 
-    _workchain_class = WorkflowFactory("siesta.eos")
-
     _relax_types = {
         "atoms_only": "The lattice shape and volume are fixed, only the atomic positions are relaxed",
         "constant_volume": "The cell volume is kept constant in a variable-cell relaxation"
@@ -265,8 +226,6 @@ class StmWorkChainInputsGenerator(BaseWorkChainInputsGenerator):
     to pass computational resources for the stm plugin. The `get_inputs_dict` implements the selection
     of many more inputs related to the STM. Same the `get_filled_builder`.
     """
-
-    _workchain_class = WorkflowFactory("siesta.stm")
 
     _calc_types = {
         "siesta": {

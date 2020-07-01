@@ -12,7 +12,7 @@ def test_baseworkchain_inpgen(aiida_profile, fixture_code, generate_structure):
 
     from aiida_siesta.workflows.utils.inputs_generators import BaseWorkChainInputsGenerator
 
-    inp_gen = BaseWorkChainInputsGenerator()
+    inp_gen = BaseWorkChainInputsGenerator(WorkflowFactory("siesta.base"))
     structure = generate_structure()
     protocol = inp_gen.get_default_protocol_name()
     code = fixture_code("siesta.siesta")

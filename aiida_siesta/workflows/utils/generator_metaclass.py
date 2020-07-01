@@ -16,9 +16,8 @@ class InputsGenerator(ProtocolManager, metaclass=ABCMeta):
     """
 
     _calc_types = None
-    _workchain_class = None
 
-    def __init__(self):
+    def __init__(self, workchain_class):
         """
         Construct an instance of ProtocolManager, validating the class attribute _calc_types set by the sub class
         and the presence of correct sintax in the protocols files (custom protocols can be set by users).
@@ -30,18 +29,15 @@ class InputsGenerator(ProtocolManager, metaclass=ABCMeta):
             message = 'invalid inputs generator `{}`: does not define `_calc_types`'.format(self.__class__.__name__)
             raise RuntimeError(message)
 
-        if self._workchain_class is None:
-            message = 'invalid inputs generator `{}`: does not define `_workchain_class`'.format(
-                self.__class__.__name__
-            )
-            raise RuntimeError(message)
         try:
-            self._workchain_class.get_builder()
+            workchain_class.get_builder()
         except AttributeError:
             message = 'invalid inputs generator `{}`: the defined `_workchain_class` is not a valid process'.format(
                 self.__class__.__name__
             )
             raise RuntimeError(message)
+
+        self._workchain_class = workchain_class
 
     def how_to_pass_computation_options(self):
         message = (
