@@ -76,7 +76,7 @@ standard:
         split-tail-norm: True
 
 stringent:
-  description: 'Siesta parameters tested on crystal elements up to Po (exluding noble gasses and lanthanides). No support for Spin-Orbit'
+  description: 'Siesta parameters tested on crystal elements up to Au (exluding noble gasses and lanthanides). No support for Spin-Orbit'
   parameters:
     xc-functional: "GGA"
     xc-authors: "PBE"
@@ -108,13 +108,32 @@ stringent:
     Be:
       basis:
         polarization: 'non-perturbative'
+    B:
+      basis:
+        size: 'DZDP'
+    C:
+      basis:
+        size: 'TZDP'
     Na:
       basis:
         split-tail-norm: True
         polarization: 'non-perturbative'
     Mg:
       basis:
+        size: 'DZDP'
         polarization: 'non-perturbative'
+    Al:
+      basis:
+        size: 'DZDP'
+    Si:
+      basis:
+        size: 'DZDP'
+    P:
+      basis:
+        size: 'DZDP'
+    S:
+      basis:
+        size: 'DZDP'
     K:
       basis:
         split-tail-norm: True
@@ -135,6 +154,7 @@ stringent:
         polarization: 'non-perturbative'
     Se:
       basis:
+        size: 'DZDP'
         polarization: 'non-perturbative'
     Rb:
       basis:
@@ -157,6 +177,9 @@ stringent:
     In:
       basis:
         polarization: 'non-perturbative'
+    Te:
+      basis:
+        size: "TZP"
     Cs:
       basis:
         split-tail-norm: True

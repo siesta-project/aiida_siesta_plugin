@@ -74,9 +74,13 @@ A description of the global variables of each protocol are now reported.
   Concerning the trashold for convergence, we implement 1.e-4 tolerance for the density matrix,
   0.01 ev/ang for forces and 0.05 GPa for stress.
   This choice of parameters (plus some atom heuristics - see below)
-  have been tested on crystal elements up to the element Po (excluding
+  have been tested on crystal elements up to the element Au (excluding
   lanthanides and noble gasses) and compared with the reference equation of state of the
-  `DeltaTest`_ project, resulting values of delta below 10 meV
+  `DeltaTest`_ project, resulting in values of delta below 10 meV for all elements except
+  "N", "Ca", "Ga", "Ge", "As", "Sr", "In", "Sb", "Ba".
+  Investigations are on-going in order to improve the performance of the available set, however
+  it must be remembered that the test on crystal elements has very limited meaning
+  when the atoms are in more complex chemical environments.
 
 The management of the pseudos is, at the moment, very fragile. It imposes that the user
 loads a pseudo_family with the correct name that is hard-coded for the each protocol.
@@ -105,7 +109,14 @@ How to use protocols
 
 In this section we explain how to obtain a pre-filled builder according to a protocol
 and an input structure, that is ready to be submitted (or modified and then submitted).
-It is accessed through the property `inputs_generator` of the **SiestaBaseWorkChain**, like 
+
+First of all, the 'nc-sr-04_pbe_standard_psml' and 'nc-sr-04_pbe_stringent_psml' set of
+pseudopotentials must be downloaded and stored in the database in a family
+with the same name.
+
+Once this first step is done,
+the pre-filled builder can be
+accessed through the property `inputs_generator` of the **SiestaBaseWorkChain**, like 
 in this example::
 
         inp_gen = SiestaBaseWorkChain.inputs_generator
@@ -160,7 +171,7 @@ The parameters of `get_filled_builder` of **SiestaBaseWorkChain** are explained 
 * **bands_path_generator**, python `str`, *Optional*
 
   The presence of this parameter triggers the calculation of bands.
-  Two are the available value to pass as `path_generator`: "seekpath" or "legacy".
+  Two are the available value to pass as `bands_path_generator`: "seekpath" or "legacy".
   They set the way the path in k-space is produced. This path is used to display the
   bands. While "seekpath" modify the structure running the calculation on an equivalent "conventional" 
   cell, "legacy" doesn't and preserves the input structure. However the "legacy" method is known to 
