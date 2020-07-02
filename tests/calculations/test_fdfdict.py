@@ -12,4 +12,4 @@ def test_fdfdict():
     f["A-_.B"] = 1
     assert("a_b" in list(f._storage.keys()))
     assert f["a_:.b"] == 1
-    assert f.get_last_key("a::_b") == "A-_.B"
+    assert f.get_untranslated_key("a::_b") == "A-_.B"
