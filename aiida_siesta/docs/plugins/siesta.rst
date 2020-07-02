@@ -542,6 +542,7 @@ as a string in a list, as follows::
   settings_dict = {  
       'cmdline': ['-option1', '-option2'],
   }
+  builder.settings = Dict(dict=settings_dict)
 
 Note that very few user-level comand-line options (besides those
 already inserted by AiiDA for MPI operation) are currently implemented.
@@ -557,6 +558,7 @@ those files as a list as follows::
   settings_dict = {  
     'additional_retrieve_list': ['aiida.EIG', 'aiida.ORB_INDX'],
   }
+   builder.settings = Dict(dict=settings_dict)
 
 See for example example_ldos.py in aiida_siesta/examples/plugins/siesta.
 

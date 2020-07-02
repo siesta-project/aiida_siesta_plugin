@@ -57,6 +57,7 @@ two very basic protocols are implemented.
 A description of the global variables of each protocol are now reported.
 
 * *standard*
+
   Pseudopotential ONCVPSPv0.4 (norm-conserving) of Pseudo Dojo in psml format, scalar relativistic,
   PBE and with *standard* accuracy. See PseudoDojo website for more info (http://www.pseudo-dojo.org/).
   Basis set apply globally, with size DZ and energy-shift of 100 meV. Meshcutoff is 100 Ry,
@@ -66,7 +67,13 @@ A description of the global variables of each protocol are now reported.
   This choice of inputs (plus some atom heuristics - see below) have been run for a all
   the crystal elements up to the element Po (excluding lanthanides) but performances have not been tested.
 
+.. |br| raw:: html
+
+    <br />
+
+
 * *stringent*
+
   Pseudopotential ONCVPSPv0.4 (norm-conserving) of Pseudo Dojo in psml format, scalar relativistic,
   PBE and with *stringent* accuracy. See Pseudo Dojo website for more info (http://www.pseudo-dojo.org/).
   Basis set apply globally, with size DZP and energy-shift of 50 meV. Meshcutoff is 500 Ry,

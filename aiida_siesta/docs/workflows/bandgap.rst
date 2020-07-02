@@ -47,3 +47,12 @@ Outputs
   
   A dictionary containing a bool (`is_insulator`) set to True if the material has a band gap,
   to False otherwise. Moreover the dictionary contains the value of the gap in eV.
+
+
+Protocol system
+---------------
+
+The protocol system is available for this WorkChain. The `BandgapWorkChain.inputs_generator`
+makes available all the methods explained in the :ref:`protocols documentation <how-to>`, the
+only difference is that here is mandatory to pass `bands_path_generator` to `get_filled_builder` and
+not optional like for the **SietaBaseWorkChain** inputs generator.
