@@ -175,7 +175,7 @@ class SiestaCalculation(CalcJob):
                 if key == canonical_blocked:
                     raise InputValidationError(
                         "You cannot specify explicitly the '{}' flag in the "
-                        "input parameters".format(input_params.get_untranslated_key(key))
+                        "input parameters".format(input_params.get_last_untranslated_key(key))
                     )
                 if "pao" in key:
                     raise InputValidationError(

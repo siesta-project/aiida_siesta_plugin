@@ -10,6 +10,7 @@ key returned by methods such as 'keys()' is the latest to be used in
 a setting operation.
 
 Vladimir Dikan and Alberto Garcia, 2017
+Refined by Emanuele Bosoni in 2020
 
 """
 
@@ -21,12 +22,11 @@ class TKDict(MutableMapping):
     """
     Abstract class that mocks a python dictionary but with some translation
     rules applied to the key of the dictionary.
-    It required the definition of the method `translate_key` that contains the
-    translation rule.
-    Once the translation rule is set. This abstract class take care of all the rest,
-    meaning providing all the methods for the management of the dictionary.
+    Its subclasses need to define the method `translate_key` that contains the translation rule.
+    Once the translation rule is set. This abstract class
+    provides all the methods for the management of the dictionary.
     Internally, it defines an attribute _storage that is a dictionary
-    with keys the translated key and with value the (value, original-key) tuples.
+    with the translated_keys as keys and the (value, original-key) tuples as values.
     """
 
     @classmethod
@@ -36,8 +36,9 @@ class TKDict(MutableMapping):
 
     def __init__(self, inp_dict=None):  #*args, **kw):
         """
-        Create translated-keys-dictionary from initial data.
-        If several input keys translate to same string, only first occurrence is saved.
+        Create translated-keys-dictionary from initial data. Initail data must be a dictionary.
+        If several input keys translate to same string, only the last occurrence is saved.
+        The class can also be instantiaced with no argument passed.
         """
         # _storage is internal dictionary stored as: {<translated_key>: (<value>, <initial_key>), }
         self._storage = {}
@@ -52,17 +53,22 @@ class TKDict(MutableMapping):
                 self[inp_key] = inp_dict[inp_key]
 
     def __setitem__(self, key, value):
-        """ Store a (value, initial_key) tuple under translated key. """
+        """
+        Store a (value, initial_key) tuple under translated key.
+        """
         trans_key = self.translate_key(key)
         # check if we already have a translated key in _storage
         # if so, overwrite the value in tuple, but not the initial key
         self._storage.__setitem__(trans_key, (value, key))
 
     def __getitem__(self, key):
-        """ Translate the key, unpack value-tuple and return the value if exists or None. """
+        """
+        Translate the key, unpack value-tuple and return the value if exists.
+        If the translated_key is not present in the dictionary, a KeyError
+        will be reported, like in any normal python dictionary.
+        """
         trans_key = self.translate_key(key)
-        value, last_key = self._storage[trans_key]  # pylint: disable=unused-variable
-        return value
+        return self._storage[trans_key][0]
 
     def __delitem__(self, key):
         """ Translate the key, purge value-tuple """
@@ -116,7 +122,7 @@ class TKDict(MutableMapping):
         """
         return [(key, self._storage[key][0]) for key in self]
 
-    def translated_dict(self):
+    def dict(self):
         """
         Return a dictionary, where the key are the translated keys
         """
@@ -144,16 +150,14 @@ class TKDict(MutableMapping):
         for k, v in self._storage.items():
             yield k, v[0]
 
-    def get_untranslated_key(self, key):
+    def get_last_untranslated_key(self, key):
         """
         Translate the key, unpack value-tuple and return
         the corresponding initial key if exists or None.
         """
         trans_key = self.translate_key(key)
-        #try:
         return self._storage[trans_key][1]
-        #except KeyError:
-        #    return KeyError("Key {} is not defined".format(key))
+        #A KeyError here means the key is not defined
 
 
 class FDFDict(TKDict):  # pylint: disable=too-many-ancestors
