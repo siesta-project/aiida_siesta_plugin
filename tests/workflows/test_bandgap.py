@@ -66,3 +66,25 @@ def test_setup(aiida_profile, generate_workchain_bandgap):
     process.prepare_inputs()
 
     assert isinstance(process.ctx.inputs, dict)
+
+def test_postprocess(aiida_profile, generate_workchain_bandgap):
+#    """Test `BangapWorkChain.setup`."""
+#
+    process = generate_workchain_bandgap(bands=True)
+    process.out('output_parameters', orm.Dict(dict={'E_Fermi' : -1}))
+    bands = orm.BandsData()
+    bkp = process.inputs.bandskpoints
+    bands.set_kpoints(bkp.get_kpoints(cartesian=True))
+    #bands.labels = bkp.labels
+    import numpy as np
+    bands.set_bands(np.array([[-2,1,3],[-2,1,3],[-2,1,3]]), units="eV")
+    process.out('bands', bands)
+    process.postprocess()
+
+    res = process.outputs["band_gap_info"]
+    assert isinstance(res,orm.Dict)
+    assert res['is_insulator']
+    assert res['band_gap'] == 3.0
+
+    #assert isinstance(process.ctx.inputs, dict)
+

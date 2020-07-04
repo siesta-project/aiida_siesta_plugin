@@ -41,13 +41,13 @@ def generate_workchain_base(generate_psml_data, fixture_code, fixture_localhost,
         process = generate_workchain(entry_point_wc, inputs)
 
         if exit_code is not None:
+            #Through the generate_calc_job_node we generate a node of a SiestaCalculation
+            #with already remote_folder and retrieved as outputs (triggered by "default",
+            #with `inputs2` as inputs and `attributes` as attributes
             inputs2 = AttributeDict({'structure': generate_structure()})
             attributes=AttributeDict({'input_filename':'aiida.fdf', 'output_filename':'aiida.out', 'prefix':'aiida'})
             node = generate_calc_job_node("siesta.siesta", fixture_localhost, "default", inputs2, attributes)
-            out_par = orm.Dict(dict={"variable_geometry":False})
-            out_par.add_incoming(node, link_type=LinkType.CREATE, link_label='output_parameters')
-            out_par.store()
-            node.logger.error("Error in split_norm option. Minimum value is 1")
+            #Set process state of the node
             node.set_process_state(ProcessState.FINISHED)
             node.set_exit_status(exit_code.status)
 
@@ -64,8 +64,6 @@ def test_setup(aiida_profile, generate_workchain_base):
     process.setup()
     process.prepare_inputs()
 
-    print(process)
-
     assert isinstance(process.ctx.inputs, dict)
 
     
@@ -75,7 +73,13 @@ def test_handle_error_geom_not_conv(aiida_profile, generate_workchain_base):
     process.setup()
     process.prepare_inputs()
 
-    result = process.handle_error_geom_not_conv(process.ctx.children[-1])
+    #Add another fake output to the SiestaCalculation node
+    calculation = process.ctx.children[-1]
+    out_par = orm.Dict(dict={"variable_geometry":False})
+    out_par.add_incoming(calculation, link_type=LinkType.CREATE, link_label='output_parameters')
+    out_par.store()
+
+    result = process.handle_error_geom_not_conv(calculation)
     assert isinstance(result, ProcessHandlerReport)
     assert result.do_break
     #assert result.exit_code == SiestaBaseWorkChain.exit_codes.GEOM_NOT_CONV
@@ -89,7 +93,13 @@ def test_handle_error_scf_not_conv(aiida_profile, generate_workchain_base):
     process.setup()
     process.prepare_inputs()
 
-    result = process.handle_error_scf_not_conv(process.ctx.children[-1])
+    #Add another fake output to the SiestaCalculation node
+    calculation = process.ctx.children[-1]
+    out_par = orm.Dict(dict={"variable_geometry":False})
+    out_par.add_incoming(calculation, link_type=LinkType.CREATE, link_label='output_parameters')
+    out_par.store()
+
+    result = process.handle_error_scf_not_conv(calculation)
     assert isinstance(result, ProcessHandlerReport)
     assert result.do_break
     #assert result.exit_code == SiestaBaseWorkChain.exit_codes.GEOM_NOT_CONV
@@ -116,8 +126,6 @@ def test_handle_error_bands(aiida_profile, generate_workchain_base):
     process.setup()
     process.prepare_inputs()
 
-    node = process.ctx.children[-1]
-
     result = process.handle_error_bands(process.ctx.children[-1])
     assert isinstance(result, ProcessHandlerReport)
     assert result.do_break
@@ -133,7 +141,11 @@ def test_handle_error_split_norm(aiida_profile, generate_workchain_base):
     process.setup()
     process.prepare_inputs()
 
-    result = process.handle_error_split_norm(process.ctx.children[-1])
+    #Add log info at the SiestaCalculation
+    calculation = process.ctx.children[-1]
+    calculation.logger.error("Error in split_norm option. Minimum value is 1")
+
+    result = process.handle_error_split_norm(calculation)
     assert isinstance(result, ProcessHandlerReport)
     assert result.do_break
 
