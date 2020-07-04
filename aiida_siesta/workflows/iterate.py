@@ -652,6 +652,7 @@ def set_up_parameters_dict(val, inputs, parameter, input_key, defaults=None):
     parameters = getattr(inputs, input_key, DataFactory('dict')())
     parameters = FDFDict(parameters.get_dict())
 
+
     # Set the units for the value if needed
     if isinstance(val, (int, float)) and defaults and "units" in defaults:
         val = f'{val} {defaults["units"]}'
@@ -739,14 +740,10 @@ def set_up_kpoint_grid(val, inputs, parameter, input_key='kpoints'):
 SIESTA_ITERATION_PARAMS = (
     (
         "Basis parameters", {
-            "input_key":
-            "basis",
-            "parse_func":
-            set_up_parameters_dict,
-            "condition":
-            lambda parameter: FDFDict.translate_key(parameter).startswith("pao"),
-            "keys":
-            FDFDict(
+            "input_key": "basis",
+            "parse_func": set_up_parameters_dict,
+            "condition": lambda parameter: FDFDict.translate_key(parameter).startswith("pao"),
+            "keys": FDFDict(
                 paobasissize={'defaults': {
                     'values_list': ['SZ', 'SZP', 'DZ', 'DZP', 'TZ', 'TZP']
                 }},
@@ -773,11 +770,13 @@ SIESTA_ITERATION_PARAMS = (
             "input_key": "parameters",
             "condition": lambda parameter: True,
             "parse_func": set_up_parameters_dict,
-            "keys": FDFDict(meshcutoff={'defaults': {
-                'units': 'Ry',
-                'init_value': 100,
-                'step': 100
-            }})
+            "keys": FDFDict(
+                meshcutoff={'defaults': {
+                    'units': 'Ry',
+                    'init_value': 100,
+                    'step': 100
+                }}
+            )
         }
     ),
 )
