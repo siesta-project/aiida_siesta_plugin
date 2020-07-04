@@ -20,9 +20,9 @@ def generate_convergence_results(iteration_keys, variable_values, target_values,
 
     if converged:
 
-        converged_parameters = DataFactory('dict')(dict={
-            key: val for key, val in zip(iteration_keys, variable_values[converged_index.value])
-        })
+        converged_parameters = DataFactory('dict')(
+            dict={key: val for key, val in zip(iteration_keys, variable_values[converged_index.value])}
+        )
 
         convergence_results['converged_parameters'] = converged_parameters
         convergence_results['converged_target_value'] = Float(target_values[converged_index.value])
@@ -77,7 +77,6 @@ class BaseConvergencePlugin:
             required=False,
             help="The values for the parameters that was enough to achieve convergence. "
             "If converged is not achieved, it won't be returned",
-            
         )
         spec.output('converged_target_value', help="The value of the target with convergence reached.")
 
@@ -104,7 +103,7 @@ class BaseConvergencePlugin:
 
             converged = len(below_thresh) > 0
             if converged:
-                self.ctx.converged_index = below_thresh[0] + 1
+                self.ctx.converged_index = below_thresh[0]
 
             self.report(
                 f'Convergence criterium: {self.inputs.threshold.value}; Last step diffs: {diffs[-len(self.ctx.last_step_processes):]}'
@@ -139,10 +138,14 @@ class BaseConvergencePlugin:
         variable_values = List(list=self.ctx.variable_values)
         target_values = List(list=self.ctx.target_values)
 
-        outputs = generate_convergence_results(iteration_keys, variable_values, target_values, converged, converged_index)
+        outputs = generate_convergence_results(
+            iteration_keys, variable_values, target_values, converged, converged_index
+        )
 
         if converged:
-            self.report(f'\n\nConvergence has been reached! Converged parameters: {outputs["converged_parameters"].get_dict()}\n')
+            self.report(
+                f'\n\nConvergence has been reached! Converged parameters: {outputs["converged_parameters"].get_dict()}\n'
+            )
         else:
             self.report('\n\nWARNING: Workchain ended without finding convergence\n ')
 
@@ -156,6 +159,11 @@ class SiestaConverger(BaseConvergencePlugin, SiestaIterator):
     Converges a parameter in SIESTA.
 
     The parameter specification works exactly the same as `SiestaIterator`
+
+    Examples
+    ------------
+
+    See `examples/workflows/example_convergence.py`.
     """
 
 
@@ -186,7 +194,6 @@ class SequentialConverger(InputIterator):
             required=False,
             help="The values for the parameters that was enough to achieve convergence. "
             "If converged is not achieved, it won't be returned",
-            
         )
         spec.output('converged_target_value', help="The value of the target with convergence reached.")
 
@@ -214,11 +221,11 @@ class SequentialConverger(InputIterator):
             for step in iterate_over:
                 parsed_list.append(cls._iterate_input_serializer(step))
             return cls._values_list_serializer(parsed_list)
-            
+
         if isinstance(iterate_over, dict):
             for key, val in iterate_over.items():
                 iterate_over[key] = cls._values_list_serializer(val)
-            
+
             iterate_over = DataFactory('dict')(dict=iterate_over)
 
         return iterate_over
@@ -240,7 +247,7 @@ class SequentialConverger(InputIterator):
         self.ctx.iteration_keys = ("iterate_over",)
 
         return zip(iterate_over)
-    
+
     def analyze_process(self, process_node):
 
         if process_node.outputs.converged:
@@ -261,13 +268,16 @@ class SequentialConverger(InputIterator):
 
                 # Modify them accordingly. Note that since we are using cls._reuse_inputs = True,
                 # what we are modifying here will be used in the next iteration
+                self._params_lookup = self._process_class._params_lookup
                 self._process_class._parse_key(self, key)
                 val = self._process_class._parse_val(self, val, key, inputs)
 
                 key = self._process_class._attr_from_key(self, key)
 
                 self._process_class.add_inputs(self, key, val, inputs)
-            
+
+                self._params_lookup = self.__class__._params_lookup
+
         self.ctx.last_target_value = process_node.outputs.converged_target_value
 
     def return_results(self):
