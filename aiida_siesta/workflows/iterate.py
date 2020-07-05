@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 import itertools
-from functools import partial, reduce
+from functools import partial
+import numpy as np
 
 from aiida.plugins import DataFactory
 from aiida.engine import WorkChain, while_, ToContext
@@ -86,6 +87,8 @@ class BaseIteratorWorkChain(WorkChain, ABC):
 
         if isinstance(iterate_over, dict):
             for key, val in iterate_over.items():
+                if not isinstance(val, (list, tuple, np.ndarray)):
+                    raise ValueError(f"We can not understand how to iterate over '{key}', you need to provide a list of values. You provided: {val}")
                 iterate_over[key] = cls._values_list_serializer(val)
 
             iterate_over = DataFactory('dict')(dict=iterate_over)
@@ -101,7 +104,7 @@ class BaseIteratorWorkChain(WorkChain, ABC):
         (e.g. StructureData). In this way, we normalize the input to a list of pk, so that at
         each iteration we can access the value of the node.
 
-        Note that if you modify/overwrite this method you should be take a look to the `next_val` method.
+        Note that if you modify/overwrite this method you should take a look to the `next_val` method.
         '''
 
         parsed_list = []
@@ -140,7 +143,7 @@ class BaseIteratorWorkChain(WorkChain, ABC):
         # More inputs can be defined in subclasses.
         spec.input(
             "iterate_over",
-            valid_type=(DataFactory('dict'), List),
+            valid_type=DataFactory('dict'),
             serializer=cls._iterate_input_serializer,
             required=False,
             help='''A dictionary where each key is the name of a parameter we want to iterate

@@ -3,9 +3,8 @@ import numpy as np
 from aiida.engine import calcfunction
 from aiida.orm import Float, Str, List, Bool, Int
 from aiida.plugins import DataFactory
-from aiida.common import AttributeDict
 
-from .iterate import SiestaIterator, InputIterator
+from .iterate import SiestaIterator, InputIterator, BaseIteratorWorkChain
 
 
 @calcfunction
@@ -185,6 +184,10 @@ class SequentialConverger(InputIterator):
     def define(cls, spec):
         super().define(spec)
 
+        # In this case, iterate_over is going to be a list where each item is a dict as accepted
+        # BaseIterator's regular iterate_over 
+        spec.inputs.ports['iterate_over'].valid_type = List
+
         # In principle we should not allow to provide a batch size and we should force a value of 1
         # But I don't know how to do it in a clean way.
         spec.inputs.ports['batch_size'].default = lambda: Int(1)
@@ -219,14 +222,8 @@ class SequentialConverger(InputIterator):
         if isinstance(iterate_over, list):
             parsed_list = []
             for step in iterate_over:
-                parsed_list.append(cls._iterate_input_serializer(step))
+                parsed_list.append(BaseIteratorWorkChain._iterate_input_serializer(step))
             return cls._values_list_serializer(parsed_list)
-
-        if isinstance(iterate_over, dict):
-            for key, val in iterate_over.items():
-                iterate_over[key] = cls._values_list_serializer(val)
-
-            iterate_over = DataFactory('dict')(dict=iterate_over)
 
         return iterate_over
 
