@@ -265,6 +265,9 @@ class EqOfStateFixedCellShape(WorkChain):
         return ToContext(**calcs)  #Here it waits
 
     def return_results(self):
+
+        from aiida.engine import ExitCode
+
         self.report('All 7 calculations finished. Post process starts')
         collectwcinfo = {}
         for label in self.ctx.scales:
@@ -293,6 +296,8 @@ class EqOfStateFixedCellShape(WorkChain):
             self.report("WARNING: Birch-Murnaghan fit failed, check your results_dict['eos_data']")
 
         self.report('End of EqOfStateFixedCellShape Workchain')
+
+        return ExitCode(0)
 
     @classproperty
     def inputs_generator(cls):  # pylint: disable=no-self-argument,no-self-use

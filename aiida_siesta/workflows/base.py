@@ -226,11 +226,13 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
         If an error in the parsing of bands occours in the SiestaCalculation (node here), we expose all
         the output ports node that have been produced (SiestaCalculation is designed to produce the
         output_parameter and stress/forcess port before the check on the bands outputs) and then we
-        stop the workchain with a specific error code.
+        stop the workchain with a specific error code. We exclude the "retrieved" output port as
+        it refers only to the underline calculation, not to the WorkChain itself.
         """
         for name in node.outputs:
-            output = node.get_outgoing(link_label_filter=name).one().node
-            self.out(name, output)
+            if name != "retrieved":
+                output = node.get_outgoing(link_label_filter=name).one().node
+                self.out(name, output)
 
         return ProcessHandlerReport(True, self.exit_codes.ERROR_BANDS_PARSING)
 
