@@ -38,7 +38,7 @@ class BaseIteratorWorkChain(WorkChain, ABC):
                     cls.store_next_val
                 cls.run_process # You have the current value under self.current_val and
                                 # the keys under self.iteration_keys
-                
+
         - cls.analyze_batch:
             for process in batch:
                 cls.analyze_process(process)
@@ -88,7 +88,10 @@ class BaseIteratorWorkChain(WorkChain, ABC):
         if isinstance(iterate_over, dict):
             for key, val in iterate_over.items():
                 if not isinstance(val, (list, tuple, np.ndarray)):
-                    raise ValueError(f"We can not understand how to iterate over '{key}', you need to provide a list of values. You provided: {val}")
+                    raise ValueError(
+                        f"We can not understand how to iterate over '{key}', " 
+                        f"you need to provide a list of values. You provided: {val}"
+                    )
                 iterate_over[key] = cls._values_list_serializer(val)
 
             iterate_over = DataFactory('dict')(dict=iterate_over)
@@ -110,10 +113,7 @@ class BaseIteratorWorkChain(WorkChain, ABC):
         parsed_list = []
         # Let's iterate over all values so that we can parse them all
         for obj in list_to_parse:
-
-            # If it was a python type, convert it to aiida type (e.g. a node)
-            if not isinstance(obj, Node):
-                obj = to_aiida_type(obj)
+  Line: 146
 
             # If it has just been converted to a node, or it was an unstored node
             # store it so that it gets a pk.
@@ -150,7 +150,7 @@ class BaseIteratorWorkChain(WorkChain, ABC):
             over (str) and each value is a list with all the values to iterate over for
             that parameter. Each value in the list can be either a node (unstored or stored)
             or a simple python object (str, float, int, bool).
-            
+
             Note that each subclass might parse this keys and values differently, so you should
             know how they do it.
             '''
@@ -171,7 +171,7 @@ class BaseIteratorWorkChain(WorkChain, ABC):
             "batch_size",
             valid_type=Int,
             default=lambda: Int(1),
-            help='''The maximum number of simulations that should run at the same time. 
+            help='''The maximum number of simulations that should run at the same time.
             You can set this to a very large number to make sure that all simulations run in
             one single batch if you want.'''
         )
@@ -364,9 +364,9 @@ class InputIterator(BaseIteratorWorkChain):
 
     This class can not be used. However, you don't need to much!
 
-    All you need to provide in a subclass to make use of this iterator is 
+    All you need to provide in a subclass to make use of this iterator is
     the process to run. The way you do this is by setting the `_process_class`
-    variable. See the examples section . Once you have defined the process to run, 
+    variable. See the examples section . Once you have defined the process to run,
     this workchain exposes its inputs and runs the process iteritatively.
 
     The outline of this workchain is exactly the same as `BaseIteratorWorkchain`
@@ -387,7 +387,7 @@ class InputIterator(BaseIteratorWorkChain):
 
         # Submit the process with the modified inputs
         submit(MyProcess, **inputs)
-    
+
     It also gives the possibility to accept iterating over parameters that are not
     directly an input of the process class.
     Therefore, if you want to add extra functionality to it, you probably should be
@@ -506,11 +506,11 @@ class InputIterator(BaseIteratorWorkChain):
 
     def _parse_key(self, key):
         """
-        Uses the opportunity given by BaseIteratorWorkchain to store the input keys 
+        Uses the opportunity given by BaseIteratorWorkchain to store the input keys
         and parsing functions that we are going to use for each parameter through the workchain.
 
         Can be overwritten by child classes, but the default parameter management of this class
-        is quite general and well organized, so consider giving it a try before implementing 
+        is quite general and well organized, so consider giving it a try before implementing
         a different one.
 
         Parameters
@@ -531,7 +531,7 @@ class InputIterator(BaseIteratorWorkChain):
         Parses the value using the parsing function that we have stored for this parameter.
 
         Can be overwritten by child classes, but the default parameter management of this class
-        is quite general and well organized, so consider giving it a try before implementing 
+        is quite general and well organized, so consider giving it a try before implementing
         a different one.
 
         Parameters
@@ -559,10 +559,10 @@ class InputIterator(BaseIteratorWorkChain):
         E.g.:
             if the parameter 'kpoints_whatever' means that you need to parse
             the value into a KpointsData() and set it to the 'kpoints' input,
-            this should return 'kpoints' 
+            this should return 'kpoints'
 
         Can be overwritten by child classes, but the default parameter management of this class
-        is quite general and well organized, so consider giving it a try before implementing 
+        is quite general and well organized, so consider giving it a try before implementing
         a different one.
 
         Parameters
@@ -641,7 +641,7 @@ def set_up_parameters_dict(val, inputs, parameter, input_key, defaults=None):
     inputs: AttributeDict
         all the current inputs, so that we can extract the curren FDFdict.
     parameter: str
-        the name of the fdf flag. Case and hyphen insensitive. 
+        the name of the fdf flag. Case and hyphen insensitive.
     input_key: str
         the input of the fdf dict that should be modified.
     defaults: dict, optional
@@ -654,7 +654,6 @@ def set_up_parameters_dict(val, inputs, parameter, input_key, defaults=None):
     # Get the current FDFdict for the corresponding input
     parameters = getattr(inputs, input_key, DataFactory('dict')())
     parameters = FDFDict(parameters.get_dict())
-
 
     # Set the units for the value if needed
     if isinstance(val, (int, float)) and defaults and "units" in defaults:
@@ -743,16 +742,24 @@ def set_up_kpoint_grid(val, inputs, parameter, input_key='kpoints'):
 SIESTA_ITERATION_PARAMS = (
     (
         "Basis parameters", {
-            "input_key": "basis",
-            "parse_func": set_up_parameters_dict,
-            "condition": lambda parameter: FDFDict.translate_key(parameter).startswith("pao"),
-            "keys": FDFDict({
-                "paobasissize":{'defaults': {
-                    'values_list': ['SZ', 'SZP', 'DZ', 'DZP', 'TZ', 'TZP']
-                }},
-                "paoenergyshift":{'defaults': {
-                    'units': 'Ry'
-                }}
+            "input_key":
+            "basis",
+            "parse_func":
+            set_up_parameters_dict,
+            "condition":
+            lambda parameter: FDFDict.translate_key(parameter).startswith("pao"),
+            "keys":
+            FDFDict({
+                "paobasissize": {
+                    'defaults': {
+                        'values_list': ['SZ', 'SZP', 'DZ', 'DZP', 'TZ', 'TZP']
+                    }
+                },
+                "paoenergyshift": {
+                    'defaults': {
+                        'units': 'Ry'
+                    }
+                }
             })
         }
     ),
@@ -773,13 +780,13 @@ SIESTA_ITERATION_PARAMS = (
             "input_key": "parameters",
             "condition": lambda parameter: True,
             "parse_func": set_up_parameters_dict,
-            "keys": FDFDict({
-                "meshcutoff": {'defaults': {
+            "keys": FDFDict({"meshcutoff": {
+                'defaults': {
                     'units': 'Ry',
                     'init_value': 100,
                     'step': 100
-                }}
-            })
+                }
+            }})
         }
     ),
 )
@@ -789,7 +796,7 @@ class SiestaIterator(InputIterator):
     """
     General iterator for ANY parameter in SIESTA.
 
-    It runs `SiestaBaseWorkChain` iteratively setting the inputs 
+    It runs `SiestaBaseWorkChain` iteratively setting the inputs
     appropiately at each iteration.
 
     With the help of the `SIESTA_ITERATION_PARAMS` dictionary, it decides

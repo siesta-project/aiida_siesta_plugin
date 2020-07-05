@@ -143,7 +143,8 @@ class BaseConvergencePlugin:
 
         if converged:
             self.report(
-                f'\n\nConvergence has been reached! Converged parameters: {outputs["converged_parameters"].get_dict()}\n'
+                '\n\nConvergence has been reached! Converged parameters:'
+                f'{outputs["converged_parameters"].get_dict()}\n'
             )
         else:
             self.report('\n\nWARNING: Workchain ended without finding convergence\n ')
@@ -185,7 +186,7 @@ class SequentialConverger(InputIterator):
         super().define(spec)
 
         # In this case, iterate_over is going to be a list where each item is a dict as accepted
-        # BaseIterator's regular iterate_over 
+        # BaseIterator's regular iterate_over
         spec.inputs.ports['iterate_over'].valid_type = List
 
         # In principle we should not allow to provide a batch size and we should force a value of 1
