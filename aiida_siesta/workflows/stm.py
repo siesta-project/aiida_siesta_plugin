@@ -285,17 +285,18 @@ class SiestaSTMWorkChain(WorkChain):
 
         from aiida.engine import ExitCode
 
-        if not self.ctx.siesta_ldos.is_finished_ok:
-            return self.exit_codes.ERROR_STM_PLUGIN
-
         if self.ctx.spinstm == "non-collinear":
             cumarray = {}
             for spinmod in ("q", "x", "y", "z"):
                 stmnode = self.ctx[spinmod]
+                if not stmnode.is_finished_ok:
+                    return self.exit_codes.ERROR_STM_PLUGIN
                 cumarray[spinmod] = stmnode.outputs.stm_array
             stm_array = create_non_coll_array(**cumarray)
             self.out('stm_array', stm_array)
         else:
+            if not self.ctx.stm_calc.is_finished_ok:
+                return self.exit_codes.ERROR_STM_PLUGIN
             stm_plot_calc = self.ctx.stm_calc
             stm_array = stm_plot_calc.outputs.stm_array
             self.out('stm_array', stm_array)

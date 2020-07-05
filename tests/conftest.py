@@ -335,14 +335,12 @@ def generate_wc_job_node():
                 flat_inputs.append((prefix + key, value))
         return flat_inputs
 
-    def _generate_wc_job_node(entry_point_name, computer, inputs=None, attributes=None):
-        """Fixture to generate a mock `CalcJobNode` for testing parsers.
-        :param entry_point_name: entry point name of the calculation class
+    def _generate_wc_job_node(entry_point_name, computer, inputs=None):
+        """Fixture to generate a mock `WorkChainNode` for testing parsers.
+        :param entry_point_name: entry point name of the workchain class
         :param computer: a `Computer` instance
-        :param test_name: relative path of directory with test output files in the `fixtures/{entry_point_name}` folder.
         :param inputs: any optional nodes to add as input links to the corrent CalcJobNode
-        :param attributes: any optional attributes to set on the node
-        :return: `CalcJobNode` instance with an attached `FolderData` as the `retrieved` node
+        :return: `WorkChainNode` instance attached inputs if `inputs` is defined
         """
         from aiida import orm
         from aiida.common import LinkType
@@ -350,24 +348,12 @@ def generate_wc_job_node():
 
         entry_point = format_entry_point_string('aiida.workflows', entry_point_name)
 
-        node = orm.CalcJobNode(computer=computer, process_type=entry_point)
-        #This should be defined through input line
-        #node.set_attribute('input_filename', 'aiida.fdf')
-        #node.set_attribute('output_filename', 'aiida.out')
-        #node.set_attribute('prefix', 'aiida')
-        node.set_option('resources', {'num_machines': 1, 'num_mpiprocs_per_machine': 1})
-        node.set_option('max_wallclock_seconds', 1800)
-
-        if attributes:
-            node.set_attribute_many(attributes)
+        node = orm.WorkChainNode(computer=computer, process_type=entry_point)
         
-        #What inputs do we need? I don't think it checks the mandatory inputs,
-        #for instance the pseudo is not defined in quantum espresso.
-        #Probably only the ones that trigger a particular parsing? Or not even.
         if inputs:
             for link_label, input_node in flatten_inputs(inputs):
                 input_node.store()
-                node.add_incoming(input_node, link_type=LinkType.INPUT_CALC, link_label=link_label)
+                node.add_incoming(input_node, link_type=LinkType.INPUT_WORK, link_label=link_label)
 
         node.store()
 
