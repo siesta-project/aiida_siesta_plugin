@@ -59,5 +59,5 @@ def test_fdfdict_methods():
     assert sorted(f.untranslated_keys()) == sorted(["w--","e"])
     assert sorted(f.items()) == sorted([("w",5),("e",4)])
     assert sorted(f.untranslated_items()) == sorted([("w--",5),("e",4)])
-    assert f.dict() == {"w":5,"e":4}
-    assert f.untranslated_dict() == {"w--":5,"e":4}
+    assert f.get_dict() == {"w":5,"e":4}
+    assert f.get_untranslated_dict() == {"w--":5,"e":4}

@@ -122,27 +122,17 @@ class TKDict(MutableMapping):
         """
         return [(key, self._storage[key][0]) for key in self]
 
-    def dict(self):
+    def get_dict(self):
         """
         Return a dictionary, where the key are the translated keys
         """
-        new_dict = self._storage.copy()
+        return {key: val[0] for key, val in self._storage.items()}
 
-        for k in self._storage:
-            new_dict[k] = self._storage[k][0]
-
-        return new_dict
-
-    def untranslated_dict(self):
+    def get_untranslated_dict(self):
         """
         Return a dictionary, where the key are the translated keys
         """
-        new_dict = {}  #self._storage.copy()
-
-        for k in self._storage:
-            new_dict[self._storage[k][1]] = self._storage[k][0]
-
-        return new_dict
+        return {val[1]: val[0] for val in self._storage.values()}
 
     #Only for back compatibility!!! Does the same job of
     #items when iterated, but can't be called by itself
