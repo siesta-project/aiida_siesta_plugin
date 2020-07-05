@@ -180,7 +180,7 @@ def generate_psml_data():
 def generate_structure():
     """Return a `StructureData` representing bulk silicon."""
 
-    def _generate_structure():
+    def _generate_structure(scale=None):
         """Return a `StructureData` representing bulk silicon."""
         from aiida.orm import StructureData
 
@@ -189,6 +189,13 @@ def generate_structure():
         structure = StructureData(cell=cell)
         structure.append_atom(position=(0., 0., 0.), symbols='Si', name='Si')
         structure.append_atom(position=(param / 4., param / 4., param / 4.), symbols='Si', name='SiDiff')
+
+        if scale:
+            the_ase = structure.get_ase()
+            new_ase = the_ase.copy()
+            new_ase.set_cell(the_ase.get_cell() * float(scale), scale_atoms=True)
+            new_structure = StructureData(ase=new_ase)
+            structure = new_structure
 
         return structure
 
