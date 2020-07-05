@@ -603,8 +603,8 @@ class InputIterator(BaseIteratorWorkChain):
             for _, parameters_group in self._params_lookup:
 
                 # Check if the parameter is in the group's explicit keys or if it matches a condition.
-                if parameter in parameters_group['keys'].keys() or parameters_group.get("condition",
-                                                                                        lambda p: False)(parameter):
+                in_keys = parameter in parameters_group['keys']
+                if in_keys or parameters_group.get("condition", lambda p: False)(parameter):
 
                     # If it does, get the input key that this parameter is going to modify
                     input_key = parameters_group['input_key']
@@ -664,7 +664,7 @@ def set_up_parameters_dict(val, inputs, parameter, input_key, defaults=None):
     parameters[parameter] = val
 
     # And then just translate it again to a dict to use it in the input
-    return DataFactory('dict')(dict={key: val for key, (val, _) in parameters._storage.items()})
+    return DataFactory('dict')(dict=parameters.get_dict())
 
 
 def set_up_kpoint_grid(val, inputs, parameter, input_key='kpoints'):
@@ -746,14 +746,14 @@ SIESTA_ITERATION_PARAMS = (
             "input_key": "basis",
             "parse_func": set_up_parameters_dict,
             "condition": lambda parameter: FDFDict.translate_key(parameter).startswith("pao"),
-            "keys": FDFDict(
-                paobasissize={'defaults': {
+            "keys": FDFDict({
+                "paobasissize":{'defaults': {
                     'values_list': ['SZ', 'SZP', 'DZ', 'DZP', 'TZ', 'TZP']
                 }},
-                paoenergyshift={'defaults': {
+                "paoenergyshift":{'defaults': {
                     'units': 'Ry'
                 }}
-            )
+            })
         }
     ),
     (
@@ -773,13 +773,13 @@ SIESTA_ITERATION_PARAMS = (
             "input_key": "parameters",
             "condition": lambda parameter: True,
             "parse_func": set_up_parameters_dict,
-            "keys": FDFDict(
-                meshcutoff={'defaults': {
+            "keys": FDFDict({
+                "meshcutoff": {'defaults': {
                     'units': 'Ry',
                     'init_value': 100,
                     'step': 100
                 }}
-            )
+            })
         }
     ),
 )
