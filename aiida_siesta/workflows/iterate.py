@@ -89,7 +89,7 @@ class BaseIteratorWorkChain(WorkChain, ABC):
             for key, val in iterate_over.items():
                 if not isinstance(val, (list, tuple, np.ndarray)):
                     raise ValueError(
-                        f"We can not understand how to iterate over '{key}', " 
+                        f"We can not understand how to iterate over '{key}', "
                         f"you need to provide a list of values. You provided: {val}"
                     )
                 iterate_over[key] = cls._values_list_serializer(val)
@@ -113,7 +113,10 @@ class BaseIteratorWorkChain(WorkChain, ABC):
         parsed_list = []
         # Let's iterate over all values so that we can parse them all
         for obj in list_to_parse:
-  Line: 146
+
+            # If the object is a python type, convert it to a node
+            if not isinstance(obj, Node):
+                obj = to_aiida_type(obj)
 
             # If it has just been converted to a node, or it was an unstored node
             # store it so that it gets a pk.
