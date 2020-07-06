@@ -123,10 +123,10 @@ with the same name.
 
 Once this first step is done,
 the pre-filled builder can be
-accessed through the property `inputs_generator` of the **SiestaBaseWorkChain**, like 
+accessed through the method `inputs_generator` of the **SiestaBaseWorkChain**, like 
 in this example::
 
-        inp_gen = SiestaBaseWorkChain.inputs_generator
+        inp_gen = SiestaBaseWorkChain.inputs_generator()
         builder = inp_gen.get_filled_builder(structure, calc_engines, protocol)
         #here user can modify builder befor submission.
         submit(builder)

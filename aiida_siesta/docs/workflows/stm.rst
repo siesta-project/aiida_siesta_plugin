@@ -222,7 +222,7 @@ Outputs
 Protocol system
 ---------------
 
-The protocol system is available for this WorkChain. The `SiestaSTMWorkchain.inputs_generator`
+The protocol system is available for this WorkChain. The `SiestaSTMWorkchain.inputs_generator()`
 makes available all the methods explained in the :ref:`protocols documentation <how-to>`, but
 `get_filled_builder` now requires in inputs also the `stm_mode` (a python `str`, accepted values 
 are "constant-height" and "constant-current") and `stm_value` (a python `float` indicating

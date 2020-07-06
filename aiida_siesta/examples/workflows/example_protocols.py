@@ -49,7 +49,7 @@ relaxation_type = "atoms_only"
 spin = "polarized"
 
 
-inp_gen = SiestaBaseWorkChain.inputs_generator
+inp_gen = SiestaBaseWorkChain.inputs_generator()
 builder = inp_gen.get_filled_builder(structure, calc_engines, protocol)
 #builder = inp_gen.get_builder(structure, calc_engines, protocol, path_generator, relaxation_type, spin)
 

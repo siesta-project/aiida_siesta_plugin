@@ -74,7 +74,7 @@ stm_mode = "constant-height"
 
 stm_value = 1.6
 
-inp_gen = SiestaSTMWorkChain.inputs_generator
+inp_gen = SiestaSTMWorkChain.inputs_generator()
 builder = inp_gen.get_filled_builder(s, calc_engines, protocol, stm_mode, stm_value)
 #builder = inp_gen.get_builder(s, calc_engines, protocol, path_generator, relaxation_type, spin)
 

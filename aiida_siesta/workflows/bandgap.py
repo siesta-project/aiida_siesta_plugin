@@ -1,5 +1,4 @@
 from aiida import orm
-from aiida.common.lang import classproperty
 from aiida.engine import calcfunction
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
 
@@ -56,7 +55,7 @@ class BandgapWorkChain(SiestaBaseWorkChain):
         res_dict = get_bandgap(orm.Float(e_fermi), self.outputs["bands"])
         self.out('band_gap_info', res_dict)
 
-    @classproperty
+    @classmethod
     def inputs_generator(cls):  # pylint: disable=no-self-argument,no-self-use
         from aiida_siesta.workflows.utils.inputs_generators import BandgapWorkChainInputsGenerator
         return BandgapWorkChainInputsGenerator(cls)

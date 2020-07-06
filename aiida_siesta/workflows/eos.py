@@ -2,7 +2,6 @@ from aiida.plugins import DataFactory
 from aiida.common import AttributeDict
 from aiida.engine import WorkChain, calcfunction, ToContext
 from aiida.orm import Float
-from aiida.common.lang import classproperty
 from aiida_siesta.calculations.tkdict import FDFDict
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
 
@@ -299,7 +298,7 @@ class EqOfStateFixedCellShape(WorkChain):
 
         return ExitCode(0)
 
-    @classproperty
+    @classmethod
     def inputs_generator(cls):  # pylint: disable=no-self-argument,no-self-use
         from aiida_siesta.workflows.utils.inputs_generators import EosWorkChainInputsGenerator
         return EosWorkChainInputsGenerator(cls)

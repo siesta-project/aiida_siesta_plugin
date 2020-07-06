@@ -82,7 +82,7 @@ Outputs
 Protocol system
 ---------------
 
-The protocol system is available for this WorkChain. The `EqOfStateFixedCellShape.inputs_generator`
+The protocol system is available for this WorkChain. The `EqOfStateFixedCellShape.inputs_generator()`
 makes available all the methods explained in the :ref:`protocols documentation <how-to>`, the
 only difference is that the relaxation type "variable-cell" is not available.
 
