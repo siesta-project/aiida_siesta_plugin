@@ -14,7 +14,7 @@ Since November 2019, Emanuele Bosoni is in charge of the code's development and 
 under the supervision of Alberto Garcia.
 
 Pol Febrer contributed the SiestaIterator and SiestaConverger workflows, including the underline
-metaclasses system.
+abstract classes system.
 
 We gratefully acknowledge the help and support of the AiiDA team in
 Lausanne.

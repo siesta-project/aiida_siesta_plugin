@@ -4,7 +4,7 @@ SIESTA Converger workflow
 Description
 -----------
 
-The **SiestaConvereger** is a tool to facilitate convergence tests with Siesta.
+The **SiestaConverger** is a tool to facilitate convergence tests with Siesta.
 It extends the **SiestaIterator** to accept a target quantity that is checked
 after each step to evaluate whether convergence has been reached or not.
 The convergence check just consists in calculating the difference in the target quantity 
@@ -66,8 +66,8 @@ The following outputs are returned:
 
 * **converged_target_value** :py:class:`Float <aiida.orm.Float>`
 
-  The value of the target when the convergence has been reached, or in the last step of
-  the iteration.
+  The value of the target when the convergence has been reached. Returned only if
+  the convergence is succesfull.
 
 .. |br| raw:: html
 

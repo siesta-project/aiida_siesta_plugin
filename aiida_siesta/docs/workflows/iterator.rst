@@ -4,9 +4,9 @@ SIESTA Iterator workflow
 Description
 -----------
 
-The **SiestaIterator** is a tool to facilitate the submission of several Siesta Calcultions
-in an authomatic way. It allows the iteration over Siesta parameters
-and, more in genearal, over inputs of a **SiestaBaseWorkChain**.
+The **SiestaIterator** is a tool to facilitate the submission of several Siesta Calculations
+in an automatic way. It allows the iteration over Siesta parameters
+and, more in general, over inputs of a **SiestaBaseWorkChain**.
 An example on the use of the **SiestaConverger** is
 /aiida_siesta/examples/workflows/example_iterate.py.
 
