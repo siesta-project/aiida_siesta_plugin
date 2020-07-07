@@ -19,7 +19,7 @@ from aiida.orm import load_code
 from aiida.orm import Float, Dict, StructureData, Str, Int, KpointsData
 from aiida_siesta.data.psf import PsfData
 # The workchain that we are going to use to converge things.
-from aiida_siesta.workflows.converge import SiestaConverger
+from aiida_siesta.workflows.converge import SiestaSequentialConverger
 
 '''
 First of all, we need to setup all the inputs of the calculations.
@@ -131,16 +131,44 @@ inputs = {
     'options': options,
 }
 
-# Up until this point, all the things done have been general to any SIESTA
-# simulation. Now, we will use the SiestaConverger to converge the mesh cutoff
-# and the pao-energyshift simultaneously, meaning increasing both at the same time.
-process = submit(SiestaConverger,
-    iterate_over={'meshcutoff': [100, 300, 500, 700, 900, 1100],
-        'pao-energyshift': [0.02, 0.015, 0.01, 0.005, 0.001]},
-    target = Str('E_KS'),
-    threshold = Float(0.01),
-    **inputs
-    )
+
+# Now that we have all our inputs ready, we will just try to converge the kpoints,
+# the mesh cutoff and the energy shift. To do it, we just pass a list of dictionaries
+# to iterate_over. Each dictionary will be passed to the "iterate_over" input of the
+# SiestaConverger (which works exactly like the SiestaIterator). Therefore, each
+# dictionary contains information about what needs to be converged. 
+process = submit(SiestaSequentialConverger,
+    iterate_over=[
+        # First we want to converge the kpoints by increasing all componentsat the same time.
+        {
+            'kpoints_0': [2,4,6,8,10,12,14,16,18,20],
+            'kpoints_1': [2,4,6,8,10,12,14,16,18,20],
+            'kpoints_2': [2,4,6,8,10,12,14,16,18,20],
+        },
+        # Then the mesh cutoff (using the default units, Ry)
+        {
+            'meshcutoff': [100, 200, 300, 400, 500, 600, 700,
+                            800, 900, 1000, 1100],
+        },
+        # And finally the energy shift (using the default units, Ry)
+        {
+            'pao-energyshift': [0.02, 0.015, 0.01, 0.005, 0.001]
+        },
+        # Note that we can converge the same parameters again if we wanted,
+        # so we could do another round of k point convergence here.
+    ],
+    # And now we are passing the inputs for the converger:
+    converger_inputs={
+        # All the general inputs for the siesta simulation
+        **inputs,
+        # These are the defaults target and threshold, but we are going
+        # to pass them here to make it clear that this can be tuned.
+        "target": Str('E_KS'),
+        "threshold": Float(0.01),
+        # And we also specify a batch size to submit more than one job at a time
+        "batch_size": Int(3)
+    }
+)
 
 
 # Print some info
