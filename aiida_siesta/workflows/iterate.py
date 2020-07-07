@@ -148,7 +148,6 @@ class BaseIteratorWorkChain(WorkChain, ABC):
             "iterate_over",
             valid_type=DataFactory('dict'),
             serializer=cls._iterate_input_serializer,
-            required=False,
             help='''A dictionary where each key is the name of a parameter we want to iterate
             over (str) and each value is a list with all the values to iterate over for
             that parameter. Each value in the list can be either a node (unstored or stored)
