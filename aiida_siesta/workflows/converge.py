@@ -77,7 +77,7 @@ class BaseConvergencePlugin:
             help="The values for the parameters that was enough to achieve convergence. "
             "If converged is not achieved, it won't be returned",
         )
-        spec.output('converged_target_value', help="The value of the target with convergence reached.")
+        spec.output('converged_target_value', required=False, help="The value of the target with convergence reached.")
 
     def initialize(self):
         """

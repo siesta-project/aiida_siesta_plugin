@@ -266,7 +266,7 @@ aiida_siesta/examples/plugins/siesta.
      determine canonical unit cells and k-point information in an easy
      way. For more general information, refer to the `SeeK-path documentation`_.
 
-  .. warning:: as explained in the `aiida documentation`_, "SeeK-path"
+  .. warning:: "SeeK-path"
      might modify the structure to follow particular conventions
      and the generated kpoints might only 
      apply on the internally generated 'primitive_structure' and not 
@@ -563,6 +563,5 @@ those files as a list as follows::
 See for example example_ldos.py in aiida_siesta/examples/plugins/siesta.
 
 .. _SeeK-path documentation: https://seekpath.readthedocs.io/en/latest/
-.. _aiida guidelines: https://aiida-core.readthedocs.io/en/latest/get_started/computers.html
+.. _aiida guidelines: https://aiida.readthedocs.io/projects/aiida-core/en/latest/howto/run_codes.html
 .. _HPKOT paper: http://dx.doi.org/10.1016/j.commatsci.2016.10.015
-.. _aiida documentation: https://aiida.readthedocs.io/projects/aiida-core/en/latest/apidoc/aiida.tools.html#aiida.tools.get_explicit_kpoints_path

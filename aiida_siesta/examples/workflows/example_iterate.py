@@ -43,7 +43,7 @@ try:
     ase_struct = sisl.geom.diamond(5.430, 'Si').toASE()
 except:
     # Or using ASE
-    import ase
+    import ase.build
 
     ase_struct = ase.build.bulk('Si', 'diamond', 5.430)
 # Then just pass it to StructureData, which is the type that Aiida works with
@@ -131,20 +131,20 @@ inputs = {
 # simulations iterating over parameters
 
 # Iterate over meshcutoff
-process = submit(SiestaIterator, **inputs,
-    iterate_over={
-        'meshcutoff': [100,200,300,400,500,600,700,800,900],
-    },
-    batch_size=Int(4)
-)
+#process = submit(SiestaIterator, **inputs,
+#    iterate_over={
+#        'meshcutoff': [100,200,300,400,500,600,700,800,900],
+#    },
+#    batch_size=Int(4)
+#)
 
 # Iterate over meshcutoff and energyshift at the same time 
-process = submit(SiestaIterator, **inputs,
-    iterate_over={
-        'meshcutoff': [100,200,300],
-        'pao-energyshift': [0.02, 0.01, 0.05]
-    },
-)
+#process = submit(SiestaIterator, **inputs,
+#    iterate_over={
+#        'meshcutoff': [100,200,300],
+#        'pao-energyshift': [0.02, 0.01, 0.05]
+#    },
+#)
 
 # This will run three simulations with these values (meshcutoff, energyshift)
 # (100, 0.02), (200, 0.01), (300, 0.05)

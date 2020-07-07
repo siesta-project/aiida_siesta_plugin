@@ -36,6 +36,9 @@ Alberto Garcia futher refined the 1.0-compatible functionality.
 Since November 2019, Emanuele Bosoni is in charge of the code's development and maintenance, 
 under the supervision of Alberto Garcia.
 
+Pol Febrer contributed the SiestaIterator and SiestaConverger workflows, including the underline
+abstract classes system.
+
 We acknowledge partial support from the Spanish Research Agency (projects
 FIS2012-37549-C05-05, FIS2015-64886-C5-4-P and PGC2018-096955-B-C44) and  by the `MaX 
 European Centre of Excellence <http://www.max-centre.eu/>`_ funded by the Horizon 2020 
@@ -82,6 +85,8 @@ SIESTA Workflows
    workflows/bandgap
    workflows/eos
    workflows/stm
+   workflows/iterator
+   workflows/converger
 ..
    
 
