@@ -94,10 +94,11 @@ The additional inputs are:
 Outputs
 -------
 
-This WorkChain does not generate any output! It is in fact a tool to help the
+This WorkChain does not generate any output! It is, in fact, a tool to help the
 submission of multiple calculations and keep them all connected and easy accessible
-through the main workchain node, but it doesn't have any precise scope.
-AiiDA provides a powerful querying system to explore all the results of the submitted calculations.
+through the main workchain node, but it does not have any precise scope.
+AiiDA provides a powerful `querying system`_ to explore all the results of the submitted calculations
+and a tool to `organize the data`_.
 
 
 Protocol system
@@ -112,3 +113,6 @@ However inputs of the **SiestaBaseWorkChain** can be obtained in a dictionary in
 The inputs of `get_inputs_dict` are explained in the :ref:`protocols documentation <how-to>`.
 Then the user must define at least the input **iterate_over** in order to be able to submit
 the **SiestaIterator** WorkChain.
+
+.. _querying system: https://aiida.readthedocs.io/projects/aiida-core/en/latest/howto/data.html#finding-and-querying-for-data
+.. _organize the data: https://aiida.readthedocs.io/projects/aiida-core/en/latest/howto/data.html#organizing-data
