@@ -211,7 +211,7 @@ class BaseIteratorWorkChain(WorkChain, ABC):
 
         return iterator
 
-    def _parse_key(self, key):
+    def _parse_key(self, key):  #pylint: disable=no-self-use
         """
         This method is an opportunity for the user to modify the iteration keys.
 
@@ -246,7 +246,7 @@ class BaseIteratorWorkChain(WorkChain, ABC):
     # The only logic BaseIteratorWorkChain knows is to run until there are no more
     # values to iterate.
     # This method may be overwritten by child classes (see ConvergenceWorkChain)
-    def should_proceed(self):
+    def should_proceed(self):  #pylint: disable=no-self-use
         return True
 
     def next_val(self):

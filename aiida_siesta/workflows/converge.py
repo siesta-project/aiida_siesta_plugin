@@ -18,7 +18,7 @@ def generate_convergence_results(iteration_keys, variable_values, target_values,
     }
 
     if converged:
-
+        #pylint: disable=unnecessary-comprehension
         converged_parameters = DataFactory('dict')(
             dict={key: val for key, val in zip(iteration_keys, variable_values[converged_index.value])}
         )
@@ -105,7 +105,10 @@ class BaseConvergencePlugin:
                 self.ctx.converged_index = below_thresh[0]
 
             self.report(
-                f'Convergence criterium: {self.inputs.threshold.value}; Last step diffs: {diffs[-len(self.ctx.last_step_processes):]}'
+                'Convergence criterium: '
+                '{0}; Last step diffs: {1}'.format(
+                    self.inputs.threshold.value, diffs[-len(self.ctx.last_step_processes):]
+                )
             )
 
         return converged
