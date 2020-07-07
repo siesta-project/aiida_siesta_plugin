@@ -56,10 +56,10 @@ The additional inputs are:
         iterate_over = {"spin" : ["polarized", "spin-orbit"]}
 
     .. warning:: In order to guarantee full flexibility, no check on the Siesta parameters
-    is performed. If you pass as key something not recognized by Siesta,
-    the SiestaIterator will include it in the `parameters` input and run the calculation with
-    no warning issued. Because Siesta will not understand the keyword, it will ignore it,
-    resulting in a series of identical calculations.
+       is performed. If you pass as key something not recognized by Siesta,
+       the SiestaIterator will include it in the `parameters` input and run the calculation with
+       no warning issued. Because Siesta will not understand the keyword, it will ignore it,
+       resulting in a series of identical calculations.
     
   The `iterate_over` is a dictionary because it is possible to iterate over several keywords at
   the same time. Something of this kind::
