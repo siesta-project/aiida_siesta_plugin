@@ -37,9 +37,13 @@ the usage of protocols for that particular workchain.
 Supported Siesta versions
 -------------------------
 
-The protocol system supports **only the MaX-1.0 version of Siesta**, which
+At least 4.0.1 of the 4.0 series, 4.1-b3 of the 4.1 series and the MaX-1.0 release, which
 can be found in the development platform
 (https://gitlab.com/siesta-project/siesta).
+
+.. The protocol system supports **only the MaX-1.0 version of Siesta**, which
+.. can be found in the development platform
+.. (https://gitlab.com/siesta-project/siesta).
 
 
 Available protocols
@@ -58,8 +62,8 @@ A description of the global variables of each protocol are now reported.
 
 * *standard*
 
-  Pseudopotential ONCVPSPv0.4 (norm-conserving) of Pseudo Dojo in psml format, scalar relativistic,
-  PBE and with *standard* accuracy. See PseudoDojo website for more info (http://www.pseudo-dojo.org/).
+  Pseudopotential ONCVPSPv0.4 (norm-conserving) of Pseudo Dojo in psf format, scalar relativistic,
+  PBE and with *standard* accuracy. Download at https://icmab.es/leem/SIESTA_MATERIAL/tmp_PseudoDojo/nc-sr-04_pbe_standard-psf.tgz.
   Basis set apply globally, with size DZ and energy-shift of 100 meV. Meshcutoff is 100 Ry,
   electronic temp 25 meV, and a kpoint mesh with distance 0.2 are implemented.
   Concerning the trashold for convergence, we implement 1.e-3 tolerance for the density matrix,
@@ -74,8 +78,8 @@ A description of the global variables of each protocol are now reported.
 
 * *stringent*
 
-  Pseudopotential ONCVPSPv0.4 (norm-conserving) of Pseudo Dojo in psml format, scalar relativistic,
-  PBE and with *stringent* accuracy. See Pseudo Dojo website for more info (http://www.pseudo-dojo.org/).
+  Pseudopotential ONCVPSPv0.4 (norm-conserving) of Pseudo Dojo in psf format, scalar relativistic,
+  PBE and with *stringent* accuracy. Download at https://icmab.es/leem/SIESTA_MATERIAL/tmp_PseudoDojo/nc-sr-04_pbe_standard-psf.tgz.
   Basis set apply globally, with size DZP and energy-shift of 50 meV. Meshcutoff is 500 Ry,
   electronic temp 25 meV, and a kpoint mesh with distance 0.062 are implemented.
   Concerning the trashold for convergence, we implement 1.e-4 tolerance for the density matrix,
@@ -91,10 +95,10 @@ A description of the global variables of each protocol are now reported.
 
 The management of the pseudos is, at the moment, very fragile. It imposes that the user
 loads a pseudo_family with the correct name that is hard-coded for the each protocol.
-This name are 'nc-sr-04_pbe_standard_psml' and 'nc-sr-04_pbe_stringent_psml' for *standard* and
+This name are 'nc-sr-04_pbe_standard-psf' and 'nc-sr-04_pbe_stringent-psf' for *standard* and
 *stringent* protocols respectively.
 Therefore a user, before using protocol, needs to download the correct pseudos and
-load them (verdi data psml uploadfamily) with the correct name.
+load them (verdi data psf uploadfamily) with the correct name.
 ---This last part will change soon, replaced with a proper setup-profile script ----
 
 Few more variables are set for both protocols. They are related to mixing options: 
@@ -117,9 +121,17 @@ How to use protocols
 In this section we explain how to obtain a pre-filled builder according to a protocol
 and an input structure, that is ready to be submitted (or modified and then submitted).
 
-First of all, the 'nc-sr-04_pbe_standard_psml' and 'nc-sr-04_pbe_stringent_psml' set of
+First of all, the 'nc-sr-04_pbe_standard-psf' and 'nc-sr-04_pbe_stringent-psf' set of
 pseudopotentials must be downloaded and stored in the database in a family
-with the same name.
+with the same name::
+        
+        wget https://icmab.es/leem/SIESTA_MATERIAL/tmp_PseudoDojo/nc-sr-04_pbe_standard-psf.tgz
+        wget https://icmab.es/leem/SIESTA_MATERIAL/tmp_PseudoDojo/nc-sr-04_pbe_stingent-psf.tgz
+        tar -xf nc-fr-04_pbe_standard-psf.tgz
+        tar -xf nc-sr-04_pbe_stringent-psf.tgz
+        verdi data psf uploadfamily nc-fr-04_pbe_standard-psf nc-fr-04_pbe_standard-psf "Scalar-relativistic psf standard"
+        verdi data psf uploadfamily nc-sr-04_pbe_standard-psf nc-sr-04_pbe_stringent-psf "Scalar-relativistic psf stringent"
+
 
 Once this first step is done,
 the pre-filled builder can be
