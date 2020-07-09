@@ -21,7 +21,7 @@ standard:
   basis:
     pao-energy-shift: '100 meV'
     pao-basis-size: 'DZ'
-  pseudo_family: 'nc-sr-04_pbe_standard_psml'
+  pseudo_family: 'nc-sr-04_pbe_standard-psf'
   kpoints:
     distance: 0.1
     offset: [0., 0., 0.]
@@ -96,7 +96,7 @@ stringent:
   basis:
     pao-energy-shift: '50 meV'
     pao-basis-size: 'DZP'
-  pseudo_family: 'nc-sr-04_pbe_stringent_psml'
+  pseudo_family: 'nc-sr-04_pbe_stringent-psf'
   kpoints:
     distance: 0.062
     offset: [0., 0., 0.]

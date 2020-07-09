@@ -17,8 +17,8 @@ def test_registries(aiida_profile):
     """
 
     #Here I fake the pseudofamilies
-    PsmlFamily.objects.get_or_create("nc-sr-04_pbe_standard_psml")
-    PsmlFamily.objects.get_or_create("nc-sr-04_pbe_stringent_psml")
+    PsmlFamily.objects.get_or_create("nc-sr-04_pbe_standard-psf")
+    PsmlFamily.objects.get_or_create("nc-sr-04_pbe_stringent-psf")
 
     basepath = os.path.dirname(os.path.abspath(__file__))
     filepath = os.path.join(basepath, 'fixtures/protocols/registries/custom_prot.yaml')
@@ -52,8 +52,8 @@ def test_methods(aiida_profile):
     """
 
     #Here I fake the pseudofamilies
-    PsmlFamily.objects.get_or_create("nc-sr-04_pbe_standard_psml")
-    PsmlFamily.objects.get_or_create("nc-sr-04_pbe_stringent_psml")
+    PsmlFamily.objects.get_or_create("nc-sr-04_pbe_standard-psf")
+    PsmlFamily.objects.get_or_create("nc-sr-04_pbe_stringent-psf")
 
     pmanager=protocols.ProtocolManager()
         
