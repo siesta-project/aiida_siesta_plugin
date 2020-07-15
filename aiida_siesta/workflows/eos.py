@@ -185,10 +185,10 @@ def fit_and_final_dicts(**calcs):
         #residuals0 is a np array
 
     Dict = DataFactory("dict")
-    if fit_res is None:
-        result_dict = Dict(dict={'eos_data': eos})
-    else:
+    if fit_res:
         result_dict = Dict(dict={'eos_data': eos, "fit_res": fit_res})
+    else:
+        result_dict = Dict(dict={'eos_data': eos})
 
     return result_dict
 
@@ -264,6 +264,9 @@ class EqOfStateFixedCellShape(WorkChain):
         return ToContext(**calcs)  #Here it waits
 
     def return_results(self):
+
+        from aiida.engine import ExitCode
+
         self.report('All 7 calculations finished. Post process starts')
         collectwcinfo = {}
         for label in self.ctx.scales:
@@ -292,3 +295,10 @@ class EqOfStateFixedCellShape(WorkChain):
             self.report("WARNING: Birch-Murnaghan fit failed, check your results_dict['eos_data']")
 
         self.report('End of EqOfStateFixedCellShape Workchain')
+
+        return ExitCode(0)
+
+    @classmethod
+    def inputs_generator(cls):  # pylint: disable=no-self-argument,no-self-use
+        from aiida_siesta.workflows.utils.inputs_generators import EosWorkChainInputsGenerator
+        return EosWorkChainInputsGenerator(cls)

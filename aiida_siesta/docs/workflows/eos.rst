@@ -77,4 +77,14 @@ Outputs
   Present only if the Birch-Murnaghan fit is succesfull, it is the AiiDA structure
   at the equilibrium volume Vo.
 
+
+
+Protocol system
+---------------
+
+The protocol system is available for this WorkChain. The `EqOfStateFixedCellShape.inputs_generator()`
+makes available all the methods explained in the :ref:`protocols documentation <how-to>`, the
+only difference is that the relaxation type "variable-cell" is not available.
+
+
 .. _DeltaProject: https://github.com/molmod/DeltaCodesDFT/blob/master/eosfit.py

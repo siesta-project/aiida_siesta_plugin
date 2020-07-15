@@ -1,0 +1,15 @@
+In this folder we collect few scripts to show how to run workchains.
+Users should take these scripts as templates and adapt them to their own case.
+All the other script can be run through:
+	runaiida script.py code@computer {stmcode@computer}
+However, similarly to the case of plugin examples, the user should make sure that the 
+computational resources selected in the script are compatible with their "computer"
+(for instance "queue" and "account").
+
+The "example_protocol" and "example_protocols_stm" showcase 
+the use of the protocol system, a system to automatically 
+suggest inputs for the WorkChain. The protocol approach still leaves compleate freedom
+to change the inputs before submission.
+In order to use these examples, a pseudo family named 'nc-sr-04_pbe_standard_psml' must be
+loaded in the database and it should contain the 'nc-sr-04_pbe_standard_psml' pseudo set 
+available from the PseudoDojo web site (http://www.pseudo-dojo.org/). 

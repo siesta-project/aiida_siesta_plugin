@@ -1,7 +1,6 @@
 The Siesta input plugin was originally developed by Victor M. Garcia-Suarez.
 
-Alberto Garcia further improved the Siesta input plugin and wrote the parser
-for Siesta and the STM plugin.
+Alberto Garcia further improved the Siesta input plugin and wrote the parser for Siesta and the STM plugin.
 
 Emanuele Bosoni contributed the band-structure support for the Siesta plugin.
 
@@ -9,8 +8,13 @@ Vladimir Dikan and Alberto Garcia developed the workflows and
 refined the architecture of the package.
 
 Vladimir Dikan and Emanuele Bosoni ported the plugin and the base workflow to AiiDA 1.0.
-
 Alberto Garcia futher refined the 1.0-compatible functionality.
+
+Since November 2019, Emanuele Bosoni is in charge of the code's development and maintenance,
+under the supervision of Alberto Garcia.
+
+Pol Febrer contributed the SiestaIterator and SiestaConverger workflows, including the underline
+abstract classes system.
 
 We gratefully acknowledge the help and support of the AiiDA team in
 Lausanne.

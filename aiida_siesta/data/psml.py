@@ -2,13 +2,12 @@
 This module manages the PSML pseudopotentials in the local repository.
 """
 
-from aiida.common.utils import classproperty
 from aiida.common.files import md5_file
 from aiida.orm.nodes import SinglefileData
 
 # See LICENSE.txt and AUTHORS.txt
 
-PSMLGROUP_TYPE = 'data.psml.family'
+#PSMLGROUP_TYPE = 'data.psml.family'
 
 
 def get_pseudos_from_structure(structure, family_name):
@@ -65,6 +64,7 @@ def upload_psml_family(folder, group_label, group_description, stop_if_existing=
     from aiida.common import AIIDA_LOGGER as aiidalogger
     from aiida.common.exceptions import UniquenessError
     from aiida.orm.querybuilder import QueryBuilder
+    from aiida_siesta.groups.pseudos import PsmlFamily
 
     if not os.path.isdir(folder):
         raise ValueError("folder must be a directory")
@@ -80,9 +80,10 @@ def upload_psml_family(folder, group_label, group_description, stop_if_existing=
     nfiles = len(files)
 
     automatic_user = orm.User.objects.get_default()
-    group, group_created = orm.Group.objects.get_or_create(
-        label=group_label, type_string=PSMLGROUP_TYPE, user=automatic_user
-    )
+    #group, group_created = orm.Group.objects.get_or_create(
+    #    label=group_label, type_string=PSMLGROUP_TYPE, user=automatic_user
+    #)
+    group, group_created = PsmlFamily.objects.get_or_create(label=group_label, user=automatic_user)
 
     if group.user.email != automatic_user.email:
         raise UniquenessError(
@@ -258,9 +259,9 @@ class PsmlData(SinglefileData):
 
         return (pseudos[0], False)
 
-    @classproperty
-    def psmlfamily_type_string(cls):  # pylint: disable=no-self-argument,no-self-use
-        return PSMLGROUP_TYPE
+    #@classproperty
+    #def psmlfamily_type_string(cls):  # pylint: disable=no-self-argument,no-self-use
+    #    return PSMLGROUP_TYPE
 
     def store(self, *args, **kwargs):  # pylint: disable=arguments-differ
         """
@@ -328,9 +329,15 @@ class PsmlData(SinglefileData):
         """
         Get the list of all psml family names to which the pseudo belongs
         """
-        from aiida.orm import Group
+        #from aiida.orm import Group
+        from aiida.orm import QueryBuilder
+        from aiida_siesta.groups.pseudos import PsmlFamily
 
-        return [_.name for _ in Group.query(nodes=self, type_string=self.psmlfamily_type_string)]
+        query = QueryBuilder()
+        query.append(PsmlFamily, tag='group', project='label')
+        query.append(PsmlData, filters={'id': {'==': self.id}}, with_group='group')
+
+        return [_[0] for _ in query.all()]
 
     @property
     def element(self):
@@ -385,9 +392,10 @@ class PsmlData(SinglefileData):
         """
         Return the PsmlFamily group with the given name.
         """
-        from aiida.orm import Group
+        #from aiida.orm import Group
+        from aiida_siesta.groups.pseudos import PsmlFamily
 
-        return Group.get(label=group_label, type_string=cls.psmlfamily_type_string)
+        return PsmlFamily.get(label=group_label)
 
     @classmethod
     def get_psml_groups(cls, filter_elements=None, user=None):
@@ -402,25 +410,25 @@ class PsmlData(SinglefileData):
                If defined, it should be either a DbUser instance, or a string
                for the username (that is, the user email).
         """
-        from aiida.orm import Group
+        #from aiida.orm import Group
+        from aiida.orm import QueryBuilder
+        from aiida.orm import User
+        from aiida_siesta.groups.pseudos import PsmlFamily
 
-        group_query_params = {"type_string": cls.psmlfamily_type_string}
+        query = QueryBuilder()
+        #filters = {'type_string': {'==': cls.psmlfamily_type_string}}
 
-        if user is not None:
-            group_query_params['user'] = user
+        query.append(PsmlFamily, tag='group', project='*')
+
+        if user:
+            query.append(User, filters={'email': {'==': user}}, with_group='group')
 
         if isinstance(filter_elements, str):
             filter_elements = [filter_elements]
 
         if filter_elements is not None:
-            actual_filter_elements = {_.capitalize() for _ in filter_elements}
+            query.append(PsmlData, filters={'attributes.element': {'in': filter_elements}}, with_group='group')
 
-            group_query_params['node_attributes'] = {'element': actual_filter_elements}
+        query.order_by({PsmlFamily: {'id': 'asc'}})
 
-        all_psml_groups = Group.query(**group_query_params)
-
-        groups = [(g.name, g) for g in all_psml_groups]
-        # Sort by name
-        groups.sort()
-        # Return the groups, without name
-        return [_[1] for _ in groups]
+        return [_[0] for _ in query.all()]

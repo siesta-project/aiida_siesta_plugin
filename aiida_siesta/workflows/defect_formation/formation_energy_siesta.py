@@ -21,6 +21,18 @@ from .utils import get_raw_formation_energy, get_corrected_formation_energy, get
 from aiida.common import AttributeDict
 from aiida_siesta.calculations.tkdict import FDFDict
 
+def prepare_pseudo_inputs(structure, pseudos):
+    """
+    Reading Pseudos
+    """
+    for kind in structure.get_kind_names():
+        if kind not in pseudos:
+            raise ValueError('no pseudo available for element {}'.format(kind))
+
+    return pseduos
+
+
+
 class FormationEnergyWorkchainSIESTA(FormationEnergyWorkchainBase):
     """
     Compute the formation energy for a given defect using SIESTA
@@ -46,6 +58,7 @@ class FormationEnergyWorkchainSIESTA(FormationEnergyWorkchainBase):
         spec.input("siesta.dft.supercell_host.code",
             valid_type=orm.Code,
             help="The siesta code to use for the calculations")
+        spec.input_namespace('pseudos',required=False, dynamic=True)
         spec.input("siesta.dft.supercell_host.kpoints",
             valid_type=orm.KpointsData,
             help="The k-point grid to use for the calculations")
@@ -94,24 +107,24 @@ class FormationEnergyWorkchainSIESTA(FormationEnergyWorkchainBase):
         
 
         spec.outline(
-                     cls.setup,
-                     if_(cls.correction_required)(
-                                                  if_(cls.is_gaussian_scheme)
-                                                  (
-                                                  cls.raise_not_implemented
-                                                  #    cls.prep_dft_calcs_gaussian_correction,
-                                                  #    cls.check_dft_calcs_gaussian_correction,
-                                                  #    cls.get_dft_potentials_gaussian_correction,
-                                                  #    cls.check_dft_potentials_gaussian_correction,
-                                                  #    cls.run_gaussian_correction_workchain),
-                                                  #if_(cls.is_point_scheme)(
-                                                  #    cls.raise_not_implemented
-                                                  #cls.check_correction_workchain
-                                                  ))
-                    #cls.prep_dft_calcs_no_correction
+                cls.setup,
+                if_(cls.correction_required)(
+                    if_(cls.is_gaussian_scheme)(
+                        cls.raise_not_implemented
+                        #    cls.prep_dft_calcs_gaussian_correction,
+                        #    cls.check_dft_calcs_gaussian_correction,
+                        #    cls.get_dft_potentials_gaussian_correction,
+                        #    cls.check_dft_potentials_gaussian_correction,
+                        #    cls.run_gaussian_correction_workchain),
+                        #if_(cls.is_point_scheme)(
+                                              #    cls.raise_not_implemented
+                                              #    cls.check_correction_workchain
+                                                  )),
+                cls.prep_dft_calcs_no_correction
                     #cls.check_dft_calcs_no_correction
                     #cls.compute_formation_energy
                     )
+
 
     def prep_dft_calcs_no_correction(self):
  
@@ -121,21 +134,23 @@ class FormationEnergyWorkchainSIESTA(FormationEnergyWorkchainBase):
         self.report("Setting Up the No correction Formation Energy Workchain ")
         # For the Host
         siesta_inputs = self.inputs.siesta.dft.supercell_host.code.get_builder()
-        siesta_inputs = AttributeDict(self.exposed_inputs(SiestaBaseWorkChain))
+        #siesta_inputs = AttributeDict(self.exposed_inputs(SiestaBaseWorkChain)) For reusing 
+        siesta_inputs = self.input.pseudos
         siesta_inputs.structure = self.inputs.host_structure
         siesta_inputs.parameters = self.input.dft.supercell_host.parameters
         siesta_inputs.kpoints = self.inputs.siesta.dft.supercell_host.kpoints
         siesta_inputs.options = self.input.siesta.dft.supercell_host.options
         siesta_inputs.basis = self.input.siesta.dft.supercell_host.basis
-        future = self.submit(SiestaBaseWorkChain,**siesta_inputs)
-        #future = self.submit(**siesta_inputs)
+        #future = self.submit(SiestaBaseWorkChain,**siesta_inputs)
+        future = self.submit(**siesta_inputs)
         self.report(
             'Launching SIESTA for host structure (PK={})  (PK={})'
             .format(self.inputs.host_structure.pk, future.pk))
         self.to_context(**{'calc_host': future})        
         # For Defect structure; neutral charge state
         siesta_inputs = self.inputs.siesta.dft.supercell_defect_q0.code.get_builder()
-        siesta_inputs = AttributeDict(self.exposed_inputs(SiestaBaseWorkChain))
+        #siesta_inputs = AttributeDict(self.exposed_inputs(SiestaBaseWorkChain))
+        siesta_inputs = self.input.pseudos
         siesta_inputs.structure = self.inputs.defect_structure
         siesta_inputs.parameters = self.input.dft.supercell_defect_q0.parameters
         siesta_inputs.kpoints = self.inputs.siesta.dft.supercell_defect_q0.kpoints
@@ -149,7 +164,8 @@ class FormationEnergyWorkchainSIESTA(FormationEnergyWorkchainBase):
         self.to_context(**{'calc_defect_q0': future})
         # For Defect structure; target charge state
         siesta_inputs = self.inputs.siesta.dft.supercell_defect_q.code.get_builder()
-        siesta_inputs = AttributeDict(self.exposed_inputs(SiestaBaseWorkChain))
+        # siesta_inputs = AttributeDict(self.exposed_inputs(SiestaBaseWorkChain))
+        siesta_inputs = self.input.pseudos
         siesta_inputs.structure = self.inputs.defect_structure
         siesta_inputs.parameters = self.input.dft.supercell_defect_q.parameters
         siesta_inputs.kpoints = self.inputs.siesta.dft.supercell_defect_q.kpoints

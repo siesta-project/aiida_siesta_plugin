@@ -4,15 +4,15 @@ Standard Siesta plugin
 Description
 -----------
 
-A plugin for Siesta's basic functionality. 
+A plugin for Siesta main code. It allows to prepare, submit and retrieve the results of a standard siesta calculation,
+including support for the parsing of the electronic bands and the output geometry of a relaxation. 
 
 
 Supported Siesta versions
 -------------------------
 
-At least 4.0.1 of the 4.0 series, and 4.1-b3 of the 4.1 series, which
-can be found in the development platform
-(https://gitlab.com/siesta-project/siesta).
+At least 4.0.1 of the 4.0 series, 4.1-b3 of the 4.1 series and the MaX-1.0 release, which
+can be found in the development platform (https://gitlab.com/siesta-project/siesta).
 
 .. _siesta-plugin-inputs:
 
@@ -77,7 +77,12 @@ aiida_siesta/examples/plugins/siesta.
   A dictionary with scalar fdf variables and blocks, which are the
   basic elements of any Siesta input file. A given Siesta fdf file
   can be cast almost directly into this dictionary form, except that
-  some items (for structure data) are blocked. Any units are
+  some items are blocked. The blocked keywords include the system information
+  (`system-label`, `system-name`) and all the structure information as they
+  will be automatically set by Aiida. Moreover, the keyword `dm-use-save-dm` is
+  not allowed (the restart options are explained :ref:`here <siesta-restart>`)
+  and all the `pao` options, because they belong to the **basis** input 
+  (next to next in this list). Any units are
   specified for now as part of the value string. Blocks are entered
   by using an appropriate key and Python's multiline string
   constructor. For example::
@@ -87,11 +92,11 @@ aiida_siesta/examples/plugins/siesta.
     parameters = Dict(dict={
       "mesh-cutoff": "200 Ry",
       "dm-tolerance": "0.0001",
-	  "%block example-block":
-	  """
-	  first line
-	  second line
-	  %endblock example-block""",
+      "%block example-block":
+        """
+        first line
+        second line
+        %endblock example-block""",
     })
 
   Note that Siesta fdf keywords allow '.', '-', (or nothing) as internal
@@ -99,7 +104,27 @@ aiida_siesta/examples/plugins/siesta.
   inserted in the database, so it should not be used in the input script
   (or removed before assigning the dictionary to the Dict
   instance). For legibility, a single dash ('-') is suggested, as in the
-  examples above.
+  examples above. Moreover, because the parameters are passed through a python 
+  dictionary, if, by mistake, the user passes the same keyword two (or more) 
+  times, only the last specification will be considered. For instance::
+
+     parameters = Dict(dict={
+       "mesh-cutoff": "200 Ry",
+       "mesh-cutoff": "300 Ry",
+       })
+
+  will set a `mesh-cutoff` of `300 Ry`. This is the opposite respect to what is done 
+  in the Siesta code, where the first assignment is the selected one. Please note that 
+  this applies also to keywords that correspond to the same fdf variable. For instance::
+
+     parameters = Dict(dict={
+       "mesh-cutoff": "200 Ry",
+       "Mesh-Cut-off": "300 Ry",
+       })
+
+  will run a calculation with `mesh-cutoff` equal to `300 Ry`, whithout raising any
+  error.
+
 
 .. |br| raw:: html
 
@@ -108,9 +133,9 @@ aiida_siesta/examples/plugins/siesta.
 * **pseudos**, input namespace of class :py:class:`PsfData  <aiida_siesta.data.psf.PsfData>`
   OR class :py:class:`PsmlData  <aiida_siesta.data.psml.PsmlData>`, *Mandatory*
 
-  The PsfData and PsmlData classes have been implemented along the lines of the Upf class for QE.
+  The PsfData and PsmlData classes have been implemented along the lines of the Upf class of aiida-core.
 
-  One pseudopotential file per atomic element. Several species (in the
+  One pseudopotential file per atomic element is required. Several species (in the
   Siesta sense, which allows the same element to be treated differently
   according to its environment) can share the same pseudopotential. For the example
   above::
@@ -187,6 +212,10 @@ aiida_siesta/examples/plugins/siesta.
           kp_mesh = 5
           mesh_displ = 0.5 #optional
           kpoints.set_kpoints_mesh([kp_mesh,kp_mesh,kp_mesh],[mesh_displ,mesh_displ,mesh_displ])
+
+  The class `KpointsData <aiida.orm.KpointsData>` also implements the methods 
+  `set_cell_from_structure` and `set_kpoints_mesh_from_density`
+  that allow to obtain a uniform mesh automatically.
   
   If this node is not present, only the Gamma point is used for sampling.
 
@@ -237,7 +266,7 @@ aiida_siesta/examples/plugins/siesta.
      determine canonical unit cells and k-point information in an easy
      way. For more general information, refer to the `SeeK-path documentation`_.
 
-  .. warning:: as explained in the `aiida documentation`_, "SeeK-path"
+  .. warning:: "SeeK-path"
      might modify the structure to follow particular conventions
      and the generated kpoints might only 
      apply on the internally generated 'primitive_structure' and not 
@@ -361,6 +390,7 @@ The second argument contains the name of the code (code@computer) to use
 in the calculation. It must be a previously set up code, corresponding to
 a siesta executable.
 
+
 Outputs
 -------
 
@@ -375,13 +405,14 @@ accessed with the ``calculation.outputs`` method.
   list, and possibly a timing section.
   Units are specified by means of an extra item with '_units'
   appended to the key::
-
     {
       "siesta:Version": "siesta-4.0.2",
-      "E_fermi": -3.24,
-      "E_fermi_units": "eV",
-      "FreeE": -6656.2343
+      "E_Fermi": -3.24,
+      "E_Fermi_units": "eV",
+      "FreeE": -6656.2343,
       "FreeE_units": "eV",
+      "E_KS": -6656.2343,
+      "E_KS_units": 'eV',
       "global_time": 55.213,
       "timing_decomposition": {
         "compute_DM": 33.208, 
@@ -396,11 +427,10 @@ accessed with the ``calculation.outputs`` method.
       "warnings": [ "INFO: Job Completed"]
     }
 
-  The scalar quantities to include are specified in a global-variable
-  in the parser. Currently they are the Kohn-Sham, Free, Band, and Fermi
-  energies, and the total spin. These are converted to 'float'.
-  As this dictionary is sorted, keys for program values and metadata are
-  intermixed.
+  The scalar quantities included are, currently, the Kohn-Sham
+  (`E_KS`), Free (`FreeE`), Band (`Ebs`), and Fermi (`E_Fermi`)
+  energies, and the total spin (`stot`). These are converted to `float`.
+  The other quantities are or type `string`.
 
   The timing information (if present), includes the global walltime in
   seconds, and a decomposition by sections of the code. Most relevant
@@ -422,6 +452,9 @@ accessed with the ``calculation.outputs`` method.
 * **forces_and_stress** :py:class:`ArrayData <aiida.orm.ArrayData>`
 
   Contains the final forces (eV/Angstrom) and stresses (GPa) in array form.
+  To access their values::
+        forces_and_stress.get_array("forces")
+        forces_and_stress.get_array("stress")
   
 .. |br| raw:: html
 
@@ -509,6 +542,7 @@ as a string in a list, as follows::
   settings_dict = {  
       'cmdline': ['-option1', '-option2'],
   }
+  builder.settings = Dict(dict=settings_dict)
 
 Note that very few user-level comand-line options (besides those
 already inserted by AiiDA for MPI operation) are currently implemented.
@@ -524,10 +558,10 @@ those files as a list as follows::
   settings_dict = {  
     'additional_retrieve_list': ['aiida.EIG', 'aiida.ORB_INDX'],
   }
+   builder.settings = Dict(dict=settings_dict)
 
 See for example example_ldos.py in aiida_siesta/examples/plugins/siesta.
 
 .. _SeeK-path documentation: https://seekpath.readthedocs.io/en/latest/
-.. _aiida guidelines: https://aiida-core.readthedocs.io/en/latest/get_started/computers.html
+.. _aiida guidelines: https://aiida.readthedocs.io/projects/aiida-core/en/latest/howto/run_codes.html
 .. _HPKOT paper: http://dx.doi.org/10.1016/j.commatsci.2016.10.015
-.. _aiida documentation: https://aiida.readthedocs.io/projects/aiida-core/en/latest/apidoc/aiida.tools.html#aiida.tools.get_explicit_kpoints_path

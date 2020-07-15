@@ -55,22 +55,14 @@ def psf_listfamilies(elements, with_description):
     """
     from aiida import orm
     from aiida.plugins import DataFactory
-    from aiida_siesta.data.psf import PSFGROUP_TYPE
+    from aiida_siesta.groups.pseudos import PsfFamily
 
     PsfData = DataFactory('siesta.psf')  # pylint: disable=invalid-name
     query = orm.QueryBuilder()
     query.append(PsfData, tag='psfdata')
     if elements is not None:
         query.add_filter(PsfData, {'attributes.element': {'in': elements}})
-    query.append(
-        orm.Group,
-        with_node='psfdata',
-        tag='group',
-        project=['label', 'description'],
-        filters={'type_string': {
-            '==': PSFGROUP_TYPE
-        }}
-    )
+    query.append(PsfFamily, with_node='psfdata', tag='group', project=['label', 'description'])
 
     query.distinct()
     if query.count() > 0:

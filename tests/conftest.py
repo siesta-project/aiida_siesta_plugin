@@ -180,7 +180,7 @@ def generate_psml_data():
 def generate_structure():
     """Return a `StructureData` representing bulk silicon."""
 
-    def _generate_structure():
+    def _generate_structure(scale=None):
         """Return a `StructureData` representing bulk silicon."""
         from aiida.orm import StructureData
 
@@ -189,6 +189,13 @@ def generate_structure():
         structure = StructureData(cell=cell)
         structure.append_atom(position=(0., 0., 0.), symbols='Si', name='Si')
         structure.append_atom(position=(param / 4., param / 4., param / 4.), symbols='Si', name='SiDiff')
+
+        if scale:
+            the_ase = structure.get_ase()
+            new_ase = the_ase.copy()
+            new_ase.set_cell(the_ase.get_cell() * float(scale), scale_atoms=True)
+            new_structure = StructureData(ase=new_ase)
+            structure = new_structure
 
         return structure
 
@@ -297,3 +304,66 @@ def generate_remote_data():
         return remote
 
     return _generate_remote_data
+
+@pytest.fixture
+def generate_workchain():
+    """Generate an instance of a `WorkChain`."""
+
+    def _generate_workchain(entry_point, inputs):
+        """Generate an instance of a `WorkChain` with the given entry point and inputs.
+        :param entry_point: entry point name of the work chain subclass.
+        :param inputs: inputs to be passed to process construction.
+        :return: a `WorkChain` instance.
+        """
+        from aiida.engine.utils import instantiate_process
+        from aiida.manage.manager import get_manager
+        from aiida.plugins import WorkflowFactory
+
+        process_class = WorkflowFactory(entry_point)
+        runner = get_manager().get_runner()
+        process = instantiate_process(runner, process_class, **inputs)
+
+        return process
+
+    return _generate_workchain
+
+
+@pytest.fixture
+def generate_wc_job_node():
+    """Fixture to generate a mock `CalcJobNode` for testing parsers."""
+
+    def flatten_inputs(inputs, prefix=''):
+        """Flatten inputs recursively like :meth:`aiida.engine.processes.process::Process._flatten_inputs`."""
+        flat_inputs = []
+        for key, value in six.iteritems(inputs):
+            if isinstance(value, collections.Mapping):
+                flat_inputs.extend(flatten_inputs(value, prefix=prefix + key + '__'))
+            else:
+                flat_inputs.append((prefix + key, value))
+        return flat_inputs
+
+    def _generate_wc_job_node(entry_point_name, computer, inputs=None):
+        """Fixture to generate a mock `WorkChainNode` for testing parsers.
+        :param entry_point_name: entry point name of the workchain class
+        :param computer: a `Computer` instance
+        :param inputs: any optional nodes to add as input links to the corrent CalcJobNode
+        :return: `WorkChainNode` instance attached inputs if `inputs` is defined
+        """
+        from aiida import orm
+        from aiida.common import LinkType
+        from aiida.plugins.entry_point import format_entry_point_string
+
+        entry_point = format_entry_point_string('aiida.workflows', entry_point_name)
+
+        node = orm.WorkChainNode(computer=computer, process_type=entry_point)
+        
+        if inputs:
+            for link_label, input_node in flatten_inputs(inputs):
+                input_node.store()
+                node.add_incoming(input_node, link_type=LinkType.INPUT_WORK, link_label=link_label)
+
+        node.store()
+
+        return node
+
+    return _generate_wc_job_node

@@ -219,5 +219,20 @@ Outputs
 
   
 
+Protocol system
+---------------
 
-
+The protocol system is available for this WorkChain. The `SiestaSTMWorkchain.inputs_generator()`
+makes available all the methods explained in the :ref:`protocols documentation <how-to>`, but
+`get_filled_builder` now requires in inputs also the `stm_mode` (a python `str`, accepted values 
+are "constant-height" and "constant-current") and `stm_value` (a python `float` indicating
+the value of height in Ang or current in e/bohr**3).
+The STM spin mode is chosen accordingly to the `spin` input passed to `get_filled_builder`,
+setting "collinear" stm_spin in case of polarized calculation, "non-collinear" in case of 
+"spin-orbit" or "non-collinear" calculations and no spin in case of an unpolarized calculation.
+Therefore, if, for instance, the user wants to post-process a spin calculation with "no-spin"
+STM mode, he/she needs to manually modify the builder before submission.
+Also the `emin` and `emax` inputs of **SiestaSTMWorkchain** are internally chosen
+by the inputs generator: they select an energy window of 6 eV below the Fermi energy.
+If the choice doesn't suit the purpose, the user can manually modify the builder before
+submission.

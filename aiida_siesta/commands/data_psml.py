@@ -55,22 +55,14 @@ def psml_listfamilies(elements, with_description):
     """
     from aiida import orm
     from aiida.plugins import DataFactory
-    from aiida_siesta.data.psml import PSMLGROUP_TYPE
+    from aiida_siesta.groups.pseudos import PsmlFamily
 
     PsmlData = DataFactory('siesta.psml')  # pylint: disable=invalid-name
     query = orm.QueryBuilder()
     query.append(PsmlData, tag='psmldata')
     if elements is not None:
         query.add_filter(PsmlData, {'attributes.element': {'in': elements}})
-    query.append(
-        orm.Group,
-        with_node='psmldata',
-        tag='group',
-        project=['label', 'description'],
-        filters={'type_string': {
-            '==': PSMLGROUP_TYPE
-        }}
-    )
+    query.append(PsmlFamily, with_node='psmldata', tag='group', project=['label', 'description'])
 
     query.distinct()
     if query.count() > 0:
