@@ -153,7 +153,12 @@ class SiestaCalculation(CalcJob):
             parent_calc_folder = self.inputs.parent_calc_folder
         else:
             parent_calc_folder = None
-
+        #aakhtar
+        #if 'luafiles' in self.inputs:
+        #    luafiles = self.inputs.luafiles
+        #else:
+        #    luafiles = None
+        #aakhtar
         pseudos = self.inputs.pseudos
         kinds = [kind.name for kind in structure.kinds]
         if set(kinds) != set(pseudos.keys()):
@@ -180,13 +185,24 @@ class SiestaCalculation(CalcJob):
         #luafile=self.inputs.lua
         #local_copy_list.append((luafile.uuid,luafile.filename,luafile.filename))
         #-------------------------------------------------------------------------
-        luafiles=self.inputs.luafiles
-        #lfname=luafile[kind.name]
-        #lfname = []
-        for name in luafiles.keys():
-            llua=luafiles[name]
-            if isinstance(llua, LUAData):
-                local_copy_list.append((llua.uuid,llua.filename,llua.filename))
+        #luafiles=self.inputs.luafiles
+        #for name in luafiles.keys():
+        #    llua=luafiles[name]
+        #    if isinstance(llua, LUAData):
+        #        local_copy_list.append((llua.uuid,llua.filename,llua.filename))
+
+        if "luafiles" in self.inputs:
+            luafiles=self.inputs.luafiles
+            for name in luafiles.keys():
+                llua=luafiles[name]
+                if isinstance(llua, LUAData):
+                    local_copy_list.append((llua.uuid,llua.filename,llua.filename))
+        else:
+            luafiles = None
+        #for name in luafiles.keys():
+        #    llua=luafiles[name]
+        #    if isinstance(llua, LUAData):
+        #        local_copy_list.append((llua.uuid,llua.filename,llua.filename))
             
         #local_copy_list.append((luafile.uuid,luafile.filename,luafile.filename))
         #lua=FolderData(tree="/home/aakhtar/calculations/siesta/test-aiida/")

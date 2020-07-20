@@ -44,13 +44,13 @@ from aiida.engine import calcfunction
 #    return future
 
 
-def run_siesta_calculation(pw_inputs, structure, charge):
-    """
-
-    """
-
-    from aiida.engine import submit
-    from aiida_siesta.workflows.base import SiestaBaseWorkChain
+#def run_siesta_calculation(pw_inputs, structure, charge):
+#    """
+#
+#    """
+#
+#    from aiida.engine import submit
+#    from aiida_siesta.workflows.base import SiestaBaseWorkChain
 #    from aiida_quantumespresso.workflows.pw.relax import PwRelaxWorkChain
 
 @calcfunction

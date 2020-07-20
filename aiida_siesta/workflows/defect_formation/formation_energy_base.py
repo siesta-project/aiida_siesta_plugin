@@ -96,14 +96,21 @@ class FormationEnergyWorkchainBase(WorkChain):
 
         
         # Outputs
+        spec.output("neutral_formation_energy_uncorrected", 
+                valid_type=orm.Float, 
+                required=False
+        )
+        spec.output("charged_formation_energy_uncorrected", valid_type=orm.Float, required=False
+        )
+        
         spec.output(
-            "formation_energy_uncorrected", valid_type=orm.Float, required=True
+            "formation_energy_uncorrected", valid_type=orm.Float, required=False
         )
         spec.output(
-            "formation_energy_corrected", valid_type=orm.Float, required=True
+            "formation_energy_corrected", valid_type=orm.Float, required=False
         )
         spec.output(
-            "formation_energy_corrected_aligned", valid_type=orm.Float, required=True
+            "formation_energy_corrected_aligned", valid_type=orm.Float, required=False
         )
 
         # Error codes
@@ -134,17 +141,18 @@ class FormationEnergyWorkchainBase(WorkChain):
 
         # Check if correction scheme is valid:
         self.report("Checking Formation Scheme")
-        correction_schemes_available = ["gaussian", "point"]
+        correction_schemes_available = ["gaussian","point","none"]
         if self.inputs.correction_scheme is not None:
             if self.inputs.correction_scheme not in correction_schemes_available:
                 return self.exit_codes.ERROR_INVALID_CORRECTION
-       
+               
 
     def correction_required(self):
         """
         Check if correction is requested
         """
-        if self.inputs.correction_scheme is not None:
+        #if self.inputs.correction_scheme is not None:
+        if self.inputs.correction_scheme=="gaussian" or self.inputs.correction_scheme=="point": 
             self.report("Ther will be Corrections applied")
             return True
         else:
@@ -163,7 +171,12 @@ class FormationEnergyWorkchainBase(WorkChain):
         """
         return self.inputs.correction_scheme == "point"
 
-
+    def is_none_scheme(self):
+        """
+        Check if there is none scheme for correction
+        """
+        return self.inputs.correction_scheme == "none"
+  
     def run_gaussian_correction_workchain(self):
         """
         Run the workchain for the Gaussian Countercharge correction
@@ -236,7 +249,72 @@ class FormationEnergyWorkchainBase(WorkChain):
             )
             self.ctx.total_alignment = correction_wc.outputs.total_alignment
 
-    def compute_formation_energy(self):
+    
+    
+    
+    #============================================
+    # Compute Charged Formation Energy without Corrections
+    #============================================    
+    def compute_neutral_formation_energy(self):
+        """ 
+        Compute the formation energy without Correction
+        """
+        # Raw formation energy
+        self.ctx.n_f_uncorrected = get_raw_formation_energy(
+            self.ctx.defect_q0_energy,
+            self.ctx.host_energy,
+            self.inputs.chemical_potential,
+            self.inputs.defect_charge,
+            self.inputs.fermi_level,
+            self.ctx.host_vbm
+        )
+        self.report(
+            "The computed neutral formation energy without correction is {} eV".format(
+                self.ctx.n_f_uncorrected.value
+            )
+        )
+        self.out("neutral_formation_energy_uncorrected", self.ctx.n_f_uncorrected)
+
+    #==============================================
+    # Compute Charged Formation Energy without Corrections
+    #=============================================  
+    def compute_charged_formation_energy_no_corre(self):
+        """ 
+        Compute the formation energy without Correction
+        """
+        # Raw formation energy
+        self.ctx.e_f_uncorrected = get_raw_formation_energy(
+            self.ctx.defect_q_energy,
+            self.ctx.host_energy,
+            self.inputs.chemical_potential,
+            self.inputs.defect_charge,
+            self.inputs.fermi_level,
+            self.ctx.host_vbm
+        )
+        self.report(
+            "The computed charge {} e  formation energy without correction is {} eV".format(
+                self.inputs.defect_charge.value ,self.ctx.e_f_uncorrected.value
+            )
+        )
+        
+        self.report(
+               "The Grid Units is {}".format(
+                   self.ctx.host_VT.grid_unit
+                   )
+         )
+
+        
+        self.out("charged_formation_energy_uncorrected", self.ctx.e_f_uncorrected)
+
+    
+    
+    
+    
+    
+    #============================================
+    # Compute Formation Energy with Corrections
+    #============================================    
+    def compute_corrected_formation_energy(self):
         """ 
         Compute the formation energy
         """

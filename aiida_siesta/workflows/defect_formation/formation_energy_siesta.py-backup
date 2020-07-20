@@ -124,14 +124,13 @@ class FormationEnergyWorkchainSIESTA(FormationEnergyWorkchainBase):
 
         spec.outline(
                 cls.setup,
-                cls.run_dft_calcs,
+                #cls.run_dft_calcs,
                 if_(cls.correction_required)(
                     if_(cls.is_gaussian_scheme)(
                         cls.raise_not_implemented
                         )).else_(
                         cls.check_dft_calcs,
-                        cls.compute_neutral_formation_energy,
-                        cls.compute_charged_formation_energy_no_corre))
+                        cls.compute_no_corrected_formation_energy))
                 #if_(cls.is_none_scheme)(
                 #    cls.check_dft_calcs,
                 #    cls.compute_no_corrected_formation_energy))    
@@ -141,81 +140,82 @@ class FormationEnergyWorkchainSIESTA(FormationEnergyWorkchainBase):
     #=========================================================================
     # This function is for running Host and defect structure neutral & charge 
     #========================================================================
-    def run_dft_calcs(self):
- 
-        """
-        Submit All DFT Calculations
-        """
-        self.report("Setting Up the No correction Formation Energy Workchain ")
-        #--------------
-        # For the Host
-        #-------------
-        siesta_inputs = self.inputs.siesta.dft.supercell_host.code.get_builder()
-        #siesta_inputs = AttributeDict(self.exposed_inputs(SiestaBaseWorkChain)) For reusing 
-        pseudos = None
-        if "pseudos_host" in self.inputs:  #in case in the future Issue #142 will be solved
-            if self.inputs.pseudos_host:
-                pseudos = self.inputs.pseudos_host
-        #structure = None
-        structure = self.inputs.host_structure
-        siesta_inputs.pseudos = prepare_pseudo_inputs(structure, pseudos)
-        siesta_inputs.structure = structure
-        siesta_inputs.parameters = self.inputs.siesta.dft.supercell_host.parameters
-        siesta_inputs.kpoints = self.inputs.siesta.dft.supercell_host.kpoints
-        siesta_inputs.metadata["options"] = self.inputs.siesta.dft.supercell_host.options.get_dict()
-        siesta_inputs.basis = self.inputs.siesta.dft.supercell_host.basis #get_dict()
-        #future = self.submit(SiestaBaseWorkChain,**siesta_inputs)
-        future = self.submit(siesta_inputs)
-        self.report(
-            'Workflow Launching SIESTA for host structure (PK={})  (PK={})'
-            .format(structure.pk, future.pk))
-            #.format(self.inputs.host_structure.pk, future.pk))
-        self.to_context(**{'calc_host': future})        
-        #-------------------------------------------
-        # For Defect structure; neutral charge state
-        #------------------------------------------
-        siesta_inputs = self.inputs.siesta.dft.supercell_defect_q0.code.get_builder()
-        #siesta_inputs = AttributeDict(self.exposed_inputs(SiestaBaseWorkChain))
-        pseudos = None
-        if "pseudos_defect" in self.inputs:  #in case in the future Issue #142 will be solved
-            if self.inputs.pseudos_defect:
-                pseudos = self.inputs.pseudos_defect
-        structure = self.inputs.defect_structure
-        siesta_inputs.pseudos = prepare_pseudo_inputs(structure, pseudos)
-        siesta_inputs.structure = structure
-        siesta_inputs.parameters = self.inputs.siesta.dft.supercell_defect_q0.parameters
-        siesta_inputs.kpoints = self.inputs.siesta.dft.supercell_defect_q0.kpoints
-        siesta_inputs.metadata["options"] = self.inputs.siesta.dft.supercell_defect_q0.options.get_dict()
-        siesta_inputs.basis = self.inputs.siesta.dft.supercell_defect_q0.basis
-        #future = self.submit(SiestaBaseWorkChain,**siesta_inputs)
-        future = self.submit(siesta_inputs)
-        self.report(
-            'Launching SIESTA for defect structure (PK={}) with charge {} (PK={})'
-            .format(structure.pk, "0.0", future.pk))
-        self.to_context(**{'calc_defect_q0': future})
-        #------------------------------------------
-        # For Defect structure; target charge state
-        #-----------------------------------------
-        siesta_inputs = self.inputs.siesta.dft.supercell_defect_q.code.get_builder()
-        # siesta_inputs = AttributeDict(self.exposed_inputs(SiestaBaseWorkChain))
-        pseudos = None
-        if "pseudos_defect" in self.inputs:  #in case in the future Issue #142 will be solved
-            if self.inputs.pseudos_defect:
-                pseudos = self.inputs.pseudos_defect
-        structure = self.inputs.defect_structure 
-        siesta_inputs.pseudos = prepare_pseudo_inputs(structure, pseudos)
-        siesta_inputs.structure = structure
-        siesta_inputs.parameters = self.inputs.siesta.dft.supercell_defect_q.parameters
-        siesta_inputs.kpoints = self.inputs.siesta.dft.supercell_defect_q.kpoints
-        siesta_inputs.metadata["options"] = self.inputs.siesta.dft.supercell_defect_q.options.get_dict()
-        siesta_inputs.basis = self.inputs.siesta.dft.supercell_defect_q.basis
-        #future = self.submit(SiestaBaseWorkChain,**siesta_inputs)
-        future = self.submit(siesta_inputs)
-        self.report(
-            'Launching SIESTA for defect structure (PK={}) with charge {} (PK={})'
-            .format(structure.pk,
-                    self.inputs.defect_charge.value, future.pk))
-        self.to_context(**{'calc_defect_q': future})
+#    def run_dft_calcs(self):
+# 
+#        """
+#        Submit All DFT Calculations
+#        """
+#        self.report("Setting Up the No correction Formation Energy Workchain ")
+#        #--------------
+#        # For the Host
+#        #-------------
+#        siesta_inputs = self.inputs.siesta.dft.supercell_host.code.get_builder()
+#        #siesta_inputs = AttributeDict(self.exposed_inputs(SiestaBaseWorkChain)) For reusing 
+#        pseudos = None
+#        if "pseudos_host" in self.inputs:  #in case in the future Issue #142 will be solved
+#            if self.inputs.pseudos_host:
+#                pseudos = self.inputs.pseudos_host
+#        #structure = None
+#        structure = self.inputs.host_structure
+#        siesta_inputs.pseudos = prepare_pseudo_inputs(structure, pseudos)
+#        siesta_inputs.structure = structure
+#        siesta_inputs.parameters = self.inputs.siesta.dft.supercell_host.parameters
+#        siesta_inputs.kpoints = self.inputs.siesta.dft.supercell_host.kpoints
+#        siesta_inputs.metadata["options"] = self.inputs.siesta.dft.supercell_host.options.get_dict()
+#        siesta_inputs.basis = self.inputs.siesta.dft.supercell_host.basis #get_dict()
+#        #future = self.submit(SiestaBaseWorkChain,**siesta_inputs)
+#        future = self.submit(siesta_inputs)
+#        self.report(
+#            'Launching SIESTA for host structure (PK={})  (PK={})'
+#            .format(structure.pk, future.pk))
+#            #.format(self.inputs.host_structure.pk, future.pk))
+#        self.to_context(**{'calc_host': future})        
+#        #-------------------------------------------
+#        # For Defect structure; neutral charge state
+#        #------------------------------------------
+#        siesta_inputs = self.inputs.siesta.dft.supercell_defect_q0.code.get_builder()
+#        #siesta_inputs = AttributeDict(self.exposed_inputs(SiestaBaseWorkChain))
+#        pseudos = None
+#        if "pseudos_defect" in self.inputs:  #in case in the future Issue #142 will be solved
+#            if self.inputs.pseudos_defect:
+#                pseudos = self.inputs.pseudos_defect
+#        structure = self.inputs.defect_structure
+#        siesta_inputs.pseudos = prepare_pseudo_inputs(structure, pseudos)
+#        siesta_inputs.structure = structure
+#        siesta_inputs.parameters = self.inputs.siesta.dft.supercell_defect_q0.parameters
+#        siesta_inputs.kpoints = self.inputs.siesta.dft.supercell_defect_q0.kpoints
+#        siesta_inputs.metadata["options"] = self.inputs.siesta.dft.supercell_defect_q0.options.get_dict()
+#        siesta_inputs.basis = self.inputs.siesta.dft.supercell_defect_q0.basis
+#        #future = self.submit(SiestaBaseWorkChain,**siesta_inputs)
+#        future = self.submit(siesta_inputs)
+#        self.report(
+#            'Launching SIESTA for defect structure (PK={}) with charge {} (PK={})'
+#            .format(structure.pk, "0.0", future.pk))
+#        self.to_context(**{'calc_defect_q0': future})
+#        #------------------------------------------
+#        # For Defect structure; target charge state
+#        #-----------------------------------------
+#        siesta_inputs = self.inputs.siesta.dft.supercell_defect_q.code.get_builder()
+#        # siesta_inputs = AttributeDict(self.exposed_inputs(SiestaBaseWorkChain))
+#        pseudos = None
+#        if "pseudos_defect" in self.inputs:  #in case in the future Issue #142 will be solved
+#            if self.inputs.pseudos_defect:
+#                pseudos = self.inputs.pseudos_defect
+#        structure = self.inputs.defect_structure 
+#        siesta_inputs.pseudos = prepare_pseudo_inputs(structure, pseudos)
+#        siesta_inputs.structure = structure
+#        siesta_inputs.parameters = self.inputs.siesta.dft.supercell_defect_q.parameters
+#        siesta_inputs.kpoints = self.inputs.siesta.dft.supercell_defect_q.kpoints
+#        siesta_inputs.metadata["options"] = self.inputs.siesta.dft.supercell_defect_q.options.get_dict()
+#        siesta_inputs.basis = self.inputs.siesta.dft.supercell_defect_q.basis
+#        #future = self.submit(SiestaBaseWorkChain,**siesta_inputs)
+#        future = self.submit(siesta_inputs)
+#        self.report(
+#            'Launching SIESTA for defect structure (PK={}) with charge {} (PK={})'
+#            .format(structure.pk,
+#                    self.inputs.defect_charge.value, future.pk))
+#        self.to_context(**{'calc_defect_q': future})
+
     #=========================================
     # Retrieving DFT Calculations results 
     #=========================================
@@ -224,18 +224,12 @@ class FormationEnergyWorkchainSIESTA(FormationEnergyWorkchainBase):
         Check if the required calculations for the Gaussian Countercharge correction workchain
         have finished correctly.
         """
-        import sisl
-        
-        # We used sisl library read the Potential Grids
-
         self.report("Checking Up Whether DFT Caclucations are Finished ")
         # Host
         host_calc = self.ctx['calc_host']
         if host_calc.is_finished_ok:
-            self.ctx.host_energy = orm.Float(host_calc.outputs.output_parameters.get_dict()['E_KS']) # eV
-            self.ctx.host_vbm = orm.Float(0.0)
-            self.ctx.host_VT = sisl.get_sile(host_calc.outputs.remote_folder.get_remote_path()+"/aiida.VT")    
-           # self.ctx.host_vbm = orm.Float(host_calc.outputs.output_band.get_array('bands')[0][-1]) # valence band maximum
+            self.ctx.host_energy = orm.Float(host_calc.outputs.output_parameters.get_dict()['energy']) # eV
+            self.ctx.host_vbm = orm.Float(host_calc.outputs.output_band.get_array('bands')[0][-1]) # valence band maximum
         else:
             self.report(
                 'SIESTA for the host structure has failed with status {}'.
@@ -244,10 +238,7 @@ class FormationEnergyWorkchainSIESTA(FormationEnergyWorkchainBase):
 
         # Defect (q=0)
         defect_q0_calc = self.ctx['calc_defect_q0']
-        if defect_q0_calc.is_finished_ok:
-            self.ctx.defect_q0_energy = orm.Float(host_calc.outputs.output_parameters.get_dict()['E_KS'])
-            self.ctx.defect_q0_VT = sisl.get_sile(calc_defect_q0.outputs.remote_folder.get_remote_path()+"/aiida.VT")
-        else:
+        if not defect_q0_calc.is_finished_ok:
             self.report(
                 'SIESTA for the defect structure (with charge 0) has failed with status {}'
                 .format(defect_q0_calc.exit_status))
@@ -256,8 +247,7 @@ class FormationEnergyWorkchainSIESTA(FormationEnergyWorkchainBase):
         # Defect (q=q)
         defect_q_calc = self.ctx['calc_defect_q']
         if defect_q_calc.is_finished_ok:
-            self.ctx.defect_q_energy = orm.Float(defect_q_calc.outputs.output_parameters.get_dict()['E_KS']) # eV
-            self.ctx.defect_q_VT = sisl.get_sile(calc_defect_q.outputs.remote_folder.get_remote_path()+"/aiida.VT")
+            self.ctx.defect_energy = orm.Float(defect_q_calc.outputs.output_parameters.get_dict()['energy']) # eV
         else:
             self.report(
                 'SIESTA for the defect structure (with charge {}) has failed with status {}'
@@ -266,6 +256,42 @@ class FormationEnergyWorkchainSIESTA(FormationEnergyWorkchainBase):
             return self.exit_codes.ERROR_DFT_CALCULATION_FAILED
 
 
+#    def get_dft_potentials_gaussian_correction(self):
+#        """
+#        Obtain the electrostatic potentials from the SIESTA calculations.
+#        """
+
+#        # User inputs
+#        pp_inputs = self.inputs.qe.pp.code.get_builder()
+#        pp_inputs.metadata = self.inputs.qe.pp.scheduler_options.get_dict()
+
+#        # Fixed settings
+#        pp_inputs.plot_number = orm.Int(11)  # Elctrostatic potential
+#        pp_inputs.plot_dimension = orm.Int(3)  # 3D
+
+#        inputs.parent_folder = self.ctx['calc_host'].outputs.remote_folder
+#        future = self.submit(pp_inputs)
+#        self.report(
+#            'Launching SIESTA VT retrieved for host structure (PK={}) with charge {} (PK={})'.
+#            format(self.inputs.host_structure.pk, "0.0", future.pk))
+#        self.to_context(**{'pp_host': future})
+
+#        pp_inputs.parent_folder = self.ctx[
+#            'calc_defect_q0'].outputs.remote_folder
+#        future = self.submit(pp_inputs)
+#        self.report(
+#            'Launching PP.x for defect structure (PK={}) with charge {} (PK={})'
+#            .format(self.inputs.defect_structure.pk, "0.0", future.pk))
+#        self.to_context(**{'pp_defect_q0': future})
+#
+#        pp_inputs.parent_folder = self.ctx[
+#            'calc_defect_q'].outputs.remote_folder
+#        future = self.submit(pp_inputs)
+#        self.report(
+#            'Launching PP.x for defect structure (PK={}) with charge {} (PK={})'
+#            .format(self.inputs.defect_structure.pk,
+#                    self.inputs.defect_charge.value, future.pk))
+#        self.to_context(**{'pp_defect_q': future})
 
     def check_dft_potentials_gaussian_correction(self):
         """

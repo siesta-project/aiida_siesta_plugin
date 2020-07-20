@@ -1,0 +1,30 @@
+[aiida.calculations]
+siesta.siesta = aiida_siesta.calculations.siesta:SiestaCalculation
+siesta.stm = aiida_siesta.calculations.stm:STMCalculation
+
+[aiida.cmdline.data]
+psf = aiida_siesta.commands.data_psf:psfdata
+psml = aiida_siesta.commands.data_psml:psmldata
+
+[aiida.data]
+siesta.lua = aiida_siesta.data.lua:LUAData
+siesta.psf = aiida_siesta.data.psf:PsfData
+siesta.psml = aiida_siesta.data.psml:PsmlData
+
+[aiida.groups]
+data.psf.family = aiida_siesta.groups.pseudos:PsfFamily
+data.psml.family = aiida_siesta.groups.pseudos:PsmlFamily
+
+[aiida.parsers]
+siesta.parser = aiida_siesta.parsers.siesta:SiestaParser
+siesta.stm = aiida_siesta.parsers.stm:STMParser
+
+[aiida.workflows]
+siesta.bandgap = aiida_siesta.workflows.bandgap:BandgapWorkChain
+siesta.base = aiida_siesta.workflows.base:SiestaBaseWorkChain
+siesta.converger = aiida_siesta.workflows.converge:SiestaConverger
+siesta.eos = aiida_siesta.workflows.eos:EqOfStateFixedCellShape
+siesta.formation_energy_siesta = aiida_siesta.workflows.defect_formation.formation_energy_siesta:FormationEnergyWorkchainSIESTA
+siesta.iterator = aiida_siesta.workflows.iterate:SiestaIterator
+siesta.stm = aiida_siesta.workflows.stm:SiestaSTMWorkChain
+
