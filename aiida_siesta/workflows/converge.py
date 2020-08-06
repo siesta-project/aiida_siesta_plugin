@@ -29,7 +29,7 @@ def generate_convergence_results(iteration_keys, variable_values, target_values,
     return convergence_results
 
 
-class BaseConvergencePlugin:
+class BaseConvergencePlugin(InputIterator):
     '''
     Plugin to add to an Iterator workchain to convert it to a convergence workflow.
 

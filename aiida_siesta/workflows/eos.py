@@ -216,7 +216,7 @@ class EqOfStateFixedCellShape(WorkChain):
             help="Volume per atom around which to perform the EqOfState"
         )
         spec.expose_inputs(SiestaBaseWorkChain, exclude=('metadata',))
-        spec.inputs._ports['pseudos'].dynamic = True  #Temporary fix to issue #135 plumpy
+        #spec.inputs._ports['pseudos'].dynamic = True  #Temporary fix to issue #135 plumpy
         spec.outline(cls.initio, cls.run_base_wcs, cls.return_results)
         spec.output(
             'results_dict',
