@@ -51,7 +51,7 @@ class SiestaSTMWorkChain(WorkChain):
         super(SiestaSTMWorkChain, cls).define(spec)
         spec.expose_inputs(SiestaBaseWorkChain, exclude=('metadata',))
         #Temporary fix to issue #135 plumpy
-        spec.inputs._ports['pseudos'].dynamic = True  #pylint: disable=protected-access
+        #spec.inputs._ports['pseudos'].dynamic = True  #pylint: disable=protected-access
         spec.input('emin', valid_type=Float, help='Lower boundary energy (in eV respect to Ef) for LDOS calculation')
         spec.input('emax', valid_type=Float, help='Higher boundary energy (in eV respect to Ef) for LDOS calculation')
         spec.input('stm_code', valid_type=Code, help='STM plstm code')
