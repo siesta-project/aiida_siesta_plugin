@@ -814,10 +814,3 @@ class SiestaIterator(InputIterator):
     _process_class = SiestaBaseWorkChain
     _params_lookup = SIESTA_ITERATION_PARAMS
     _expose_inputs_kwargs = {'exclude': ('metadata',)}
-
-    @classmethod
-    def define(cls, spec):
-        super().define(spec)
-
-        spec.inputs._ports['pseudos'].dynamic = True
-        # spec.input('units', valid_type=Str, required=False, help='The units of the parameter')
