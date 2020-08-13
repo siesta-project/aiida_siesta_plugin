@@ -1,4 +1,3 @@
-from abc import ABC
 import itertools
 from functools import partial
 import numpy as np
@@ -14,7 +13,7 @@ from ...calculations.tkdict import FDFDict
 from ..base import SiestaBaseWorkChain
 
 
-class ProcessInputsIterator(WorkChain, ABC):
+class ProcessInputsIterator(WorkChain):
     '''
     General workflow that runs iteratively a given `_process_class`. This is an abstract class, but
     subclasses just need to define the attribute `_process_class`. By default this WorkChain allows iterations
@@ -81,8 +80,8 @@ class ProcessInputsIterator(WorkChain, ABC):
         super().__init__(*args, **kwargs)
 
     # The inputs of _process_class will always be exposed. This class variable is passed directly
-    # to spec.expose_inputs and can be used, for instance, to exclude some inputs.
-    _expose_inputs_kwargs = {'exclude': ('metadata',)}
+    # to spec.expose_inputs and can be used, for instance, to exclude some inputs or defining namespaces.
+    _expose_inputs_kwargs = {}  #{'exclude': ('metadata',), "namespace": 'process_class_inputs' }
 
     # Whether the created inputs should be reused by the next step
     # instead of always grabbing the initial user inputs (not sure use case)
@@ -198,10 +197,14 @@ class ProcessInputsIterator(WorkChain, ABC):
 
         # Make the inputs that we have exposed not required (since if you iterate over,
         # them you might not pass them directly) and save them in a variable.
-        cls._exposed_input_keys = spec._exposed_inputs[None][cls._process_class]
-
-        for input_key in cls._exposed_input_keys:
-            spec.inputs._ports[input_key].required = False
+        if "namespace" in cls._expose_inputs_kwargs:
+            cls._exposed_input_keys = spec._exposed_inputs[cls._expose_inputs_kwargs["namespace"]][cls._process_class]
+            for input_key in cls._exposed_input_keys:
+                spec.inputs._ports[cls._expose_inputs_kwargs["namespace"]][input_key].required = False
+        else:
+            cls._exposed_input_keys = spec._exposed_inputs[None][cls._process_class]
+            for input_key in cls._exposed_input_keys:
+                spec.inputs._ports[input_key].required = False
 
     def initialize(self):
         """
@@ -565,6 +568,7 @@ class SiestaBaseWorkChainInputsIterator(ProcessInputsIterator):
     are allowed as keys of the input `iterate_over`.
     """
     _process_class = SiestaBaseWorkChain
+    _expose_inputs_kwargs = {'exclude': ('metadata',)}
 
 
 # The following are helper functions to parse input values in the SiestaIterator. See
@@ -744,4 +748,5 @@ class SieGenIterator(GeneralIterator):
     """
 
     _process_class = SiestaBaseWorkChain
+    _expose_inputs_kwargs = {'exclude': ('metadata',)}
     _params_lookup = SIESTA_ITERATION_PARAMS
