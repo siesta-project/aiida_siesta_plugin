@@ -4,13 +4,10 @@ import numpy as np
 
 from aiida.plugins import DataFactory
 from aiida.engine import WorkChain, while_, ToContext
-from aiida.orm import Str, List, KpointsData, Int, Node
+from aiida.orm import Str, List, Int, Node
 from aiida.orm.nodes.data.base import to_aiida_type
 from aiida.orm.utils import load_node
 from aiida.common import AttributeDict
-
-from ...calculations.tkdict import FDFDict
-from ..base import SiestaBaseWorkChain
 
 
 class ProcessInputsIterator(WorkChain):
@@ -40,7 +37,7 @@ class ProcessInputsIterator(WorkChain):
     for instance, a convergence check.
 
     Following, we display the expanded outline of the workchain in pseudocode to help
-    understand how it works and realise what can be overidden whithout breaking the code:
+    understand how it works and what can be overidden whithout breaking the code:
     -------------------------------------------------------------------------------
     cls.initialize:
         cls._get_iterator:
@@ -83,8 +80,8 @@ class ProcessInputsIterator(WorkChain):
     # to spec.expose_inputs and can be used, for instance, to exclude some inputs or defining namespaces.
     _expose_inputs_kwargs = {}  #{'exclude': ('metadata',), "namespace": 'process_class_inputs' }
 
-    # Whether the created inputs should be reused by the next step
-    # instead of always grabbing the initial user inputs (not sure use case)
+    # Whether the created inputs should be reused by the next step instead of always
+    # grabbing the initial user inputs (use case: sequential converger)
     _reuse_inputs = False
 
     @classmethod
@@ -209,22 +206,42 @@ class ProcessInputsIterator(WorkChain):
     def initialize(self):
         """
         Initializes the variables that are used through the workchain.
-        The method `_get_iterator` is called. It analyzes the input ports
-        `iterate_over` and `iterate_mode` and creates the iterator.
-        The method process_input_and_parse_func is called. It defines the supported
-        quantity to iterate over and their management.
+        The methods `_parse_iterate_over` and `_get_iterator` are called.
+        The first method analyzes the input ports `iterate_over`, performs checks on its
+        content and organizes into context the informations. The second method adds the info
+        from the port `iterate_mode` and creates the iterator.
         """
 
         self.ctx.variable_values = []
 
-        # Here we create self.ctx.values_iterator, but also self.ctx.iteration_keys,
-        # the list of keys passed by the user through the input `iterate_over`.
+        # Here we check the `iterate_over` input and prepare many variables that are used through the
+        # workchain. They are:
+        #  self.ctx.iteration_keys, list of keys of `iterate_over`
+        #  self.ctx.iteration_vals, all the values for each key
+        #  self.ctx._process_input_keys, dict containing a map between keys and inputs of _process_class
+        #  self.ctx._parsing_funcs, dict containing a map between keys and functions to process them
+        self._parse_iterate_over()
+
+        # Here we create self.ctx.values_iterator, the actual iterator
         self.ctx.values_iterator = self._get_iterator()
 
-        # Here, for each key of `iterate_over`, we run `process_input_and_parse_func`.
-        # It checks for forbidden keys and sets the management of allowed ones. A process_input
-        # (stored in self.ctx._process_input_key) and a parsing_func (in self.ctx._parsing_funcs)
-        # is associated to each key. See `process_input_and_parse_func` documentation for info.
+    def _parse_iterate_over(self):
+        """
+        Sets up self.ctx.iteration_keys (list of keys of `iterate_over`, passed by user)
+        and self.ctx.iteration_vals (list of lists. Each list contains the values
+        for the corresponding key).
+        For each element of self.ctx.iteration_keys, we run `process_input_and_parse_func`.
+        It checks for forbidden keys and sets the management of allowed ones. A process_input
+        (stored in self.ctx._process_input_key) and a parsing_func (in self.ctx._parsing_funcs)
+        is associated to each key. See `process_input_and_parse_func` documentation for info.
+        """
+
+        iterate_over = self.inputs.iterate_over.get_dict()
+
+        # Get the names of the parameters and the values
+        self.ctx.iteration_keys = tuple(iterate_over.keys())
+        self.ctx.iteration_vals = tuple(iterate_over[key] for key in self.ctx.iteration_keys)
+
         self.ctx._process_input_keys = {}
         self.ctx._parsing_funcs = {}
         for key in self.ctx.iteration_keys:
@@ -239,12 +256,7 @@ class ProcessInputsIterator(WorkChain):
         `iterate_over` and `iterate_mode`. Here also `port_name_and_parse_func` is called.
         """
 
-        iterate_over = self.inputs.iterate_over.get_dict()
         iterate_mode = self.inputs.iterate_mode.value
-
-        # Get the names of the parameters and the values
-        self.ctx.iteration_keys = tuple(iterate_over.keys())
-        self.ctx.iteration_vals = tuple(iterate_over[key] for key in self.ctx.iteration_keys)
 
         # Define the iterator depending on the iterate_mode.
         if iterate_mode == 'zip':
@@ -258,7 +270,7 @@ class ProcessInputsIterator(WorkChain):
     def process_input_and_parse_func(cls, key):  #pylint: disable=no-self-use
         """
         This method is an opportunity for the developers to define the accepted iteration parameters
-        (keys of `iterate_over`) and their management. It is called in `initialize`.
+        (keys of `iterate_over`) and their management. It's called in `initialize` through `_parse_iterate_over`.
         In the following, we will call "key" the parameter name (key of `iterate_over`).
         Scopes:
         1) To implement errors for forbidden keys.
@@ -404,7 +416,6 @@ class ProcessInputsIterator(WorkChain):
         # just takes a key and modifies the inputs accordingly. This should
         # be fine as most certainly each parameter can be set independently.
         # The self.current_val is the node containing the value!
-        print(self.current_val)
         for key, val in zip(self.ctx.iteration_keys, self.current_val):
             self._add_inputs(key, val, inputs)
 
@@ -557,196 +568,3 @@ class GeneralIterator(ProcessInputsIterator):
             parse_func = partial(parse_func, input_key=input_key, parameter=parameter, **kwargs)
 
         return input_key, parse_func
-
-
-########################################################
-
-
-class SiestaBaseWorkChainInputsIterator(ProcessInputsIterator):
-    """
-    Iterator for the SietaBaseWorkChain. No parameters other than the SietaBaseWorkChain inputs
-    are allowed as keys of the input `iterate_over`.
-    """
-    _process_class = SiestaBaseWorkChain
-    _expose_inputs_kwargs = {'exclude': ('metadata',)}
-
-
-# The following are helper functions to parse input values in the SiestaIterator. See
-# the global dict SIESTA_ITERATION_PARAMS to know which parameters make use of them.
-
-
-def set_up_parameters_dict(val, inputs, parameter, input_key, defaults=None):
-    """
-    Parsing function that sets an fdf parameter.
-
-    This is used by the basis parameters (input_key='basis') and the rest of
-    fdf parameters (input_key='parameters')
-
-    Parameters
-    -----------
-    val: str, float, int, bool
-        the value to set for the parameter.
-    inputs: AttributeDict
-        all the current inputs, so that we can extract the curren FDFdict.
-    parameter: str
-        the name of the fdf flag. Case and hyphen insensitive.
-    input_key: str
-        the input of the fdf dict that should be modified.
-    defaults: dict, optional
-        a dictionary of defaults. The only key that matters right now is "units",
-        which is the units to set for the value if the value is a number. This may change.
-    """
-
-    val = getattr(val, "value", val)
-
-    # Get the current FDFdict for the corresponding input
-    parameters = getattr(inputs, input_key, DataFactory('dict')())
-    parameters = FDFDict(parameters.get_dict())
-
-    # Set the units for the value if needed
-    if isinstance(val, (int, float)) and defaults and "units" in defaults:
-        val = f'{val} {defaults["units"]}'
-
-    # Then set the value of the parameter in the FDF dict.
-    parameters[parameter] = val
-
-    # And then just translate it again to a dict to use it in the input
-    return DataFactory('dict')(dict=parameters.get_dict())
-
-
-def set_up_kpoint_grid(val, inputs, parameter, input_key='kpoints'):
-    """
-    Parsing function that sets a kpoint grid.
-
-    This is used by the basis parameters (input_key='basis') and the rest of
-    fdf parameters (input_key='parameters')
-
-    Parameters
-    -----------
-    val: str, float, int, bool
-        the value to set for the parameter.
-    inputs: AttributeDict
-        all the current inputs, so that we can extract the old kpoints.
-    parameter: str, {'kpoints_density', 'kpoints_0', 'kpoints_1', 'kpoints_2'}
-        used to understand how to parse the value.
-
-        If 'kpoints_density': the value is interpreted as the maximum distance
-        between two grid points along a reciprocal axis.
-
-        Else, it is interpreted as the number of points for one of the components
-        of the grid.
-    input_key: str
-        the input of the fdf dict that should be modified.
-    """
-
-    # If there is already a KpointsData() in inputs grab it to modify it
-    old_kpoints = getattr(inputs, input_key, None)
-
-    # Else define a new one
-    if old_kpoints is None:
-        old_kpoints = KpointsData()
-
-    # Get the mesh and the offset
-    try:
-        mesh, offset = old_kpoints.get_kpoints_mesh()
-    except (KeyError, AttributeError):
-        mesh, offset = [1, 1, 1], [0, 0, 0]
-
-    # Get also the cell
-    if hasattr(old_kpoints, 'cell'):
-        cell = old_kpoints.cell
-        pbc = old_kpoints.pbc
-    else:
-        cell = inputs.structure.cell
-        pbc = inputs.structure.pbc
-
-    # And finally define the new KpointsData according to the required mode.
-
-    # Change the density
-    if parameter == 'kpoints_density':
-        new_kpoints = KpointsData()
-        new_kpoints.set_cell(cell)
-        new_kpoints.pbc = pbc
-        new_kpoints.set_kpoints_mesh_from_density(val.value, offset=offset)
-
-    # Change an individual component
-    else:
-
-        component = int(parameter[-1])
-
-        mesh[component] = val
-
-        new_kpoints = KpointsData()
-        new_kpoints.set_kpoints_mesh(mesh, offset)
-
-    return new_kpoints
-
-
-# This is the parameters' look up list for the siesta iterator, which enables iterating
-# over extra parameters apart from the inputs of SiestaBaseWorkChain. This may be taken
-# as an example to allow extra parameters in any input iterator that uses a different
-# process.
-
-SIESTA_ITERATION_PARAMS = (
-    (
-        "Basis parameters", {
-            "input_key":
-            "basis",
-            "parse_func":
-            set_up_parameters_dict,
-            "condition":
-            lambda parameter: FDFDict.translate_key(parameter).startswith("pao"),
-            "keys":
-            FDFDict({
-                "paobasissize": {
-                    'defaults': {
-                        'values_list': ['SZ', 'SZP', 'DZ', 'DZP', 'TZ', 'TZP']
-                    }
-                },
-                "paoenergyshift": {
-                    'defaults': {
-                        'units': 'Ry'
-                    }
-                }
-            })
-        }
-    ),
-    (
-        "SCF Brillouin zone", {
-            "input_key": "kpoints",
-            "parse_func": set_up_kpoint_grid,
-            "keys": {
-                'kpoints_density': None,
-                'kpoints_0': None,
-                'kpoints_1': None,
-                'kpoints_2': None
-            }
-        }
-    ),
-    (
-        "FDF parameters", {
-            "input_key": "parameters",
-            "condition": lambda parameter: True,
-            "parse_func": set_up_parameters_dict,
-            "keys": FDFDict({"meshcutoff": {
-                'defaults': {
-                    'units': 'Ry',
-                    'init_value': 100,
-                    'step': 100
-                }
-            }})
-        }
-    ),
-)
-
-
-class SieGenIterator(GeneralIterator):
-    """
-    Iterator for the SietaBaseWorkChain. The iterator is extended to iterate over any Siesta keyword.
-    WARNING: if a keyword not recognized by Siesta is used in `iterate_over`, the iterator will not
-    complain. It will just add the keyword to the parameters dict and run the calculation!
-    """
-
-    _process_class = SiestaBaseWorkChain
-    _expose_inputs_kwargs = {'exclude': ('metadata',)}
-    _params_lookup = SIESTA_ITERATION_PARAMS
