@@ -193,7 +193,7 @@ SIESTA_ITERATION_PARAMS = (
 )
 
 
-class SieGenIterator(GeneralIterator):
+class SiestaIterator(GeneralIterator):
     """
     Iterator for the SietaBaseWorkChain. The iterator is extended to iterate over any Siesta keyword.
     WARNING: if a keyword not recognized by Siesta is used in `iterate_over`, the iterator will not
