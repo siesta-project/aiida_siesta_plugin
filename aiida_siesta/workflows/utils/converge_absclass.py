@@ -4,7 +4,7 @@ from aiida.engine import calcfunction
 from aiida.orm import Float, Str, List, Bool, Int
 from aiida.plugins import DataFactory
 
-from .iterate_absclass import GeneralIterator, ProcessInputsIterator
+from .iterate_absclass import BaseIterator
 
 
 @calcfunction
@@ -29,7 +29,7 @@ def generate_convergence_results(iteration_keys, variable_values, target_values,
     return convergence_results
 
 
-class BasicConverger(GeneralIterator):
+class BasicConverger(BaseIterator):
     '''
     Plugin to add to an Iterator workchain to convert it to a convergence workflow.
 
@@ -157,7 +157,7 @@ class BasicConverger(GeneralIterator):
         super().return_results()
 
 
-class SequentialConverger(ProcessInputsIterator):
+class SequentialConverger(BaseIterator):
     '''
     Launches several convergence workchains sequentially. It is actally an iterator that
     iterate a _process_class which is a converger!!!!
@@ -187,16 +187,18 @@ class SequentialConverger(ProcessInputsIterator):
     _expose_inputs_kwargs = {'exclude': ("iterate_over",), "namespace": 'converger_inputs'}
     _reuse_inputs = True
 
-    def __init__(self, *args, **kwargs):
-        """Construct the instance. Just needed to implement a check on the passed _process_class"""
+    def __init_subclass__(cls, *args, **kwargs):
+        """
+        Imposes some requirements for each class that will inherit from the present class
+        """
 
-        try:
-            if not issubclass(self._process_class, BasicConverger):
-                raise ValueError('no valid `_process_class` attribute, it must be a Converger!')
-        except TypeError:
-            raise ValueError('no valid `_process_class` attribute, it must be a Converger!')
+        super().__init_subclass__(*args, **kwargs)
 
-        super().__init__(*args, **kwargs)
+        if cls._process_class is not None:
+            if not issubclass(cls._process_class, BasicConverger):
+                raise ValueError(
+                    'no valid Process class defined for `_process_class` attribute. It must be a Converger!'
+                )
 
     @classmethod
     def define(cls, spec):

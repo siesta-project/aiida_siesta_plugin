@@ -3,26 +3,7 @@ from aiida.orm import KpointsData
 
 from ...calculations.tkdict import FDFDict
 from ..base import SiestaBaseWorkChain
-from .iterate_absclass import ProcessInputsIterator, GeneralIterator
-
-
-class SiestaBaseWorkChainInputsIterator(ProcessInputsIterator):
-    """
-    Iterator for the SietaBaseWorkChain. No parameters other than the SietaBaseWorkChain inputs
-    are allowed as keys of the input `iterate_over`.
-    """
-    _process_class = SiestaBaseWorkChain
-    _expose_inputs_kwargs = {'exclude': ('metadata',)}
-
-
-class SiestaBaseWorkChainInputsIterator2(ProcessInputsIterator):
-    """
-    Iterator for the SietaBaseWorkChain. No parameters other than the SietaBaseWorkChain inputs
-    are allowed as keys of the input `iterate_over`. Add namespace
-    """
-    _process_class = SiestaBaseWorkChain
-    _expose_inputs_kwargs = {'exclude': ('metadata',), "namespace": 'sies'}
-
+from .iterate_absclass import BaseIterator
 
 # The following are helper functions to parse input values in the SiestaIterator. See
 # the global dict SIESTA_ITERATION_PARAMS to know which parameters make use of them.
@@ -193,7 +174,7 @@ SIESTA_ITERATION_PARAMS = (
 )
 
 
-class SiestaIterator(GeneralIterator):
+class SiestaIterator(BaseIterator):
     """
     Iterator for the SietaBaseWorkChain. The iterator is extended to iterate over any Siesta keyword.
     WARNING: if a keyword not recognized by Siesta is used in `iterate_over`, the iterator will not
