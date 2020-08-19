@@ -122,55 +122,53 @@ def set_up_kpoint_grid(val, inputs, parameter, input_key='kpoints'):
 # process.
 
 SIESTA_ITERATION_PARAMS = (
-    (
-        "Basis parameters", {
-            "input_key":
-            "basis",
-            "parse_func":
-            set_up_parameters_dict,
-            "condition":
-            lambda parameter: FDFDict.translate_key(parameter).startswith("pao"),
-            "keys":
-            FDFDict({
-                "paobasissize": {
-                    'defaults': {
-                        'values_list': ['SZ', 'SZP', 'DZ', 'DZP', 'TZ', 'TZP']
-                    }
-                },
-                "paoenergyshift": {
-                    'defaults': {
-                        'units': 'Ry'
-                    }
-                }
-            })
-        }
-    ),
-    (
-        "SCF Brillouin zone", {
-            "input_key": "kpoints",
-            "parse_func": set_up_kpoint_grid,
-            "keys": {
-                'kpoints_density': None,
-                'kpoints_0': None,
-                'kpoints_1': None,
-                'kpoints_2': None
-            }
-        }
-    ),
-    (
-        "FDF parameters", {
-            "input_key": "parameters",
-            "condition": lambda parameter: True,
-            "parse_func": set_up_parameters_dict,
-            "keys": FDFDict({"meshcutoff": {
+
+    {
+        "group_name": "Basis parameters",
+        "input_key": "basis",
+        "parse_func": set_up_parameters_dict,
+        "condition": lambda parameter: FDFDict.translate_key(parameter).startswith("pao"),
+        "keys":
+        FDFDict({
+            "paobasissize": {
                 'defaults': {
-                    'units': 'Ry',
-                    'init_value': 100,
-                    'step': 100
+                    'values_list': ['SZ', 'SZP', 'DZ', 'DZP', 'TZ', 'TZP']
                 }
-            }})
+            },
+            "paoenergyshift": {
+                'defaults': {
+                    'units': 'Ry'
+                }
+            }
+        })
+    },
+    
+    {
+        "group_name": "SCF Brillouin zone",
+        "input_key": "kpoints",
+        "parse_func": set_up_kpoint_grid,
+        "keys": {
+            'kpoints_density': None,
+            'kpoints_0': None,
+            'kpoints_1': None,
+            'kpoints_2': None
         }
-    ),
+    },
+    
+    {
+        "group_name": "FDF parameters",
+        "input_key": "parameters",
+        "condition": lambda parameter: True,
+        "parse_func": set_up_parameters_dict,
+        "keys": FDFDict({"meshcutoff": {
+            'defaults': {
+                'units': 'Ry',
+                'init_value': 100,
+                'step': 100
+            }
+        }})
+    }
+    
 )
 
 
