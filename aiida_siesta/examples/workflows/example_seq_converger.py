@@ -14,7 +14,7 @@ import os.path as op
 import sys
 
 # AiiDA classes and functions
-from aiida.engine import submit
+from aiida.engine import submit, run
 from aiida.orm import load_code
 from aiida.orm import Float, Dict, StructureData, Str, Int, KpointsData
 from aiida_siesta.data.psf import PsfData
@@ -131,24 +131,22 @@ inputs = {
     'options': options,
 }
 
-
-# Now that we have all our inputs ready, we will just try to converge the kpoints,
-# the mesh cutoff and the energy shift. To do it, we just pass a list of dictionaries
-# to iterate_over. Each dictionary will be passed to the "iterate_over" input of the
-# SiestaConverger (which works exactly like the SiestaIterator). Therefore, each
-# dictionary contains information about what needs to be converged. 
+# Up until this point, all the things done have been general to any SIESTA
+# simulation. Now, we will use the SiestaConverger to converge the mesh cutoff
+# and the pao-energyshift simultaneously, meaning increasing both at the same time.
 process = submit(SiestaSequentialConverger,
     iterate_over=[
-        # First we want to converge the kpoints by increasing all componentsat the same time.
+        # First we want to converge the kpoints by increasing all components
+        # at the same time.
         {
-            'kpoints_0': [2,4,6,8,10,12,14,16,18,20],
-            'kpoints_1': [2,4,6,8,10,12,14,16,18,20],
-            'kpoints_2': [2,4,6,8,10,12,14,16,18,20],
+            'kpoints_0': [4,10,12,14,16,18,20],
+            'kpoints_1': [4,10,12,14,16,18,20],
+            'kpoints_2': [4,10,12,14,16,18,20],
         },
         # Then the mesh cutoff (using the default units, Ry)
         {
-            'meshcutoff': [100, 200, 300, 400, 500, 600, 700,
-                            800, 900, 1000, 1100],
+            'meshcutoff': [500, 600, 700,
+                            800, 900, 1000],
         },
         # And finally the energy shift (using the default units, Ry)
         {
@@ -166,11 +164,10 @@ process = submit(SiestaSequentialConverger,
         "target": Str('E_KS'),
         "threshold": Float(0.01),
         # And we also specify a batch size to submit more than one job at a time
-        "batch_size": Int(3)
+        "batch_size": Int(1)
     }
+    
 )
-
-
 # Print some info
 print("Submitted workchain; ID={}".format(process.pk))
 print(
