@@ -12,12 +12,9 @@ from aiida.common import AttributeDict
 
 class BaseIterator(WorkChain):
     '''
-    General workflow that runs iteratively a given `_process_class`. This is an abstract class, but
-    subclasses just need to define the attribute `_process_class`. By default this WorkChain allows iterations
-    over all the inputs of `_process_class`, but it can be extended to support iterations over
-    other parameters. The extention is done defining the attribute `_params_lookup`.
-
-    NEED TO EXPLAIN _params_lookup
+    General workflow that runs iteratively a given `_process_class`.
+    
+    This is an abstract class, but subclasses just need to define the attribute `_process_class`. 
 
     The quantity to iterate over is defined in the input `iterate_over`. It is a dictionary ("key", "value")
     where "key" is the name of a parameter we want to iterate over (`str`) and "value" is a `list` with all
@@ -25,7 +22,7 @@ class BaseIterator(WorkChain):
     possible to iterate over several keywords at the same time. The way the algorithm deals with these
     multiple iterations is decided by the `iterate_mode` input.
     Because aiida accepts in input only lists of json-serializable objects, we have a serializer
-    that transforms the list of values in a list of pks of aiida objects storing those values.
+    that transforms the list of values into a list of pks of aiida objects storing those values.
     An example:
         struct1 = StructureData(ase=ase_struct_1)
         struct2 = StructureData(ase=ase_struct_2)
@@ -33,6 +30,54 @@ class BaseIterator(WorkChain):
     will be internally serialized to iterate_over = {"structure" : [struct1.pk,struct2.pk]}.
     The serialization is managed in `_iterate_input_serializer` and `_values_list_serializer`, that can be
     overridden in case, but this will impose also the change of the `_next_val` method.
+
+    By default this WorkChain allows iterations only directly over the inputs of `_process_class`, but it
+    can be extended to support other parameters using the `_params_lookup` variable.
+    This variable indicates how to parse the values when the user wants to iterate over a certain parameter.
+    It should be a list of dictionaries where each dictionary should have the following keys:
+
+    group_name: str, optional
+        The name of the group of parameters. Currently not used, but it will probably be used
+        to show help messages.
+    input_key: str
+        The input of the process where the parsed values will end up.
+    parse_func: function
+        The function that will be used to parse the values for the parameters
+        
+        Its first arguments should be the value to parse (as an aiida node) and the full inputs 
+        AttributeDict that is going to be passed to the process class. Also it should accept the `input_key` and
+        `parameter` keyword arguments, which provides the input_key where the parsed value will go
+        and the name of the parameter that the function is parsing. Finally, it needs to accept all kwargs
+        that you define in the `keys` key (see below).
+
+        It should not modify the inputs AttributeDict in place, but return the parsed value.
+
+        E.g.:
+
+        def parse_myparameters(val, inputs, parameter, input_key, **kwargs):
+
+            ...do your parsing
+
+            return parsed_value
+    condition: function, optional
+        a function that receives the name of the parameter and decides whether it belongs to this group.
+
+        It should return either `True`, or `False`.
+
+        It will only be used if the key is not explicitly defined in the `keys` key (see below).
+        If not provided, it will always return `False`
+    keys: dict
+        a dictionary where each key is a parameter that can be accepted and each value is either
+        a dict containing the kwargs that will be passed to `parse_func` or None (same as empty dict).
+
+        Even when a parameter is not defined here, it will be accepted if it fulfills `condition`.
+
+    The `_params_lookup` variable is only used in the `process_input_and_parse_func` method, so you can check
+    the code there to understand how exactly is used (it is quite simple).
+
+    IMPORTANT NOTE: The order in `_params_lookup` matters. The workchain will go group by group trying to 
+    match the input parameter. If it matches a certain group, it will settle with it and won't continue to
+    check the following groups.
 
     The design of the class also makes this class extensible to do something more than just iterate.
     The methods cls.return_results, cls.analyze_process, cls._should_proceed can be overridden to support,
@@ -96,7 +141,7 @@ class BaseIterator(WorkChain):
 
         super().__init__(*args, **kwargs)
 
-    # The _params_lookup contains the indications on allowed parameters to
+    # The _params_lookup variable contains the indications on allowed parameters to
     # iterate over. It is optional in child classes. If not set, only iteration
     # over the inputs of _process_class are allowed.
     _params_lookup = ()
@@ -330,7 +375,7 @@ class BaseIterator(WorkChain):
             # it belongs. Note that the parameter will stay in the first group that "accepts"
             # it, although there may be multiple groups where it fits. Therefore, order is important
             # in the parameters look up list
-            for _, parameters_group in cls._params_lookup:
+            for parameters_group in cls._params_lookup:
 
                 # Check if the parameter is in the group's explicit keys or if it matches a condition.
                 in_keys = parameter in parameters_group['keys']
@@ -351,41 +396,6 @@ class BaseIterator(WorkChain):
             parse_func = partial(parse_func, input_key=input_key, parameter=parameter, **kwargs)
 
         return input_key, parse_func
-
-#    @classmethodi
-#    def process_input_and_parse_func(cls, parameter):  #pylint: disable=no-self-use
-#        """
-#        This method is an opportunity for the developers to define the accepted iteration parameters
-#        (keys of `iterate_over`) and their management. It's called in `initialize` through `_parse_iterate_over`.
-#        In the following, we will call "parameter" the parameter name (key of `iterate_over`).
-#        Scopes:
-#        1) To implement errors for forbidden parameters.
-#        2) For each allowed parameter, to define the process_input and the parsing_func. The process_input is the
-#           `_process_class` input that needs to be modified when the parameter is called. The parsing function is
-#           the function that will implement the modifications. Each parsing function must return a node
-#           of the type accepted by process_input.
-#           For instance if one wants to support iterations over `meshcutoff` of siesta, its process_input
-#           will be `parameters` and parsing_func will be a function that takes the value of meshcutoff
-#           and modifies the parametrs port accordingly.
-#        By default, the only accepted parameters are the name of the exposed inputs of `_process_class`, therefore
-#        the process_input is the parameter itself and there is no need for a parsing_function.
-#
-#        :param parameter: parameter (`str`) the user wants to iterate over, key of `iterate_over`
-#        :return: a `str` with the name of the process input that needs to be modified in presence of "key"
-#        :return: a python function that takes "key" and a corresponding value and returns an aiida dat node
-#                 of the type accepted by "key".
-#        """
-#
-#        #In order to make use of cls._exposed_input_keys, we need to call first spec
-#        cls.spec()
-#
-#        if parameter not in cls._exposed_input_keys:
-#            raise ValueError("Iteration over {} is not supported".format(parameter))
-#
-#        process_input = parameter
-#        parsing_func = None
-#
-#        return process_input, parsing_func
 
     def next_step(self):
         """
@@ -568,25 +578,3 @@ class BaseIterator(WorkChain):
         Takes care of postprocessing and returning the results of the workchain to the user.
         (if any outputs need to be returned)
         '''
-
-
-#class GeneralIterator(ProcessInputsIterator):
-#
-#    """
-#    This class proposes a general schema to extend the iteration over parameters other than the inputs
-#    of `_process_class`. It provides a systematic way to define groups of allowed parameters sharing
-#    the same process_input (the input of `_process_class` to be modified) and parsing_function
-#    (the function that returns a modifid process_input node according to the corresponding parameters).
-#    The core quantity of the schema is the attribute _params_lookup that is a list that must have
-#    the following  structure:
-#        _params_lookup = (
-#            ("group_name_1", {"input_keys": ..., "parse_func": ..., "condition": ..., "keys": ...})
-#            ("group_name_2", {"input_keys": ..., "parse_func": ..., "condition": ..., "keys": ...})
-#        )
-#    Explain here Pol, please
-#
-#    ...
-#    It is an abstract class as its parent ProcessInputsIterator. The attributes _params_lookup
-#    and _process_class must be defined!
-#
-#    """
