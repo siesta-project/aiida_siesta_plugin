@@ -13,8 +13,8 @@ from aiida.common import AttributeDict
 class BaseIterator(WorkChain):
     '''
     General workflow that runs iteratively a given `_process_class`.
-    
-    This is an abstract class, but subclasses just need to define the attribute `_process_class`. 
+
+    This is an abstract class, but subclasses just need to define the attribute `_process_class`.
 
     The quantity to iterate over is defined in the input `iterate_over`. It is a dictionary ("key", "value")
     where "key" is the name of a parameter we want to iterate over (`str`) and "value" is a `list` with all
@@ -35,47 +35,35 @@ class BaseIterator(WorkChain):
     can be extended to support other parameters using the `_params_lookup` variable.
     This variable indicates how to parse the values when the user wants to iterate over a certain parameter.
     It should be a list of dictionaries where each dictionary should have the following keys:
-
-    group_name: str, optional
-        The name of the group of parameters. Currently not used, but it will probably be used
-        to show help messages.
-    input_key: str
-        The input of the process where the parsed values will end up.
-    parse_func: function
-        The function that will be used to parse the values for the parameters
-        
-        Its first arguments should be the value to parse (as an aiida node) and the full inputs 
-        AttributeDict that is going to be passed to the process class. Also it should accept the `input_key` and
-        `parameter` keyword arguments, which provides the input_key where the parsed value will go
-        and the name of the parameter that the function is parsing. Finally, it needs to accept all kwargs
-        that you define in the `keys` key (see below).
-
-        It should not modify the inputs AttributeDict in place, but return the parsed value.
-
-        E.g.:
-
-        def parse_myparameters(val, inputs, parameter, input_key, **kwargs):
-
-            ...do your parsing
-
-            return parsed_value
-    condition: function, optional
-        a function that receives the name of the parameter and decides whether it belongs to this group.
-
-        It should return either `True`, or `False`.
-
-        It will only be used if the key is not explicitly defined in the `keys` key (see below).
-        If not provided, it will always return `False`
-    keys: dict
-        a dictionary where each key is a parameter that can be accepted and each value is either
-        a dict containing the kwargs that will be passed to `parse_func` or None (same as empty dict).
-
-        Even when a parameter is not defined here, it will be accepted if it fulfills `condition`.
-
+        group_name: str, optional
+            The name of the group of parameters. Currently not used, but it will probably be used
+            to show help messages.
+        input_key: str
+            The input of the process where the parsed values will end up.
+        parse_func: function
+            The function that will be used to parse the values for the parameters. The first arguments
+            of this function should be the value to parse (as an aiida node) and the full inputs
+            AttributeDict that is going to be passed to the process class. Also it should accept the `input_key` and
+            `parameter` keyword arguments, which provides the input_key where the parsed value will go
+            and the name of the parameter that the function is parsing. Finally, it needs to accept all kwargs
+            that you define in the `keys` key (see below).
+            It should not modify the inputs AttributeDict in place, but return the parsed value.
+            E.g.:
+            def parse_myparameters(val, inputs, parameter, input_key, **kwargs):
+                ...do your parsing
+                return parsed_value
+        condition: function, optional
+            A function that receives the name of the parameter and decides whether it belongs to this group.
+            The function should return either `True`, or `False`.
+            It will only be used if the key is not explicitly defined in the `keys` key (see below).
+            If not provided, it will always return `False`
+        keys: dict
+            A dictionary where each key is a parameter that can be accepted and each value is either
+            a dict containing the kwargs that will be passed to `parse_func` or None (same as empty dict).
+            Even when a parameter is not defined here, it will be accepted if it fulfills `condition`.
     The `_params_lookup` variable is only used in the `process_input_and_parse_func` method, so you can check
     the code there to understand how exactly is used (it is quite simple).
-
-    IMPORTANT NOTE: The order in `_params_lookup` matters. The workchain will go group by group trying to 
+    IMPORTANT NOTE: The order in `_params_lookup` matters. The workchain will go group by group trying to
     match the input parameter. If it matches a certain group, it will settle with it and won't continue to
     check the following groups.
 
@@ -84,26 +72,27 @@ class BaseIterator(WorkChain):
     for instance, a convergence check.
 
     Following, we display the expanded outline of the workchain in pseudocode to help
-    understand how it works and what can be overidden whithout breaking the code:
+    understand how it works:
     -------------------------------------------------------------------------------
     cls.initialize:
-        cls._get_iterator:
+      cls._parse_iterate_over: # sets up all the required internal variables
         for key in iterate_over.keys():
-            cls.process_input_and_parse_func(key) # Here all the logic for supported iterations. Can be overridden.
-                                                  # 1) The allowed "key" are defined.
-                                                  # 2) For each key a `_parsing_func` is stored. This function
-                                                  #   implements which input of _process_class needs to be modified
-                                                  #   and how in presence of this "key".
+          cls.process_input_and_parse_func(key) # Here all the logic for supported iterations.
+                                                # 1) The allowed "key" are defined.
+                                                # 2) For each key a `_parsing_func` is stored. This function
+                                                #   implements which input of _process_class needs to be modified
+                                                #   and how in presence of this "key".
+      cls._get_iterator
     while (cls.next_step): # cls._should_proceed and cls._store_next_val are called inside cls.next_step!
-        - cls.run_batch:
-            for i in range(batch_size):
-                if i!= 0:
-                    cls._store_next_val
-                cls._run_process # The current value is under self.current_val and
-                                 # the keys under self.iteration_keys
-        - cls.analyze_batch:
-            for process in batch:
-                cls.analyze_process(process)
+      cls.run_batch:
+        for i in range(batch_size):
+          if i!= 0:
+            cls._store_next_val
+          cls._run_process # The current value is under self.current_val and
+                           # the keys under self.iteration_keys
+      cls.analyze_batch:
+        for process in batch:
+          cls._analyze_process(process)
     cls.return_results
     --------------------------------------------------------------------------------
     '''
