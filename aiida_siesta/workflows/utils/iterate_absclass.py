@@ -31,8 +31,8 @@ class BaseIterator(WorkChain):
     The serialization is managed in `_iterate_input_serializer` and `_values_list_serializer`, that can be
     overridden in case, but this will impose also the change of the `_next_val` method.
 
-    By default this WorkChain allows iterations over all the inputs of `_process_class`, but it
-    can be extended to support iterations over other parameters using the `_params_lookup` variable.
+    By default this WorkChain allows iterations only directly over the inputs of `_process_class`, but it
+    can be extended to support other parameters using the `_params_lookup` variable.
     This variable indicates how to parse the values when the user wants to iterate over a certain parameter.
     It should be a list of dictionaries where each dictionary should have the following keys:
 
@@ -40,7 +40,7 @@ class BaseIterator(WorkChain):
         The name of the group of parameters. Currently not used, but it will probably be used
         to show help messages.
     input_key: str
-        The input of the process where the parsed values will end up
+        The input of the process where the parsed values will end up.
     parse_func: function
         The function that will be used to parse the values for the parameters
         
@@ -74,6 +74,10 @@ class BaseIterator(WorkChain):
 
     The `_params_lookup` variable is only used in the `process_input_and_parse_func` method, so you can check
     the code there to understand how exactly is used (it is quite simple).
+
+    IMPORTANT NOTE: The order in `_params_lookup` matters. The workchain will go group by group trying to 
+    match the input parameter. If it matches a certain group, it will settle with it and won't continue to
+    check the following groups.
 
     The design of the class also makes this class extensible to do something more than just iterate.
     The methods cls.return_results, cls.analyze_process, cls._should_proceed can be overridden to support,
@@ -137,7 +141,7 @@ class BaseIterator(WorkChain):
 
         super().__init__(*args, **kwargs)
 
-    # The _params_lookup contains the indications on allowed parameters to
+    # The _params_lookup variable contains the indications on allowed parameters to
     # iterate over. It is optional in child classes. If not set, only iteration
     # over the inputs of _process_class are allowed.
     _params_lookup = ()
