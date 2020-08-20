@@ -1,6 +1,6 @@
 import os
 import yaml
-from aiida.orm.groups import Group
+from aiida.orm import Group
 from aiida.common import exceptions
 
 

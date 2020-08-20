@@ -1,4 +1,4 @@
-from aiida_siesta.workflows.utils.generator_metaclass import InputsGenerator
+from aiida_siesta.workflows.utils.generator_absclass import InputsGenerator
 from aiida.plugins import WorkflowFactory
 from aiida_siesta.groups.pseudos import PsmlFamily
 
