@@ -4,7 +4,7 @@ from aiida.engine import WorkChain, calcfunction, ToContext
 from aiida.orm import Float
 from aiida_siesta.calculations.tkdict import FDFDict
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
-from .utils.iterate_absclass import BaseIterator
+
 
 @calcfunction
 def scale_to_vol(stru, vol):
@@ -192,21 +192,8 @@ def fit_and_final_dicts(**calcs):
 
     return result_dict
 
-def get_scaled(val, inputs, parameter, input_key):
 
-    scaled = rescale(inputs.structure, val)
-
-    return scaled
-
-EOS_PARAMS = ({
-    "group_name":"Scales",
-    "input_key": "structure",
-    "parse_func": get_scaled,
-    "keys": {"scale": None, "scales": None}
-},)
-
-
-class EqOfStateFixedCellShape(BaseIterator):
+class EqOfStateFixedCellShape(WorkChain):
     """
     WorkChain to calculate the equation of state of a solid.
     The cell shape is fixed, only the volume is rescaled.
@@ -219,28 +206,18 @@ class EqOfStateFixedCellShape(BaseIterator):
     on the calculatad E(V) data.
     """
 
-    _process_class = SiestaBaseWorkChain
-    _params_lookup = EOS_PARAMS
-
     @classmethod
     def define(cls, spec):
-        super().define(spec)
-
+        super(EqOfStateFixedCellShape, cls).define(spec)
         spec.input(
             "volume_per_atom",
             valid_type=Float,
             required=False,
             help="Volume per atom around which to perform the EqOfState"
         )
-
-        cls.iteration_input(
-            "scales", 
-            default=(0.94, 0.96, 0.98, 1., 1.02, 1.04, 1.06),
-            help="""
-            Factors by which the structure should be scaled.
-            """
-        )
-
+        spec.expose_inputs(SiestaBaseWorkChain, exclude=('metadata',))
+        #spec.inputs._ports['pseudos'].dynamic = True  #Temporary fix to issue #135 plumpy
+        spec.outline(cls.initio, cls.run_base_wcs, cls.return_results)
         spec.output(
             'results_dict',
             valid_type=DataFactory("dict"),
@@ -255,17 +232,16 @@ class EqOfStateFixedCellShape(BaseIterator):
             help="Equilibrium volume structure. Returned only if the fit is succesfull"
         )
 
-    def initialize(self):
-        super().initialize()
-
-        self.ctx.collectwcinfo = []
-
+    def initio(self):
+        self.ctx.scales = (0.94, 0.96, 0.98, 1., 1.02, 1.04, 1.06)
         self.report("Starting EqOfStateFixedCellShape Workchain")
-
-        #if "volume_per_atom" in self.inputs:
-        #    self.ctx.s0 = scale_to_vol(self.inputs.structure, self.inputs.volume_per_atom)
-        #else:
-        #    self.ctx.s0 = self.inputs.structure
+        if "pseudo_family" not in self.inputs:
+            if not self.inputs.pseudos:
+                raise ValueError('neither an explicit pseudos dictionary nor a pseudo_family was specified')
+        if "volume_per_atom" in self.inputs:
+            self.ctx.s0 = scale_to_vol(self.inputs.structure, self.inputs.volume_per_atom)
+        else:
+            self.ctx.s0 = self.inputs.structure
 
         test_input_params = FDFDict(self.inputs.parameters.get_dict())
         for k, v in sorted(test_input_params.get_filtered_items()):
@@ -276,22 +252,36 @@ class EqOfStateFixedCellShape(BaseIterator):
                         'No action taken, but are you sure this is what you want?'
                     )
 
-    def _analyze_process(self, process_node):
-
-        if "output_structure" in process_node.outputs:
-            out_struct = process_node.outputs.output_structure
-        else:
-            out_struct = process_node.inputs.structure
-        
-        info = get_info(process_node.outputs.output_parameters, out_struct)
-
-        self.ctx.collectwcinfo.append(info)
+    def run_base_wcs(self):
+        calcs = {}
+        for scale in self.ctx.scales:
+            scaled = rescale(self.ctx.s0, Float(scale))
+            inputs = AttributeDict(self.exposed_inputs(SiestaBaseWorkChain))
+            inputs["structure"] = scaled
+            future = self.submit(SiestaBaseWorkChain, **inputs)
+            self.report('Launching SiestaBaseWorkChain<{0}>, at volume rescaled of {1}'.format(future.pk, scale))
+            calcs[str(scale)] = future
+        return ToContext(**calcs)  #Here it waits
 
     def return_results(self):
 
         from aiida.engine import ExitCode
 
-        collectwcinfo = {f"s{scale.value}".replace(".", "_"): info for (scale, ), info in zip(self.ctx.variable_values, self.ctx.collectwcinfo)}
+        self.report('All 7 calculations finished. Post process starts')
+        collectwcinfo = {}
+        for label in self.ctx.scales:
+            wcnode = self.ctx[str(label)]
+            # To performe the eos with variable cell is wrong. We should
+            # implement errors if there are siesta keywords that activate
+            # the relax cell in the parameter dict. For the moment the
+            # use of output_structure should at least make the user realise
+            # that something is wrong (we expect to have structure converged
+            # to similar volums if you do relax cell)
+            if "output_structure" in wcnode.outputs:
+                info = get_info(wcnode.outputs.output_parameters, wcnode.outputs.output_structure)
+            else:
+                info = get_info(wcnode.outputs.output_parameters, wcnode.inputs.structure)
+            collectwcinfo["s" + str(label).replace(".", "_")] = info
 
         res_dict = fit_and_final_dicts(**collectwcinfo)
 
@@ -299,8 +289,8 @@ class EqOfStateFixedCellShape(BaseIterator):
 
         if "fit_res" in res_dict.attributes:
             self.report('Birch-Murnaghan fit was succesfull, creating the equilibrium structure output node')
-            #eq_structure = scale_to_vol(self.inputs.structure, Float(res_dict["fit_res"]["Vo(ang^3/atom)"]))
-            #self.out('equilibrium_structure', eq_structure)
+            eq_structure = scale_to_vol(self.ctx.s0, Float(res_dict["fit_res"]["Vo(ang^3/atom)"]))
+            self.out('equilibrium_structure', eq_structure)
         else:
             self.report("WARNING: Birch-Murnaghan fit failed, check your results_dict['eos_data']")
 

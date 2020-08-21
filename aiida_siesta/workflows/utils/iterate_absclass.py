@@ -201,16 +201,37 @@ class BaseIterator(WorkChain):
         return List(list=parsed_list)
 
     @classmethod
+    def iteration_input(cls, name, **kwargs):
+
+        cls._spec.inputs.ports["iterate_over"].required = False
+
+        if "serializer" not in kwargs:
+            kwargs["serializer"] = cls._values_list_serializer
+
+        if "default" in kwargs:
+            default = kwargs["default"]
+            kwargs["default"] = lambda: kwargs["serializer"](default)
+
+        cls._iteration_inputs.append(name)
+
+        cls._spec.input(name, **kwargs)
+
+    @classmethod
     def define(cls, spec):
         super().define(spec)
 
+        cls._iteration_inputs = []
+
         # Define the outline of the workflow, i.e. the order in which methods are executed.
         # See this class' documentation for an extended version of it
-        spec.outline(cls.initialize,
-                     while_(cls.next_step)(
-                         cls.run_batch,
-                         cls.analyze_batch,
-                     ), cls.return_results)
+        spec.outline(
+            cls.initialize,
+            while_(cls.next_step)(
+                cls.run_batch,
+                cls.analyze_batch,
+            ),
+            cls.return_results
+        )
 
         # Inputs that are general to all iterator workchains. They manage the iterator and batching.
         # More inputs can be defined in subclasses.
@@ -270,7 +291,6 @@ class BaseIterator(WorkChain):
         content and organizes into context the informations. The second method adds the info
         from the port `iterate_mode` and creates the iterator.
         """
-
         self.ctx.variable_values = []
 
         # Here we check the `iterate_over` input and prepare many variables that are used through the
@@ -295,7 +315,11 @@ class BaseIterator(WorkChain):
         is associated to each key. See `process_input_and_parse_func` documentation for info.
         """
 
-        iterate_over = self.inputs.iterate_over.get_dict()
+        iterate_over = {}
+        if "iterate_over" in self.inputs:
+            iterate_over.update(self.inputs.iterate_over.get_dict())
+        for key in self._iteration_inputs:
+            iterate_over[key] = getattr(self.inputs, key) 
 
         # Get the names of the parameters and the values
         self.ctx.iteration_keys = tuple(iterate_over.keys())
