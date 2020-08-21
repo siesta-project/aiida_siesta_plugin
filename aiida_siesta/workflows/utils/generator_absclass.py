@@ -15,7 +15,7 @@ class InputsGenerator(ProtocolManager, metaclass=ABCMeta):
     builder of the WorkChain. This last method, in theory, could be a general
     method that the child classes don't need to override. In fact it just call `get_inputs_dict`
     and places the dictionary entry in the empty builder.
-    However the signature of `get_inputs_dict` can change case by case and the one of 
+    However the signature of `get_inputs_dict` can change case by case and the one of
     `get_filled_builder` must be change as well accordingly. If there was a possibility
     to impose automatically to `get_filled_builder` the same signature of `get_inputs_dict`,
     there woudn't be the need to define `get_filled_builder` as abstactmethod.
