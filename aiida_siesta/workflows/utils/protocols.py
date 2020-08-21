@@ -6,10 +6,8 @@ from aiida.common import exceptions
 
 class ProtocolManager:
     """
-    This class is the parent class of the class InputsGenerator, the fundation block
-    of a series of classes <WorkChain>InputsGenerator with the scope
-    to facilitate the choice of inputs for the corresponding <WorkChain>.
     This class is meant to become the central engine for the management of protocols.
+
     With the word "protocol" we mean a series of suggested inputs for AiiDA WorkChains that allow
     users to more easly authomatize their workflows. Even though this approach could be general, at
     the moment we only think about protocols in the context of DFT inputs (Siesta inputs in our case).
@@ -22,9 +20,13 @@ class ProtocolManager:
     and a custum-protocols file that a user put in the 'AIIDA_SIESTA_PROTOCOLS' environment variable)
     and build all the "core inputs" of a siesta calculation starting from a structure (some
     element-specific additions are performed - we call them atom_heuristics) and the choice
-    of having a relaxation and spin options. In the future we will probably need some kind of protocol
+    of having relaxation and spin options. In the future we will probably need some kind of protocol
     algebra for merging, overriding, etc. protocols. This "core inputs" are then used by <WorkChain>
     specific input generators to create a ready-to submit sets of inputs.
+    This class is, in fact, parent class of the class InputsGenerator, the fundation block
+    of a series of classes <WorkChain>InputsGenerator with the scope
+    to facilitate the choice of inputs for the corresponding <WorkChain>.
+
     The management of the pseudos is, at the moment, very fragile. It imposes that the user
     loads a pseudo_family with the exact same name of the one hard-coded for the protocol.
     Some other methods are implemented with the scope to access information about protocols and
@@ -61,7 +63,8 @@ class ProtocolManager:
 
     def _protocols_checks(self):
         """
-        Here implemented all the checks on the correct structure of each protocol
+        Here implemented all the checks on the correct structure of each protocol. It also checks
+        that, for each protocol, the correct pseudo family already loaded in the database.
         """
 
         def raise_invalid(message):
