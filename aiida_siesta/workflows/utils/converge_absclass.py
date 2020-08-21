@@ -8,7 +8,7 @@ from .iterate_absclass import BaseIterator
 
 
 @calcfunction
-def generate_convergence_results(iteration_keys, variable_values, target_values, converged, converged_index):
+def generate_convergence_results(iteration_keys, used_values, target_values, converged, converged_index):
     '''
     Generates the final output of the convergence workflows.
     '''
@@ -20,7 +20,7 @@ def generate_convergence_results(iteration_keys, variable_values, target_values,
     if converged:
         #pylint: disable=unnecessary-comprehension
         converged_parameters = DataFactory('dict')(
-            dict={key: val for key, val in zip(iteration_keys, variable_values[converged_index.value])}
+            dict={key: val for key, val in zip(iteration_keys, used_values[converged_index.value])}
         )
 
         convergence_results['converged_parameters'] = converged_parameters
@@ -137,11 +137,11 @@ class BasicConverger(BaseIterator):
         converged = Bool(self.converged)
         converged_index = Int(getattr(self.ctx, 'converged_index', -1))
         iteration_keys = List(list=list(self.ctx.iteration_keys))
-        variable_values = List(list=self.ctx.variable_values)
+        used_values = List(list=self.ctx.used_values)
         target_values = List(list=self.ctx.target_values)
 
         outputs = generate_convergence_results(
-            iteration_keys, variable_values, target_values, converged, converged_index
+            iteration_keys, used_values, target_values, converged, converged_index
         )
 
         if converged:
@@ -251,17 +251,15 @@ class SequentialConverger(BaseIterator):
         """
         The parameter to iterate over is `iterate_over` of _process_class (the converger!!!),
         the _process_input_keys corresponding to `iterate_over` is `iterate_over` itself and
-        no parsing function is needed. We can equivalently reach this by leaving eampty the
-        self.ctx._process_input_keys and self.ctx._parsing_funcs
+        no parsing function is needed. 
         """
 
         self.ctx.iteration_keys = ("iterate_over",)
-        self.ctx._process_input_keys = {}
-        self.ctx._parsing_funcs = {}
+        self.ctx._iteration_parsing = {}
 
     def _get_iterator(self):
         """
-        Iterator is now simply the list values passed to `iterate_over`
+        Iterator is now simply the list of values passed to `iterate_over`.
         """
 
         iterate_over = self.inputs.iterate_over.get_list()
@@ -292,14 +290,14 @@ class SequentialConverger(BaseIterator):
             for key, val in new_converged.items():
                 # Get the last inputs
                 inputs = self.ctx.last_inputs
-                proc_input, parsing_func = self._process_class.process_input_and_parse_func(key)
-                self.ctx._process_input_keys[key] = proc_input
-                self.ctx._parsing_funcs[key] = parsing_func
+                proc_input, parse_func = self._process_class.process_input_and_parse_func(key)
+
+                self.ctx._iteration_parsing[key] = {"input_key": proc_input, "parse_func": parse_func}
                 # Modify "inputs" accordingly. Note that since we are using cls._reuse_inputs = True,
                 # what we are modifying here will be used in the next iteration.
                 self._process_class._add_inputs(self, key, val, inputs)
-            self.ctx._process_input_keys = {}
-            self.ctx._parsing_funcs = {}
+                
+            self.ctx._iteration_parsing = {}
 
         self.ctx.last_target_value = process_node.outputs.converged_target_value
 

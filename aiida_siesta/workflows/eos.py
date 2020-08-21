@@ -192,18 +192,11 @@ def fit_and_final_dicts(**calcs):
 
     return result_dict
 
-def get_scaled(val, inputs, parameter, input_key):
+def get_scaled(val, inputs):
 
     scaled = rescale(inputs.structure, val)
 
     return scaled
-
-EOS_PARAMS = ({
-    "group_name":"Scales",
-    "input_key": "structure",
-    "parse_func": get_scaled,
-    "keys": {"scale": None, "scales": None}
-},)
 
 
 class EqOfStateFixedCellShape(BaseIterator):
@@ -220,7 +213,6 @@ class EqOfStateFixedCellShape(BaseIterator):
     """
 
     _process_class = SiestaBaseWorkChain
-    _params_lookup = EOS_PARAMS
 
     @classmethod
     def define(cls, spec):
@@ -238,7 +230,9 @@ class EqOfStateFixedCellShape(BaseIterator):
             default=(0.94, 0.96, 0.98, 1., 1.02, 1.04, 1.06),
             help="""
             Factors by which the structure should be scaled.
-            """
+            """,
+            parse_func=get_scaled,
+            input_key="structure"
         )
 
         spec.output(
