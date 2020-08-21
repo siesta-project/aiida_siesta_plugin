@@ -81,7 +81,7 @@ class BaseIterator(WorkChain):
                     # We look for the way of parsing the values in cls._params_lookup
                     cls.process_input_and_parse_func(key)
         cls._get_iterator # we get the iterator according to the iteration_mode.
-        
+
 
     while (cls.next_step): # cls._should_proceed and cls._store_next_val are called inside cls.next_step!
       cls.run_batch:
@@ -208,12 +208,12 @@ class BaseIterator(WorkChain):
         An iteration input is to be created when you don't want the users to use `iterate_over`
         for this parameter or it is a required parameter to provide.
 
-        For example, if I am implementing an equation of state workchain, the scales for which 
+        For example, if I am implementing an equation of state workchain, the scales for which
         I will submit calculations is the thing I want to iterate over. However, it is an input
         too important to the workchain to hide under `iterate_over`. In fact, without having values
         for this parameter, the workchain does not make sense. By using an iteration input, you can
-        provide a default and make the parameter required. 
-        
+        provide a default and make the parameter required.
+
         It creates a regular aiida input, so you should use this function as if you were using `spec.input`.
         The only difference is that the workchain is then aware that it needs to serialize the list of values
         provided here and incorporate it into `iterate_over`.
@@ -225,10 +225,10 @@ class BaseIterator(WorkChain):
             after (optionally) parsing.
         :param parse_func: `function`, optional.
             Function to be used to parse the values for this parameter
-        
+
         Note that these two inputs work the same as if you were defining the parameter in `_params_lookup`
         (see docstring of `BaseIterator`). If you don't provide an `input_key` here, the iterator will
-        try to look for the parameter in `_params_lookup` to understand how to parse the values. 
+        try to look for the parameter in `_params_lookup` to understand how to parse the values.
         """
 
         # Since we have iteration inputs, iterate_over is no longer required.
@@ -245,10 +245,7 @@ class BaseIterator(WorkChain):
 
         # Store how to parse the values for this parameter
         if input_key is not None:
-            cls._iteration_inputs[name] = {
-                "input_key": input_key,
-                "parse_func": parse_func
-            }
+            cls._iteration_inputs[name] = {"input_key": input_key, "parse_func": parse_func}
         # or just store an empty dict to indicate that the iteration
         # input is present but we have no information on how to parse it
         # (the workchain will attempt to find it in `cls._params_lookup`)
@@ -265,14 +262,11 @@ class BaseIterator(WorkChain):
 
         # Define the outline of the workflow, i.e. the order in which methods are executed.
         # See this class' documentation for an extended version of it
-        spec.outline(
-            cls.initialize,
-            while_(cls.next_step)(
-                cls.run_batch,
-                cls.analyze_batch,
-            ),
-            cls.return_results
-        )
+        spec.outline(cls.initialize,
+                     while_(cls.next_step)(
+                         cls.run_batch,
+                         cls.analyze_batch,
+                     ), cls.return_results)
 
         # Inputs that are general to all iterator workchains. They manage the iterator and batching.
         # More inputs can be defined in subclasses.
@@ -351,7 +345,7 @@ class BaseIterator(WorkChain):
         for the corresponding key).
 
         For each iteration key, we try to find the appropiate way of parsing the values and
-        building the inputs. We end up storing a parsing function and the input key where the 
+        building the inputs. We end up storing a parsing function and the input key where the
         value should go for each iteration key under `self.ctx._iteration_parsing`.
         """
 
@@ -594,7 +588,7 @@ class BaseIterator(WorkChain):
         Given a parameter (key) and the value (val, the node!), modify the inputs.
 
         We need:
-        1) The `_process_class` input to modify 
+        1) The `_process_class` input to modify
         2) The parsed value, obtained applying the parsing function.
 
         We obtain the information that we need to treat the value from `self.ctx._iteration_parsing[key]`.

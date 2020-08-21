@@ -6,6 +6,7 @@ from aiida_siesta.calculations.tkdict import FDFDict
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
 from .utils.iterate_absclass import BaseIterator
 
+
 @calcfunction
 def scale_to_vol(stru, vol):
     """
@@ -192,6 +193,7 @@ def fit_and_final_dicts(**calcs):
 
     return result_dict
 
+
 def get_scaled(val, inputs):
 
     scaled = rescale(inputs.structure, val)
@@ -226,7 +228,7 @@ class EqOfStateFixedCellShape(BaseIterator):
         )
 
         cls.iteration_input(
-            "scales", 
+            "scales",
             default=(0.94, 0.96, 0.98, 1., 1.02, 1.04, 1.06),
             help="""
             Factors by which the structure should be scaled.
@@ -276,7 +278,7 @@ class EqOfStateFixedCellShape(BaseIterator):
             out_struct = process_node.outputs.output_structure
         else:
             out_struct = process_node.inputs.structure
-        
+
         info = get_info(process_node.outputs.output_parameters, out_struct)
 
         self.ctx.collectwcinfo.append(info)
@@ -285,7 +287,10 @@ class EqOfStateFixedCellShape(BaseIterator):
 
         from aiida.engine import ExitCode
 
-        collectwcinfo = {f"s{scale.value}".replace(".", "_"): info for (scale, ), info in zip(self.ctx.variable_values, self.ctx.collectwcinfo)}
+        collectwcinfo = {
+            f"s{scale.value}".replace(".", "_"): info
+            for (scale,), info in zip(self.ctx.variable_values, self.ctx.collectwcinfo)
+        }
 
         res_dict = fit_and_final_dicts(**collectwcinfo)
 

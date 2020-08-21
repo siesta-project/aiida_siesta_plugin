@@ -140,9 +140,7 @@ class BasicConverger(BaseIterator):
         used_values = List(list=self.ctx.used_values)
         target_values = List(list=self.ctx.target_values)
 
-        outputs = generate_convergence_results(
-            iteration_keys, used_values, target_values, converged, converged_index
-        )
+        outputs = generate_convergence_results(iteration_keys, used_values, target_values, converged, converged_index)
 
         if converged:
             self.report(
@@ -251,7 +249,7 @@ class SequentialConverger(BaseIterator):
         """
         The parameter to iterate over is `iterate_over` of _process_class (the converger!!!),
         the _process_input_keys corresponding to `iterate_over` is `iterate_over` itself and
-        no parsing function is needed. 
+        no parsing function is needed.
         """
 
         self.ctx.iteration_keys = ("iterate_over",)
@@ -296,7 +294,7 @@ class SequentialConverger(BaseIterator):
                 # Modify "inputs" accordingly. Note that since we are using cls._reuse_inputs = True,
                 # what we are modifying here will be used in the next iteration.
                 self._process_class._add_inputs(self, key, val, inputs)
-                
+
             self.ctx._iteration_parsing = {}
 
         self.ctx.last_target_value = process_node.outputs.converged_target_value
