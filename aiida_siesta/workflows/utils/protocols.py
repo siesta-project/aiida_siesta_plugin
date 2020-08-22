@@ -33,33 +33,35 @@ class ProtocolManager:
     the API to use the protocols.
     """
 
-    _filepath = os.path.join(os.path.dirname(__file__), 'protocols_registry.yaml')
-
-    with open(_filepath) as _thefile:
-        _protocols = yaml.full_load(_thefile)
-
-    if 'AIIDA_SIESTA_PROTOCOLS' in os.environ:
-        _bisfilepath = os.environ['AIIDA_SIESTA_PROTOCOLS']
-        try:
-            with open(_bisfilepath) as _thefile:
-                _custom_protocols = yaml.full_load(_thefile)
-        except (IsADirectoryError, FileNotFoundError):
-            raise RuntimeError(
-                'The environment variable devoted to custom protocols (AIIDA_SIESTA_PROTOCOLS) is set '
-                'to a not existent file'
-            )
-        _protocols = {**_protocols, **_custom_protocols}
-
-    _default_protocol = 'standard'
-
     def __init__(self):
         """
         Construct an instance of ProtocolManager, validating the class attribute _calc_types set by the sub class
         and the presence of correct sintax in the protocols files (custom protocols can be set by users).
         """
+        self._initialize_protocols()
 
         #Here we chack that each protocols implement correct syntax and mandatory entries
         self._protocols_checks()
+
+    def _initialize_protocols(self):
+        filepath = os.path.join(os.path.dirname(__file__), 'protocols_registry.yaml')
+
+        with open(filepath) as thefile:
+            self._protocols = yaml.full_load(thefile)
+
+        if 'AIIDA_SIESTA_PROTOCOLS' in os.environ:
+            bisfilepath = os.environ['AIIDA_SIESTA_PROTOCOLS']
+            try:
+                with open(bisfilepath) as thefile:
+                    custom_protocols = yaml.full_load(thefile)
+            except (IsADirectoryError, FileNotFoundError):
+                raise RuntimeError(
+                    'The environment variable devoted to custom protocols (AIIDA_SIESTA_PROTOCOLS) is set '
+                    'to a not existent file'
+                )
+            self._protocols = {**self._protocols, **custom_protocols}
+
+        self._default_protocol = 'standard'
 
     def _protocols_checks(self):
         """
