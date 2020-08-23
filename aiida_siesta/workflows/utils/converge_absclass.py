@@ -98,7 +98,7 @@ class BasicConverger(BaseIterator):
             converged = False
         else:
             diffs = abs(np.diff(target_values))
-            below_thresh = np.where(diffs < self.inputs.threshold.value)[0]
+            below_thresh = np.where(diffs < self.ctx.inputs.threshold.value)[0]
 
             converged = len(below_thresh) > 0
             if converged:
@@ -107,7 +107,7 @@ class BasicConverger(BaseIterator):
             self.report(
                 'Convergence criterium: '
                 '{0}; Last step diffs: {1}'.format(
-                    self.inputs.threshold.value, diffs[-len(self.ctx.last_step_processes):]
+                    self.ctx.inputs.threshold.value, diffs[-len(self.ctx.last_step_processes):]
                 )
             )
 
@@ -125,7 +125,7 @@ class BasicConverger(BaseIterator):
 
         simulation_outputs = results.output_parameters.get_dict()
 
-        self.ctx.target_values.append(simulation_outputs[self.inputs.target.value])
+        self.ctx.target_values.append(simulation_outputs[self.ctx.inputs.target.value])
 
         super()._analyze_process(process_node)
 
@@ -260,7 +260,7 @@ class SequentialConverger(BaseIterator):
         Iterator is now simply the list of values passed to `iterate_over`.
         """
 
-        iterate_over = self.inputs.iterate_over.get_list()
+        iterate_over = self.ctx.inputs.iterate_over.get_list()
 
         return zip(iterate_over)
 

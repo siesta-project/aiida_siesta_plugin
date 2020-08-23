@@ -4,45 +4,9 @@ from aiida.engine import WorkChain, calcfunction, ToContext
 from aiida.orm import Float
 from aiida_siesta.calculations.tkdict import FDFDict
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
-from .utils.iterate_absclass import BaseIterator
 
-
-@calcfunction
-def scale_to_vol(stru, vol):
-    """
-    Calcfunction to scale a structure to a target volume.
-    Uses pymatgen.
-    :param stru: An aiida structure
-    :param vol: The target volume per atom in angstroms
-    :return: The new scaled AiiDA structure
-    """
-
-    in_structure = stru.get_pymatgen()
-    new = in_structure.copy()
-    new.scale_lattice(float(vol) * in_structure.num_sites)
-    StructureData = DataFactory("structure")
-    structure = StructureData(pymatgen_structure=new)
-
-    return structure
-
-
-@calcfunction
-def rescale(structure, scale):
-    """
-    Calcfunction to rescale a structure by a scaling factor.
-    Uses ase.
-    :param structure: An AiiDA structure to rescale
-    :param scale: The scale factor
-    :return: The rescaled structure
-    """
-
-    the_ase = structure.get_ase()
-    new_ase = the_ase.copy()
-    new_ase.set_cell(the_ase.get_cell() * float(scale), scale_atoms=True)
-    new_structure = DataFactory('structure')(ase=new_ase)
-
-    return new_structure
-
+from .iterate import SiestaIterator
+from .utils.iterate_params import scale_to_vol
 
 @calcfunction
 def get_info(outpar, struct):
@@ -194,14 +158,7 @@ def fit_and_final_dicts(**calcs):
     return result_dict
 
 
-def get_scaled(val, inputs):
-
-    scaled = rescale(inputs.structure, val)
-
-    return scaled
-
-
-class EqOfStateFixedCellShape(BaseIterator):
+class EqOfStateFixedCellShape(SiestaIterator):
     """
     WorkChain to calculate the equation of state of a solid.
     The cell shape is fixed, only the volume is rescaled.
@@ -214,7 +171,9 @@ class EqOfStateFixedCellShape(BaseIterator):
     on the calculatad E(V) data.
     """
 
-    _process_class = SiestaBaseWorkChain
+    # We remove the iterate_over port because we actually only want to expose
+    # one kind of iteration: the structure scales.
+    _iterate_over_port = False
 
     @classmethod
     def define(cls, spec):
@@ -228,13 +187,11 @@ class EqOfStateFixedCellShape(BaseIterator):
         )
 
         cls.iteration_input(
-            "scales",
+            "structure_scales",
             default=(0.94, 0.96, 0.98, 1., 1.02, 1.04, 1.06),
             help="""
             Factors by which the structure should be scaled.
             """,
-            parse_func=get_scaled,
-            input_key="structure"
         )
 
         spec.output(
@@ -256,14 +213,11 @@ class EqOfStateFixedCellShape(BaseIterator):
 
         self.ctx.collectwcinfo = []
 
-        self.report("Starting EqOfStateFixedCellShape Workchain")
+        # We are going to overwrite the initial structure if volume_per_atom is provided
+        if "volume_per_atom" in self.ctx.inputs:
+           self.ctx.inputs.structure = scale_to_vol(self.ctx.inputs.structure, self.ctx.inputs.volume_per_atom)
 
-        #if "volume_per_atom" in self.inputs:
-        #    self.ctx.s0 = scale_to_vol(self.inputs.structure, self.inputs.volume_per_atom)
-        #else:
-        #    self.ctx.s0 = self.inputs.structure
-
-        test_input_params = FDFDict(self.inputs.parameters.get_dict())
+        test_input_params = FDFDict(self.ctx.inputs.parameters.get_dict())
         for k, v in sorted(test_input_params.get_filtered_items()):
             if k in ('mdvariablecell', 'mdrelaxcellonly'):
                 if v is True or v == "T" or v == "true" or v == ".true.":
@@ -289,7 +243,7 @@ class EqOfStateFixedCellShape(BaseIterator):
 
         collectwcinfo = {
             f"s{scale.value}".replace(".", "_"): info
-            for (scale,), info in zip(self.ctx.variable_values, self.ctx.collectwcinfo)
+            for (scale,), info in zip(self.ctx.used_values, self.ctx.collectwcinfo)
         }
 
         res_dict = fit_and_final_dicts(**collectwcinfo)
@@ -298,12 +252,10 @@ class EqOfStateFixedCellShape(BaseIterator):
 
         if "fit_res" in res_dict.attributes:
             self.report('Birch-Murnaghan fit was succesfull, creating the equilibrium structure output node')
-            #eq_structure = scale_to_vol(self.inputs.structure, Float(res_dict["fit_res"]["Vo(ang^3/atom)"]))
-            #self.out('equilibrium_structure', eq_structure)
+            eq_structure = scale_to_vol(self.ctx.inputs.structure, Float(res_dict["fit_res"]["Vo(ang^3/atom)"]))
+            self.out('equilibrium_structure', eq_structure)
         else:
             self.report("WARNING: Birch-Murnaghan fit failed, check your results_dict['eos_data']")
-
-        self.report('End of EqOfStateFixedCellShape Workchain')
 
         return ExitCode(0)
 

@@ -3,12 +3,11 @@ from functools import partial
 import numpy as np
 
 from aiida.plugins import DataFactory
-from aiida.engine import WorkChain, while_, ToContext
+from aiida.engine import WorkChain, while_, ToContext, calcfunction
 from aiida.orm import Str, List, Int, Node
 from aiida.orm.nodes.data.base import to_aiida_type
 from aiida.orm.utils import load_node
 from aiida.common import AttributeDict
-
 
 class BaseIterator(WorkChain):
     '''
@@ -94,11 +93,16 @@ class BaseIterator(WorkChain):
         for process in batch:
           cls._analyze_process(process)
     cls.return_results
+    cls.report_end
     --------------------------------------------------------------------------------
     '''
 
     # THE _process_class NEEDS TO BE PROVIDED IN CHILD CLASSES!
     _process_class = None
+
+    # This is a flag to indicate that you want the "iterate_over" port. If you set it to False,
+    # you have to define iteration inputs using cls.iteration_input.
+    _iterate_over_port = True
 
     def __init_subclass__(cls, *args, **kwargs):
         """
@@ -230,9 +234,20 @@ class BaseIterator(WorkChain):
         (see docstring of `BaseIterator`). If you don't provide an `input_key` here, the iterator will
         try to look for the parameter in `_params_lookup` to understand how to parse the values.
         """
+        # Avoid overwriting already existing input ports
+        if name in cls._spec.inputs.ports:
+            if name in cls._exposed_input_keys:
+                solution = f"""If you want to overwrite it, don't expose {cls._process_class.__name__}'s "{name}".
+                You can do so with the _expose_inputs_kwargs class variable: _expose_inputs_kwargs = {dict(exlude=[name])}"""
+            else:
+                solution = ""
 
-        # Since we have iteration inputs, iterate_over is no longer required.
-        cls._spec.inputs.ports["iterate_over"].required = False
+            raise ValueError(f'{cls.__name__} already has an input port for "{name}" and you are trying '+
+                f'to define an iteration input with this name. \n {solution}')
+
+        if "iterate_over" in cls._spec.inputs.ports:
+            # Since we have iteration inputs, iterate_over is no longer required.
+            cls._spec.inputs.ports["iterate_over"].required = False
 
         # Add the serializer to parse the input
         if "serializer" not in kwargs:
@@ -266,22 +281,26 @@ class BaseIterator(WorkChain):
                      while_(cls.next_step)(
                          cls.run_batch,
                          cls.analyze_batch,
-                     ), cls.return_results)
+                     ), 
+                     cls.return_results,
+                     cls.report_end)
 
         # Inputs that are general to all iterator workchains. They manage the iterator and batching.
         # More inputs can be defined in subclasses.
-        spec.input(
-            "iterate_over",
-            valid_type=DataFactory('dict'),
-            serializer=cls._iterate_input_serializer,
-            help='''A dictionary where each key is the name of a parameter we want to iterate
-            over (str) and each value is a list with all the values to iterate over for
-            that parameter. Each value in the list can be either a node (unstored or stored)
-            or a simple python object (str, float, int, bool).
-            Note that each subclass might parse this keys and values differently, so you should
-            know how they do it.
-            '''
-        )
+        if cls._iterate_over_port:
+            spec.input(
+                "iterate_over",
+                valid_type=DataFactory('dict'),
+                serializer=cls._iterate_input_serializer,
+                help='''A dictionary where each key is the name of a parameter we want to iterate
+                over (str) and each value is a list with all the values to iterate over for
+                that parameter. Each value in the list can be either a node (unstored or stored)
+                or a simple python object (str, float, int, bool).
+                Note that each subclass might parse this keys and values differently, so you should
+                know how they do it.
+                '''
+            )
+
         spec.input(
             "iterate_mode",
             valid_type=Str,
@@ -326,7 +345,13 @@ class BaseIterator(WorkChain):
         content and organizes into context the informations. The second method adds the info
         from the port `iterate_mode` and creates the iterator.
         """
+        self.report(f"Initializing the {self.__class__.__name__} workchain")
+
         self.ctx.used_values = []
+
+        # We "copy" the inputs into a dictionary in ctx so that a child workchain
+        # can modify them if they want
+        self.ctx.inputs = AttributeDict({**self.inputs})
 
         # Here we check the `iterate_over` input and prepare many variables that are used through the
         # workchain. They are:
@@ -350,11 +375,11 @@ class BaseIterator(WorkChain):
         """
 
         iterate_over = {}
-        if "iterate_over" in self.inputs:
-            iterate_over.update(self.inputs.iterate_over.get_dict())
+        if "iterate_over" in self.ctx.inputs:
+            iterate_over.update(self.ctx.inputs.iterate_over.get_dict())
         for key in self._iteration_inputs:
-            if key in self.inputs:
-                iterate_over[key] = getattr(self.inputs, key).get_list()
+            if key in self.ctx.inputs:
+                iterate_over[key] = getattr(self.ctx.inputs, key).get_list()
 
         # Get the names of the parameters and the values
         self.ctx.iteration_keys = tuple(iterate_over.keys())
@@ -384,7 +409,7 @@ class BaseIterator(WorkChain):
         `iterate_over` and `iterate_mode`. Here also `port_name_and_parse_func` is called.
         """
 
-        iterate_mode = self.inputs.iterate_mode.value
+        iterate_mode = self.ctx.inputs.iterate_mode.value
 
         # Define the iterator depending on the iterate_mode.
         if iterate_mode == 'zip':
@@ -527,7 +552,7 @@ class BaseIterator(WorkChain):
         self.ctx.last_step_processes = []
 
         processes = {}
-        batch_size = self.inputs.batch_size.value
+        batch_size = self.ctx.inputs.batch_size.value
         # Run as many processes as the "batch_size" input tells us to
         for i in range(batch_size):
 
@@ -639,3 +664,12 @@ class BaseIterator(WorkChain):
         Takes care of postprocessing and returning the results of the workchain to the user.
         (if any outputs need to be returned)
         '''
+
+    def report_end(self):
+        '''
+        Simply reports the end of the workchain.
+
+        This is not inside return_results because that method is expected to be overwritten.
+        '''
+        self.report(f'End of the {self.__class__.__name__} Workchain')
+
