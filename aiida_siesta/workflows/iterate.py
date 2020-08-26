@@ -4,7 +4,6 @@ from aiida.orm import KpointsData
 from ..calculations.tkdict import FDFDict
 from .base import SiestaBaseWorkChain
 from .utils.iterate_absclass import BaseIterator
-from .utils.iterate_params import get_plugin
 
 # The following are helper functions to parse input values in the SiestaIterator. See
 # the global dict SIESTA_ITERATION_PARAMS to know which parameters make use of them.
@@ -154,7 +153,7 @@ SIESTA_ITERATION_PARAMS = ({
         'kpoints_1': None,
         'kpoints_2': None
     }
-}, get_plugin("Structure modifications", input_key="structure"), {
+}, {
     "group_name":
     "FDF parameters",
     "input_key":

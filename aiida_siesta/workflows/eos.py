@@ -5,7 +5,7 @@ from aiida.orm import Float
 from aiida_siesta.calculations.tkdict import FDFDict
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
 
-from .iterate import SiestaIterator
+from .utils.iterate_absclass import BaseIterator
 from .utils.iterate_params import scale_to_vol
 
 @calcfunction
@@ -76,6 +76,46 @@ def delta_project_BM_fit(volumes, energies):  #pylint: disable=invalid-name
     bulk_deriv0 = -1 - x**(-3. / 2.) * derivV3 / derivV2
     return E0, volume0, bulk_modulus0, bulk_deriv0
 
+@calcfunction
+def rescale(structure, scale):
+    """
+    Calcfunction to rescale a structure by a scaling factor.
+    Uses ase.
+    :param structure: An AiiDA structure to rescale
+    :param scale: The scale factor
+    :return: The rescaled structure
+    """
+
+    the_ase = structure.get_ase()
+    new_ase = the_ase.copy()
+    new_ase.set_cell(the_ase.get_cell() * float(scale), scale_atoms=True)
+    new_structure = DataFactory('structure')(ase=new_ase)
+
+    return new_structure
+
+@calcfunction
+def scale_to_vol(structure, vol):
+    """
+    Calcfunction to scale a structure to a target volume.
+    Uses pymatgen.
+    :param stru: An aiida structure
+    :param vol: The target volume per atom in angstroms
+    :return: The new scaled AiiDA structure
+    """
+
+    in_structure = structure.get_pymatgen_structure()
+    new = in_structure.copy()
+    new.scale_lattice(float(vol) * in_structure.num_sites)
+    StructureData = DataFactory("structure")
+    structure = StructureData(pymatgen_structure=new)
+
+    return structure
+
+def get_scaled(val, inputs):
+
+    modified_struct = rescale(inputs.structure, val)
+
+    return modified_struct
 
 #def standard_BM_fit(volumes, energies):
 #
@@ -158,7 +198,7 @@ def fit_and_final_dicts(**calcs):
     return result_dict
 
 
-class EqOfStateFixedCellShape(SiestaIterator):
+class EqOfStateFixedCellShape(BaseIterator):
     """
     WorkChain to calculate the equation of state of a solid.
     The cell shape is fixed, only the volume is rescaled.
@@ -187,8 +227,10 @@ class EqOfStateFixedCellShape(SiestaIterator):
         )
 
         cls.iteration_input(
-            "structure_scales",
+            "scales",
             default=(0.94, 0.96, 0.98, 1., 1.02, 1.04, 1.06),
+            parse_func=get_scaled,
+            input_key="structure",
             help="""
             Factors by which the structure should be scaled.
             """,
