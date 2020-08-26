@@ -211,6 +211,7 @@ class EqOfStateFixedCellShape(BaseIterator):
     on the calculatad E(V) data.
     """
 
+    _process_class = SiestaBaseWorkChain
     # We remove the iterate_over port because we actually only want to expose
     # one kind of iteration: the structure scales.
     _iterate_over_port = False
