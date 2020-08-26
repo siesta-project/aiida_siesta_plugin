@@ -6,7 +6,7 @@ from aiida_siesta.calculations.tkdict import FDFDict
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
 
 from .utils.iterate_absclass import BaseIterator
-from .utils.iterate_params import scale_to_vol
+
 
 @calcfunction
 def get_info(outpar, struct):
@@ -76,6 +76,7 @@ def delta_project_BM_fit(volumes, energies):  #pylint: disable=invalid-name
     bulk_deriv0 = -1 - x**(-3. / 2.) * derivV3 / derivV2
     return E0, volume0, bulk_modulus0, bulk_deriv0
 
+
 @calcfunction
 def rescale(structure, scale):
     """
@@ -92,6 +93,7 @@ def rescale(structure, scale):
     new_structure = DataFactory('structure')(ase=new_ase)
 
     return new_structure
+
 
 @calcfunction
 def scale_to_vol(structure, vol):
@@ -111,11 +113,13 @@ def scale_to_vol(structure, vol):
 
     return structure
 
+
 def get_scaled(val, inputs):
 
     modified_struct = rescale(inputs.structure, val)
 
     return modified_struct
+
 
 #def standard_BM_fit(volumes, energies):
 #
@@ -258,7 +262,7 @@ class EqOfStateFixedCellShape(BaseIterator):
 
         # We are going to overwrite the initial structure if volume_per_atom is provided
         if "volume_per_atom" in self.ctx.inputs:
-           self.ctx.inputs.structure = scale_to_vol(self.ctx.inputs.structure, self.ctx.inputs.volume_per_atom)
+            self.ctx.inputs.structure = scale_to_vol(self.ctx.inputs.structure, self.ctx.inputs.volume_per_atom)
 
         test_input_params = FDFDict(self.ctx.inputs.parameters.get_dict())
         for k, v in sorted(test_input_params.get_filtered_items()):

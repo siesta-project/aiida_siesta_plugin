@@ -1,3 +1,4 @@
+import inspect
 import itertools
 from functools import partial
 import numpy as np
@@ -8,6 +9,34 @@ from aiida.orm import Str, List, Int, Node
 from aiida.orm.nodes.data.base import to_aiida_type
 from aiida.orm.utils import load_node
 from aiida.common import AttributeDict
+
+
+class ParametersDescriptor:
+    """
+    Uses the _params_lookup variable of an iterator to provide a helpful description of the possibilities.
+    """
+
+    def __get__(self, instance, owner):
+
+        params_lookup = owner._params_lookup
+
+        description = ""
+        for group in params_lookup:
+            description += f"{group['group_name']}\n-------------\n"
+
+            description += group.get("help", "").strip()
+
+            description += "\n\nExplicitly supported keys:\n\t- "
+            description += "\n\t- ".join([key for key in group["keys"]])
+
+            if group.get("condition") is not None:
+                description += "\nKey matching condition:\n"
+                description += inspect.getsource(group["condition"])
+
+            description += "\n\n"
+
+        return description
+
 
 class BaseIterator(WorkChain):
     '''
@@ -147,6 +176,10 @@ class BaseIterator(WorkChain):
     # grabbing the initial user inputs (use case: sequential converger)
     _reuse_inputs = False
 
+    # Set up parameters_help so that the user can understand what is available for them
+    # to iterate over.
+    parameters_help = ParametersDescriptor()
+
     @classmethod
     def _iterate_input_serializer(cls, iterate_over):
         """
@@ -242,8 +275,10 @@ class BaseIterator(WorkChain):
             else:
                 solution = ""
 
-            raise ValueError(f'{cls.__name__} already has an input port for "{name}" and you are trying '+
-                f'to define an iteration input with this name. \n {solution}')
+            raise ValueError(
+                f'{cls.__name__} already has an input port for "{name}" and you are trying ' +
+                f'to define an iteration input with this name. \n {solution}'
+            )
 
         if "iterate_over" in cls._spec.inputs.ports:
             # Since we have iteration inputs, iterate_over is no longer required.
@@ -277,13 +312,13 @@ class BaseIterator(WorkChain):
 
         # Define the outline of the workflow, i.e. the order in which methods are executed.
         # See this class' documentation for an extended version of it
-        spec.outline(cls.initialize,
-                     while_(cls.next_step)(
-                         cls.run_batch,
-                         cls.analyze_batch,
-                     ), 
-                     cls.return_results,
-                     cls.report_end)
+        spec.outline(
+            cls.initialize,
+            while_(cls.next_step)(
+                cls.run_batch,
+                cls.analyze_batch,
+            ), cls.return_results, cls.report_end
+        )
 
         # Inputs that are general to all iterator workchains. They manage the iterator and batching.
         # More inputs can be defined in subclasses.
@@ -672,4 +707,3 @@ class BaseIterator(WorkChain):
         This is not inside return_results because that method is expected to be overwritten.
         '''
         self.report(f'End of the {self.__class__.__name__} Workchain')
-

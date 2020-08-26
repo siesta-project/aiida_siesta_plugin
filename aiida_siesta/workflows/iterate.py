@@ -124,6 +124,10 @@ def set_up_kpoint_grid(val, inputs, parameter, input_key='kpoints'):
 SIESTA_ITERATION_PARAMS = ({
     "group_name":
     "Basis parameters",
+    "help":
+    """
+    Supports iterating over parameters of the fdf that are related to the basis.
+    """,
     "input_key":
     "basis",
     "parse_func":
@@ -146,6 +150,9 @@ SIESTA_ITERATION_PARAMS = ({
 }, {
     "group_name": "SCF Brillouin zone",
     "input_key": "kpoints",
+    "help": """
+    Group of parameters that support modifying the kpoint sampling for the SCF cycles.
+    """,
     "parse_func": set_up_kpoint_grid,
     "keys": {
         'kpoints_density': None,
@@ -158,6 +165,13 @@ SIESTA_ITERATION_PARAMS = ({
     "FDF parameters",
     "input_key":
     "parameters",
+    "help":
+    """
+    All the parameters that are used "raw" in the fdf file. 
+
+    WARNING: Even if the parameter does not make sense, if it has not been interpreted as belonging
+    to any other group, it will be interpreted as an fdf parameter.
+    """,
     "condition":
     lambda parameter: True,
     "parse_func":
