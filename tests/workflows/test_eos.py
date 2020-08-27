@@ -48,35 +48,33 @@ def test_setup_run(aiida_profile, generate_workchain_eos):
     """Test `EoSFixedCellShape`."""
     
     process = generate_workchain_eos()
-    process.initio()
+    process.initialize()
 
-    assert isinstance(process.ctx.s0, orm.StructureData)
-
-    process.run_base_wcs()
+    assert isinstance(process.ctx.inputs.structure, orm.StructureData)
 
 
-def test_results(aiida_profile, generate_workchain_eos,
-        generate_wc_job_node, generate_structure, fixture_localhost):
-
-    process = generate_workchain_eos()
-    process.initio()
-
-    values=[-13,-18,-21,-22,-21,-18,-13]
-
-    for ind in range(len(process.ctx.scales)):
-        inputs = AttributeDict({
-            'structure': generate_structure(scale=process.ctx.scales[ind]),
-            })
-        basewc = generate_wc_job_node("siesta.base", fixture_localhost, inputs)
-        basewc.set_process_state(ProcessState.FINISHED)
-        basewc.set_exit_status(ExitCode(0).status)
-        out_par = orm.Dict(dict={"E_KS":values[ind],"E_KS_units":"eV"})
-        out_par.store()
-        out_par.add_incoming(basewc, link_type=LinkType.RETURN, link_label='output_parameters')
-        process.ctx[str(process.ctx.scales[ind])] = basewc
-
-    result = process.return_results()
-
-    assert result == ExitCode(0)
-    assert isinstance(process.outputs["results_dict"], orm.Dict)
-    assert (process.outputs["results_dict"]["fit_res"]['Vo(ang^3/atom)'] > 20)
+#def test_results(aiida_profile, generate_workchain_eos,
+#        generate_wc_job_node, generate_structure, fixture_localhost):
+#
+#    process = generate_workchain_eos()
+#    process.initialize()
+#
+#    values=[-13,-18,-21,-22,-21,-18,-13]
+#
+#    for ind in range(len(process.ctx.scales)):
+#        inputs = AttributeDict({
+#            'structure': generate_structure(scale=process.ctx.scales[ind]),
+#            })
+#        basewc = generate_wc_job_node("siesta.base", fixture_localhost, inputs)
+#        basewc.set_process_state(ProcessState.FINISHED)
+#        basewc.set_exit_status(ExitCode(0).status)
+#        out_par = orm.Dict(dict={"E_KS":values[ind],"E_KS_units":"eV"})
+#        out_par.store()
+#        out_par.add_incoming(basewc, link_type=LinkType.RETURN, link_label='output_parameters')
+#        process.ctx[str(process.ctx.scales[ind])] = basewc
+#
+#    result = process.return_results()
+#
+#    assert result == ExitCode(0)
+#    assert isinstance(process.outputs["results_dict"], orm.Dict)
+#    assert (process.outputs["results_dict"]["fit_res"]['Vo(ang^3/atom)'] > 20)
