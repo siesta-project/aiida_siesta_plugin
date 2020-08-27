@@ -27,7 +27,7 @@ class ParametersDescriptor:  #pylint: disable=too-few-public-methods
             description += group.get("help", "").strip()
 
             description += "\n\nExplicitly supported keys:\n\t- "
-            description += "\n\t- ".join([key for key in group["keys"]])
+            description += "\n\t- ".join([key for key in group["keys"]])  #pylint: disable=unnecessary-comprehension
 
             if group.get("condition") is not None:
                 description += "\nKey matching condition:\n"
