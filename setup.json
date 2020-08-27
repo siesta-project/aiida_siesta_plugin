@@ -45,8 +45,6 @@
         "aiida.workflows": [
             "siesta.base = aiida_siesta.workflows.base:SiestaBaseWorkChain",
 	    "siesta.eos = aiida_siesta.workflows.eos:EqOfStateFixedCellShape",
-	    "siesta.formation_energy_siesta = aiida_siesta.workflows.defect_formation.formation_energy_siesta:FormationEnergyWorkchainSIESTA",
-	    "siesta.neb_siesta = aiida_siesta.workflows.defect_migration.neb_siesta:BarrierEnergyWorkchainSIESTA",
 	    "siesta.bandgap = aiida_siesta.workflows.bandgap:BandgapWorkChain",
             "siesta.stm = aiida_siesta.workflows.stm:SiestaSTMWorkChain",
 	    "siesta.iterator = aiida_siesta.workflows.iterate:SiestaIterator",

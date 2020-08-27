@@ -98,11 +98,6 @@ aiida_siesta/workflows/converge.py
 aiida_siesta/workflows/eos.py
 aiida_siesta/workflows/iterate.py
 aiida_siesta/workflows/stm.py
-aiida_siesta/workflows/defect_formation/DefectWorkflowExample.py
-aiida_siesta/workflows/defect_formation/__init__.py
-aiida_siesta/workflows/defect_formation/formation_energy_base.py
-aiida_siesta/workflows/defect_formation/formation_energy_siesta.py
-aiida_siesta/workflows/defect_formation/utils.py
 aiida_siesta/workflows/utils/__init__.py
 aiida_siesta/workflows/utils/generator_metaclass.py
 aiida_siesta/workflows/utils/inputs_generators.py

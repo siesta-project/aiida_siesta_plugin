@@ -80,7 +80,7 @@ class SiestaCalculation(CalcJob):
         spec.input_namespace('pseudos', valid_type=(PsfData, PsmlData), help='Input pseudo potentials', dynamic=True)
         #aakhtar
         #the LUAData added here the first option is just for onefile to send but the later one is the main one
-        spec.input('lua',valid_type=orm.SinglefileData,required=False,help='lua file')
+        #spec.input('lua',valid_type=orm.SinglefileData,required=False,help='lua file')
         spec.input_namespace('luafiles',valid_type=(LUAData),required=False, help='lua input file',dynamic=True)
         #aakhtar
         # Metadada.options host the inputs that are not stored as a separate node, but attached to `CalcJobNode`
@@ -269,9 +269,17 @@ class SiestaCalculation(CalcJob):
         for kind in structure.kinds:
             spcount += 1  # species count
             spind[kind.name] = spcount
-            atomic_species_card_list.append(
-                "{0:5} {1:5} {2:5}\n".format(spind[kind.name], datmn[kind.symbol], kind.name.rjust(6))
-            )
+            # AAKHTAR if in name we have ghost string it will save it with negative Z number
+            if "GHOST" in kind.name.upper():
+                atomic_species_card_list.append(
+                        "{0:5} {1:5} {2:5}\n".format(spind[kind.name],(-1)*datmn[kind.symbol], kind.name.rjust(6)))
+            
+            else:
+                atomic_species_card_list.append(
+                "{0:5} {1:5} {2:5}\n".format(spind[kind.name],datmn[kind.symbol], kind.name.rjust(6)))
+
+
+
             psp = pseudos[kind.name]
 
             # Add this pseudo file to the list of files to copy, with
