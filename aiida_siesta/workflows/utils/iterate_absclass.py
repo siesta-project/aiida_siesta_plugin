@@ -1,13 +1,41 @@
+import inspect
 import itertools
 from functools import partial
 import numpy as np
 
 from aiida.plugins import DataFactory
-from aiida.engine import WorkChain, while_, ToContext
+from aiida.engine import WorkChain, while_, ToContext, calcfunction
 from aiida.orm import Str, List, Int, Node
 from aiida.orm.nodes.data.base import to_aiida_type
 from aiida.orm.utils import load_node
 from aiida.common import AttributeDict
+
+
+class ParametersDescriptor:
+    """
+    Uses the _params_lookup variable of an iterator to provide a helpful description of the possibilities.
+    """
+
+    def __get__(self, instance, owner):
+
+        params_lookup = owner._params_lookup
+
+        description = ""
+        for group in params_lookup:
+            description += f"{group['group_name']}\n-------------\n"
+
+            description += group.get("help", "").strip()
+
+            description += "\n\nExplicitly supported keys:\n\t- "
+            description += "\n\t- ".join([key for key in group["keys"]])
+
+            if group.get("condition") is not None:
+                description += "\nKey matching condition:\n"
+                description += inspect.getsource(group["condition"])
+
+            description += "\n\n"
+
+        return description
 
 
 class BaseIterator(WorkChain):
@@ -75,14 +103,14 @@ class BaseIterator(WorkChain):
     understand how it works:
     -------------------------------------------------------------------------------
     cls.initialize:
-      cls._parse_iterate_over: # sets up all the required internal variables
-        for key in iterate_over.keys():
-          cls.process_input_and_parse_func(key) # Here all the logic for supported iterations.
-                                                # 1) The allowed "key" are defined.
-                                                # 2) For each key a `_parsing_func` is stored. This function
-                                                #   implements which input of _process_class needs to be modified
-                                                #   and how in presence of this "key".
-      cls._get_iterator
+        cls._parse_iterate_over:
+            for key in iterate_over.keys():
+                if key not in self._iteration_inputs:
+                    # We look for the way of parsing the values in cls._params_lookup
+                    cls.process_input_and_parse_func(key)
+        cls._get_iterator # we get the iterator according to the iteration_mode.
+
+
     while (cls.next_step): # cls._should_proceed and cls._store_next_val are called inside cls.next_step!
       cls.run_batch:
         for i in range(batch_size):
@@ -94,11 +122,16 @@ class BaseIterator(WorkChain):
         for process in batch:
           cls._analyze_process(process)
     cls.return_results
+    cls.report_end
     --------------------------------------------------------------------------------
     '''
 
     # THE _process_class NEEDS TO BE PROVIDED IN CHILD CLASSES!
     _process_class = None
+
+    # This is a flag to indicate that you want the "iterate_over" port. If you set it to False,
+    # you have to define iteration inputs using cls.iteration_input.
+    _iterate_over_port = True
 
     def __init_subclass__(cls, *args, **kwargs):
         """
@@ -142,6 +175,10 @@ class BaseIterator(WorkChain):
     # Whether the created inputs should be reused by the next step instead of always
     # grabbing the initial user inputs (use case: sequential converger)
     _reuse_inputs = False
+
+    # Set up parameters_help so that the user can understand what is available for them
+    # to iterate over.
+    parameters_help = ParametersDescriptor()
 
     @classmethod
     def _iterate_input_serializer(cls, iterate_over):
@@ -201,31 +238,104 @@ class BaseIterator(WorkChain):
         return List(list=parsed_list)
 
     @classmethod
+    def iteration_input(cls, name, input_key=None, parse_func=None, **kwargs):
+        """
+        Creates an input that will be used for iteration.
+
+        An iteration input is to be created when you don't want the users to use `iterate_over`
+        for this parameter or it is a required parameter to provide.
+
+        For example, if I am implementing an equation of state workchain, the scales for which
+        I will submit calculations is the thing I want to iterate over. However, it is an input
+        too important to the workchain to hide under `iterate_over`. In fact, without having values
+        for this parameter, the workchain does not make sense. By using an iteration input, you can
+        provide a default and make the parameter required.
+
+        It creates a regular aiida input, so you should use this function as if you were using `spec.input`.
+        The only difference is that the workchain is then aware that it needs to serialize the list of values
+        provided here and incorporate it into `iterate_over`.
+
+        Apart from all the parameters that `spec.input` accepts, this function accepts two more parameters:
+
+        :param input_key: `str`, optional.
+            The name of the input were the values for this parameter will end up
+            after (optionally) parsing.
+        :param parse_func: `function`, optional.
+            Function to be used to parse the values for this parameter
+
+        Note that these two inputs work the same as if you were defining the parameter in `_params_lookup`
+        (see docstring of `BaseIterator`). If you don't provide an `input_key` here, the iterator will
+        try to look for the parameter in `_params_lookup` to understand how to parse the values.
+        """
+        # Avoid overwriting already existing input ports
+        if name in cls._spec.inputs.ports:
+            if name in cls._exposed_input_keys:
+                solution = f"""If you want to overwrite it, don't expose {cls._process_class.__name__}'s "{name}".
+                You can do so with the _expose_inputs_kwargs class variable: _expose_inputs_kwargs = {dict(exlude=[name])}"""
+            else:
+                solution = ""
+
+            raise ValueError(
+                f'{cls.__name__} already has an input port for "{name}" and you are trying ' +
+                f'to define an iteration input with this name. \n {solution}'
+            )
+
+        if "iterate_over" in cls._spec.inputs.ports:
+            # Since we have iteration inputs, iterate_over is no longer required.
+            cls._spec.inputs.ports["iterate_over"].required = False
+
+        # Add the serializer to parse the input
+        if "serializer" not in kwargs:
+            kwargs["serializer"] = cls._values_list_serializer
+
+        # If a default is provided, we will serialize it each time the workchain is instantiated.
+        if "default" in kwargs:
+            default = kwargs["default"]
+            kwargs["default"] = lambda: kwargs["serializer"](default)
+
+        # Store how to parse the values for this parameter
+        if input_key is not None:
+            cls._iteration_inputs[name] = {"input_key": input_key, "parse_func": parse_func}
+        # or just store an empty dict to indicate that the iteration
+        # input is present but we have no information on how to parse it
+        # (the workchain will attempt to find it in `cls._params_lookup`)
+        else:
+            cls._iteration_inputs[name] = {}
+
+        cls._spec.input(name, **kwargs)
+
+    @classmethod
     def define(cls, spec):
         super().define(spec)
 
+        cls._iteration_inputs = {}
+
         # Define the outline of the workflow, i.e. the order in which methods are executed.
         # See this class' documentation for an extended version of it
-        spec.outline(cls.initialize,
-                     while_(cls.next_step)(
-                         cls.run_batch,
-                         cls.analyze_batch,
-                     ), cls.return_results)
+        spec.outline(
+            cls.initialize,
+            while_(cls.next_step)(
+                cls.run_batch,
+                cls.analyze_batch,
+            ), cls.return_results, cls.report_end
+        )
 
         # Inputs that are general to all iterator workchains. They manage the iterator and batching.
         # More inputs can be defined in subclasses.
-        spec.input(
-            "iterate_over",
-            valid_type=DataFactory('dict'),
-            serializer=cls._iterate_input_serializer,
-            help='''A dictionary where each key is the name of a parameter we want to iterate
-            over (str) and each value is a list with all the values to iterate over for
-            that parameter. Each value in the list can be either a node (unstored or stored)
-            or a simple python object (str, float, int, bool).
-            Note that each subclass might parse this keys and values differently, so you should
-            know how they do it.
-            '''
-        )
+        if cls._iterate_over_port:
+            spec.input(
+                "iterate_over",
+                valid_type=DataFactory('dict'),
+                serializer=cls._iterate_input_serializer,
+                help='''A dictionary where each key is the name of a parameter we want to iterate
+                over (str) and each value is a list with all the values to iterate over for
+                that parameter. Each value in the list can be either a node (unstored or stored)
+                or a simple python object (str, float, int, bool).
+                Note that each subclass might parse this keys and values differently, so you should
+                know how they do it.
+                '''
+            )
+
         spec.input(
             "iterate_mode",
             valid_type=Str,
@@ -270,15 +380,19 @@ class BaseIterator(WorkChain):
         content and organizes into context the informations. The second method adds the info
         from the port `iterate_mode` and creates the iterator.
         """
+        self.report(f"Initializing the {self.__class__.__name__} workchain")
 
-        self.ctx.variable_values = []
+        self.ctx.used_values = []
+
+        # We "copy" the inputs into a dictionary in ctx so that a child workchain
+        # can modify them if they want
+        self.ctx.inputs = AttributeDict({**self.inputs})
 
         # Here we check the `iterate_over` input and prepare many variables that are used through the
         # workchain. They are:
         #  self.ctx.iteration_keys, list of keys of `iterate_over`
         #  self.ctx.iteration_vals, all the values for each key
-        #  self.ctx._process_input_keys, dict containing a map between keys and inputs of _process_class
-        #  self.ctx._parsing_funcs, dict containing a map between keys and functions to process them
+        #  self.ctx._iteration_parsing, dict that contains the input key and parsing function for each parameter
         self._parse_iterate_over()
 
         # Here we create self.ctx.values_iterator, the actual iterator
@@ -289,25 +403,40 @@ class BaseIterator(WorkChain):
         Sets up self.ctx.iteration_keys (list of keys of `iterate_over`, passed by user)
         and self.ctx.iteration_vals (list of lists. Each list contains the values
         for the corresponding key).
-        For each element of self.ctx.iteration_keys, we run `process_input_and_parse_func`.
-        It checks for forbidden keys and sets the management of allowed ones. A process_input
-        (stored in self.ctx._process_input_key) and a parsing_func (in self.ctx._parsing_funcs)
-        is associated to each key. See `process_input_and_parse_func` documentation for info.
+
+        For each iteration key, we try to find the appropiate way of parsing the values and
+        building the inputs. We end up storing a parsing function and the input key where the
+        value should go for each iteration key under `self.ctx._iteration_parsing`.
         """
 
-        iterate_over = self.inputs.iterate_over.get_dict()
+        iterate_over = {}
+        if "iterate_over" in self.ctx.inputs:
+            iterate_over.update(self.ctx.inputs.iterate_over.get_dict())
+        for key in self._iteration_inputs:
+            if key in self.ctx.inputs:
+                iterate_over[key] = getattr(self.ctx.inputs, key).get_list()
 
         # Get the names of the parameters and the values
         self.ctx.iteration_keys = tuple(iterate_over.keys())
         self.ctx.iteration_vals = tuple(iterate_over[key] for key in self.ctx.iteration_keys)
 
-        self.ctx._process_input_keys = {}
-        self.ctx._parsing_funcs = {}
+        # Here, we will store the parsing function and the input key where the parsed value
+        # should go for each parameter that is to be used in the execution of the workchain.
+        self.ctx._iteration_parsing = {}
         for key in self.ctx.iteration_keys:
-            proc_input, parsing_func = self.process_input_and_parse_func(key)
 
-            self.ctx._process_input_keys[key] = proc_input
-            self.ctx._parsing_funcs[key] = parsing_func
+            # If the parsing function and input key for this parameter is already
+            # defined (this happens when you have created an input using cls.iteration_input)
+            # then we just copy it.
+            if self._iteration_inputs.get(key):
+                key_and_parse_func = self._iteration_inputs[key]
+            # Else, we need to look through the _params_lookup variable to see if we find
+            # the way to handle this parameter
+            else:
+                proc_input, parse_func = self.process_input_and_parse_func(key)
+                key_and_parse_func = {"input_key": proc_input, "parse_func": parse_func}
+
+            self.ctx._iteration_parsing[key] = key_and_parse_func
 
     def _get_iterator(self):
         """
@@ -315,7 +444,7 @@ class BaseIterator(WorkChain):
         `iterate_over` and `iterate_mode`. Here also `port_name_and_parse_func` is called.
         """
 
-        iterate_mode = self.inputs.iterate_mode.value
+        iterate_mode = self.ctx.inputs.iterate_mode.value
 
         # Define the iterator depending on the iterate_mode.
         if iterate_mode == 'zip':
@@ -438,7 +567,7 @@ class BaseIterator(WorkChain):
         """
 
         # Store the next value
-        self.ctx.variable_values.append(self._next_val())
+        self.ctx.used_values.append(self._next_val())
 
         # Inform about it
         info = '\n\t'.join([f'"{key}": {val}' for key, val in zip(self.ctx.iteration_keys, self.current_val)])
@@ -446,7 +575,7 @@ class BaseIterator(WorkChain):
 
     @property
     def current_val(self):
-        return self.ctx.variable_values[-1]
+        return self.ctx.used_values[-1]
 
     def run_batch(self):
         '''
@@ -458,7 +587,7 @@ class BaseIterator(WorkChain):
         self.ctx.last_step_processes = []
 
         processes = {}
-        batch_size = self.inputs.batch_size.value
+        batch_size = self.ctx.inputs.batch_size.value
         # Run as many processes as the "batch_size" input tells us to
         for i in range(batch_size):
 
@@ -517,9 +646,12 @@ class BaseIterator(WorkChain):
     def _add_inputs(self, key, val, inputs):
         '''
         Given a parameter (key) and the value (val, the node!), modify the inputs.
+
         We need:
-        1) The `_process_class` input to modify (from `self.ctx._process_input_keys`)
-        2) The parsed value, obtained applying the parsing function (from `self.ctx._parsing_funcs`)
+        1) The `_process_class` input to modify
+        2) The parsed value, obtained applying the parsing function.
+
+        We obtain the information that we need to treat the value from `self.ctx._iteration_parsing[key]`.
 
         :param key: parameter (`str`) the user wants to iterate over, key of `iterate_over`
         :param val: an aiida data node containing the value associated to "key" at the present step
@@ -527,11 +659,11 @@ class BaseIterator(WorkChain):
         '''
 
         # Get the name of the process input that will be modified
-        attribute = self.ctx._process_input_keys.get(key, key)
+        attribute = self.ctx._iteration_parsing[key].get("input_key", key)
 
-        # Get the parsed value (it's the node), either the input value `val`
-        # if no parsing_func is necessary or the value return by parsing_func.
-        parsing_func = self.ctx._parsing_funcs.get(key, None)
+        # Get the parsed value (it's the node) using the parsing function
+        # for this parameter (if any).
+        parsing_func = self.ctx._iteration_parsing[key].get("parse_func", None)
         if parsing_func is not None:
             val = parsing_func(val, inputs)
 
@@ -567,3 +699,11 @@ class BaseIterator(WorkChain):
         Takes care of postprocessing and returning the results of the workchain to the user.
         (if any outputs need to be returned)
         '''
+
+    def report_end(self):
+        '''
+        Simply reports the end of the workchain.
+
+        This is not inside return_results because that method is expected to be overwritten.
+        '''
+        self.report(f'End of the {self.__class__.__name__} Workchain')
