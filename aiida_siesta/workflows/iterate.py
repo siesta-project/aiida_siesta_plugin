@@ -167,7 +167,7 @@ SIESTA_ITERATION_PARAMS = ({
     "parameters",
     "help":
     """
-    All the parameters that are used "raw" in the fdf file. 
+    All the parameters that are used "raw" in the fdf file.
 
     WARNING: Even if the parameter does not make sense, if it has not been interpreted as belonging
     to any other group, it will be interpreted as an fdf parameter.

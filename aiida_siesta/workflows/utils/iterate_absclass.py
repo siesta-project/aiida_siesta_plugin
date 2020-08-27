@@ -4,14 +4,14 @@ from functools import partial
 import numpy as np
 
 from aiida.plugins import DataFactory
-from aiida.engine import WorkChain, while_, ToContext, calcfunction
+from aiida.engine import WorkChain, while_, ToContext
 from aiida.orm import Str, List, Int, Node
 from aiida.orm.nodes.data.base import to_aiida_type
 from aiida.orm.utils import load_node
 from aiida.common import AttributeDict
 
 
-class ParametersDescriptor:
+class ParametersDescriptor:  #pylint: disable=too-few-public-methods
     """
     Uses the _params_lookup variable of an iterator to provide a helpful description of the possibilities.
     """
@@ -271,7 +271,7 @@ class BaseIterator(WorkChain):
         if name in cls._spec.inputs.ports:
             if name in cls._exposed_input_keys:
                 solution = f"""If you want to overwrite it, don't expose {cls._process_class.__name__}'s "{name}".
-                You can do so with the _expose_inputs_kwargs class variable: _expose_inputs_kwargs = {dict(exlude=[name])}"""
+                You can do so with _expose_inputs_kwargs variable: _expose_inputs_kwargs = {dict(exlude=[name])}"""
             else:
                 solution = ""
 

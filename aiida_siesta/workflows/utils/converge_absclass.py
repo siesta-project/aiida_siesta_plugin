@@ -100,7 +100,7 @@ class BasicConverger(BaseIterator):
             diffs = abs(np.diff(target_values))
             below_thresh = np.where(diffs < self.ctx.inputs.threshold.value)[0]
 
-            converged = len(below_thresh) > 0
+            converged = len(below_thresh) > 0  #pylint: disable=len-as-condition
             if converged:
                 self.ctx.converged_index = below_thresh[0]
 

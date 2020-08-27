@@ -1,6 +1,5 @@
 from aiida.plugins import DataFactory
-from aiida.common import AttributeDict
-from aiida.engine import WorkChain, calcfunction, ToContext
+from aiida.engine import calcfunction
 from aiida.orm import Float
 from aiida_siesta.calculations.tkdict import FDFDict
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
