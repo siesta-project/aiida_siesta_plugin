@@ -365,12 +365,14 @@ class BaseIterator(WorkChain):
         # them you might not pass them directly) and save them in a variable.
         if "namespace" in cls._expose_inputs_kwargs:
             cls._exposed_input_keys = spec._exposed_inputs[cls._expose_inputs_kwargs["namespace"]][cls._process_class]
-            for input_key in cls._exposed_input_keys:
-                spec.inputs._ports[cls._expose_inputs_kwargs["namespace"]][input_key].required = False
+            if cls._iterate_over_port:
+                for input_key in cls._exposed_input_keys:
+                    spec.inputs._ports[cls._expose_inputs_kwargs["namespace"]][input_key].required = False
         else:
             cls._exposed_input_keys = spec._exposed_inputs[None][cls._process_class]
-            for input_key in cls._exposed_input_keys:
-                spec.inputs._ports[input_key].required = False
+            if cls._iterate_over_port:
+                for input_key in cls._exposed_input_keys:
+                    spec.inputs._ports[input_key].required = False
 
     def initialize(self):
         """
