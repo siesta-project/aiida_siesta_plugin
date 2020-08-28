@@ -21,6 +21,7 @@ def generate_workchain_eos(generate_psml_data, fixture_code, fixture_localhost, 
         structure = generate_structure()
 
         inputs = {
+            'volume_per_atom': orm.Float(21),
             'code': fixture_code(entry_point_code),
             'structure': structure,
             'kpoints': generate_kpoints_mesh(2),
@@ -45,36 +46,49 @@ def generate_workchain_eos(generate_psml_data, fixture_code, fixture_localhost, 
 
 
 def test_setup_run(aiida_profile, generate_workchain_eos):
-    """Test `EoSFixedCellShape`."""
+    """Test `EoSFixedCellShape` setup and inputs."""
     
     process = generate_workchain_eos()
     process.initialize()
 
+    assert "scales" in process.ctx.inputs
     assert isinstance(process.ctx.inputs.structure, orm.StructureData)
+    assert int(process.ctx.inputs.structure.get_cell_volume()+0.001) == 42
 
 
-#def test_results(aiida_profile, generate_workchain_eos,
-#        generate_wc_job_node, generate_structure, fixture_localhost):
-#
-#    process = generate_workchain_eos()
-#    process.initialize()
-#
-#    values=[-13,-18,-21,-22,-21,-18,-13]
-#
-#    for ind in range(len(process.ctx.scales)):
-#        inputs = AttributeDict({
-#            'structure': generate_structure(scale=process.ctx.scales[ind]),
-#            })
-#        basewc = generate_wc_job_node("siesta.base", fixture_localhost, inputs)
-#        basewc.set_process_state(ProcessState.FINISHED)
-#        basewc.set_exit_status(ExitCode(0).status)
-#        out_par = orm.Dict(dict={"E_KS":values[ind],"E_KS_units":"eV"})
-#        out_par.store()
-#        out_par.add_incoming(basewc, link_type=LinkType.RETURN, link_label='output_parameters')
-#        process.ctx[str(process.ctx.scales[ind])] = basewc
-#
-#    result = process.return_results()
-#
-#    assert result == ExitCode(0)
-#    assert isinstance(process.outputs["results_dict"], orm.Dict)
-#    assert (process.outputs["results_dict"]["fit_res"]['Vo(ang^3/atom)'] > 20)
+def test_results(aiida_profile, generate_workchain_eos,
+        generate_wc_job_node, generate_structure, fixture_localhost):
+    """
+    Test the methods _analyze_process and return_results of `EoSFixedCellShape` and all the functions called
+    whithin them.
+    """
+
+    process = generate_workchain_eos()
+    process.initialize()
+
+    values=[-13,-18,-21,-22,-21,-18,-13]
+
+    for ind in range(len(process.inputs.scales)):
+        inputs = AttributeDict({
+            'structure': generate_structure(scale=orm.load_node(process.inputs.scales[ind]).value),
+            })
+        basewc = generate_wc_job_node("siesta.base", fixture_localhost, inputs)
+        basewc.set_process_state(ProcessState.FINISHED)
+        basewc.set_exit_status(ExitCode(0).status)
+        out_par = orm.Dict(dict={"E_KS":values[ind],"E_KS_units":"eV"})
+        out_par.store()
+        out_par.add_incoming(basewc, link_type=LinkType.RETURN, link_label='output_parameters')
+        process._analyze_process(basewc)
+        process.next_step()
+
+    assert isinstance(process.ctx.collectwcinfo[-1], orm.Dict)
+    assert "en" in process.ctx.collectwcinfo[-1].attributes
+    assert "vol" in process.ctx.collectwcinfo[-1].attributes
+    assert process.ctx.collectwcinfo[-1]["en_units"] == 'eV/atom'
+    assert process.ctx.collectwcinfo[-1]["vol_units"] == 'ang^3/atom'
+
+    result = process.return_results()
+
+    assert result == ExitCode(0)
+    assert isinstance(process.outputs["results_dict"], orm.Dict)
+    assert (process.outputs["results_dict"]["fit_res"]['Vo(ang^3/atom)'] > 20)

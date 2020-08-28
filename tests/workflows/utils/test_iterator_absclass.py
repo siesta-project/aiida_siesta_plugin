@@ -1,3 +1,8 @@
+"""
+Here I test only the validation checks and the errors of the three classmethods
+of BaseIterator. The rest is tested in the tests of SiestaIterator.
+"""
+
 from aiida_siesta.workflows.utils.iterate_absclass import BaseIterator
 from aiida.plugins import WorkflowFactory
 import pytest
@@ -52,3 +57,20 @@ def test_iterate_input_serializer(aiida_profile, generate_iterator):
     assert isinstance(orm.load_node(it_ov_el[0]), orm.Int)
 
 
+def test_iteration_input(aiida_profile):
+    """Test of the classmethod `iteration_input` of `BaseIterator`."""
+
+    class SubBaseIterator(BaseIterator):
+        _process_class = WorkflowFactory("siesta.base")
+
+        @classmethod
+        def define(cls, spec):
+            super().define(spec)
+
+            cls.iteration_input(
+                "structure",
+            )
+
+    import pytest
+    with pytest.raises(ValueError):
+        SubBaseIterator()

@@ -16,8 +16,23 @@ def generate_workchain_iterate(generate_psml_data, fixture_code, generate_workch
 
         entry_point_wc = 'siesta.iterator'
 
+        psml = generate_psml_data('Si')
+
         inputs = {
-                'iterate_over' : {"pao":[1,2],"mesh":[2,3]}
+            'code': fixture_code("siesta.siesta"),
+            'structure': generate_structure(),
+            'parameters': generate_param(),
+            'pseudos': {
+                'Si': psml,
+                'SiDiff': psml
+            },
+            'options': orm.Dict(dict={
+               'resources': {'num_machines': 1  },
+               'max_wallclock_seconds': 1800,
+               'withmpi': False,
+               }),
+            'iterate_over' : {"pao":[1,2],"mesh":[2,3]},
+            'batch_size' : orm.Int(2)
         }
 
         process = generate_workchain(entry_point_wc, inputs)
@@ -27,11 +42,10 @@ def generate_workchain_iterate(generate_psml_data, fixture_code, generate_workch
     return _generate_workchain_iterate
 
 
-def test_setup(aiida_profile, generate_workchain_iterate):
+def test_setup_next_step_smooth_run(aiida_profile, generate_workchain_iterate):
     """Test `SiestaBaseWorkChain.setup`."""
     process = generate_workchain_iterate()
     process.initialize()
-    #process.prepare_inputs()
 
     assert process.ctx.iteration_keys == ("pao","mesh")
     a_val_list = process.ctx.iteration_vals[0]
@@ -45,3 +59,12 @@ def test_setup(aiida_profile, generate_workchain_iterate):
     assert isinstance(process.ctx.values_iterator, zip)
     assert isinstance(process.ctx.inputs, dict)
 
+    assert len(process.ctx.used_values) == 0
+    process.next_step()
+    assert len(process.ctx.used_values) == 1
+
+    process.run_batch()
+
+    assert len(process.ctx.used_values) == 2
+    assert "structure" in process.ctx.last_inputs
+    assert "pao" in process.ctx.last_inputs["basis"].attributes
