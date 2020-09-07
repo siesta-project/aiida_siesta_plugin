@@ -185,7 +185,7 @@ class BasisAtomicElement(OrbitalData):
             listorb.append(atorb)
         self.set_orbitals(listorb)
 
-    def get_pao_block(self):
+    def get_pao_dict(self):
         dictl = {}
         pol = {}
         for i in self.attributes["orbital_dicts"]:
@@ -208,30 +208,58 @@ class BasisAtomicElement(OrbitalData):
                         if i["Z"] not in pol[i["n"]][i["l"] - 1]:
                             pol[i["n"]][i["l"] - 1][i["Z"]] = i["R"]
 
-        print(dictl)
-        print(pol)
+        return dictl, pol
 
-    #
-    #    nl=0
-    #    for i in dictl:
-    #        nl=nl+len(dictl[i])
+    def get_pao_modifier(self):
 
-    #    print(self.get_attribute("name"),nl)
-    #    for i in dictl:
-    #        for j in dictl[i]:
-    #            if i in pol:
-    #                if j in pol[i]:
-    #                    print("  n={}  {}  {}  P {}".format(i,j,len(dictl[i][j]),len(pol[i][j])))
-    #                    listi = [dictl[i][j][l] for l in dictl[i][j]]
-    #                    print(listi)
-    #                else:
-    #                    print("  n={}  {}  {}".format(i,j,len(dictl[i][j])))
-    #                    listi = [dictl[i][j][l] for l in dictl[i][j]]
-    #                    print(listi)
-    #            else:
-    #                print("  n={}  {}  {}".format(i,j,len(dictl[i][j])))
-    #                listi = [dictl[i][j][l] for l in dictl[i][j]]
-    #                print(listi)
+        dictl, pol = self.get_pao_dict()
+
+        return PaoModifier(self.name, dictl, pol)
+
+
+class PaoModifier:
+    """
+    class to help modifications to PAO
+    """
+
+    def __init__(self, name, dictl, pol=None):
+        self.name = name
+        self.dictl = dictl
+        self.pol = pol
+
+    def change_all_radius(self, percentage):
+        """
+        increment decrement of all orbitas of a percentage
+        """
+
+    #def add_polarization(self, n, l):
+    #    """
+    #    add polarization to the orbital with quantum numbers n, l
+    #    """
+
+    def get_pao_basis(self):
+        number_of_l = 0
+        dictl = self.dictl
+        pol = self.pol
+        for i in dictl:
+            number_of_l = number_of_l + len(dictl[i])
+
+        print(self.name, number_of_l)
+        for i in dictl:
+            for j in dictl[i]:
+                if i in pol:
+                    if j in pol[i]:
+                        print("  n={}  {}  {}  P {}".format(i, j, len(dictl[i][j]), len(pol[i][j])))
+                        listi = [dictl[i][j][l] for l in dictl[i][j]]
+                        print(listi)
+                    else:
+                        print("  n={}  {}  {}".format(i, j, len(dictl[i][j])))
+                        listi = [dictl[i][j][l] for l in dictl[i][j]]
+                        print(listi)
+                else:
+                    print("  n={}  {}  {}".format(i, j, len(dictl[i][j])))
+                    listi = [dictl[i][j][l] for l in dictl[i][j]]
+                    print(listi)
 
     #for index in range(self.number_of_orbitals):
     #    i = self._orbital_list[index]
