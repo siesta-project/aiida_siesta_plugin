@@ -231,11 +231,34 @@ class PaoModifier:
         """
         increment decrement of all orbitas of a percentage
         """
+        dictl = self.dictl.copy()
+        pol = self.pol.copy()
+        for i in dictl:
+            for j in dictl[i]:
+                for l in dictl[i][j]:
+                    dictl[i][j][l] = dictl[i][j][l] + percentage / 100 * dictl[i][j][l]
+        for i in pol:
+            for j in pol[i]:
+                for l in pol[i][j]:
+                    pol[i][j][l] = pol[i][j][l] + percentage / 100 * pol[i][j][l]
 
-    #def add_polarization(self, n, l):
-    #    """
-    #    add polarization to the orbital with quantum numbers n, l
-    #    """
+        self.dictl = dictl
+        self.pol = pol
+
+    def add_polarization(self, n, l):  #pylint: disable=invalid-name
+        """
+        add polarization to the orbital with quantum numbers n, l
+        """
+        try:
+            self.dictl[n][l]
+        except KeyError:
+            raise ValueError("no orbital with n = {0} and l = {1} is present in the basis".format(n, l))
+
+        if l in self.pol[n]:
+            num_z = len(self.pol[n][l])
+            self.pol[n][l][num_z + 1] = 0.000
+        else:
+            self.pol[n][l] = {"1": self.dictl[n][l][1]}
 
     def get_pao_basis(self):
         number_of_l = 0
