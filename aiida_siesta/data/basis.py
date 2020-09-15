@@ -302,6 +302,11 @@ class BasisAtomicElement(OrbitalData):
 
         string = "{}Z{}P".format(dictma[max_z - 1], dictpo[max_pz - 1])
 
+        self.logger.warning("Carefull. This information is an approximation. It is extracted looking "
+                "at the maximum Z for polarized and unpolarized orbitals. Not all the siesta basis "
+                "choises can be condensed into a simple string. Check the `get_pao_block` for "
+                "more detailed information")
+
         return string
 
 
@@ -353,46 +358,35 @@ class PaoModifier:
             self.pol_dict[n][l] = {"1": self.gen_dict[n][l][1]}
 
     def get_pao_basis(self):
+        """
+        From the info of the gen_dict, pol_dict, creates the PAO block.
+        return a string card containing the block.
+        """
         number_of_l = 0
         dictl = self.gen_dict
         pol = self.pol_dict
         for i in dictl:
             number_of_l = number_of_l + len(dictl[i])
 
-        print(self.name, number_of_l)
+        atomic_paobasis_card = str(self.name) + " " + str(number_of_l) + "\n"
         for i in dictl:
             for j in dictl[i]:
                 if i in pol:
                     if j in pol[i]:
-                        print("  n={}  {}  {}  P {}".format(i, j, len(dictl[i][j]), len(pol[i][j])))
+                        atomic_paobasis_card += "  n={}  {}  {}  P {} \n".format(i, j, len(dictl[i][j]), len(pol[i][j]))
                         listi = [dictl[i][j][l] for l in dictl[i][j]]
-                        print(listi)
+                        atomic_paobasis_card += '\t'.join([f' {val}' for val in listi]) + "\n"
                     else:
-                        print("  n={}  {}  {}".format(i, j, len(dictl[i][j])))
+                        atomic_paobasis_card += "  n={}  {}  {} \n".format(i, j, len(dictl[i][j]))
+                        #print("  n={}  {}  {}".format(i, j, len(dictl[i][j])))
                         listi = [dictl[i][j][l] for l in dictl[i][j]]
-                        print(listi)
+                        atomic_paobasis_card += '\t'.join([f' {val}' for val in listi]) + "\n"
                 else:
-                    print("  n={}  {}  {}".format(i, j, len(dictl[i][j])))
+                    atomic_paobasis_card += "  n={}  {}  {} \n".format(i, j, len(dictl[i][j]))
                     listi = [dictl[i][j][l] for l in dictl[i][j]]
-                    print(listi)
-
-    #for index in range(self.number_of_orbitals):
-    #    i = self._orbital_list[index]
-    #    for jindex in range(index+1,self.number_of_orbitals):
-    #        j = self._orbital_list[jindex]
-    #        print(i.orb.R, j.orb.R)
-    #        if i.n == j.n and i.orb.l == j.orb.l and i.Z == j.Z and i.P == j.P:
-    #            if (i.orb.R != j.orb.R):
-    #                print("error")
-
-    #nlist = []
-    #for i in self._orbital_list:
-    #    if i.n not in nlist:
-    #        nlist.append(i.n)
-    #        llist["{}".format(i.n)] = [i.l]
-
-    #atomic_paobasis_card = "{}{}".format(self.get_attribute("name"),nlshell)
-
+                    atomic_paobasis_card += '\t'.join([f' {val}' for val in listi]) + "\n"
+    
+        return atomic_paobasis_card[:-1]
 
 #class BasisData(Data):
 #    """
