@@ -60,11 +60,11 @@ s.append_atom(position=(5.604, 0.000, 0.000), symbols=['H'])
 calc_engines = {
      'siesta': {
          'code': codename, 
-         'options': {'resources': {'num_machines': 1, "num_mpiprocs_per_machine": 1}, "max_wallclock_seconds": 1360 }
+         'options': {'resources': {'num_machines': 1, "num_mpiprocs_per_machine": 1}, "max_wallclock_seconds": 3600 }
          },
      'stm': {
          'code': stmcodename,
-         'options': {'resources': {'num_machines': 1, "num_mpiprocs_per_machine": 1}, "max_wallclock_seconds": 360 }
+         'options': {'resources': {'num_machines': 1, "num_mpiprocs_per_machine": 1}, "max_wallclock_seconds": 1360 }
          }
      }
 

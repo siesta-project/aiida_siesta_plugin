@@ -30,7 +30,7 @@ calc_engines = {
          'code': codename, 
          'options': {
              'resources': {'num_machines': 1, "num_mpiprocs_per_machine": 1}, 
-             "max_wallclock_seconds": 360, #'queue_name': 'DevQ', 'withmpi': True, 'account': "tcphy113c"
+             "max_wallclock_seconds": 3600, #'queue_name': 'DevQ', 'withmpi': True, 'account': "tcphy113c"
          }}}
 
 protocol="standard_psml"
