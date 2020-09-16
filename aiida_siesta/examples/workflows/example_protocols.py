@@ -33,7 +33,7 @@ calc_engines = {
              "max_wallclock_seconds": 360, #'queue_name': 'DevQ', 'withmpi': True, 'account': "tcphy113c"
          }}}
 
-protocol="standard"
+protocol="standard_psml"
 
 #Optionally, the bands calculation can be requested adding in inputs the `path_generator` parameter.
 #Two options availables, the "legacy" option (no change of structure but wrong for some crystalin

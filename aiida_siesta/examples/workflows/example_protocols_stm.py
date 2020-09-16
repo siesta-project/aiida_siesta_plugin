@@ -68,7 +68,7 @@ calc_engines = {
          }
      }
 
-protocol="standard"
+protocol="standard_psml"
 
 stm_mode = "constant-height"
 

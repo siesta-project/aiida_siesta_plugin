@@ -12,8 +12,9 @@ def test_registries(aiida_profile):
     """
 
     #Here I fake the pseudofamilies
-    PsmlFamily.objects.get_or_create("nc-sr-04_pbe_standard-psf")
-    PsmlFamily.objects.get_or_create("nc-sr-04_pbe_stringent-psf")
+    #PsmlFamily.objects.get_or_create("nc-sr-04_pbe_standard-psf")
+    #PsmlFamily.objects.get_or_create("nc-sr-04_pbe_stringent-psf")
+    PsmlFamily.objects.get_or_create("nc-sr-04_pbe_standard_psml")
 
     basepath = os.path.dirname(os.path.abspath(__file__))
     filepath = os.path.join(basepath, 'fixtures/protocols/registries/custom_prot.yaml')
@@ -41,26 +42,27 @@ def test_methods(aiida_profile):
     """
 
     #Here I fake the pseudofamilies
-    PsmlFamily.objects.get_or_create("nc-sr-04_pbe_standard-psf")
-    PsmlFamily.objects.get_or_create("nc-sr-04_pbe_stringent-psf")
+    PsmlFamily.objects.get_or_create("nc-sr-04_pbe_standard_psml")
+    #PsmlFamily.objects.get_or_create("nc-sr-04_pbe_standard-psf")
+    #PsmlFamily.objects.get_or_create("nc-sr-04_pbe_stringent-psf")
 
     pmanager=ProtocolManager()
         
-    assert pmanager.is_valid_protocol("standard")
+    assert pmanager.is_valid_protocol("standard_psml")
     assert not pmanager.is_valid_protocol("yoyo")
 
-    reflist = ["standard","stringent"]
+    reflist = ["standard_psml"]
     plist = pmanager.get_protocol_names()
     assert plist == list(reflist)
 
-    assert pmanager.get_default_protocol_name() == "standard"
+    assert pmanager.get_default_protocol_name() == "standard_psml"
 
     import pytest
     with pytest.raises(ValueError):
         pmanager.get_protocol_info("yoyo")
-    assert pmanager.get_protocol_info("standard") == pmanager._protocols["standard"]["description"]
+    assert pmanager.get_protocol_info("standard_psml") == pmanager._protocols["standard_psml"]["description"]
 
     import pytest
     with pytest.raises(ValueError):
         pmanager.get_protocol("yoyo")
-    assert pmanager.get_protocol("standard") == pmanager._protocols["standard"]
+    assert pmanager.get_protocol("standard_psml") == pmanager._protocols["standard_psml"]

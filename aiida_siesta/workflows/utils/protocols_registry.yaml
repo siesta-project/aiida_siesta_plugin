@@ -1,5 +1,5 @@
-standard:
-  description: 'A standard list of inputs for Siesta. Performaces never tested. No support for Spin-Orbit.'
+standard_psml:
+  description: 'A standard list of inputs for Siesta. No support for Spin-Orbit.'
   parameters:
     xc-functional: "GGA"
     xc-authors: "PBE"
@@ -10,182 +10,180 @@ standard:
     solution-method: 'diagon'
     electronic-temperature: '25 meV'
     write-forces: True
-    mesh-cutoff: '100 Ry'
+    mesh-cutoff: '500 Ry'
   spin_additions:
-    mesh-cutoff: '200 Ry'
     write-mulliken-pop: 1
   relax_additions:
     scf-dm-tolerance: 1.e-2
     md-max-force-tol: '0.04 eV/ang'
     md-max-stress-tol: '1 GPa'
   basis:
-    pao-energy-shift: '100 meV'
-    pao-basis-size: 'DZ'
-  pseudo_family: 'nc-sr-04_pbe_standard-psf'
-  kpoints:
-    distance: 0.1
-    offset: [0., 0., 0.]
-  atomic_heuristics:
-    B:
-      basis:
-        size: 'DZP' #Basis size block
-    C:
-      parameters:
-        mesh-cutoff: '200 Ry' #Applies globally
-    Li:
-      basis:
-        split-tail-norm: True
-    Na:
-      basis:
-        split-tail-norm: True
-    K:
-      basis:
-        split-tail-norm: True
-    Ca:
-      basis:
-        split-tail-norm: True
-    Sc:
-      basis:
-        split-tail-norm: True
-    Rb:
-      basis:
-        split-tail-norm: True
-    Sr:
-      basis:
-        split-tail-norm: True
-    Y:
-      basis:
-        split-tail-norm: True
-    Zr:
-      basis:
-        split-tail-norm: True
-    Nb:
-      basis:
-        split-tail-norm: True
-    Mo:
-      basis:
-        split-tail-norm: True
-    Cs:
-      basis:
-        split-tail-norm: True
-    Ba:
-      basis:
-        split-tail-norm: True
-    Lu:
-      basis:
-        split-tail-norm: True
-
-stringent:
-  description: 'Siesta parameters tested on crystal elements up to Au (exluding noble gasses and lanthanides). No support for Spin-Orbit'
-  parameters:
-    xc-functional: "GGA"
-    xc-authors: "PBE"
-    max-scf-iterations: 100
-    scf-mixer-history: 5
-    scf-mixer-weight: 0.1
-    scf-dm-tolerance: 1.e-4
-    solution-method: 'diagon'
-    electronic-temperature: '25 meV'
-    write-forces: True
-    mesh-cutoff: '500 Ry'
-  spin_additions:
-    write-mulliken-pop: 1
-  relax_additions:
-    md-max-force-tol: '0.01 eV/ang'
-    md-max-stress-tol: '0.5 GPa'
-  basis:
     pao-energy-shift: '50 meV'
     pao-basis-size: 'DZP'
-  pseudo_family: 'nc-sr-04_pbe_stringent-psf'
+  pseudo_family: 'nc-sr-04_pbe_standard_psml'
   kpoints:
-    distance: 0.062
+    distance: 0.046
     offset: [0., 0., 0.]
-  atomic_heuristics:
-    Li:
-      basis:
-        split-tail-norm: True
-        polarization: 'non-perturbative'
-    Be:
-      basis:
-        polarization: 'non-perturbative'
-    B:
-      basis:
-        size: 'DZDP'
-    C:
-      basis:
-        size: 'TZDP'
-    Na:
-      basis:
-        split-tail-norm: True
-        polarization: 'non-perturbative'
-    Mg:
-      basis:
-        size: 'DZDP'
-        polarization: 'non-perturbative'
-    Al:
-      basis:
-        size: 'DZDP'
-    Si:
-      basis:
-        size: 'DZDP'
-    P:
-      basis:
-        size: 'DZDP'
-    S:
-      basis:
-        size: 'DZDP'
-    K:
-      basis:
-        split-tail-norm: True
-    Ca:
-      basis:
-        split-tail-norm: True
-    Sc:
-      basis:
-        split-tail-norm: True
-    Ga:
-      basis:
-        polarization: 'non-perturbative'
-    Ge:
-      basis:
-        polarization: 'non-perturbative'
-    As:
-      basis:
-        polarization: 'non-perturbative'
-    Se:
-      basis:
-        size: 'DZDP'
-        polarization: 'non-perturbative'
-    Rb:
-      basis:
-        split-tail-norm: True
-    Sr:
-      basis:
-        split-tail-norm: True
-    Y:
-      basis:
-        split-tail-norm: True
-    Zr:
-      basis:
-        split-tail-norm: True
-    Nb:
-      basis:
-        split-tail-norm: True
-    Mo:
-      basis:
-        split-tail-norm: True
-    In:
-      basis:
-        polarization: 'non-perturbative'
-    Te:
-      basis:
-        size: "TZP"
-    Cs:
-      basis:
-        split-tail-norm: True
-    Ba:
-      basis:
-        split-tail-norm: True
-    Lu:
-      basis:
-        split-tail-norm: True
+  #atomic_heuristics:
+    #C:
+    #  basis:
+    #    pao_block: "C 2 \n  n=2   0   1 \n  3.505 \n n=2   1  1  \n 4.072"
+
+    #  atomic_heuristics:
+    #    Li:
+    #      basis:
+    #        split-tail-norm: True
+    #    Na:
+    #      basis:
+    #        split-tail-norm: True
+    #    K:
+    #      basis:
+    #        split-tail-norm: True
+    #    Ca:
+    #      basis:
+    #        split-tail-norm: True
+    #    Sc:
+    #      basis:
+    #        split-tail-norm: True
+    #    Rb:
+    #      basis:
+    #        split-tail-norm: True
+    #    Sr:
+    #      basis:
+    #        split-tail-norm: True
+    #    Y:
+    #      basis:
+    #        split-tail-norm: True
+    #    Zr:
+    #      basis:
+    #        split-tail-norm: True
+    #    Nb:
+    #      basis:
+    #        split-tail-norm: True
+    #    Mo:
+    #      basis:
+    #        split-tail-norm: True
+    #    Cs:
+    #      basis:
+    #        split-tail-norm: True
+    #    Ba:
+    #      basis:
+    #        split-tail-norm: True
+    #    Lu:
+    #      basis:
+    #        split-tail-norm: True
+
+        #stringent:
+        #  description: 'Siesta parameters tested on crystal elements up to Au (exluding noble gasses and lanthanides). No support for Spin-Orbit'
+        #  parameters:
+        #    xc-functional: "GGA"
+        #    xc-authors: "PBE"
+        #    max-scf-iterations: 100
+        #    scf-mixer-history: 5
+        #    scf-mixer-weight: 0.1
+        #    scf-dm-tolerance: 1.e-4
+        #    solution-method: 'diagon'
+        #    electronic-temperature: '25 meV'
+        #    write-forces: True
+        #    mesh-cutoff: '500 Ry'
+        #  spin_additions:
+        #    write-mulliken-pop: 1
+        #  relax_additions:
+        #    md-max-force-tol: '0.01 eV/ang'
+        #    md-max-stress-tol: '0.5 GPa'
+        #  basis:
+        #    pao-energy-shift: '50 meV'
+        #    pao-basis-size: 'DZP'
+        #  pseudo_family: 'nc-sr-04_pbe_stringent-psf'
+        #  kpoints:
+        #    distance: 0.062
+        #    offset: [0., 0., 0.]
+        #  atomic_heuristics:
+        #    Li:
+        #      basis:
+        #        split-tail-norm: True
+        #        polarization: 'non-perturbative'
+        #    Be:
+        #      basis:
+        #        polarization: 'non-perturbative'
+        #    B:
+        #      basis:
+        #        size: 'DZDP'
+        #    C:
+        #      basis:
+        #        size: 'TZDP'
+        #    Na:
+        #      basis:
+        #        split-tail-norm: True
+        #        polarization: 'non-perturbative'
+        #    Mg:
+        #      basis:
+        #        size: 'DZDP'
+        #        polarization: 'non-perturbative'
+        #    Al:
+        #      basis:
+        #        size: 'DZDP'
+        #    Si:
+        #      basis:
+        #        size: 'DZDP'
+        #    P:
+        #      basis:
+        #        size: 'DZDP'
+        #    S:
+        #      basis:
+        #        size: 'DZDP'
+        #    K:
+        #      basis:
+        #        split-tail-norm: True
+        #    Ca:
+        #      basis:
+        #        split-tail-norm: True
+        #    Sc:
+        #      basis:
+        #        split-tail-norm: True
+        #    Ga:
+        #      basis:
+        #        polarization: 'non-perturbative'
+        #    Ge:
+        #      basis:
+        #        polarization: 'non-perturbative'
+        #    As:
+        #      basis:
+        #        polarization: 'non-perturbative'
+        #    Se:
+        #      basis:
+        #        size: 'DZDP'
+        #        polarization: 'non-perturbative'
+        #    Rb:
+        #      basis:
+        #        split-tail-norm: True
+        #    Sr:
+        #      basis:
+        #        split-tail-norm: True
+        #    Y:
+        #      basis:
+        #        split-tail-norm: True
+        #    Zr:
+        #      basis:
+        #        split-tail-norm: True
+        #    Nb:
+        #      basis:
+        #        split-tail-norm: True
+        #    Mo:
+        #      basis:
+        #        split-tail-norm: True
+        #    In:
+        #      basis:
+        #        polarization: 'non-perturbative'
+        #    Te:
+        #      basis:
+        #        size: "TZP"
+        #    Cs:
+        #      basis:
+        #        split-tail-norm: True
+        #    Ba:
+        #      basis:
+        #        split-tail-norm: True
+        #    Lu:
+        #      basis:
+        #        split-tail-norm: True

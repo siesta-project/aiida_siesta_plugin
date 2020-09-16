@@ -17,8 +17,9 @@ def test_validation(aiida_profile):
     """Test the validation of subclasses of `InputsGenerator`."""
 
     #Here I fake the pseudofamilies
-    PsmlFamily.objects.get_or_create("nc-sr-04_pbe_standard-psf")
-    PsmlFamily.objects.get_or_create("nc-sr-04_pbe_stringent-psf")
+    #PsmlFamily.objects.get_or_create("nc-sr-04_pbe_standard-psf")
+    #PsmlFamily.objects.get_or_create("nc-sr-04_pbe_stringent-psf")
+    PsmlFamily.objects.get_or_create("nc-sr-04_pbe_standard_psml")
 
     class SubInputsGenerator(InputsGenerator):
 

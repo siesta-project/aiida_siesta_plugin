@@ -61,7 +61,7 @@ class ProtocolManager:
                 )
             self._protocols = {**self._protocols, **custom_protocols}
 
-        self._default_protocol = 'standard'
+        self._default_protocol = 'standard_psml'
 
     def _protocols_checks(self):
         """
@@ -244,7 +244,7 @@ class ProtocolManager:
 
         return parameters
 
-    def _get_basis(self, key, structure):
+    def _get_basis(self, key, structure):  # noqa: MC0001  - is mccabe too complex funct -
         """
         Method to construct the `basis` input.
         Heuristics are applied, a dictionary with the basis is returned.
@@ -256,6 +256,7 @@ class ProtocolManager:
 
             pol_dict = {}
             size_dict = {}
+            pao_block_dict = {}
 
             #Run through all the heuristics
             for kind in structure.kinds:
@@ -272,6 +273,10 @@ class ProtocolManager:
                         pol_dict[kind.name] = cust_basis['polarization']
                     if 'size' in cust_basis:
                         size_dict[kind.name] = cust_basis['size']
+                    if 'pao_block' in cust_basis:
+                        pao_block_dict[kind.name] = cust_basis['pao_block']
+                        if kind.name != kind.symbol:
+                            pao_block_dict[kind.name] = pao_block_dict[kind.name].replace(kind.symbol, kind.name)
 
             if pol_dict:
                 card = '\n'
@@ -285,6 +290,12 @@ class ProtocolManager:
                     card = card + '  {0}  {1} \n'.format(k, v)
                 card = card + '%endblock paobasessizes'
                 basis['%block pao-bases-sizes'] = card
+            if pao_block_dict:
+                card = '\n'
+                for k, v in pao_block_dict.items():
+                    card = card + '{0} \n'.format(v)
+                card = card + '%endblock pao-basis'
+                basis['%block pao-basis'] = card
 
         return basis
 
