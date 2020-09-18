@@ -57,18 +57,21 @@ for any new system. Therefore the use of protocols, in place of a careful and te
 choice of inputs, it is always somehow limiting. It can be, however, 
 considered a good starting point.
 This is the very beginning of the development and, for the moment, only
-two very basic protocols are implemented.
-A description of the global variables of each protocol are now reported.
+one very basic protocol is implemented.
+A description of the his global variables is now reported.
 
 * *standard_psml*
 
   Pseudopotential ONCVPSPv0.4 (norm-conserving) of Pseudo Dojo in psml format, scalar relativistic,
   PBE and with *standard* accuracy. 
-  Download at the PseudoDojo web site.
-  Basis set apply globally, with size DZP and energy-shift of 50 meV. Meshcutoff is 500 Ry,
-  electronic temp 25 meV, and a kpoint mesh with distance 0.062 are implemented.
+  Download available from the PseudoDojo web site.
+  Basis set apply globally, with size DZP and energy-shift of 50 meV. Meshcutoff is 200 Ry,
+  electronic temp 25 meV, and a kpoint mesh with distance 0.1 are implemented.
   Concerning the trashold for convergence, we implement 1.e-4 tolerance for the density matrix,
-  0.01 ev/ang for forces and 0.05 GPa for stress.
+  0.04 ev/ang for forces and 0.1 GPa for stress.
+  his choice of parameters (plus some atom heuristics - see below)
+  have been tested on crystal elements up to the element Rn and compared with the reference equation of state of the
+  `DeltaTest`_ project, resulting in an average value of delta of 6.8 meV. Maximum delta is 28 meV for "Ne" and "Ar".
 
 
 ..  Download at https://icmab.es/leem/SIESTA_MATERIAL/tmp_PseudoDojo/nc-sr-04_pbe_standard-psf.tgz.
@@ -97,9 +100,9 @@ A description of the global variables of each protocol are now reported.
 
 The management of the pseudos is, at the moment, very fragile. It imposes that the user
 loads a pseudo_family with the correct name that is hard-coded for the each protocol.
-This name is 'nc-sr-04_pbe_standard_psml' for *standard_psml* protocol.
+This name is 'nc-sr-04_pbe_standard_psml' for the *standard_psml* protocol.
 Therefore a user, before using protocol, needs to download the correct pseudos and
-load them (verdi data psf uploadfamily) with the correct name.
+load them (`verdi data psf uploadfamily`) with the correct name.
 ---This last part will change soon, replaced with a proper setup-profile script ----
 
 Few more variables are set for both protocols. They are related to mixing options: 
@@ -112,7 +115,14 @@ peculiarities of particular elements. It is work in progress.
 
 The full list of global parameters are collected in the `protocol_registry.yaml` file, located in 
 aiida_siesta/workflows/utils. In there also the atom heuristics implemented can be explored.
-
+The element "Ag" requires a bigger mesh-cutoff because `mesh-cutoff = 200 Ry` was leading to a 
+"Failure to converge standard eigenproblem" error for the Ag elemental crystal.
+Custom basis for "Ca","Sr","Ba" are necessary because the automatic generation results
+in a too-large radius for the "s" orbitals. The "Hg" custom basis introduces an increment of
+all radii of 5% compared to the automatic generated orbitals and adds a Z orbital for the "p" 
+channel, while removing polarization.
+The element "Ag" requires a bigger mesh-cutoff because `mesh-cutoff = 200 Ry` resulted in
+a discontinuous equation of state.
 
 .. _how-to:
 
@@ -123,7 +133,7 @@ In this section we explain how to obtain a pre-filled builder according to a pro
 and an input structure, that is ready to be submitted (or modified and then submitted).
 
 First of all, the 'nc-sr-04_pbe_standard_psml' set of
-pseudopotentials must be downloaded from PseudoDojo and stored in the database in a family
+pseudopotentials must be downloaded from `PseudoDojo`_ and stored in the database in a family
 with the same name,
         
 ..        wget https://icmab.es/leem/SIESTA_MATERIAL/tmp_PseudoDojo/nc-sr-04_pbe_standard-psf.tgz
@@ -258,7 +268,7 @@ the system will automatically take care of introducing the correct siesta keywor
 `MD.VariableCell`, `spin` etc.) that are indispensable to run the task. However, it might happen that
 a user desires a more loose `scf-dm-tolerance` for the task of the relaxation or a different `scf-mixer-weight`
 when the spin is active. The `relax_additions` and `spin_additions` keywords have been created
-texactly for this purpose.
+exactly for this purpose.
 Please be carefull that (except for the `mesh-cutoff`) if a keyword in `spin_additions` or 
 `relax_additions` is already present in `parameters`, its value in `parameters` will overriden.
 In other words, values in `spin_additions` or `relax_additions` have priority compared to the one
@@ -275,8 +285,9 @@ In it, two only sub-keys are allowed: `parameters` and `basis`.
 In `parameters`,  only a 'mesh-cutoff' can be specified. This `mesh-cutoff` applies globally
 and only if it is the biggest one among the all `mesh-cutoff` that apply.
 This system is meant to signal elements that requires a bigger 'mesh-cutoff' than normal.
-For `basis`, we allow 'split-tail-norm', 'polarization' and 'size'. The 'size' and' polarization' introduce a block
+For `basis`, we allow 'split-tail-norm', 'polarization', 'size' and 'pao-block'. The 'size' and' polarization' introduce a block
 reporting the change of pao size and polarization schema only for the element under definition.
+The 'pao-block' allows to specify an explicit "block Pao-basis" for the element.
 The 'split-tail-norm' instead activate in siesta the key 'pao-split-tail-norm', that applies globally.
 
 We conclude this subsection with few more notes to keep in mind. First, the units mut be specified for each siesta keyword
@@ -292,3 +303,4 @@ The schema we presented here is certanly not perfect and it is far to cover all 
 however it must be remembered that any user has always the chance to modify the inputs (builder) before submission.
 
 .. _DeltaTest: https://molmod.ugent.be/deltacodesdft
+.. _PseudoDojo: http://www.pseudo-dojo.org/

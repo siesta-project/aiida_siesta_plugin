@@ -273,8 +273,8 @@ class ProtocolManager:
                         pol_dict[kind.name] = cust_basis['polarization']
                     if 'size' in cust_basis:
                         size_dict[kind.name] = cust_basis['size']
-                    if 'pao_block' in cust_basis:
-                        pao_block_dict[kind.name] = cust_basis['pao_block']
+                    if 'pao-block' in cust_basis:
+                        pao_block_dict[kind.name] = cust_basis['pao-block']
                         if kind.name != kind.symbol:
                             pao_block_dict[kind.name] = pao_block_dict[kind.name].replace(kind.symbol, kind.name)
 
