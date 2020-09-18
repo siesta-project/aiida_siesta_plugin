@@ -21,7 +21,7 @@ class SiestaCalculation(CalcJob):
     """
     Siesta calculator class for AiiDA.
     """
-    _siesta_plugin_version = '1.0.1'
+    #_version = '' Aiida gets the plugin version automatically from package __init__
 
     ###################################################################
     ## Important distinction between input.spec of the class (can be ##
