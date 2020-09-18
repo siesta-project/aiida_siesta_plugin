@@ -1,15 +1,13 @@
 import os
 import yaml
-from aiida.orm.groups import Group
+from aiida.orm import Group
 from aiida.common import exceptions
 
 
 class ProtocolManager:
     """
-    This class is the parent class of the class InputsGenerator, the fundation block
-    of a series of classes <WorkChain>InputsGenerator with the scope
-    to facilitate the choice of inputs for the corresponding <WorkChain>.
     This class is meant to become the central engine for the management of protocols.
+
     With the word "protocol" we mean a series of suggested inputs for AiiDA WorkChains that allow
     users to more easly authomatize their workflows. Even though this approach could be general, at
     the moment we only think about protocols in the context of DFT inputs (Siesta inputs in our case).
@@ -22,46 +20,53 @@ class ProtocolManager:
     and a custum-protocols file that a user put in the 'AIIDA_SIESTA_PROTOCOLS' environment variable)
     and build all the "core inputs" of a siesta calculation starting from a structure (some
     element-specific additions are performed - we call them atom_heuristics) and the choice
-    of having a relaxation and spin options. In the future we will probably need some kind of protocol
+    of having relaxation and spin options. In the future we will probably need some kind of protocol
     algebra for merging, overriding, etc. protocols. This "core inputs" are then used by <WorkChain>
     specific input generators to create a ready-to submit sets of inputs.
+    This class is, in fact, parent class of the class InputsGenerator, the fundation block
+    of a series of classes <WorkChain>InputsGenerator with the scope
+    to facilitate the choice of inputs for the corresponding <WorkChain>.
+
     The management of the pseudos is, at the moment, very fragile. It imposes that the user
     loads a pseudo_family with the exact same name of the one hard-coded for the protocol.
     Some other methods are implemented with the scope to access information about protocols and
     the API to use the protocols.
     """
 
-    _filepath = os.path.join(os.path.dirname(__file__), 'protocols_registry.yaml')
-
-    with open(_filepath) as _thefile:
-        _protocols = yaml.full_load(_thefile)
-
-    if 'AIIDA_SIESTA_PROTOCOLS' in os.environ:
-        _bisfilepath = os.environ['AIIDA_SIESTA_PROTOCOLS']
-        try:
-            with open(_bisfilepath) as _thefile:
-                _custom_protocols = yaml.full_load(_thefile)
-        except (IsADirectoryError, FileNotFoundError):
-            raise RuntimeError(
-                'The environment variable devoted to custom protocols (AIIDA_SIESTA_PROTOCOLS) is set '
-                'to a not existent file'
-            )
-        _protocols = {**_protocols, **_custom_protocols}
-
-    _default_protocol = 'standard'
-
     def __init__(self):
         """
         Construct an instance of ProtocolManager, validating the class attribute _calc_types set by the sub class
         and the presence of correct sintax in the protocols files (custom protocols can be set by users).
         """
+        self._initialize_protocols()
 
         #Here we chack that each protocols implement correct syntax and mandatory entries
         self._protocols_checks()
 
+    def _initialize_protocols(self):
+        filepath = os.path.join(os.path.dirname(__file__), 'protocols_registry.yaml')
+
+        with open(filepath) as thefile:
+            self._protocols = yaml.full_load(thefile)
+
+        if 'AIIDA_SIESTA_PROTOCOLS' in os.environ:
+            bisfilepath = os.environ['AIIDA_SIESTA_PROTOCOLS']
+            try:
+                with open(bisfilepath) as thefile:
+                    custom_protocols = yaml.full_load(thefile)
+            except (IsADirectoryError, FileNotFoundError):
+                raise RuntimeError(
+                    'The environment variable devoted to custom protocols (AIIDA_SIESTA_PROTOCOLS) is set '
+                    'to a not existent file'
+                )
+            self._protocols = {**self._protocols, **custom_protocols}
+
+        self._default_protocol = 'standard_psml'
+
     def _protocols_checks(self):
         """
-        Here implemented all the checks on the correct structure of each protocol
+        Here implemented all the checks on the correct structure of each protocol. It also checks
+        that, for each protocol, the correct pseudo family already loaded in the database.
         """
 
         def raise_invalid(message):
@@ -239,7 +244,7 @@ class ProtocolManager:
 
         return parameters
 
-    def _get_basis(self, key, structure):
+    def _get_basis(self, key, structure):  # noqa: MC0001  - is mccabe too complex funct -
         """
         Method to construct the `basis` input.
         Heuristics are applied, a dictionary with the basis is returned.
@@ -251,6 +256,7 @@ class ProtocolManager:
 
             pol_dict = {}
             size_dict = {}
+            pao_block_dict = {}
 
             #Run through all the heuristics
             for kind in structure.kinds:
@@ -267,6 +273,10 @@ class ProtocolManager:
                         pol_dict[kind.name] = cust_basis['polarization']
                     if 'size' in cust_basis:
                         size_dict[kind.name] = cust_basis['size']
+                    if 'pao-block' in cust_basis:
+                        pao_block_dict[kind.name] = cust_basis['pao-block']
+                        if kind.name != kind.symbol:
+                            pao_block_dict[kind.name] = pao_block_dict[kind.name].replace(kind.symbol, kind.name)
 
             if pol_dict:
                 card = '\n'
@@ -280,6 +290,12 @@ class ProtocolManager:
                     card = card + '  {0}  {1} \n'.format(k, v)
                 card = card + '%endblock paobasessizes'
                 basis['%block pao-bases-sizes'] = card
+            if pao_block_dict:
+                card = '\n'
+                for k, v in pao_block_dict.items():
+                    card = card + '{0} \n'.format(v)
+                card = card + '%endblock pao-basis'
+                basis['%block pao-basis'] = card
 
         return basis
 

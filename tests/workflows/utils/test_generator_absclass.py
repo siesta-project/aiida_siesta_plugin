@@ -1,4 +1,4 @@
-from aiida_siesta.workflows.utils.generator_metaclass import InputsGenerator
+from aiida_siesta.workflows.utils.generator_absclass import InputsGenerator
 from aiida.plugins import WorkflowFactory
 from aiida_siesta.groups.pseudos import PsmlFamily
 
@@ -17,8 +17,9 @@ def test_validation(aiida_profile):
     """Test the validation of subclasses of `InputsGenerator`."""
 
     #Here I fake the pseudofamilies
-    PsmlFamily.objects.get_or_create("nc-sr-04_pbe_standard-psf")
-    PsmlFamily.objects.get_or_create("nc-sr-04_pbe_stringent-psf")
+    #PsmlFamily.objects.get_or_create("nc-sr-04_pbe_standard-psf")
+    #PsmlFamily.objects.get_or_create("nc-sr-04_pbe_stringent-psf")
+    PsmlFamily.objects.get_or_create("nc-sr-04_pbe_standard_psml")
 
     class SubInputsGenerator(InputsGenerator):
 

@@ -7,8 +7,9 @@ def test_baseworkchain_inpgen(aiida_profile, fixture_code, generate_structure):
     """Test the validation of subclasses of `InputsGenerator`."""
 
     #Here I fake the pseudofamilies
-    PsmlFamily.objects.get_or_create("nc-sr-04_pbe_standard-psf")
-    PsmlFamily.objects.get_or_create("nc-sr-04_pbe_stringent-psf")
+    #PsmlFamily.objects.get_or_create("nc-sr-04_pbe_standard-psf")
+    #PsmlFamily.objects.get_or_create("nc-sr-04_pbe_stringent-psf")
+    PsmlFamily.objects.get_or_create("nc-sr-04_pbe_standard_psml")
 
     from aiida_siesta.workflows.utils.inputs_generators import BaseWorkChainInputsGenerator
 
@@ -27,8 +28,9 @@ def test_bandgapworkchain_inpgen(aiida_profile, fixture_code, generate_structure
     """Test the validation of subclasses of `InputsGenerator`."""
 
     #Here I fake the pseudofamilies
-    PsmlFamily.objects.get_or_create("nc-sr-04_pbe_standard-psf")
-    PsmlFamily.objects.get_or_create("nc-sr-04_pbe_stringent-psf")
+    #PsmlFamily.objects.get_or_create("nc-sr-04_pbe_standard-psf")
+    #PsmlFamily.objects.get_or_create("nc-sr-04_pbe_stringent-psf")
+    PsmlFamily.objects.get_or_create("nc-sr-04_pbe_standard_psml")
 
     from aiida_siesta.workflows.utils.inputs_generators import BandgapWorkChainInputsGenerator
 
@@ -47,8 +49,9 @@ def test_eosworkchain_inpgen(aiida_profile, fixture_code, generate_structure):
     """Test the validation of subclasses of `InputsGenerator`."""
 
     #Here I fake the pseudofamilies
-    PsmlFamily.objects.get_or_create("nc-sr-04_pbe_standard-psf")
-    PsmlFamily.objects.get_or_create("nc-sr-04_pbe_stringent-psf")
+    #PsmlFamily.objects.get_or_create("nc-sr-04_pbe_standard-psf")
+    #PsmlFamily.objects.get_or_create("nc-sr-04_pbe_stringent-psf")
+    PsmlFamily.objects.get_or_create("nc-sr-04_pbe_standard_psml")
 
     from aiida_siesta.workflows.utils.inputs_generators import EosWorkChainInputsGenerator
 
@@ -67,8 +70,9 @@ def test_stmworkchain_inpgen(aiida_profile, fixture_code, generate_structure):
     """Test the validation of subclasses of `InputsGenerator`."""
 
     #Here I fake the pseudofamilies
-    PsmlFamily.objects.get_or_create("nc-sr-04_pbe_standard-psf")
-    PsmlFamily.objects.get_or_create("nc-sr-04_pbe_stringent-psf")
+    #PsmlFamily.objects.get_or_create("nc-sr-04_pbe_standard-psf")
+    #PsmlFamily.objects.get_or_create("nc-sr-04_pbe_stringent-psf")
+    PsmlFamily.objects.get_or_create("nc-sr-04_pbe_standard_psml")
 
     from aiida_siesta.workflows.utils.inputs_generators import StmWorkChainInputsGenerator
 
