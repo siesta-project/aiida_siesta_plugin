@@ -57,7 +57,6 @@ class SiestaCalculation(CalcJob):
     # in restarts, it will copy from the parent the following
     # (fow now, just the density matrix file)
     # aakhtar
-    #_restart_copy_from = os.path.join(_OUTPUT_SUBFOLDER, '*.DM')
     _restart_copy_from = os.path.join(_OUTPUT_SUBFOLDER, '*.DM*')
     # aakhtar
 
@@ -80,7 +79,6 @@ class SiestaCalculation(CalcJob):
         spec.input_namespace('pseudos', valid_type=(PsfData, PsmlData), help='Input pseudo potentials', dynamic=True)
         #aakhtar
         #the LUAData added here the first option is just for onefile to send but the later one is the main one
-        #spec.input('lua',valid_type=orm.SinglefileData,required=False,help='lua file')
         spec.input_namespace('luafiles',valid_type=(LUAData),required=False, help='lua input file',dynamic=True)
         #aakhtar
         # Metadada.options host the inputs that are not stored as a separate node, but attached to `CalcJobNode`
@@ -178,19 +176,6 @@ class SiestaCalculation(CalcJob):
         # runs, for instance pseudo files
         local_copy_list = []
         #aakhtar
-        #-------------------------------------------------------------------------
-        # Worked
-        # TODO: Have To cleanup later
-        #-------------------------------------------------------------------------
-        #luafile=self.inputs.lua
-        #local_copy_list.append((luafile.uuid,luafile.filename,luafile.filename))
-        #-------------------------------------------------------------------------
-        #luafiles=self.inputs.luafiles
-        #for name in luafiles.keys():
-        #    llua=luafiles[name]
-        #    if isinstance(llua, LUAData):
-        #        local_copy_list.append((llua.uuid,llua.filename,llua.filename))
-
         if "luafiles" in self.inputs:
             luafiles=self.inputs.luafiles
             for name in luafiles.keys():
@@ -199,15 +184,7 @@ class SiestaCalculation(CalcJob):
                     local_copy_list.append((llua.uuid,llua.filename,llua.filename))
         else:
             luafiles = None
-        #for name in luafiles.keys():
-        #    llua=luafiles[name]
-        #    if isinstance(llua, LUAData):
-        #        local_copy_list.append((llua.uuid,llua.filename,llua.filename))
-            
-        #local_copy_list.append((luafile.uuid,luafile.filename,luafile.filename))
-        #lua=FolderData(tree="/home/aakhtar/calculations/siesta/test-aiida/")
-        #local_copy_list.append((lua,"relax_cell_geometry.lua","test.lua"))
-        #aakhtar
+       #aakhtar
         # List of files for restart
         remote_copy_list = []
 
