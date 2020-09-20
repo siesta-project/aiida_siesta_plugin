@@ -15,7 +15,7 @@
 	"Development Status :: 4 - Beta"
     ],
     "install_requires": [
-	"aiida_core[atomic_tools]>=1.2.1,<2.0.0"
+	"aiida_core[atomic_tools]>=1.3.0,<2.0.0"
     ],
     "extras_require": {
 	"dev": [
@@ -48,7 +48,8 @@
 	    "siesta.bandgap = aiida_siesta.workflows.bandgap:BandgapWorkChain",
             "siesta.stm = aiida_siesta.workflows.stm:SiestaSTMWorkChain",
 	    "siesta.iterator = aiida_siesta.workflows.iterate:SiestaIterator",
-	    "siesta.converger = aiida_siesta.workflows.converge:SiestaConverger"
+	    "siesta.converger = aiida_siesta.workflows.converge:SiestaConverger",
+	    "siesta.sequential_converger = aiida_siesta.workflows.converge:SiestaSequentialConverger"
         ],
         "aiida.data": [
             "siesta.psf = aiida_siesta.data.psf:PsfData",

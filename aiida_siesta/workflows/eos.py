@@ -1,46 +1,10 @@
 from aiida.plugins import DataFactory
-from aiida.common import AttributeDict
-from aiida.engine import WorkChain, calcfunction, ToContext
+from aiida.engine import calcfunction
 from aiida.orm import Float
 from aiida_siesta.calculations.tkdict import FDFDict
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
 
-
-@calcfunction
-def scale_to_vol(stru, vol):
-    """
-    Calcfunction to scale a structure to a target volume.
-    Uses pymatgen.
-    :param stru: An aiida structure
-    :param vol: The target volume per atom in angstroms
-    :return: The new scaled AiiDA structure
-    """
-
-    in_structure = stru.get_pymatgen()
-    new = in_structure.copy()
-    new.scale_lattice(float(vol) * in_structure.num_sites)
-    StructureData = DataFactory("structure")
-    structure = StructureData(pymatgen_structure=new)
-
-    return structure
-
-
-@calcfunction
-def rescale(structure, scale):
-    """
-    Calcfunction to rescale a structure by a scaling factor.
-    Uses ase.
-    :param structure: An AiiDA structure to rescale
-    :param scale: The scale factor
-    :return: The rescaled structure
-    """
-
-    the_ase = structure.get_ase()
-    new_ase = the_ase.copy()
-    new_ase.set_cell(the_ase.get_cell() * float(scale), scale_atoms=True)
-    new_structure = DataFactory('structure')(ase=new_ase)
-
-    return new_structure
+from .utils.iterate_absclass import BaseIterator
 
 
 @calcfunction
@@ -110,6 +74,50 @@ def delta_project_BM_fit(volumes, energies):  #pylint: disable=invalid-name
     bulk_modulus0 = derivV2 / x**(3. / 2.)
     bulk_deriv0 = -1 - x**(-3. / 2.) * derivV3 / derivV2
     return E0, volume0, bulk_modulus0, bulk_deriv0
+
+
+@calcfunction
+def rescale(structure, scale):
+    """
+    Calcfunction to rescale a structure by a scaling factor.
+    Uses ase.
+    :param structure: An AiiDA structure to rescale
+    :param scale: The scale factor
+    :return: The rescaled structure
+    """
+
+    the_ase = structure.get_ase()
+    new_ase = the_ase.copy()
+    new_ase.set_cell(the_ase.get_cell() * float(scale), scale_atoms=True)
+    new_structure = DataFactory('structure')(ase=new_ase)
+
+    return new_structure
+
+
+@calcfunction
+def scale_to_vol(structure, vol):
+    """
+    Calcfunction to scale a structure to a target volume.
+    Uses pymatgen.
+    :param stru: An aiida structure
+    :param vol: The target volume per atom in angstroms
+    :return: The new scaled AiiDA structure
+    """
+
+    in_structure = structure.get_pymatgen_structure()
+    new = in_structure.copy()
+    new.scale_lattice(float(vol) * in_structure.num_sites)
+    StructureData = DataFactory("structure")
+    structure = StructureData(pymatgen_structure=new)
+
+    return structure
+
+
+def get_scaled(val, inputs):
+
+    modified_struct = rescale(inputs.structure, val)
+
+    return modified_struct
 
 
 #def standard_BM_fit(volumes, energies):
@@ -193,7 +201,7 @@ def fit_and_final_dicts(**calcs):
     return result_dict
 
 
-class EqOfStateFixedCellShape(WorkChain):
+class EqOfStateFixedCellShape(BaseIterator):
     """
     WorkChain to calculate the equation of state of a solid.
     The cell shape is fixed, only the volume is rescaled.
@@ -206,18 +214,32 @@ class EqOfStateFixedCellShape(WorkChain):
     on the calculatad E(V) data.
     """
 
+    _process_class = SiestaBaseWorkChain
+    # We remove the iterate_over port because we actually only want to expose
+    # one kind of iteration: the structure scales.
+    _iterate_over_port = False
+
     @classmethod
     def define(cls, spec):
-        super(EqOfStateFixedCellShape, cls).define(spec)
+        super().define(spec)
+
         spec.input(
             "volume_per_atom",
             valid_type=Float,
             required=False,
             help="Volume per atom around which to perform the EqOfState"
         )
-        spec.expose_inputs(SiestaBaseWorkChain, exclude=('metadata',))
-        spec.inputs._ports['pseudos'].dynamic = True  #Temporary fix to issue #135 plumpy
-        spec.outline(cls.initio, cls.run_base_wcs, cls.return_results)
+
+        cls.iteration_input(
+            "scales",
+            default=(0.94, 0.96, 0.98, 1., 1.02, 1.04, 1.06),
+            parse_func=get_scaled,
+            input_key="structure",
+            help="""
+            Factors by which the structure should be scaled.
+            """,
+        )
+
         spec.output(
             'results_dict',
             valid_type=DataFactory("dict"),
@@ -232,18 +254,16 @@ class EqOfStateFixedCellShape(WorkChain):
             help="Equilibrium volume structure. Returned only if the fit is succesfull"
         )
 
-    def initio(self):
-        self.ctx.scales = (0.94, 0.96, 0.98, 1., 1.02, 1.04, 1.06)
-        self.report("Starting EqOfStateFixedCellShape Workchain")
-        if "pseudo_family" not in self.inputs:
-            if not self.inputs.pseudos:
-                raise ValueError('neither an explicit pseudos dictionary nor a pseudo_family was specified')
-        if "volume_per_atom" in self.inputs:
-            self.ctx.s0 = scale_to_vol(self.inputs.structure, self.inputs.volume_per_atom)
-        else:
-            self.ctx.s0 = self.inputs.structure
+    def initialize(self):
+        super().initialize()
 
-        test_input_params = FDFDict(self.inputs.parameters.get_dict())
+        self.ctx.collectwcinfo = []
+
+        # We are going to overwrite the initial structure if volume_per_atom is provided
+        if "volume_per_atom" in self.ctx.inputs:
+            self.ctx.inputs.structure = scale_to_vol(self.ctx.inputs.structure, self.ctx.inputs.volume_per_atom)
+
+        test_input_params = FDFDict(self.ctx.inputs.parameters.get_dict())
         for k, v in sorted(test_input_params.get_filtered_items()):
             if k in ('mdvariablecell', 'mdrelaxcellonly'):
                 if v is True or v == "T" or v == "true" or v == ".true.":
@@ -252,36 +272,25 @@ class EqOfStateFixedCellShape(WorkChain):
                         'No action taken, but are you sure this is what you want?'
                     )
 
-    def run_base_wcs(self):
-        calcs = {}
-        for scale in self.ctx.scales:
-            scaled = rescale(self.ctx.s0, Float(scale))
-            inputs = AttributeDict(self.exposed_inputs(SiestaBaseWorkChain))
-            inputs["structure"] = scaled
-            future = self.submit(SiestaBaseWorkChain, **inputs)
-            self.report('Launching SiestaBaseWorkChain<{0}>, at volume rescaled of {1}'.format(future.pk, scale))
-            calcs[str(scale)] = future
-        return ToContext(**calcs)  #Here it waits
+    def _analyze_process(self, process_node):
+
+        if "output_structure" in process_node.outputs:
+            out_struct = process_node.outputs.output_structure
+        else:
+            out_struct = process_node.inputs.structure
+
+        info = get_info(process_node.outputs.output_parameters, out_struct)
+
+        self.ctx.collectwcinfo.append(info)
 
     def return_results(self):
 
         from aiida.engine import ExitCode
 
-        self.report('All 7 calculations finished. Post process starts')
-        collectwcinfo = {}
-        for label in self.ctx.scales:
-            wcnode = self.ctx[str(label)]
-            # To performe the eos with variable cell is wrong. We should
-            # implement errors if there are siesta keywords that activate
-            # the relax cell in the parameter dict. For the moment the
-            # use of output_structure should at least make the user realise
-            # that something is wrong (we expect to have structure converged
-            # to similar volums if you do relax cell)
-            if "output_structure" in wcnode.outputs:
-                info = get_info(wcnode.outputs.output_parameters, wcnode.outputs.output_structure)
-            else:
-                info = get_info(wcnode.outputs.output_parameters, wcnode.inputs.structure)
-            collectwcinfo["s" + str(label).replace(".", "_")] = info
+        collectwcinfo = {
+            f"s{scale.value}".replace(".", "_"): info
+            for (scale,), info in zip(self.ctx.used_values, self.ctx.collectwcinfo)
+        }
 
         res_dict = fit_and_final_dicts(**collectwcinfo)
 
@@ -289,12 +298,10 @@ class EqOfStateFixedCellShape(WorkChain):
 
         if "fit_res" in res_dict.attributes:
             self.report('Birch-Murnaghan fit was succesfull, creating the equilibrium structure output node')
-            eq_structure = scale_to_vol(self.ctx.s0, Float(res_dict["fit_res"]["Vo(ang^3/atom)"]))
+            eq_structure = scale_to_vol(self.ctx.inputs.structure, Float(res_dict["fit_res"]["Vo(ang^3/atom)"]))
             self.out('equilibrium_structure', eq_structure)
         else:
             self.report("WARNING: Birch-Murnaghan fit failed, check your results_dict['eos_data']")
-
-        self.report('End of EqOfStateFixedCellShape Workchain')
 
         return ExitCode(0)
 

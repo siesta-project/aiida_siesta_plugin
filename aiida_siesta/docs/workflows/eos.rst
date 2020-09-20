@@ -56,6 +56,13 @@ Inputs
   A decimal number corresponding to the volume per atom around which to 
   perform the equation of state. 
 
+
+* **batch_size**, class :py:class:`Int <aiida.orm.Int>`, *Optional*
+
+  Number of volumes to run at the same time. By default, it is set to one,
+  therefore one volume at the time is submitted
+
+
 Outputs
 -------
 
