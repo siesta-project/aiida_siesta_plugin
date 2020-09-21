@@ -490,6 +490,15 @@ accessed with the ``calculation.outputs`` method.
   The working remote folder for the last calculation executed.
 
 
+.. |br| raw:: html
+
+    <br />
+
+* **retrieved**, :py:class:`RemoteData <aiida.orm.RemoteData>`
+
+  The local folder with the retrieved files.
+
+
 No trajectories have been implemented yet.
 
 Errors
@@ -561,6 +570,8 @@ those files as a list as follows::
    builder.settings = Dict(dict=settings_dict)
 
 See for example example_ldos.py in aiida_siesta/examples/plugins/siesta.
+The files can then be accesed through the output **retrieved** and
+its methods `get_object` and `get_object_content`.
 
 .. _SeeK-path documentation: https://seekpath.readthedocs.io/en/latest/
 .. _aiida guidelines: https://aiida.readthedocs.io/projects/aiida-core/en/latest/howto/run_codes.html
