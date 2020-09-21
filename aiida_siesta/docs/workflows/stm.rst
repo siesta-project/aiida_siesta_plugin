@@ -45,9 +45,9 @@ Python ecosystem.
 Supported Siesta versions
 -------------------------
 
-At least 4.0.1 of the 4.0 series, and 4.1-b3 of the 4.1 series, which
+At least 4.0.1 of the 4.0 series, 4.1-b3 of the 4.1 series and the MaX-1.0 release, which
 can be found in the development platform
-(https://gitlab.com/siesta-project/siesta/).
+(https://gitlab.com/siesta-project/siesta).
 
 Inputs
 ------
@@ -227,6 +227,20 @@ makes available all the methods explained in the :ref:`protocols documentation <
 `get_filled_builder` now requires in inputs also the `stm_mode` (a python `str`, accepted values 
 are "constant-height" and "constant-current") and `stm_value` (a python `float` indicating
 the value of height in Ang or current in e/bohr**3).
+Moreover in the `calc_engines` dictionary, also indications on the resources for the stm calculation must
+specified, following the syntax of this example::
+
+   calc_engines = {
+     'siesta': {
+         'code': codename,
+         'options': {'resources': {'num_machines': 1, "num_mpiprocs_per_machine": 1}, "max_wallclock_seconds": 3600 }
+         },
+     'stm': {
+         'code': stmcodename,
+         'options': {'resources': {'num_machines': 1, "num_mpiprocs_per_machine": 1}, "max_wallclock_seconds": 1360 }
+         }
+     }
+
 The STM spin mode is chosen accordingly to the `spin` input passed to `get_filled_builder`,
 setting "collinear" stm_spin in case of polarized calculation, "non-collinear" in case of 
 "spin-orbit" or "non-collinear" calculations and no spin in case of an unpolarized calculation.

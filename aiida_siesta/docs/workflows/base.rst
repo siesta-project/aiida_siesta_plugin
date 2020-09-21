@@ -236,6 +236,7 @@ Submitting the WorkChain
 ------------------------
 
 WorkChains are submitted in AiiDA exacly like any other calculation. Therefore::
+
         from aiida_siesta.workflows.base import SiestaBaseWorkChain
         from aiida.engine import
         builder = SiestaBaseWorkChain.get_builder()
@@ -365,5 +366,6 @@ The **SiestaBaseWorkChain** also inherits the error codes of the **BaseRestartWo
 of the aiida-core distribution. For instance,
 if an unexpected error is raised twice, the workchain finishes with exit code 402, if the
 maximum number of iterations is reached, error 401 is returned. More in the section
-`BaseRestartWorkChain` of the aiida-core package.
+`BaseRestartWorkChain`_ of the aiida-core package.
 
+.. _BaseRestartWorkChain: https://aiida.readthedocs.io/projects/aiida-core/en/latest/reference/apidoc/aiida.engine.processes.html?highlight=baserestart#aiida.engine.processes.BaseRestartWorkChain
