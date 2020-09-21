@@ -26,6 +26,8 @@ standard_psml:
     offset: [0., 0., 0.]
   atomic_heuristics:
     Li:
+      parameters:
+        mesh-cutoff: '250 Ry'
       basis:
         polarization: 'non-perturbative'
     Be:
@@ -37,6 +39,8 @@ standard_psml:
       basis:
         polarization: 'non-perturbative'
     Mg:
+      parameters:
+        mesh-cutoff: '250 Ry'
       basis:
         polarization: 'non-perturbative'
     Ag:

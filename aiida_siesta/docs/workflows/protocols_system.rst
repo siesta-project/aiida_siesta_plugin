@@ -64,16 +64,21 @@ A description of the his global variables is now reported.
 
   Pseudopotential ONCVPSPv0.4 (norm-conserving) of Pseudo Dojo in psml format, scalar relativistic,
   PBE and with *standard* accuracy. 
-  Download available from the PseudoDojo web site.
+  Download available from the `PseudoDojo`_ web site.
   Basis set apply globally, with size DZP and energy-shift of 50 meV. Meshcutoff is 200 Ry,
   electronic temp 25 meV, and a kpoint mesh with distance 0.1 are implemented.
   Concerning the trashold for convergence, we implement 1.e-4 tolerance for the density matrix,
   0.04 ev/ang for forces and 0.1 GPa for stress.
-  his choice of parameters (plus some atom heuristics - see below)
+  This choice of parameters (plus some atom heuristics - see below)
   have been tested on crystal elements up to the element Rn and compared with the reference equation of state of the
-  `DeltaTest`_ project, resulting in an average value of delta of 6.8 meV. Maximum delta is 28 meV for "Ne" and "Ar".
+  `DeltaTest`_ project, resulting on an average delta value of 6.9 meV.
+  The parameters of this protocol for noble gasses do not result in an a minimum of the equation of state.
+  Because Van der Waals forces are not included in the calculation, the result is not surprising.
+  We warn users to use with care this protocol for noble gasses.
+  
 
-
+.. Maximum delta is 28 meV for "Ne" and "Ar".
+  
 ..  Download at https://icmab.es/leem/SIESTA_MATERIAL/tmp_PseudoDojo/nc-sr-04_pbe_standard-psf.tgz.
   Basis set apply globally, with size DZ and energy-shift of 100 meV. Meshcutoff is 100 Ry,
   electronic temp 25 meV, and a kpoint mesh with distance 0.2 are implemented.
@@ -81,8 +86,6 @@ A description of the his global variables is now reported.
   0.04 ev/ang for forces and 1 GPa for stress.
   This choice of inputs (plus some atom heuristics - see below) have been run for a all
   the crystal elements up to the element Po (excluding lanthanides) but performances have not been tested.
-
-
   Pseudopotential ONCVPSPv0.4 (norm-conserving) of Pseudo Dojo in psf format, scalar relativistic,
   PBE and with *stringent* accuracy. Download at https://icmab.es/leem/SIESTA_MATERIAL/tmp_PseudoDojo/nc-sr-04_pbe_standard-psf.tgz.
   Basis set apply globally, with size DZP and energy-shift of 50 meV. Meshcutoff is 500 Ry,
@@ -109,19 +112,18 @@ Few more variables are set for both protocols. They are related to mixing option
 scf-mixer-history is set to 5, and scf-mixer-weight is 0.1. As only the Max-1.0 version 
 of Siesta is supported, the default mixer is Pulay and the quantity mixed is the Hamiltonian.
 
-The details explained above for the two implemented plugins refer to the global variables, however
+The details explained above for the implemented protocol refer to the global variables, however
 each protocol implements also a dictionary called *atomic_heuristics*. This dictionary is intended to encode the
-peculiarities of particular elements. It is work in progress.
-
+peculiarities of particular elements.
 The full list of global parameters are collected in the `protocol_registry.yaml` file, located in 
-aiida_siesta/workflows/utils. In there also the atom heuristics implemented can be explored.
+aiida_siesta/workflows/utils. In there, also the atom heuristics implemented can be explored.
 The element "Ag" requires a bigger mesh-cutoff because `mesh-cutoff = 200 Ry` was leading to a 
 "Failure to converge standard eigenproblem" error for the Ag elemental crystal.
 Custom basis for "Ca","Sr","Ba" are necessary because the automatic generation results
 in a too-large radius for the "s" orbitals. The "Hg" custom basis introduces an increment of
 all radii of 5% compared to the automatic generated orbitals and adds a Z orbital for the "p" 
 channel, while removing polarization.
-The element "Ag" requires a bigger mesh-cutoff because `mesh-cutoff = 200 Ry` resulted in
+The element "Li", "Mg", Na" require a bigger mesh-cutoff because `mesh-cutoff = 200 Ry` resulted in
 a discontinuous equation of state.
 
 .. _how-to:
