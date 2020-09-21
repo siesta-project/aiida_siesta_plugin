@@ -37,7 +37,7 @@ are always returned, leading to a succesfull termination of the process.
 Supported Siesta versions
 -------------------------
 
-At least 4.0.1 of the 4.0 series, and 4.1-b3 of the 4.1 series, which
+At least 4.0.1 of the 4.0 series, 4.1-b3 of the 4.1 series and the MaX-1.0 release, which
 can be found in the development platform
 (https://gitlab.com/siesta-project/siesta).
 
@@ -56,6 +56,9 @@ Inputs
   A decimal number corresponding to the volume per atom around which to 
   perform the equation of state. 
 
+.. |br| raw:: html
+
+    <br />
 
 * **batch_size**, class :py:class:`Int <aiida.orm.Int>`, *Optional*
 
