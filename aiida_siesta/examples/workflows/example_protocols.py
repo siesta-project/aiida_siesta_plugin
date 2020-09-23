@@ -1,3 +1,4 @@
+#!/usr/bin/env runaiida
 """
 File showcasing the submission of a SiestaBaseWorkChain using the protocol system.
 """

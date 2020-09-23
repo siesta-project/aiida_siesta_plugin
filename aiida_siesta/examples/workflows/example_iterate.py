@@ -157,10 +157,10 @@ process = submit(SiestaIterator, **inputs,
         'pao-energyshift': [0.02, 0.01, 0.05]
     },
     iterate_mode=Str('product'),
-    batch_size=Int(3)
+    batch_size=Int(3) #This selects how many values run at the same time
 )
 # This will run nine simulations with these values (meshcutoff, energyshift)
-# (100, 0.02), (100, 0.01), (300, 0.05), (100, 0.02), (100, 0.01) ...
+# (100, 0.02), (100, 0.01), (300, 0.05), (200, 0.02), (200, 0.01) ...
 
 # Print some info
 print("Submitted workchain; ID={}".format(process.pk))

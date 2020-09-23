@@ -1,8 +1,4 @@
 #!/usr/bin/env runaiida
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-from __future__ import print_function
 
 import sys
 import os.path as op
@@ -38,7 +34,7 @@ except IndexError:
 try:
     codename = sys.argv[2]
 except IndexError:
-    codename = 'Siesta4.0.1@kelvin'
+    codename = 'SiestaMax@kelvin'
 
 #
 #------------------Code and computer options ---------------------------

@@ -1,16 +1,18 @@
+#!/usr/bin/env runaiida
+
 import sys
 import os
+import numpy as np
 from aiida.engine import submit
 from aiida.orm import load_code
 from aiida_siesta.calculations.siesta import SiestaCalculation
 from aiida.plugins import DataFactory
 from aiida_siesta.workflows.stm import SiestaSTMWorkChain
 
-# This is an example for the submission of the STM WorkChain.
-# It shows how to select all the inputs of the WorkChain
-# and how to submit it.
+# This is an example for the submission of the STM WorkChain
+# in order to obtain spin dependent stm images
 # For a quick run, type:
-# "runaiida example_stm.py SiestaCode@cmp StmCoode@cmp"
+# "runaiida example_stm_magn.py SiestaCode@cmp StmCoode@cmp"
 # but, as any other example here, it is made to make the user
 # play with all the inputs of the WorkChain
 
@@ -47,19 +49,23 @@ options = {
     }
 }
 #
-# Structure -----------------------------------------
+# Structure, a Cr slab
 #
-from pymatgen import Lattice, Structure, Molecule
+struct_params = {'numbers': np.array([24, 24, 24]),
+ 'positions': np.array([[ 7.800000e-05, -4.700000e-05, -2.434600e-02],
+        [ 1.630000e-04,  3.335886e+00,  7.413000e-02],
+        [ 2.889124e+00,  1.667948e+00, -4.978400e-02]]),
+ 'masses': np.array([51.9961, 51.9961, 51.9961]),
+ 'cell': np.array([[ 5.77810000e+00,  0.00000000e+00,  3.53806584e-16],
+        [-2.88905000e+00,  5.00398139e+00,  3.53806584e-16],
+        [ 0.00000000e+00,  0.00000000e+00,  2.17943981e+01]]),
+ 'pbc': np.array([ True,  True,  True])}
 
-lattice = Lattice.from_parameters(a=5.77810, b=5.77810, c=5.77810*3.771897, alpha=90, beta=90, gamma=120)
+import ase.atoms
 
-coords = [[0.000078, -0.000047, -0.024346],
-          [0.000163, 3.335886, 0.074130],
-          [2.889124, 1.667948, -0.049784]]
+truct = ase.atoms.Atoms().fromdict(struct_params)
 
-truct = Structure(lattice, ["Cr", "Cr", "Cr"], coords, coords_are_cartesian=True)
-
-s = StructureData(pymatgen_structure=truct)
+s = StructureData(ase=truct)
 #
 # Parameters ---------------------------------------------------
 #

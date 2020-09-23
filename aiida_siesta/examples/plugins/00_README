@@ -2,7 +2,7 @@ This folder contains examples devoted to explain how to perform several tasks ma
 distributed in aiida_siesta.
 These examples should be consider templates that users should modify according to their will in order
 to perform specific tasks on their own particular system.
-All the example can be run with the following syntax:
+All the examples can be run with the following syntax:
 	runaiida example_name.py {--send, --dont-send} {options}
 The choice "--send" submits the example to the daemon. The choice "--dont-send" creates a test folder
 in /submit_test, but it does not actually run the calculation.
