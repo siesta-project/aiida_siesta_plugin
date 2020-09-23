@@ -1,10 +1,4 @@
 #!/usr/bin/env runaiida
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-from __future__ import print_function
-
-#
 # This is an example of a calculation that will end in a FINISHED
 # state but with a non-zero exit code, due to lack of scf convergence
 # in the allotted number of iterations.
