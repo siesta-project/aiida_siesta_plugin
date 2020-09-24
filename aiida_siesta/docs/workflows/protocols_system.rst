@@ -108,7 +108,7 @@ Therefore a user, before using protocol, needs to download the correct pseudos a
 load them (`verdi data psf uploadfamily`) with the correct name.
 ---This last part will change soon, replaced with a proper setup-profile script ----
 
-Few more variables are set for both protocols. They are related to mixing options: 
+Few more global variables are set for the above protocol. They are related to mixing options: 
 scf-mixer-history is set to 5, and scf-mixer-weight is 0.1. As only the Max-1.0 version 
 of Siesta is supported, the default mixer is Pulay and the quantity mixed is the Hamiltonian.
 

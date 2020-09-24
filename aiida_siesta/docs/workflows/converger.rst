@@ -21,6 +21,8 @@ At least 4.0.1 of the 4.0 series, 4.1-b3 of the 4.1 series and the MaX-1.0 relea
 can be found in the development platform
 (https://gitlab.com/siesta-project/siesta).
 
+.. _siesta-converger-inputs:
+
 Inputs
 ------
 
