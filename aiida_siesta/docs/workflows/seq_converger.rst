@@ -59,13 +59,14 @@ Two are the required inputs:
            }
         ]
 
-   With this specification, we signal that we want to converge first the kpoints by increasing all components
-   at the same time (assuming "zip" is selected as 'iterate_mode' in the **converger_inputs** dictionary),
-   then the 'meshcutoff' and finally the 'energy shift'. The converged kpoints will be used for the convergence
-   of 'meshcutoff', the converged kpoints and 'meshcutoff' will be used for the convergence process of 'energy shift'.
 
-   Note that one can converge the same parameters again if wanted,
-   for instance set up different rounds for kpoints convergence.
+  With this specification, we signal that we want to converge first the kpoints by increasing all components
+  at the same time (assuming "zip" is selected as 'iterate_mode' in the **converger_inputs** dictionary),
+  then the 'meshcutoff' and finally the 'energy shift'. The converged kpoints will be used for the convergence
+  of 'meshcutoff', the converged kpoints and 'meshcutoff' will be used for the convergence process of 'energy shift'.
+
+  Note that one can converge the same parameters again if wanted,
+  for instance set up different rounds for kpoints convergence.
 
 
 Outputs
