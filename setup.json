@@ -1,10 +1,10 @@
 {
-    "version": "1.0.1",
+    "version": "Dev-pre-1.1.0",
     "name": "aiida-siesta",
     "url": "https://github.com/albgar/aiida_siesta_plugin",
     "keywords": ["aiida", "siesta", "dft"],
     "license": "MIT License",
-    "author": "Alberto Garcia, Victor M. Garcia-Suarez, Emanuele Bosoni, Vladimir Dikan",
+    "author": "Alberto Garcia, Victor M. Garcia-Suarez, Emanuele Bosoni, Vladimir Dikan, Pol Febrer",
     "author_email": "albertog@icmab.es",
     "description": "A plugin for Siesta's basic functionality within the AiiDA framework.",
     "classifiers": [

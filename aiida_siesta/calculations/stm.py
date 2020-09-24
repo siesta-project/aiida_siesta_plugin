@@ -13,7 +13,6 @@ class STMCalculation(CalcJob):
     takes and .LDOS or .RHO file and generates a plot file to simulate
     an STM image.
     """
-    _stm_plugin_version = '1.0.1'
 
     _OUTPUT_SUBFOLDER = './'
 
