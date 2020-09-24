@@ -87,6 +87,7 @@ SIESTA Workflows
    workflows/stm
    workflows/iterator
    workflows/converger
+   workflows/seq_converger
 ..
    
 

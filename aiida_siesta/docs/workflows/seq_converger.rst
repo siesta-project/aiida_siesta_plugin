@@ -1,4 +1,4 @@
-SIESTA Converger workflow
+SIESTA Sequential Converger workflow
 +++++++++++++++++++++++++++++++++
 
 Description
