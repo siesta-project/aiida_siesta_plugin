@@ -1,15 +1,14 @@
 from .generator_absclass import InputsGenerator
 
 
-class BaseWorkChainInputsGenerator(InputsGenerator):
+class SiestaCalculationInputsGenerator(InputsGenerator):
     """
     This class has two main purposes:
-    1) Provide a method (get_filled_builder) that returns a builder for the WorkChain
-       SiestaBaseWorkChain with pre-compiled inputs according to a protocol and
-       some relaxation/bands/spin options.
+    1) Provide a method (get_filled_builder) that returns a builder for SiestaCalculation
+       with pre-compiled inputs according to a protocol and some relaxation/bands/spin options.
     2) Implement few methods that can be used to explore the relaxation types available,
        the bands options and the spin options (protocols options are inherited from ProtocolManager)
-    When instanciated, it requires the SiestaBaseWorkChain class as input. This is needed to avoid
+    When instanciated, it requires the SiestaCalculation class as input. This is needed to avoid
     cyclic dependence.
     """
 
@@ -146,10 +145,10 @@ class BaseWorkChainInputsGenerator(InputsGenerator):
         kpoints_mesh = self._get_kpoints(protocol, ok_structure)
 
         #Pseudo fam
-        pseudo_fam = self._get_pseudo_fam(protocol)
+        pseudos = self._get_pseudos(protocol, ok_structure)
 
         #Computational resources
-        options = Dict(dict=calc_engines['siesta']["options"])
+        options = calc_engines['siesta']["options"]
         code = load_code(calc_engines['siesta']["code"])
 
         inputs = {
@@ -158,8 +157,10 @@ class BaseWorkChainInputsGenerator(InputsGenerator):
             'code': code,
             'basis': Dict(dict=basis),
             'kpoints': kpoints_mesh,
-            'pseudo_family': pseudo_fam,
-            'options': options,
+            'pseudos': pseudos,
+            'metadata': {
+                "options": options
+            },
             'bandskpoints': bandskpoints
         }
 
@@ -180,6 +181,28 @@ class BaseWorkChainInputsGenerator(InputsGenerator):
         builder = self._fill_builder(inp_dict)
 
         return builder
+
+
+class BaseWorkChainInputsGenerator(SiestaCalculationInputsGenerator):
+    """
+    Inputs generator for the SiestaBaseWorkChain, it must receive
+    a SiestaBaseWorkChain as argument when instanciated.
+    Makes use of the methods of the SiestaCalculationInputsGenerator, only the
+    handling of the options needs to be changed.
+    """
+
+    def get_inputs_dict(
+        self, structure, calc_engines, protocol, bands_path_generator=None, relaxation_type=None, spin=None
+    ):
+
+        from aiida.orm import Dict
+
+        inps = super().get_inputs_dict(structure, calc_engines, protocol, bands_path_generator, relaxation_type, spin)
+
+        inps['options'] = Dict(dict=inps['metadata']['options'])
+        inps['metadata'] = {}
+
+        return inps
 
 
 class BandgapWorkChainInputsGenerator(BaseWorkChainInputsGenerator):
