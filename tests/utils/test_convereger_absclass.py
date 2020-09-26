@@ -3,7 +3,7 @@ Here I test only the validation checks and the errors of the one classmethod
 of SequentialIterator. The rest is tested in ../test_converge.py
 """
 
-from aiida_siesta.workflows.utils.converge_absclass import SequentialConverger
+from aiida_siesta.utils.converge_absclass import SequentialConverger
 from aiida.plugins import WorkflowFactory
 import pytest
 from aiida import orm

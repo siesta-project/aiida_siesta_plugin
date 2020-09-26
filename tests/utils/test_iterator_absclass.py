@@ -3,7 +3,7 @@ Here I test only the validation checks and the errors of the three classmethods
 of BaseIterator. The rest is tested in the tests of SiestaIterator.
 """
 
-from aiida_siesta.workflows.utils.iterate_absclass import BaseIterator
+from aiida_siesta.utils.iterate_absclass import BaseIterator
 from aiida.plugins import WorkflowFactory
 import pytest
 from aiida import orm

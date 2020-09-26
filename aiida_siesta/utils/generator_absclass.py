@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from aiida_siesta.workflows.utils.protocols import ProtocolManager
+from .protocols import ProtocolManager
 
 
 class InputsGenerator(ProtocolManager, metaclass=ABCMeta):

@@ -11,7 +11,7 @@ def test_baseworkchain_inpgen(aiida_profile, fixture_code, generate_structure):
     #PsmlFamily.objects.get_or_create("nc-sr-04_pbe_stringent-psf")
     PsmlFamily.objects.get_or_create("nc-sr-04_pbe_standard_psml")
 
-    from aiida_siesta.workflows.utils.inputs_generators import BaseWorkChainInputsGenerator
+    from aiida_siesta.utils.inputs_generators import BaseWorkChainInputsGenerator
 
     inp_gen = BaseWorkChainInputsGenerator(WorkflowFactory("siesta.base"))
     structure = generate_structure()
@@ -32,7 +32,7 @@ def test_bandgapworkchain_inpgen(aiida_profile, fixture_code, generate_structure
     #PsmlFamily.objects.get_or_create("nc-sr-04_pbe_stringent-psf")
     PsmlFamily.objects.get_or_create("nc-sr-04_pbe_standard_psml")
 
-    from aiida_siesta.workflows.utils.inputs_generators import BandgapWorkChainInputsGenerator
+    from aiida_siesta.utils.inputs_generators import BandgapWorkChainInputsGenerator
 
     inp_gen = BandgapWorkChainInputsGenerator(WorkflowFactory("siesta.bandgap"))
     structure = generate_structure()
@@ -53,7 +53,7 @@ def test_eosworkchain_inpgen(aiida_profile, fixture_code, generate_structure):
     #PsmlFamily.objects.get_or_create("nc-sr-04_pbe_stringent-psf")
     PsmlFamily.objects.get_or_create("nc-sr-04_pbe_standard_psml")
 
-    from aiida_siesta.workflows.utils.inputs_generators import EosWorkChainInputsGenerator
+    from aiida_siesta.utils.inputs_generators import EosWorkChainInputsGenerator
 
     inp_gen = EosWorkChainInputsGenerator(WorkflowFactory("siesta.eos"))
     structure = generate_structure()
@@ -74,7 +74,7 @@ def test_stmworkchain_inpgen(aiida_profile, fixture_code, generate_structure):
     #PsmlFamily.objects.get_or_create("nc-sr-04_pbe_stringent-psf")
     PsmlFamily.objects.get_or_create("nc-sr-04_pbe_standard_psml")
 
-    from aiida_siesta.workflows.utils.inputs_generators import StmWorkChainInputsGenerator
+    from aiida_siesta.utils.inputs_generators import StmWorkChainInputsGenerator
 
     inp_gen = StmWorkChainInputsGenerator(WorkflowFactory("siesta.stm"))
     structure = generate_structure()

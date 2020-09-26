@@ -1,4 +1,4 @@
-from aiida_siesta.workflows.utils.generator_absclass import InputsGenerator
+from .generator_absclass import InputsGenerator
 
 
 class BaseWorkChainInputsGenerator(InputsGenerator):
