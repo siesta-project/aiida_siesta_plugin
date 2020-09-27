@@ -1,5 +1,5 @@
-SIESTA Sequential Converger workflow
-+++++++++++++++++++++++++++++++++
+Sequential Converger workflow
++++++++++++++++++++++++++++++
 
 Description
 -----------
@@ -8,7 +8,7 @@ The **SiestaSequentialConverger** is an iterator that sequentially runs **Siesta
 Once the convergence over a parameter is reached, the converged value is used for the
 following convergence test (on a new parameter).
 An example on the use of the **SiestaConverger** is
-/aiida_siesta/examples/workflows/example_seq_converger.py
+`/aiida_siesta/examples/workflows/example_seq_converger.py`
 
 
 Supported Siesta versions
@@ -26,7 +26,7 @@ Two are the required inputs:
 * **converger_inputs**, class :py:class:`dict`, *Mandatory*
 
   A dictionary containing all the inputs required by the **SiestaConverger**, except the 
-  `iterate_over` port. The explanations of the converger inputs can be examined
+  **iterate_over** port. The explanations of the converger inputs can be examined
   `here <siesta-converger-inputs>`. Please note that the normal inputs of a **SiestaBaseWorkChain**
   process (structure, parameters, basis, code, ...) must be included as well in this dictionary.
 
@@ -99,7 +99,7 @@ However inputs of the **SiestaBaseWorkChain** can be obtained in a dictionary in
         inp_gen = SiestaBaseWorkChain.inputs_generator()
         inputs = inp_gen.get_inputs_dict(structure, calc_engines, protocols)
 
-The inputs of `get_inputs_dict` are explained in the :ref:`protocols documentation <how-to>`.
-Then the user can place these `inputs` in the **converger_inputs** dictionary (together with the other
+The inputs of ``get_inputs_dict`` are explained in the :ref:`protocols documentation <how-to>`.
+Then the user can place these ``inputs`` in the **converger_inputs** dictionary (together with the other
 **SiestaConverger** inputs specifications). The input **iterate_over** is also required
 in order to be able to submit the **SiestaSequentialConverger** WorkChain and it must be set manually.
