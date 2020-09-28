@@ -245,9 +245,7 @@ The arguments of ``get_filled_builder`` of the input generator are explained her
   "polarized", "non-collinear" and "spin-orbit".
   If no spin option is defined, the calculation will not be spin polarized.
 
-An example of the use is in `aiida_siesta/examples/workflows/example_protocol.py`
-(The example calls the inputs generator of the **SiestaBaseWorkChain**, not the
-one of the **SiestaCalculation**, but the concept and syntax are the same).
+An example of the use is in `aiida_siesta/examples/plugins/siesta/example_protocol.py`
 
 The method ``get_filled_builder`` is definitely the most important tool offered by the ``inputs_generator``,
 however through the ``inputs_generator`` other methods can be accessed to explore
