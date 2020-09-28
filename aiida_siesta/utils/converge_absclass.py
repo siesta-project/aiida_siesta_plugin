@@ -253,7 +253,7 @@ class SequentialConverger(BaseIterator):
         """
 
         self.ctx.iteration_keys = ("iterate_over",)
-        self.ctx._iteration_parsing = {"iterate_over" : {}}
+        self.ctx._iteration_parsing = {"iterate_over": {}}
 
     def _get_iterator(self):
         """
@@ -295,7 +295,7 @@ class SequentialConverger(BaseIterator):
                 # what we are modifying here will be used in the next iteration.
                 self._process_class._add_inputs(self, key, val, inputs)
 
-            self.ctx._iteration_parsing = {"iterate_over" : {}}
+            self.ctx._iteration_parsing = {"iterate_over": {}}
 
         self.ctx.last_target_value = process_node.outputs.converged_target_value
 
