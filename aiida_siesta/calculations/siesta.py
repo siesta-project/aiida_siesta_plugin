@@ -410,6 +410,11 @@ class SiestaCalculation(CalcJob):
 
         return calcinfo
 
+    @classmethod
+    def inputs_generator(cls):  # pylint: disable=no-self-argument,no-self-use
+        from aiida_siesta.utils.inputs_generators import SiestaCalculationInputsGenerator
+        return SiestaCalculationInputsGenerator(cls)
+
 
 def _uppercase_dict(indic, dict_name):
     from collections import Counter

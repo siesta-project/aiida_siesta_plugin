@@ -314,6 +314,10 @@ class ProtocolManager:
 
         return kpoints_mesh
 
-    def _get_pseudo_fam(self, key):
-        from aiida.orm import Str
-        return Str(self._protocols[key]["pseudo_family"])
+    def _get_pseudos(self, key, structure):
+
+        from aiida_siesta.data.common import get_pseudos_from_structure
+
+        family = self._protocols[key]["pseudo_family"]
+        pseudos = get_pseudos_from_structure(structure, family)
+        return pseudos

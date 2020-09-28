@@ -1,5 +1,5 @@
-SIESTA Equation Of State workflow
-+++++++++++++++++++++++++++++++++
+Equation Of State workflow
+++++++++++++++++++++++++++
 
 Description
 -----------
@@ -9,7 +9,7 @@ the equation of state of a solid.
 Density Functional Theory (DFT) calculations with the SIESTA code are performed at 
 7 equidistant volumes around a starting volume in order to obtain the energy (E)
 versus volume (V) data.
-The starting volume is an optional input of the WorkChain, called `volume_per_atom`.
+The starting volume is an optional input of the WorkChain, called **volume_per_atom**.
 If the latter is not specified, the input structure volume is use as starting volume.
 The WorchChain ensure robustness in the convergence of each SIESTA calculation thanks to 
 the fact that each DFT run is submitted through the **SiestaBaseWorkChain**,
@@ -23,15 +23,15 @@ inputted in the WorkChain using the same syntax explained in the **SiestaBaseWor
 As the name of the class suggest, the **EqOfStateFixedCellShape** is designed to
 obtain the E(V) curve under the restriction of fixed cell shape.
 This means that no algorithm for stress minimization is implemented in the WorkChain.
-However the option relaxation `MD.ConstantVolume` (see SIESTA manual)
+However the option relaxation ``MD.ConstantVolume`` (see SIESTA manual)
 might be added into the parameters
 dictionary to let SIESTA to relax the structure at fixed volume.
 There is no point, for obvious reasons, to run this WorkChain with the 
-relaxation option `MD.VariableCell`.
+relaxation option ``MD.VariableCell``.
 This WorkChain also tries to perform a Birch_Murnaghan fit
 on the calculated E(V) data, following the `DeltaProject`_ implementation.
 If the fit fails, a warning is stored in the report of the WorkChain
-(accessible through `verdi process report <PK>`), but the E(V) data for the 7 volumes 
+(accessible through ``verdi process report <PK>``), but the E(V) data for the 7 volumes 
 are always returned, leading to a succesfull termination of the process.
 
 Supported Siesta versions
@@ -75,8 +75,8 @@ Outputs
   units of measure.
   If the Birch-Murnaghan fit is succesfull, also the key `fit_res` will be present in this disctionary.
   It reports the following values extracted from the fit: the equilibrium
-  volume (Vo, in ang^3/atom), the minimum energy (Eo, in eV/atom), the Bulk Modulus 
-  (Bo, in ev/ang^3) and its derivative respect to the presure B1.  
+  volume (Vo, in `Angstom^3/atom`), the minimum energy (Eo, in `eV/atom`), the Bulk Modulus 
+  (Bo, in `ev/Angstrom^3`) and its derivative respect to the presure B1.  
  
 .. |br| raw:: html
 
@@ -92,7 +92,7 @@ Outputs
 Protocol system
 ---------------
 
-The protocol system is available for this WorkChain. The `EqOfStateFixedCellShape.inputs_generator()`
+The protocol system is available for this WorkChain. The ``EqOfStateFixedCellShape.inputs_generator()``
 makes available all the methods explained in the :ref:`protocols documentation <how-to>`, the
 only difference is that the relaxation type "variable-cell" is not available.
 

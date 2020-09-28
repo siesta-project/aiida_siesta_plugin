@@ -1,4 +1,4 @@
-from .utils.converge_absclass import BasicConverger, SequentialConverger
+from ..utils.converge_absclass import BasicConverger, SequentialConverger
 from .iterate import SiestaIterator
 
 
