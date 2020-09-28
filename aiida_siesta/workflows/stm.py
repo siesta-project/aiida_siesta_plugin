@@ -15,7 +15,7 @@ from aiida_siesta.calculations.tkdict import FDFDict
 #the connection between them is lost.
 def strip_ldosblock(param):
 
-    param_copy = param.clone()
+    param_copy = param.get_dict()
     translated_para = FDFDict(param_copy)
     translated_para.pop('%block localdensityofstates')
 

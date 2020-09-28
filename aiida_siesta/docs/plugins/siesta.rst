@@ -81,7 +81,9 @@ Some examples are referenced in the following list. They are located in the fold
   (``system-label``, ``system-name``) and all the structure information as they
   will be automatically set by Aiida. Moreover, the keyword ``dm-use-save-dm`` is
   not allowed (the restart options are explained :ref:`here <siesta-restart>`)
-  and all the ``pao`` options, because they belong to the **basis** input 
+  together with the keyword ``geometry-must-converge`` (set to True by default for each
+  calculation with variable geometry). Finally,  all the ``pao`` options must be avoided here, 
+  because they belong to the **basis** input 
   (next to next in this list). Any units are
   specified for now as part of the value string. Blocks are entered
   by using an appropriate key and Python's multiline string

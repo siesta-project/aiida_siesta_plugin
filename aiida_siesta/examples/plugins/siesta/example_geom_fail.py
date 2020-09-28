@@ -95,7 +95,6 @@ params_dict = {
     'md-numcgsteps': 7,
     'md-maxcgdispl': '0.200 bohr',
     'md-maxforcetol': '0.020 eV/Ang',
-    'geometry-must-converge': True
 }
 
 parameters = Dict(dict=params_dict)

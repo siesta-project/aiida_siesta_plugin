@@ -22,6 +22,9 @@ def generate_workchain_stm(generate_psml_data, fixture_code, generate_workchain,
 
         structure = generate_structure()
 
+        params = generate_param().get_dict()
+        params["%block local-density-of-states"] =  "\n -9.6  -1.6 eV \n %endblock local-density-of-states"
+
         inputs = {
             'code': fixture_code(entry_point_code_siesta),
             'stm_code' : fixture_code(entry_point_code),
@@ -32,7 +35,7 @@ def generate_workchain_stm(generate_psml_data, fixture_code, generate_workchain,
             'emax' : orm.Float(1),
             'structure': structure,
             'kpoints': generate_kpoints_mesh(2),
-            'parameters': generate_param(),
+            'parameters': orm.Dict(dict=params),
             'basis': generate_basis(),
             'pseudos': {
                 'Si': psml,
@@ -60,7 +63,7 @@ def test_setup_mainrun_errorbasewc(aiida_profile, generate_workchain_stm,
     process.checks()
 
     assert process.ctx.spinstm == "none"
-    assert not process.ctx.ldosdefinedinparam
+    assert process.ctx.ldosdefinedinparam
 
     process.run_siesta_wc()
 
