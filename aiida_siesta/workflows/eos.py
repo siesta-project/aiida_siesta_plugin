@@ -4,7 +4,7 @@ from aiida.orm import Float
 from aiida_siesta.calculations.tkdict import FDFDict
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
 
-from .utils.iterate_absclass import BaseIterator
+from ..utils.iterate_absclass import BaseIterator
 
 
 @calcfunction
@@ -98,19 +98,20 @@ def rescale(structure, scale):
 def scale_to_vol(structure, vol):
     """
     Calcfunction to scale a structure to a target volume.
-    Uses pymatgen.
+    Uses ase.
     :param stru: An aiida structure
     :param vol: The target volume per atom in angstroms
     :return: The new scaled AiiDA structure
     """
 
-    in_structure = structure.get_pymatgen_structure()
+    in_structure = structure.get_ase()
     new = in_structure.copy()
-    new.scale_lattice(float(vol) * in_structure.num_sites)
+    vol_ratio = vol * len(in_structure) / in_structure.get_volume()
+    new.set_cell(in_structure.get_cell() * pow(vol_ratio, 1 / 3), scale_atoms=True)
     StructureData = DataFactory("structure")
-    structure = StructureData(pymatgen_structure=new)
+    structure_new = StructureData(ase=new)
 
-    return structure
+    return structure_new
 
 
 def get_scaled(val, inputs):
@@ -307,5 +308,5 @@ class EqOfStateFixedCellShape(BaseIterator):
 
     @classmethod
     def inputs_generator(cls):  # pylint: disable=no-self-argument,no-self-use
-        from aiida_siesta.workflows.utils.inputs_generators import EosWorkChainInputsGenerator
+        from aiida_siesta.utils.inputs_generators import EosWorkChainInputsGenerator
         return EosWorkChainInputsGenerator(cls)

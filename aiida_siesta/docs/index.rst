@@ -61,32 +61,35 @@ Installation
 ============
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 4
 
    installation
 
-SIESTA plugins
-=================
-
-.. toctree::
-   :maxdepth: 2
-
-   plugins/siesta
-   plugins/stm
-
-SIESTA Workflows
-======================
+Calculation plugins
+===================
 
 .. toctree::
    :maxdepth: 4
 
-   workflows/base
-   workflows/protocols_system
-   workflows/bandgap
-   workflows/eos
-   workflows/stm
-   workflows/iterator
-   workflows/converger
+   plugins/index
+
+
+Utilities
+=========
+
+.. toctree::
+   :maxdepth: 4
+
+   utils/index
+
+
+Workflows
+=========
+
+.. toctree::
+   :maxdepth: 4
+
+   workflows/index
 ..
    
 

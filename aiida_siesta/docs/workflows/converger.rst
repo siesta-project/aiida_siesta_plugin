@@ -1,5 +1,5 @@
-SIESTA Converger workflow
-+++++++++++++++++++++++++++++++++
+Converger workflow
+++++++++++++++++++
 
 Description
 -----------
@@ -11,15 +11,17 @@ The convergence check just consists in calculating the difference in the target 
 between the present step and the step before and comparing it with a threshold value
 passed by the user in input.
 An example on the use of the **SiestaConverger** is
-/aiida_siesta/examples/workflows/example_convergence.py.
+`/aiida_siesta/examples/workflows/example_convergence.py`.
 
 
 Supported Siesta versions
 -------------------------
 
-At least 4.0.1 of the 4.0 series, and 4.1-b3 of the 4.1 series, which
+At least 4.0.1 of the 4.0 series, 4.1-b3 of the 4.1 series and the MaX-1.0 release, which
 can be found in the development platform
 (https://gitlab.com/siesta-project/siesta).
+
+.. _siesta-converger-inputs:
 
 Inputs
 ------
@@ -32,11 +34,11 @@ Additional inputs are:
 * **target**, class :py:class:`Str  <aiida.orm.Str>`, *Optional*
 
   The parameter the user wants to track in order to check if convergence has been reached.
-  All the quantities returned in the `output_parameters` dictionary of the **SiestaBaseWorkChain**
+  All the quantities returned in the **output_parameters** dictionary of the **SiestaBaseWorkChain**
   are accepted for this scope, excluding keys that don't have a `float` or `int` as a value.
   Typical values are the Kohn-Sham
-  (`E_KS`), Free (`FreeE`), Band (`Ebs`), and Fermi (`E_Fermi`)
-  energies, and the total spin (`stot`); however the user might also think to converge
+  (``E_KS``), Free (``FreeE``), Band (``Ebs``), and Fermi (``E_Fermi``)
+  energies, and the total spin (``stot``); however the user might also think to converge
   calculations-time related quantities.
 
   The `E_KS` is the default value.
@@ -49,7 +51,7 @@ Additional inputs are:
 * **threshold**, class :py:class:`Float <aiida.orm.Float>`, *Optional*
 
   The maximum difference between two consecutive steps to consider that convergence is reached.
-  Default is `Float(0.01)`.
+  Default is ``Float(0.01)``.
 
 Outputs
 -------
@@ -87,6 +89,6 @@ However inputs of the **SiestaBaseWorkChain** can be obtained in a dictionary in
         inp_gen = SiestaBaseWorkChain.inputs_generator()
         inputs = inp_gen.get_inputs_dict(structure, calc_engines, protocols)
 
-The inputs of `get_inputs_dict` are explained in the :ref:`protocols documentation <how-to>`.
+The inputs of ``get_inputs_dict`` are explained in the :ref:`protocols documentation <how-to>`.
 Then the user must define at least the input **iterate_over** in order to be able to submit
 the **SiestaConverger** WorkChain (if no **target** is specified, the `E_KS` is used).

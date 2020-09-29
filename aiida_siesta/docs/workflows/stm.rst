@@ -1,5 +1,5 @@
-SIESTA STM workflow
-++++++++++++++++++++++
+STM workflow
+++++++++++++
 
 Description
 -----------
@@ -11,7 +11,7 @@ The **SiestaSTMWorkchain** workflow consists in 3 steps:
 * Performing of a further siesta calculation aimed to produce a .LDOS file.
 * A call to the `plstm` code to post process the .LDOS file and
   create simulated STM images. The call is made via the
-  STMCalculation plugin, which is also included in the `aiida_siesta` distribution.
+  **STMCalculation** plugin, which is also included in the ``aiida_siesta`` distribution.
 
 The .LDOS file contains informations on the local density
 of states (LDOS) in an energy window. The LDOS can be seen as a
@@ -45,9 +45,9 @@ Python ecosystem.
 Supported Siesta versions
 -------------------------
 
-At least 4.0.1 of the 4.0 series, and 4.1-b3 of the 4.1 series, which
+At least 4.0.1 of the 4.0 series, 4.1-b3 of the 4.1 series and the MaX-1.0 release, which
 can be found in the development platform
-(https://gitlab.com/siesta-project/siesta/).
+(https://gitlab.com/siesta-project/siesta).
 
 Inputs
 ------
@@ -69,7 +69,7 @@ Inputs
 
 * **stm_mode**, class :py:class:`Str <aiida.orm.Str>`, *Mandatory*
 
-  Allowed values are `constant-height` or `constant-current`, corresponding to the two
+  Allowed values are ``constant-height`` or ``constant-current``, corresponding to the two
   operation modes of the STM that are supported by the plstm code.
 
 .. |br| raw:: html
@@ -82,7 +82,7 @@ Inputs
   The value of height or current at which the user wants to simulate the
   STM. This value represents the tip height in "constant-height" mode
   or the LDOS iso-value in "constant-current" mode.
-  The height must be expressed in Ang, the current in e/bohr**3.
+  The height must be expressed in `Angstrom`, the current in `e/bohr**3`.
 
 .. |br| raw:: html
 
@@ -101,7 +101,7 @@ Inputs
 * **emax**, class :py:class:`Float <aiida.orm.Float>`, *Mandatory*
 
   The upper limit of the energy window for which the LDOS is to be
-  computed (in eV and respect to the Fermi level).
+  computed (in `eV` and respect to the Fermi level).
 
 .. |br| raw:: html
 
@@ -109,18 +109,18 @@ Inputs
 
 * **stm_spin**, class :py:class:`Str <aiida.orm.Str>`, *Mandatory*
 
-  Allowed values are `none`, `collinear` or `non-collinear`.
+  Allowed values are ``none``, ``collinear`` or ``non-collinear``.
   Please note that this keyword only influences the STM post process!
   It does not change the parameters of the siesta calculation, that must
-  be specified in the `parameters` input port.
+  be specified in the **parameters** input port.
   In fact, this keyword will be automatically reset if a `stm_spin`
   option incompatible with the parent siesta spin option is chosen.
   A warning will be issued in case this happens.
   This keyword also influences the structure of the output port
-  `stm_array`. If fact, if the `non-collinear` value is chosen, the
+  **stm_array**. If fact, if the ``non-collinear`` value is chosen, the
   workflow automatically performs the STM analysis in the three
   spin components and for the total charge option, resulting in a
-  richer `stm_array` (see description in the Outputs section).
+  richer **stm_array** (see description in the Outputs section).
 
 .. |br| raw:: html
 
@@ -134,78 +134,23 @@ Inputs
   are used, except that the parallel options are stripped off.
   In other words, by default, the `plstm` code runs on a single processor. 
 
-..
-        * **protocol**, class :py:class:`Str <aiida.orm.Str>`
-
-        Either "standard" or "fast" at this point.
-        Each has its own set of associated parameters.
-
-        - standard::
-
-             {
-                'kpoints_mesh_offset': [0., 0., 0.],
-                'kpoints_mesh_density': 0.2,
-                'dm_convergence_threshold': 1.0e-4,
-                'forces_convergence_threshold': "0.02 eV/Ang",
-                'min_meshcutoff': 100, # In Rydberg (!)
-                'electronic_temperature': "25.0 meV",
-                'md-type-of-run': "cg",
-                'md-num-cg-steps': 10,
-                'pseudo_familyname': 'lda-ag',
-                'atomic_heuristics': {
-                    'H': { 'cutoff': 100 },
-                    'Si': { 'cutoff': 100 }
-                },
-                'basis': {
-                    'pao-energy-shift': '100 meV',
-                    'pao-basis-size': 'DZP'
-                }
-	      }
-
-        - fast::
-    
-             {
-                'kpoints_mesh_offset': [0., 0., 0.],
-                'kpoints_mesh_density': 0.25,
-                'dm_convergence_threshold': 1.0e-3,
-                'forces_convergence_threshold': "0.2 eV/Ang",
-                'min_meshcutoff': 80, # In Rydberg (!)
-                'electronic_temperature': "25.0 meV",
-                'md-type-of-run': "cg",
-                'md-num-cg-steps': 8,
-                'pseudo_familyname': 'lda-ag',
-                'atomic_heuristics': {
-                    'H': { 'cutoff': 50 },
-                    'Si': { 'cutoff': 50 }
-                },
-                'basis': {
-                    'pao-energy-shift': '100 meV',
-                    'pao-basis-size': 'SZP'
-                }
-	      }
-
-        The *atomic_heuristics* dictionary is intended to encode the
-        peculiarities of particular elements. It is work in progress.
-
-        The *basis* section applies globally for now.
-
 
 Outputs
 -------
 
 * **stm_array** :py:class:`ArrayData <aiida.orm.ArrayData>` 
 
-  In case the `stm_spin` is `none` or `collinear` this output port
+  In case the **stm_spin** is ``none`` or ``collinear`` this output port
   is a collection of three 2D arrays (`grid_X`, `grid_Y`, `STM`) holding the section or
   topography information. Exactly like the output of the STM plugin.
-  In case the `stm_spin` is `non-collinear`, this output port
+  In case the **stm_spin** is ``non-collinear``, this output port
   is a collection of six 2D arrays (`grid_X`, `grid_Y`, `STM_q`, `STM_sx`, `STM_sy`, `STM_sz`)
   holding the section or topography information for the total charge STM analysis and 
   the three spin components.
   Both cases follow the `meshgrid` convention in
   Numpy. A contour plot can be generated with the `get_stm_image.py`
   script in the repository of examples. The `get_stm_image.py` script
-  automatically detects how many arrays are in `stm_spin`, therefore it is 
+  automatically detects how many arrays are in **stm_array**, therefore it is 
   completely general.
 
 .. |br| raw:: html
@@ -222,17 +167,31 @@ Outputs
 Protocol system
 ---------------
 
-The protocol system is available for this WorkChain. The `SiestaSTMWorkchain.inputs_generator()`
+The protocol system is available for this WorkChain. The ``SiestaSTMWorkchain.inputs_generator()``
 makes available all the methods explained in the :ref:`protocols documentation <how-to>`, but
-`get_filled_builder` now requires in inputs also the `stm_mode` (a python `str`, accepted values 
-are "constant-height" and "constant-current") and `stm_value` (a python `float` indicating
+``get_filled_builder`` now requires in inputs also the ``stm_mode`` (a python `str <str>`, accepted values 
+are "constant-height" and "constant-current") and ``stm_value`` (a python `float <float>` indicating
 the value of height in Ang or current in e/bohr**3).
-The STM spin mode is chosen accordingly to the `spin` input passed to `get_filled_builder`,
+Moreover in the ``calc_engines`` dictionary, also indications on the resources for the stm calculation must
+specified, following the syntax of this example::
+
+   calc_engines = {
+     'siesta': {
+         'code': codename,
+         'options': {'resources': {'num_machines': 1, "num_mpiprocs_per_machine": 1}, "max_wallclock_seconds": 3600 }
+         },
+     'stm': {
+         'code': stmcodename,
+         'options': {'resources': {'num_machines': 1, "num_mpiprocs_per_machine": 1}, "max_wallclock_seconds": 1360 }
+         }
+     }
+
+The STM spin mode is chosen accordingly to the ``spin`` input passed to ``get_filled_builder``,
 setting "collinear" stm_spin in case of polarized calculation, "non-collinear" in case of 
 "spin-orbit" or "non-collinear" calculations and no spin in case of an unpolarized calculation.
 Therefore, if, for instance, the user wants to post-process a spin calculation with "no-spin"
 STM mode, he/she needs to manually modify the builder before submission.
-Also the `emin` and `emax` inputs of **SiestaSTMWorkchain** are internally chosen
-by the inputs generator: they select an energy window of 6 eV below the Fermi energy.
+Also the **emin** and **emax** inputs of **SiestaSTMWorkchain** are internally chosen
+by the inputs generator: they select an energy window of `6 eV` below the Fermi energy.
 If the choice doesn't suit the purpose, the user can manually modify the builder before
 submission.

@@ -1,5 +1,5 @@
-SIESTA Base workflow
-++++++++++++++++++++
+Base workflow
++++++++++++++
 
 Description
 -----------
@@ -15,10 +15,10 @@ calculation, with support for most of the available options (limited
 only by corresponding support in the parser plugin). The option specifications
 of the **SiestaBaseWorkChain** follow the conventions already presented in the
 :ref:`Siesta plugin <siesta-plugin-inputs>`. Therefore, for instance, the addition of
-the input keyword `bandskpoints` triggers the calculation of the band structure
+the input keyword **bandskpoints** triggers the calculation of the band structure
 of a system, while it is sufficient to add the SIESTA MD keywords to the
-`parameters` input in order to perforem the relaxation of a structure.
-In addition to the Siesta plugin, however, the 
+**parameters** input in order to perforem the relaxation of a structure.
+In contarst to the **SiestaCalculation** plugin, however, the 
 workchain is able to automatically restart a calculation in case of failure (lack of
 electronic-structure or geometry relaxation convergence, termination due to
 walltime restrictions, etc).
@@ -27,7 +27,7 @@ in the AiiDA framework. In fact, it retains the same level of flexibility of the
 general Siesta calculation, but it adds robusness thanks to its ability
 to automatically respond to erros.
 Examples on the use of the **SiestaBaseWorkChain** are presented in the folder
-/aiida_siesta/examples/workflows.
+`/aiida_siesta/examples/workflows`.
 
 
 Supported Siesta versions
@@ -45,7 +45,7 @@ Inputs
 Most inputs of the WorkChain are mirroring the siesta plugin inputs. Therefore, more
 detailed information on them can be found :ref:`here <siesta-plugin-inputs>`.
 The only difference is regarding the way the computational resources are passed.
-The siesta plugin make use of `metadada.options` for this task, here, instead, we have
+The siesta plugin make use of ``metadada.options`` for this task, here, instead, we have
 a dedicated input node. This node is the first point in the following list, describing
 all the inputs of the WorkChain.
 
@@ -123,7 +123,8 @@ all the inputs of the WorkChain.
 * **pseudos**, input namespace of class :py:class:`PsfData <aiida_siesta.data.psf.PsfData>`
   OR class :py:class:`PsmlData <aiida_siesta.data.psml.PsmlData>`, *Optional*
 
-  A dictionary of PsfData or PsmlData objects representing the pseudopotentials for
+  A dictionary of `PsfData  <aiida_siesta.data.psf.PsfData>` or
+  `PsmlData  <aiida_siesta.data.psml.PsmlData>` objects representing the pseudopotentials for
   the calculation. See the plugin documentation for more details.
   In contrast to the case of the siesta plugin, the **pseudos** input
   is not mandatory. The **SiestaBaseWorkChain** supports, in fact, the direct use of
@@ -137,8 +138,8 @@ all the inputs of the WorkChain.
 * **pseudo_family**, class :py:class:`Str <aiida.orm.Str>`, *Optional*
 
   String representing the name of a pseudopotential family stored in the database.
-  Pseudofamilies can be uploaded in the database via the `verdi data psf uploadfamily` 
-  or `verdi data psml uploadfamily` CLI interface.
+  Pseudofamilies can be uploaded in the database via the ``verdi data psf uploadfamily``
+  or ``verdi data psml uploadfamily`` CLI interface.
 
 .. |br| raw:: html
 
@@ -225,10 +226,10 @@ For the electronic bands, however, we suggest the use of the **BandgapWorkChain*
 it adds the feature to automatically calculate the band gap.
 Concerning the relaxation of a structure, the **SiestaBaseWorkChain** simply exploits the internal relaxation
 implemented in Siesta in order to complete the task. The full set of a Siesta relaxation options can be
-accessed just adding the corresponding keyword and value in the `parameters` input dictionary. The only additional
+accessed just adding the corresponding keyword and value in the **parameters** input dictionary. The only additional
 feature that the **SiestaBaseWorkChain** adds is that it requires to reach the target forces and stress
 to consider completed the task. If this does not happen in a single Siesta run, the workchain restarts
-automatically the relaxation. The maximum number of restarts is specified with the keyword `max_iterations`,
+automatically the relaxation. The maximum number of restarts is specified with the keyword **max_iterations**,
 as explained in the previous subsection.
 
 
@@ -236,6 +237,7 @@ Submitting the WorkChain
 ------------------------
 
 WorkChains are submitted in AiiDA exacly like any other calculation. Therefore::
+
         from aiida_siesta.workflows.base import SiestaBaseWorkChain
         from aiida.engine import
         builder = SiestaBaseWorkChain.get_builder()
@@ -244,10 +246,10 @@ WorkChains are submitted in AiiDA exacly like any other calculation. Therefore::
         submit(builder) #or run
 
 There is no need to set the computational resources with the metadata as they are already
-defined in the input `options`, however `builder.metadata.label` and `builder.metadata.description`
+defined in the input **options**, however ``builder.metadata.label`` and ``builder.metadata.description``
 could be used to label and describe the WorkChain.
-Again, the use of the `builder` is not mandatory, the inputs can be passed as arguments of
-`sumbit`/`run` as explained in the siesta plugin section.
+Again, the use of the ``builder`` is not mandatory, the inputs can be passed as arguments of
+``sumbit``/``run`` as explained in the siesta plugin section.
 
 Outputs
 -------
@@ -287,7 +289,7 @@ We list here the outputs.
 
 * **forces_and_stress** :py:class:`ArrayData <aiida.orm.ArrayData>`
 
-  Contains the final forces (eV/Angstrom) and stresses (GPa) in array form.
+  Contains the final forces (`eV/Angstrom`) and stresses (`GPa`) in array form.
 
 .. |br| raw:: html
 
@@ -312,8 +314,8 @@ in the WorkChain, the handling is performed.
 
 * **SCF_NOT_CONV**
 
-  When the convergence of the self-consistent cycle is not reached in `max-scf-iterations` or
-  in the allocated `max_walltime`, siesta raises the **SCF_NOT_CONV** error.
+  When the convergence of the self-consistent cycle is not reached in ``max-scf-iterations`` or
+  in the allocated ``max_walltime``, siesta raises the **SCF_NOT_CONV** error.
   The **SiestaBaseWorkChain** is able to detect this error and restart the calculation with no
   modifications on the input parameters.
 
@@ -324,7 +326,7 @@ in the WorkChain, the handling is performed.
 * **GEOM_NOT_CONV**
 
   When the convergence of the geometry (during a relaxation) is not reached
-  in the allocated `max_walltime`, siesta raises the **GEOM_NOT_CONV** error.
+  in the allocated ``max_walltime``, siesta raises the **GEOM_NOT_CONV** error.
   The **SiestaBaseWorkChain** is able to detect this error and restart the calculation with no
   modifications on the input parameters.
 
@@ -336,8 +338,8 @@ in the WorkChain, the handling is performed.
 
   The **SiestaBaseWorkChain** deals with problems connected to the basis set creation.
   If a "too small split-norm" error is detected, the WorkChains reacts in two ways.
-  If a global split-norm was defined in input through `pao-split-norm`, its value is reset to
-  the minimum acceptable. If no global split-norm was defined the option `pao-split-tail-norm = True`
+  If a global split-norm was defined in input through ``pao-split-norm``, its value is reset to
+  the minimum acceptable. If no global split-norm was defined the option ``pao-split-tail-norm = True``
   is set.
 
 Two more errors are detected by the WorkChain, but not handled at the moment,
@@ -365,5 +367,24 @@ The **SiestaBaseWorkChain** also inherits the error codes of the **BaseRestartWo
 of the aiida-core distribution. For instance,
 if an unexpected error is raised twice, the workchain finishes with exit code 402, if the
 maximum number of iterations is reached, error 401 is returned. More in the section
-`BaseRestartWorkChain` of the aiida-core package.
+`BaseRestartWorkChain`_ of the aiida-core package.
 
+Protocol system
+---------------
+
+The protocol system is available for this WorkChain. The ``SiestaBaseWorkChain.inputs_generator()``
+makes available all the methods explained in the :ref:`protocols documentation <how-to>`. For example::
+
+        from aiida_siesta.workflows.base import SiestaBaseWorkChain
+        inp_gen = SiestaBaseWorkChain.inputs_generator()
+        builder = inp_gen.get_filled_builder(structure, calc_engines, protocol)
+        #here user can modify builder befor submission.
+        submit(builder)
+
+is sufficient to submit a **SiestaBaseWorkChain** on ``structure`` following the specifications of
+``protocols`` and computational resources collected in ``calc_engines``.
+The structure of ``calc_engines`` is the same as for the **SiestaCalculation** input generator
+(again see :ref:`protocols documentation <how-to>`).
+
+
+.. _BaseRestartWorkChain: https://aiida.readthedocs.io/projects/aiida-core/en/latest/reference/apidoc/aiida.engine.processes.html?highlight=baserestart#aiida.engine.processes.BaseRestartWorkChain

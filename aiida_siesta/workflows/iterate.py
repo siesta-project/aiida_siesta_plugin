@@ -3,7 +3,7 @@ from aiida.orm import KpointsData
 
 from ..calculations.tkdict import FDFDict
 from .base import SiestaBaseWorkChain
-from .utils.iterate_absclass import BaseIterator
+from ..utils.iterate_absclass import BaseIterator
 
 # The following are helper functions to parse input values in the SiestaIterator. See
 # the global dict SIESTA_ITERATION_PARAMS to know which parameters make use of them.

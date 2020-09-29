@@ -1,11 +1,6 @@
 #!/usr/bin/env runaiida
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from __future__ import print_function
 import os
 import sys
-#from aiida import load_dbenv
-#load_dbenv()
 import aiida_siesta.data.psf as psf
 from aiida.cmdline.utils import decorators
 
@@ -22,7 +17,7 @@ def uploadfamily(*args):
 
     if not len(args) == 3 and not len(args) == 4:
         print(("Usage:"), file=sys.stderr)
-        print(("./uploadfamily.py FOLDER_NAME <group_name>  <group_description> "
+        print(("runaiida uploadfamily.py FOLDER_NAME <group_name>  <group_description> "
                               "[OPTIONAL: --stop-if-existing]\n"), file=sys.stderr)
         sys.exit(1)
 
