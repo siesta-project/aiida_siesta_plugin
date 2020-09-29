@@ -1,4 +1,4 @@
-STM  plugin
+STM calculations
 ++++++++++++++++++++++
 
 Description

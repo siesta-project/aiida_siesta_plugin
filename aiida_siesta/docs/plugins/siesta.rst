@@ -1,5 +1,5 @@
-Standard Siesta plugin
-++++++++++++++++++++++
+Siesta calculations
++++++++++++++++++++
 
 Description
 -----------
