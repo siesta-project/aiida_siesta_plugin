@@ -88,7 +88,7 @@ def rescale(structure, scale):
 
     the_ase = structure.get_ase()
     new_ase = the_ase.copy()
-    new_ase.set_cell(the_ase.get_cell() * float(scale), scale_atoms=True)
+    new_ase.set_cell(the_ase.get_cell() * pow(float(scale), 1 / 3), scale_atoms=True)
     new_structure = DataFactory('structure')(ase=new_ase)
 
     return new_structure
