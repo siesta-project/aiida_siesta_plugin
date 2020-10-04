@@ -20,6 +20,9 @@ Supported Siesta versions
 At least 4.0.1 of the 4.0 series, 4.1-b3 of the 4.1 series and the MaX-1.0 release, which
 can be found in the development platform
 (https://gitlab.com/siesta-project/siesta).
+For more up to date info on compatibility, please check the      
+`wiki <https://github.com/albgar/aiida_siesta_plugin/wiki/Supported-siesta-versions>`_.
+
 
 .. _siesta-converger-inputs:
 

@@ -46,9 +46,13 @@ Supported Siesta versions
 .. can be found in the development platform
 .. (https://gitlab.com/siesta-project/siesta).
 
-The protocol system supports **only the MaX-1.0 version of Siesta**, which
+The protocol system, at the moment, requires a version of siesta 
+with support for psml pseudopotential. At least **the MaX-1.0 release of Siesta**, which
 can be found in the development platform
-(https://gitlab.com/siesta-project/siesta).
+(https://gitlab.com/siesta-project/siesta), meets this requirement.
+For more up to date info on compatibility, please check the
+`wiki <https://github.com/albgar/aiida_siesta_plugin/wiki/Supported-siesta-versions>`_.
+
 
 
 Available protocols
