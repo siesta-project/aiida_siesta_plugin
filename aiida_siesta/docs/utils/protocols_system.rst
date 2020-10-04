@@ -118,6 +118,8 @@ peculiarities of particular elements.
   is just an indication that the parameters' choice gives reasonable results for elemental crystals.
   We are working on a more accurate (and expensive) protocol that will provide much better
   values of delta.
+  New tests and checks on the *standard_psml* protocol will be added in the aiida-siesta 
+  `wiki <https://github.com/albgar/aiida_siesta_plugin/wiki/Protocols-validations>`_.
 
 
   
