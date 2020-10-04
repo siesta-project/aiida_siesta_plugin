@@ -94,19 +94,25 @@ peculiarities of particular elements.
     in a too-large radius for the "s" orbitals. The "Hg" custom basis introduces an increment of
     all radii of 5% compared to the automatic generated orbitals and adds a Z orbital for the "p"
     channel, while removing polarization.
-    The element "Li", "Mg", Na" require a bigger ``mesh-cutoff`` because ``mesh-cutoff = 200 Ry`` resulted in
+    The elements "Li", "Be", "Mg", Na", "Fe", "Mn", "Sb" require a bigger 
+    ``mesh-cutoff`` because ``mesh-cutoff = 200 Ry`` resulted in
     a discontinuous equation of state.
 
   This choice of parameters have been tested on crystal elements up to the 
   element "Rn" and compared with the reference equation of state of the
-  `DeltaTest`_ project, resulting on an average delta value of 6.9 meV.
+  `DeltaTest`_ project, resulting on an average delta value of 7.1 meV.
   The parameters of this protocol for noble gasses do not result in an a minimum of the equation of state.
   Because Van der Waals forces are not included in the calculation, the result is not surprising.
   We warn users to use with care this protocol for noble gasses.
+  It is important to stress that the present protocol has not been conceived to produce
+  good results for the Delta test; the basis sets are mostly automatic and the choice of
+  mesh-cutoff / kpoints-mesh is farely loose. The average value for the delta (7.1 meV)
+  is just an indication that the parameters' choice gives reasonable results for elemental crystals.
+  We are working on a more accurate (and expensive) protocol that will provide much better
+  values of delta.
 
 
   
-
 .. Maximum delta is 28 meV for "Ne" and "Ar".
   
 ..  Download at https://icmab.es/leem/SIESTA_MATERIAL/tmp_PseudoDojo/nc-sr-04_pbe_standard-psf.tgz.
@@ -135,7 +141,7 @@ The management of the pseudos is, at the moment, very fragile. It imposes that t
 loads a pseudo_family with the correct name that is hard-coded for the each protocol.
 This name is 'nc-sr-04_pbe_standard_psml' for the *standard_psml* protocol.
 Therefore a user, before using protocol, needs to download the correct pseudos and
-load them (`verdi data psml uploadfamily`) with the correct name.
+load them (see next section) with the correct name.
 ---This last part will change soon, replaced with a proper setup-profile script ----
 
 .. _how-to:
@@ -148,13 +154,14 @@ and an input structure, that is ready to be submitted (or modified and then subm
 
 First of all, the 'nc-sr-04_pbe_standard_psml' set of
 pseudopotentials must be downloaded from `PseudoDojo`_ and stored in the database in a family
-with the same name.
+with the same name. From command line::
+     
+      wget http://www.pseudo-dojo.org/pseudos/nc-sr-04_pbe_standard_psml.tgz
+      tar -xf nc-sr-04_pbe_standard_psml.tgz
+      verdi data psml uploadfamily nc-sr-04_pbe_standard_psml nc-sr-04_pbe_standard_psml "Scalar-relativistic psf standard"
         
-..        wget https://icmab.es/leem/SIESTA_MATERIAL/tmp_PseudoDojo/nc-sr-04_pbe_standard-psf.tgz
-        wget https://icmab.es/leem/SIESTA_MATERIAL/tmp_PseudoDojo/nc-sr-04_pbe_stingent-psf.tgz
-        tar -xf nc-fr-04_pbe_standard-psf.tgz
-        tar -xf nc-sr-04_pbe_stringent-psf.tgz
-        verdi data psf uploadfamily nc-fr-04_pbe_standard-psf nc-fr-04_pbe_standard-psf "Scalar-relativistic psf standard"
+..      wget https://icmab.es/leem/SIESTA_MATERIAL/tmp_PseudoDojo/nc-sr-04_pbe_standard-psf.tgz
+        tar -xf nc-sr-04_pbe_standard-psf.tgz
         verdi data psf uploadfamily nc-sr-04_pbe_standard-psf nc-sr-04_pbe_stringent-psf "Scalar-relativistic psf stringent"
 
 
