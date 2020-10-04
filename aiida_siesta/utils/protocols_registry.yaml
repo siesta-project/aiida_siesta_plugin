@@ -1,5 +1,5 @@
 standard_psml:
-  description: 'A standard list of inputs for Siesta. Performaces tested on crystal elements giving an average Delta of 6.8 meV. No support for Spin-Orbit.'
+  description: 'A standard list of inputs for Siesta. Performaces tested on crystal elements giving an average Delta of 7.1 meV. No support for Spin-Orbit. Use of PSML pseudos, not supported by Siesta 4.0.*/4.1.* versions'
   parameters:
     xc-functional: "GGA"
     xc-authors: "PBE"

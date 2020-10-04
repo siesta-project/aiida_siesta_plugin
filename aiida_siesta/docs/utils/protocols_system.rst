@@ -85,6 +85,10 @@ peculiarities of particular elements.
     ``scf-mixer-history`` is set to 5, and ``scf-mixer-weight`` is 0.1. As only the Max-1.0 version
     of Siesta is supported, the default mixer is Pulay and the quantity mixed is the Hamiltonian.
 
+  .. |br| raw:: html
+
+    <br />
+
  
   * *atomic_heuristics*
 
