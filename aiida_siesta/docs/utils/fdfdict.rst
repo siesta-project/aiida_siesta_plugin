@@ -42,7 +42,8 @@ Getter and setter are implemented to get and set the value automatically for eac
 key. ``f["w"]``, ``f["w---"]`` will return the same value. The call ``f["w---"] = 3`` will reset
 the value of key ``"w"``, also changing the "last untranslated key" to ``"w---"``.
 
-Many more methods are available dor the FDFDict class. They can be explored from the source code.
+Many more methods are available in the FDFDict class. They can be explored from the source code
+(``aiida_siesta.calculations.tkdict``).
 It is a useful tool for the development of new CalcJobs and WorkChains.
 
 
