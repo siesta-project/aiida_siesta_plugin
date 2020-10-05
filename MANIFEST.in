@@ -1,3 +1,5 @@
+include *.rst *.json *.txt *.md
+recursive-include aiida_siesta/docs/ *.rst
+recursive-include aiida_siesta/examples/ *.txt *.psf *.psml *.cif 00_README
+recursive-include aiida_siesta/utils *.yaml
 prune tests
-include aiida_siesta/docs/conf.py
-include aiida_siesta/docs/Makefile
