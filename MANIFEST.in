@@ -1,3 +1,3 @@
 prune tests
 include aiida_siesta/docs/conf.py
-include aiida_siesta/docs/Makefile 
+include aiida_siesta/docs/Makefile
