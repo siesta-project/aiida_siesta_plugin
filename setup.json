@@ -1,5 +1,5 @@
 {
-    "version": "Dev-pre-1.1.0",
+    "version": "1.1.0",
     "name": "aiida-siesta",
     "url": "https://github.com/albgar/aiida_siesta_plugin",
     "keywords": ["aiida", "siesta", "dft"],
