@@ -4,18 +4,18 @@ Installation
 It would be a good idea to create and switch to a new python virtual
 environment before the installation.
 
-Because the package is under heavy development, the suggested way for
-the installation, at the moment, is to clone the github repository
-(https://github.com/albgar/aiida_siesta_plugin) and to execute
-from the top level of the plugin directory::
-
-    pip install -e .
-
-A not-so-up-to-date version is available on PyPI. To install it, simply run::
+The latest release of the package can be obtained simply with::
 
     pip install aiida-siesta
 
 In this case, make sure to refer to the appropriate documentation part ("stable", not "latest").
+
+Because the package is under development, in order to enjoy the most recent features
+one can clone the github repository
+(https://github.com/albgar/aiida_siesta_plugin) and install
+from the top level of the plugin directory with::
+
+    pip install -e .
 
 As a pre-requisite, both commands above will install an appropriate version of the
 ``aiida-core`` python framework, if this is not already installed.
