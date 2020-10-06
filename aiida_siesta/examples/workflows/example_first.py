@@ -1,9 +1,6 @@
 #!/usr/bin/env runaiida
-# -*- coding: utf-8 -*-
 
 #Not required by AiiDA
-from __future__ import absolute_import
-from __future__ import print_function
 import os.path as op
 import sys
 
@@ -11,7 +8,6 @@ import sys
 from aiida.engine import submit
 from aiida.orm import load_code
 from aiida.orm import (Dict, StructureData, KpointsData)
-from aiida_siesta.calculations.siesta import SiestaCalculation
 from aiida_siesta.data.psf import PsfData
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
 
@@ -21,7 +17,7 @@ from aiida_siesta.workflows.base import SiestaBaseWorkChain
 # To run it: runaiida example_first.py codename
 # The inputs are the same of ../plugins/siesta/example_first.py
 # However max-scfiterations' is set to 4. The calculation
-# does mot converge in 4 iterations, but the WorkChain
+# does not converge in 4 iterations, but the WorkChain
 # automatically recognises the error and takes care of
 # resubmitting the calculation.
 
@@ -106,9 +102,9 @@ for fname, kinds in raw_pseudos:
 options = Dict(
     dict={
         "max_wallclock_seconds": 360,
-        #    'withmpi': True,
-        #    'account': "tcphy113c",
-        #    'queue_name': "DevQ",
+        #'withmpi': True,
+        #'account': "tcphy113c",
+        #'queue_name': "DevQ",
         "resources": {
             "num_machines": 1,
             "num_mpiprocs_per_machine": 1,

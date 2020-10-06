@@ -1,0 +1,32 @@
+output_parameters:
+  global_time: 1.323
+  mesh:
+  - 36
+  - 36
+  - 36
+  nnz: 19594
+  no_u: 26
+  parser_info: AiiDA Siesta Parser V. 1.1.0
+  siesta:Arch: qmobile
+  siesta:Flags: mpif90 -O2 -g
+  siesta:Mode: Parallel
+  siesta:NetCDF: 'true'
+  siesta:Nodes: '         2'
+  siesta:PPFlags: -DF2003  -DSIESTA__ELSI  -DCDF -DNCDF -DNCDF_4  -DMPI -DMPI_TIMING
+    -DSIESTA___FLOOK
+  siesta:Program: Siesta
+  siesta:StartTime: 2020-05-11T09-57-42
+  siesta:Version: MaX-1.0-3
+  siesta:run_UUID: ac442190-937e-11ea-6631-627bfb3f67f2
+  timing_decomposition:
+    compute_DM: 0.15
+    nlefsm-1: 0.021
+    setup_H: 0.5
+    setup_H0: 0.356
+    siesta: 1.323
+    state_init: 0.24
+  variable_geometry: false
+  warnings:
+  - - 'FATAL: SCF_NOT_CONV: SCF did not converge in maximum number of steps (required).'
+    - ' (info): Geom step, scf iteration, dmax:    0     3     0.000194'
+    - 'FATAL: ABNORMAL_TERMINATION'

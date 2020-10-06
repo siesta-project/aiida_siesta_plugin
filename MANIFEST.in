@@ -1,4 +1,5 @@
-include *.txt *.yml *.sh *.rst *.py *.json *.psf *.psml *.cif
-recursive-include aiida_siesta/examples/ *.txt *.py *.psf *.psml  *.cif *.rst 00_README
-exclude .pre-commit-config.yaml
-prune tests 
+include *.rst *.json *.txt *.md
+recursive-include aiida_siesta/docs/ *.rst
+recursive-include aiida_siesta/examples/ *.txt *.psf *.psml *.cif 00_README
+recursive-include aiida_siesta/utils *.yaml
+prune tests

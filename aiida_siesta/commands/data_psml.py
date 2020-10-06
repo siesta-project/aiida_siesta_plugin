@@ -1,13 +1,4 @@
-# -*- coding: utf-8 -*-
-
-# This file is based in 'cmd_upf.py' from the Aiida Core distribution,    #
-#   Copyright (c), The AiiDA team. All rights reserved.                   #
-#                                                                         #
 """Implements the `verdi data psml` command."""
-
-from __future__ import division
-from __future__ import print_function
-from __future__ import absolute_import
 
 import io
 import os
@@ -21,23 +12,20 @@ from aiida.cmdline.utils import decorators, echo
 @verdi_data.group('psml')
 def psml():
     """Manipulate PsmlData objects (PSML-format pseudopotentials)."""
+
+
 @psml.command('uploadfamily')
-@click.argument('folder',
-                type=click.Path(exists=True,
-                                file_okay=False,
-                                resolve_path=True))
+@click.argument('folder', type=click.Path(exists=True, file_okay=False, resolve_path=True))
 @click.argument('group_label', type=click.STRING)
 @click.argument('group_description', type=click.STRING)
 @click.option(
     '--stop-if-existing',
     is_flag=True,
     default=False,
-    help=
-    'Interrupt pseudos import if a pseudo was already present in the AiiDA database'
+    help='Interrupt pseudos import if a pseudo was already present in the AiiDA database'
 )
 @decorators.with_dbenv()
-def psml_uploadfamily(folder, group_label, group_description,
-                      stop_if_existing):
+def psml_uploadfamily(folder, group_label, group_description, stop_if_existing):
     """
     Create a new PSML family from a folder of PSML files.
 
@@ -46,20 +34,19 @@ def psml_uploadfamily(folder, group_label, group_description,
     Call without parameters to get some help.
     """
     from aiida_siesta.data.psml import upload_psml_family
-    files_found, files_uploaded = upload_psml_family(folder, group_label,
-                                                     group_description,
-                                                     stop_if_existing)
-    echo.echo_success('PSML files found: {}. New files uploaded: {}'.format(
-        files_found, files_uploaded))
+    files_found, files_uploaded = upload_psml_family(folder, group_label, group_description, stop_if_existing)
+    echo.echo_success('PSML files found: {}. New files uploaded: {}'.format(files_found, files_uploaded))
 
 
 @psml.command('listfamilies')
-@click.option('-d',
-              '--with-description',
-              'with_description',
-              is_flag=True,
-              default=False,
-              help='Show also the description for the PSML family')
+@click.option(
+    '-d',
+    '--with-description',
+    'with_description',
+    is_flag=True,
+    default=False,
+    help='Show also the description for the PSML family'
+)
 @options.WITH_ELEMENTS()
 @decorators.with_dbenv()
 def psml_listfamilies(elements, with_description):
@@ -68,20 +55,14 @@ def psml_listfamilies(elements, with_description):
     """
     from aiida import orm
     from aiida.plugins import DataFactory
-    from aiida_siesta.data.psml import PSMLGROUP_TYPE
+    from aiida_siesta.groups.pseudos import PsmlFamily
 
     PsmlData = DataFactory('siesta.psml')  # pylint: disable=invalid-name
     query = orm.QueryBuilder()
     query.append(PsmlData, tag='psmldata')
     if elements is not None:
         query.add_filter(PsmlData, {'attributes.element': {'in': elements}})
-    query.append(orm.Group,
-                 with_node='psmldata',
-                 tag='group',
-                 project=['label', 'description'],
-                 filters={'type_string': {
-                     '==': PSMLGROUP_TYPE
-                 }})
+    query.append(PsmlFamily, with_node='psmldata', tag='group', project=['label', 'description'])
 
     query.distinct()
     if query.count() > 0:
@@ -89,11 +70,7 @@ def psml_listfamilies(elements, with_description):
             group_label = res.get('group').get('label')
             group_desc = res.get('group').get('description')
             query = orm.QueryBuilder()
-            query.append(orm.Group,
-                         tag='thisgroup',
-                         filters={'label': {
-                             'like': group_label
-                         }})
+            query.append(orm.Group, tag='thisgroup', filters={'label': {'like': group_label}})
             query.append(PsmlData, project=['id'], with_group='thisgroup')
 
             if with_description:
@@ -101,18 +78,14 @@ def psml_listfamilies(elements, with_description):
             else:
                 description_string = ''
 
-            echo.echo_success('* {} [{} pseudos]{}'.format(
-                group_label, query.count(), description_string))
+            echo.echo_success('* {} [{} pseudos]{}'.format(group_label, query.count(), description_string))
 
     else:
         echo.echo_warning('No valid PSML pseudopotential family found.')
 
 
 @psml.command('exportfamily')
-@click.argument('folder',
-                type=click.Path(exists=True,
-                                file_okay=False,
-                                resolve_path=True))
+@click.argument('folder', type=click.Path(exists=True, file_okay=False, resolve_path=True))
 @arguments.GROUP()
 @decorators.with_dbenv()
 def psml_exportfamily(folder, group):
@@ -129,15 +102,11 @@ def psml_exportfamily(folder, group):
             with io.open(dest_path, 'w', encoding='utf8') as handle:
                 handle.write(node.get_content())
         else:
-            echo.echo_warning(
-                'File {} is already present in the destination folder'.format(
-                    node.filename))
+            echo.echo_warning('File {} is already present in the destination folder'.format(node.filename))
 
 
 @psml.command('import')
-@click.argument('filename',
-                type=click.Path(exists=True, dir_okay=False,
-                                resolve_path=True))
+@click.argument('filename', type=click.Path(exists=True, dir_okay=False, resolve_path=True))
 @decorators.with_dbenv()
 def psml_import(filename):
     """

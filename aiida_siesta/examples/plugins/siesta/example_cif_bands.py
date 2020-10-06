@@ -1,8 +1,5 @@
 #!/usr/bin/env runaiida
-# -*- coding: utf-8 -*-
 
-from __future__ import absolute_import
-from __future__ import print_function
 import sys
 import pymatgen as mg
 import ase.io
@@ -62,13 +59,11 @@ options = {
 #---------------------------------------------------------------------
 
 # Structure -----------------------------------------
-# Two choices for importing the .cif, pymatgen or ase. Then
+# For importing the .cif we use ase. Then
 # passing through SeeK-path  to get the standardized cell.
 # Necessary for the automatic choice of the bands path.
-structure = mg.Structure.from_file("data/O2_ICSD_173933.cif", primitive=False)
-s = StructureData(pymatgen_structure=structure)
-#structure =ase.io.read("data/O2_ICSD_173933.cif")
-#s = StructureData(ase=structure)
+structure =ase.io.read("data/O2_ICSD_173933.cif")
+s = StructureData(ase=structure)
 
 seekpath_parameters = {'reference_distance': 0.02, 'symprec': 0.0001}
 result = get_explicit_kpoints_path(s, **seekpath_parameters)

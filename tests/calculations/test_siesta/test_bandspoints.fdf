@@ -1,0 +1,66 @@
+atomiccoordinatesformat Ang
+dmmixingweight 0.3
+dmnumberpulay 4
+dmtolerance 0.001
+electronictemperature 25 meV
+geometrymustconverge T
+latticeconstant 1.0 Ang
+maxscfiterations 50
+mdmaxcgdispl 0.1 Ang
+mdmaxforcetol 0.04 eV/Ang
+mdnumcgsteps 3
+mdtypeofrun cg
+numberofatoms 2
+numberofspecies 2
+solutionmethod diagon
+systemlabel aiida
+systemname aiida
+usetreetimer T
+xcauthors CA
+xcfunctional LDA
+xmlwrite T
+#
+# -- Basis Set Info follows
+#
+pao-energy-shift 300 meV
+%block pao-basis-sizes 
+        Si DZP
+        SiDiff DZP
+        %endblock pao-basis-sizes
+#
+# -- Structural Info follows
+#
+%block chemicalspecieslabel
+    1    14     Si
+    2    14 SiDiff
+%endblock chemicalspecieslabel
+%block lattice-vectors
+      2.7150000000       2.7150000000       0.0000000000
+      2.7150000000       0.0000000000       2.7150000000
+      0.0000000000       2.7150000000       2.7150000000
+%endblock lattice-vectors
+%block atomiccoordinatesandatomicspecies
+      0.0000000000       0.0000000000       0.0000000000    1     Si      1
+      1.3575000000       1.3575000000       1.3575000000    2 SiDiff      2
+%endblock atomiccoordinatesandatomicspecies
+#
+# -- K-points Info follows
+#
+%block kgrid_monkhorst_pack
+     2      0      0       0.0000000000
+     0      2      0       0.0000000000
+     0      0      2       0.0000000000
+%endblock kgrid_monkhorst_pack
+#
+# -- Bandlines/Bandpoints Info follows
+#
+BandLinesScale ReciprocalLatticeVectors
+%block BandPoints
+   0.500    0.250    0.750 
+   0.500    0.500    0.500 
+   0.000    0.000    0.000 
+%endblock BandPoints
+#
+# -- Max wall-clock time block
+#
+max.walltime 1800

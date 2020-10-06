@@ -1,0 +1,42 @@
+output_parameters:
+  E_Fermi: -3.725534
+  E_Fermi_units: eV
+  E_KS: -215.247798
+  E_KS_units: eV
+  Ebs: -73.328805
+  Ebs_units: eV
+  FreeE: -215.247799
+  FreeE_units: eV
+  global_time: 6.384
+  mesh:
+  - 36
+  - 36
+  - 36
+  nnz: 19594
+  no_u: 26
+  parser_info: AiiDA Siesta Parser V. 1.1.0
+  siesta:Arch: qmobile
+  siesta:Flags: mpif90 -O2 -g
+  siesta:Mode: Parallel
+  siesta:NetCDF: 'true'
+  siesta:Nodes: '         2'
+  siesta:PPFlags: -DF2003  -DSIESTA__ELSI  -DCDF -DNCDF -DNCDF_4  -DMPI -DMPI_TIMING
+    -DSIESTA___FLOOK
+  siesta:Program: Siesta
+  siesta:StartTime: 2020-05-11T10-22-58
+  siesta:Version: MaX-1.0-3
+  siesta:run_UUID: 33dca070-9382-11ea-50fd-4f78f9df5f49
+  timing_decomposition:
+    compute_DM: 0.647
+    nlefsm-1: 0.084
+    nlefsm-2: 0.106
+    post-SCF: 1.857
+    setup_H: 2.107
+    setup_H0: 1.414
+    siesta: 6.384
+    siesta_analysis: 0.0
+    state_init: 0.267
+  variable_geometry: true
+  warnings:
+  - - 'FATAL: GEOM_NOT_CONV: Geometry relaxation not converged'
+    - 'FATAL: ABNORMAL_TERMINATION'

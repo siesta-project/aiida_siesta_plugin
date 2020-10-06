@@ -1,22 +1,10 @@
 """
 This module manages the PSF pseudopotentials in the local repository.
 """
-# For migration example to aiida-1.0 see:
-# aiida/orm/nodes/data/upf.py in `aiida_core`
 
-from __future__ import absolute_import
-from aiida.common.utils import classproperty
+import io
 from aiida.common.files import md5_file
 from aiida.orm.nodes import SinglefileData
-import io
-import six
-
-__copyright__ = u"Copyright (c), 2015, ECOLE POLYTECHNIQUE FEDERALE DE LAUSANNE (Theory and Simulation of Materials (THEOS) and National Centre for Computational Design and Discovery of Novel Materials (NCCR MARVEL)), Switzerland and ROBERT BOSCH LLC, USA. All rights reserved."
-__license__ = "MIT license, see LICENSE.txt file"
-__version__ = "1.0.0"
-__contributors__ = "Victor M. Garcia-Suarez, Andrea Cepellotti, Vladimir Dikan"
-
-PSFGROUP_TYPE = 'data.psf.family'
 
 
 def get_pseudos_from_structure(structure, family_name):
@@ -39,7 +27,8 @@ def get_pseudos_from_structure(structure, family_name):
             if node.element in family_pseudos:
                 raise MultipleObjectsError(
                     "More than one PSF for element {} found in "
-                    "family {}".format(node.element, family_name))
+                    "family {}".format(node.element, family_name)
+                )
             family_pseudos[node.element] = node
 
     pseudo_list = {}
@@ -48,16 +37,12 @@ def get_pseudos_from_structure(structure, family_name):
         try:
             pseudo_list[kind.name] = family_pseudos[symbol]
         except KeyError:
-            raise NotExistent("No PSF for element {} found in family {}".
-                              format(symbol, family_name))
+            raise NotExistent("No PSF for element {} found in family {}".format(symbol, family_name))
 
     return pseudo_list
 
 
-def upload_psf_family(folder,
-                      group_label,
-                      group_description,
-                      stop_if_existing=True):
+def upload_psf_family(folder, group_label, group_description, stop_if_existing=True):
     """
     Upload a set of PSF files in a given group.
 
@@ -72,13 +57,11 @@ def upload_psf_family(folder,
         If False, simply adds the existing PsfData node to the group.
     """
     import os
-    import aiida.common
-
     from aiida import orm
     from aiida.common import AIIDA_LOGGER as aiidalogger
-    from aiida.common.exceptions import UniquenessError, NotExistent
+    from aiida.common.exceptions import UniquenessError
     from aiida.orm.querybuilder import QueryBuilder
-
+    from aiida_siesta.groups.pseudos import PsfFamily
 
     if not os.path.isdir(folder):
         raise ValueError("folder must be a directory")
@@ -86,23 +69,22 @@ def upload_psf_family(folder,
     # only files, and only those ending with .psf or .PSF;
     # go to the real file if it is a symlink
     files = [
-        os.path.realpath(os.path.join(folder, i)) for i in os.listdir(folder)
-        if os.path.isfile(os.path.join(folder, i)) and
-        i.lower().endswith('.psf')
+        os.path.realpath(os.path.join(folder, i))
+        for i in os.listdir(folder)
+        if os.path.isfile(os.path.join(folder, i)) and i.lower().endswith('.psf')
     ]
 
     nfiles = len(files)
 
     automatic_user = orm.User.objects.get_default()
-    group, group_created = orm.Group.objects.get_or_create(label=group_label,
-                                                           type_string=PSFGROUP_TYPE,
-                                                           user=automatic_user)
+    group, group_created = PsfFamily.objects.get_or_create(label=group_label, user=automatic_user)
 
     if group.user.email != automatic_user.email:
-        raise UniquenessError("There is already a PsfFamily group with name {}"
-                              ", but it belongs to user {}, therefore you "
-                              "cannot modify it".format(group_label,
-                                                        group.user.email))
+        raise UniquenessError(
+            "There is already a PsfFamily group with name {}"
+            ", but it belongs to user {}, therefore you "
+            "cannot modify it".format(group_label, group.user.email)
+        )
 
     # Always update description, even if the group already existed
     group.description = group_description
@@ -111,8 +93,8 @@ def upload_psf_family(folder,
 
     pseudo_and_created = []
 
-    for f in files:
-        md5sum = md5_file(f)
+    for afile in files:
+        md5sum = md5_file(afile)
         qb = QueryBuilder()
         qb.append(PsfData, filters={'attributes.md5': {'==': md5sum}})
         existing_psf = qb.first()
@@ -122,16 +104,17 @@ def upload_psf_family(folder,
 
         if existing_psf is None:
             # return the psfdata instances, not stored
-            pseudo, created = PsfData.get_or_create(
-                f, use_first=True, store_psf=False)
+            pseudo, created = PsfData.get_or_create(afile, use_first=True, store_psf=False)
             # to check whether only one psf per element exists
             # NOTE: actually, created has the meaning of "to_be_created"
             pseudo_and_created.append((pseudo, created))
         else:
             if stop_if_existing:
-                raise ValueError("A PSF with identical MD5 to "
-                                 " {} cannot be added with stop_if_existing"
-                                 "".format(f))
+                raise ValueError(
+                    "A PSF with identical MD5 to "
+                    " {} cannot be added with stop_if_existing"
+                    "".format(afile)
+                )
             existing_psf = existing_psf[0]
             pseudo_and_created.append((existing_psf, False))
 
@@ -151,11 +134,9 @@ def upload_psf_family(folder,
     elements_names = [e[0] for e in elements]
 
     if not len(elements_names) == len(set(elements_names)):
-        duplicates = set(
-            [x for x in elements_names if elements_names.count(x) > 1])
+        duplicates = {x for x in elements_names if elements_names.count(x) > 1}
         duplicates_string = ", ".join(i for i in duplicates)
-        raise UniquenessError("More than one PSF found for the elements: " +
-                              duplicates_string + ".")
+        raise UniquenessError("More than one PSF found for the elements: " + duplicates_string + ".")
 
     # At this point, save the group, if still unstored
     if group_created:
@@ -166,11 +147,9 @@ def upload_psf_family(folder,
         if created:
             pseudo.store()
 
-            aiidalogger.debug("New node {} created for file {}".format(
-                pseudo.uuid, pseudo.filename))
+            aiidalogger.debug("New node {} created for file {}".format(pseudo.uuid, pseudo.filename))
         else:
-            aiidalogger.debug("Reusing node {} for file {}".format(
-                pseudo.uuid, pseudo.filename))
+            aiidalogger.debug("Reusing node {} for file {}".format(pseudo.uuid, pseudo.filename))
 
     # Add elements to the group all togetehr
     group.add_nodes([pseudo for pseudo, created in pseudo_and_created])
@@ -191,7 +170,6 @@ def parse_psf(fname, check_filename=True):
 
     from aiida.common.exceptions import ParsingError
     # from aiida.common import AIIDA_LOGGER
-    # TODO: move these data in a 'chemistry' module
     from aiida.orm.nodes.data.structure import _valid_symbols
 
     parsed_data = {}
@@ -200,8 +178,8 @@ def parse_psf(fname, check_filename=True):
         psf_contents = fname.read().split()
         fname = fname.name
     except AttributeError:
-        with io.open(fname, encoding='utf8') as f:
-            psf_contents = f.read().split()
+        with io.open(fname, encoding='utf8') as fil:
+            psf_contents = fil.read().split()
 
     # Parse the element
     element = None
@@ -210,18 +188,18 @@ def parse_psf(fname, check_filename=True):
 
     # Only first letter capitalized!
     if element is None:
-        raise ParsingError(
-            "Unable to find the element of PSF {}".format(fname))
+        raise ParsingError("Unable to find the element of PSF {}".format(fname))
     element = element.capitalize()
     if element not in _valid_symbols:
-        raise ParsingError(
-            "Unknown element symbol {} for file {}".format(element, fname))
+        raise ParsingError("Unknown element symbol {} for file {}".format(element, fname))
 
     if check_filename:
         if not os.path.basename(fname).lower().startswith(element.lower()):
-            raise ParsingError("Filename {0} was recognized for element "
-                               "{1}, but the filename does not start "
-                               "with {1}".format(fname, element))
+            raise ParsingError(
+                "Filename {0} was recognized for element "
+                "{1}, but the filename does not start "
+                "with {1}".format(fname, element)
+            )
 
     parsed_data['element'] = element
 
@@ -249,77 +227,59 @@ class PsfData(SinglefileData):
             True if the object was created, or False if the object was retrieved\
             from the DB.
         """
-        import aiida.common.utils
         import os
 
         if not os.path.abspath(filename):
             raise ValueError("filename must be an absolute path")
+
         md5 = md5_file(filename)
 
         pseudos = cls.from_md5(md5)
-        if len(pseudos) == 0:
+        if not pseudos:
+            instance = cls(file=filename)
             if store_psf:
-                instance = cls(file=filename).store()
-                return (instance, True)
-            else:
-                instance = cls(file=filename)
-                return (instance, True)
-        else:
-            if len(pseudos) > 1:
-                if use_first:
-                    return (pseudos[0], False)
-                else:
-                    raise ValueError(
-                        "More than one copy of a pseudopotential "
-                        "with the same MD5 has been found in the "
-                        "DB. pks={}".format(
-                            ",".join([str(i.pk) for i in pseudos])))
-            else:
+                instance.store()
+            return (instance, True)
+
+        if len(pseudos) > 1:
+            if use_first:
                 return (pseudos[0], False)
 
-    @classproperty
-    def psffamily_type_string(cls):
-        return PSFGROUP_TYPE
+            raise ValueError(
+                "More than one copy of a pseudopotential "
+                "with the same MD5 has been found in the "
+                "DB. pks={}".format(",".join([str(i.pk) for i in pseudos]))
+            )
 
-    def store(self, *args, **kwargs):
+        return (pseudos[0], False)
+
+    def store(self, *args, **kwargs):  # pylint: disable=arguments-differ
         """
         Store the node, reparsing the file so that the md5 and the element
         are correctly reset.
         """
-        from aiida.common.exceptions import ParsingError, ValidationError
-        import aiida.common.utils
+        from aiida.common.exceptions import ParsingError
         from aiida.common.files import md5_from_filelike
-
-
-        # psf_abspath = self.get_file_abs_path()
 
         if self.is_stored:
             return self
 
-        # if not psf_abspath:
-        #     raise ValidationError("No valid PSF was passed!")
-
-        # parsed_data = parse_psf(psf_abspath)
-        # md5sum = md5_file(psf_abspath)
-
         with self.open(mode='r') as handle:
             parsed_data = parse_psf(handle)
 
-          # Open in binary mode which is required for generating the md5 checksum
+        # Open in binary mode which is required for generating the md5 checksum
         with self.open(mode='rb') as handle:
             md5sum = md5_from_filelike(handle)
 
         try:
             element = parsed_data['element']
         except KeyError:
-            raise ParsingError("No 'element' parsed in the PSF file {};"
-                               " unable to store".format(self.filename))
+            raise ParsingError("No 'element' parsed in the PSF file {};" " unable to store".format(self.filename))
 
         self.set_attribute('element', str(element))
         self.set_attribute('md5', md5sum)
 
         return super(PsfData, self).store(*args, **kwargs)
-
 
     @classmethod
     def from_md5(cls, md5):
@@ -334,13 +294,11 @@ class PsfData(SinglefileData):
         qb.append(cls, filters={'attributes.md5': {'==': md5}})
         return [_ for [_] in qb.all()]
 
-
-    def set_file(self, filename):
+    def set_file(self, filename):  # pylint: disable=arguments-differ
         """
         I pre-parse the file to store the attributes.
         """
         from aiida.common.exceptions import ParsingError
-        import aiida.common.utils
 
         parsed_data = parse_psf(filename)
         md5sum = md5_file(filename)
@@ -348,8 +306,7 @@ class PsfData(SinglefileData):
         try:
             element = parsed_data['element']
         except KeyError:
-            raise ParsingError("No 'element' parsed in the PSF file {};"
-                               " unable to store".format(self.filename))
+            raise ParsingError("No 'element' parsed in the PSF file {};" " unable to store".format(self.filename))
 
         super(PsfData, self).set_file(filename)
 
@@ -358,18 +315,18 @@ class PsfData(SinglefileData):
         self.set_attribute('element', str(element))
         self.set_attribute('md5', md5sum)
 
-
     def get_psf_family_names(self):
         """
         Get the list of all psf family names to which the pseudo belongs
         """
-        from aiida.orm import Group
+        from aiida.orm import QueryBuilder
+        from aiida_siesta.groups.pseudos import PsfFamily
 
-        return [
-            _.name
-            for _ in Group.query(
-                nodes=self, type_string=self.psffamily_type_string)
-        ]
+        query = QueryBuilder()
+        query.append(PsfFamily, tag='group', project='label')
+        query.append(PsfData, filters={'id': {'==': self.id}}, with_group='group')
+
+        return [_[0] for _ in query.all()]
 
     @property
     def element(self):
@@ -380,15 +337,10 @@ class PsfData(SinglefileData):
         return self.get_attribute('md5', None)
 
     def _validate(self):
-        from aiida.common.exceptions import ValidationError, ParsingError
+        from aiida.common.exceptions import ValidationError
         from aiida.common.files import md5_from_filelike
-        import aiida.common.utils
 
         super(PsfData, self)._validate()
-
-        # psf_abspath = self.get_file_abs_path()
-        # if not psf_abspath:
-        #     raise ValidationError("No valid PSF was passed!")
 
         with self.open(mode='r') as handle:
             parsed_data = parse_psf(handle)
@@ -397,21 +349,12 @@ class PsfData(SinglefileData):
         with self.open(mode='rb') as handle:
             md5 = md5_from_filelike(handle)
 
-        # try:
-        #     parsed_data = parse_psf(psf_abspath)
-        # except ParsingError:
-        #     raise ValidationError("The file '{}' could not be "
-        #                           "parsed".format(psf_abspath))
-        # md5 = md5_file(psf_abspath)
-
-
-        # TODO: This is erroneous exception,
+        # This is erroneous exception,
         # as it is in the `upf` module oin `aiida_core`
         try:
             element = parsed_data['element']
         except KeyError:
-            raise ValidationError("No 'element' could be parsed in the PSF "
-                                  "file {}".format(psf_abspath))
+            raise ValidationError("No 'element' could be parsed in the PSF " "file {}".format(self.filename))
 
         try:
             attr_element = self.get_attribute('element')
@@ -424,22 +367,22 @@ class PsfData(SinglefileData):
             raise ValidationError("attribute 'md5' not set.")
 
         if attr_element != element:
-            raise ValidationError("Attribute 'element' says '{}' but '{}' was "
-                                  "parsed instead.".format(
-                                      attr_element, element))
+            raise ValidationError(
+                "Attribute 'element' says '{}' but '{}' was "
+                "parsed instead.".format(attr_element, element)
+            )
 
         if attr_md5 != md5:
-            raise ValidationError("Attribute 'md5' says '{}' but '{}' was "
-                                  "parsed instead.".format(attr_md5, md5))
+            raise ValidationError("Attribute 'md5' says '{}' but '{}' was " "parsed instead.".format(attr_md5, md5))
 
     @classmethod
     def get_psf_group(cls, group_label):
         """
         Return the PsfFamily group with the given name.
         """
-        from aiida.orm import Group
+        from aiida_siesta.groups.pseudos import PsfFamily
 
-        return Group.get(label=group_label, type_string=cls.psffamily_type_string)
+        return PsfFamily.get(label=group_label)
 
     @classmethod
     def get_psf_groups(cls, filter_elements=None, user=None):
@@ -454,27 +397,22 @@ class PsfData(SinglefileData):
                If defined, it should be either a DbUser instance, or a string
                for the username (that is, the user email).
         """
-        from aiida.orm import Group
+        from aiida.orm import QueryBuilder
+        from aiida.orm import User
+        from aiida_siesta.groups.pseudos import PsfFamily
 
-        group_query_params = {"type_string": cls.psffamily_type_string}
+        query = QueryBuilder()
+        query.append(PsfFamily, tag='group', project='*')
 
-        if user is not None:
-            group_query_params['user'] = user
+        if user:
+            query.append(User, filters={'email': {'==': user}}, with_group='group')
 
-        if isinstance(filter_elements, six.string_types):
+        if isinstance(filter_elements, str):
             filter_elements = [filter_elements]
 
         if filter_elements is not None:
-            actual_filter_elements = {_.capitalize() for _ in filter_elements}
+            query.append(PsfData, filters={'attributes.element': {'in': filter_elements}}, with_group='group')
 
-            group_query_params['node_attributes'] = {
-                'element': actual_filter_elements
-            }
+        query.order_by({PsfFamily: {'id': 'asc'}})
 
-        all_psf_groups = Group.query(**group_query_params)
-
-        groups = [(g.name, g) for g in all_psf_groups]
-        # Sort by name
-        groups.sort()
-        # Return the groups, without name
-        return [_[1] for _ in groups]
+        return [_[0] for _ in query.all()]

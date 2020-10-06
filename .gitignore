@@ -9,6 +9,7 @@ __pycache__/
 *.swp
 # C extensions
 *.so
+.env
 
 # distribution build directories
 *.egg-info/
