@@ -11,29 +11,105 @@ from aiida.orm.utils import load_node
 from aiida.common import AttributeDict
 
 
-class ParametersDescriptor:  #pylint: disable=too-few-public-methods
+class ParametersDescriptor:
     """
     Uses the _params_lookup variable of an iterator to provide a helpful description of the possibilities.
     """
 
+    def __init__(self, cls=None):
+
+        self._cls = cls
+
+        if cls is not None:
+
+            process_class = cls._process_class
+
+            self._inputs_group = inputs_group = {
+                "group_name": f"`{process_class.__name__}` inputs",
+                "help": f"""These are the inputs of {process_class.__name__}. 
+                You can iterate over them even if they are not exposed.""",
+                "keys": {key: None for key in process_class.spec().inputs}
+            }
+
     def __get__(self, instance, owner):
 
-        params_lookup = owner._params_lookup
+        return self.__class__(owner)
+    
+    def __str__(self):
+
+        cls = self._cls
+
+        params_lookup = cls._params_lookup
 
         description = ""
-        for group in params_lookup:
+        for group in [self._inputs_group, *params_lookup]:
             description += f"{group['group_name']}\n-------------\n"
 
             description += group.get("help", "").strip()
 
-            description += "\n\nExplicitly supported keys:\n\t- "
-            description += "\n\t- ".join([key for key in group["keys"]])  #pylint: disable=unnecessary-comprehension
+            description += "\n\nExplicitly supported keys:\n- "
+            description += "\n- ".join([key for key in group["keys"]])
 
             if group.get("condition") is not None:
-                description += "\nKey matching condition:\n"
-                description += inspect.getsource(group["condition"])
+                description += "\n\nKey matching condition:\n"
+                description += f"`{inspect.getsource(group['condition'])}`"
 
             description += "\n\n"
+
+        return description
+    
+    __repr__ = __str__
+
+    _repr_markdown_ = __str__
+
+    def _repr_html_(self):
+
+        cls = self._cls
+
+        params_lookup = cls._params_lookup
+
+        description = ""
+        description += f"""
+        <div>
+            {cls.__name__} parameters:
+        </div>
+        <div class="accordion" id="accordion" style="margin-left: 20px">"""
+
+        for group in [self._inputs_group, *params_lookup]:
+
+            group_name = group['group_name']
+            san_name = group_name.replace(" ", "").replace("`", "")
+
+            description += f"""
+            <div class="card" style="margin: 10px 0px; padding-left: 15px; border-left: solid 1px #ccc">
+            <div class="card-header" id="{san_name}" data-toggle="collapse" 
+                    data-target="#collapse{san_name}" aria-expanded="true" aria-controls="collapse{san_name}"
+                    style="cursor: pointer; padding-bottom: 2px">
+                <h3>
+                {group_name}
+                </h3>
+            </div>
+            """
+
+            description += f"""
+            <div id="collapse{san_name}" class="collapse" aria-labelledby="{san_name}" data-parent="#accordion">
+                <div class="card-body">
+            """
+
+            description += f'<div class="alert alert-info" style="margin: 10px 0px">{group.get("help", "").strip()}</div>'
+
+            description += "<div>Explicitly supported keys:</div><ul><li>"
+            description += "</li><li>".join([f'{key}' for key in group["keys"]])
+            description += "</li></ul>"
+
+            if group.get("condition") is not None:
+                description += "<div>Key matching condition: "
+                description += f'<code>{inspect.getsource(group["condition"]).strip()}</code>'
+                description += "</div>"
+
+            description += "</div></div></div>"
+
+        description += "</div>"
 
         return description
 
