@@ -90,6 +90,53 @@ class ParametersDescriptor: #pylint: disable=too-few-public-methods
 
     _repr_markdown_ = __str__
 
+    def _ipython_display_(self):
+        """
+        Displays the help message in ipython.
+
+        First tries to use ipywidgets if available, otherwise builds an html string
+        """
+        from IPython.display import HTML, display
+        try:
+            from ipywidgets import widgets
+            
+            description = f"""
+            <div>
+                {self._cls.__name__} iterable parameters:
+            </div>
+            """
+
+            accordions = []
+
+            for group in self.param_groups:
+
+                group_name = group['group_name']
+
+                description = ""
+                description += f'<div class="alert alert-info" style="margin: 10px 0px">{group.get("help", "").strip()}</div>'
+
+                description += "<div>Explicitly supported keys:</div><ul><li>"
+                description += "</li><li>".join([f'{key}' for key in group["keys"]])
+                description += "</li></ul>"
+
+                if group.get("condition") is not None:
+                    description += "<div>Key matching condition: "
+                    description += f'<code>{inspect.getsource(group["condition"]).strip()}</code>'
+                    description += "</div>"
+
+                accordion = widgets.Accordion([widgets.HTML(description)], selected_index=None)
+                accordion.set_title(0, group_name)
+
+                accordions.append(accordion)
+
+            intro = HTML(f"<div>{self._cls.__name__} iterable parameters:</div>")
+            
+            display(intro, *accordions)
+        except Exception as e:
+            print(e)
+            display(HTML(self._repr_html_()))
+
+
     def _repr_html_(self):
         """
         Builds an html representation of the help message.
