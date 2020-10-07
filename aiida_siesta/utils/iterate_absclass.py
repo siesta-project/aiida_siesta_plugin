@@ -11,7 +11,7 @@ from aiida.orm.utils import load_node
 from aiida.common import AttributeDict
 
 
-class ParametersDescriptor:
+class ParametersDescriptor: #pylint: disable=too-few-public-methods
     """
     Uses the _params_lookup variable of an iterator to provide a helpful description of the possibilities.
     """
