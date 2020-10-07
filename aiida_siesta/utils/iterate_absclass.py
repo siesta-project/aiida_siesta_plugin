@@ -22,7 +22,19 @@ class ParametersDescriptor: #pylint: disable=too-few-public-methods
 
         if cls is not None:
 
+            cls.spec()
+
             process_class = cls._process_class
+
+            if cls._iteration_inputs:
+
+                self._iteration_inputs_group = {
+                    "group_name": "Iteration inputs",
+                    "help": """These are input ports that are intrinsically iterable in the sense that
+                    you provide the list of values directly to them, instead of using "iterate_over".
+                    """,
+                    "keys": cls._iteration_inputs
+                }
 
             self._inputs_group = inputs_group = {
                 "group_name": f"`{process_class.__name__}` inputs",
@@ -30,19 +42,35 @@ class ParametersDescriptor: #pylint: disable=too-few-public-methods
                 You can iterate over them even if they are not exposed.""",
                 "keys": {key: None for key in process_class.spec().inputs}
             }
+    
+    @property
+    def param_groups(self):
+        """Returns all the iterable parameter groups available to the Workchain"""
+        groups = ()
+
+        # If the iterate_over port is enabled, add all the parameters
+        # that can be accessed
+        if self._cls._iterate_over_port:
+            groups = (self._inputs_group, *self._cls._params_lookup)
+
+        # Include explicitly declared iteration inputs, if any.
+        if getattr(self, "_iteration_inputs_group", None):
+            groups = (self._iteration_inputs_group, *groups)
+        
+        return groups
 
     def __get__(self, instance, owner):
-
         return self.__class__(owner)
     
     def __str__(self):
+        """
+        Builds a string representation of a help message for an iterator parameters.
 
-        cls = self._cls
-
-        params_lookup = cls._params_lookup
-
+        It is also used for markdown (see _repr_markdown_).
+        """
         description = ""
-        for group in [self._inputs_group, *params_lookup]:
+
+        for group in self.param_groups:
             description += f"{group['group_name']}\n-------------\n"
 
             description += group.get("help", "").strip()
@@ -63,19 +91,18 @@ class ParametersDescriptor: #pylint: disable=too-few-public-methods
     _repr_markdown_ = __str__
 
     def _repr_html_(self):
+        """
+        Builds an html representation of the help message.
 
-        cls = self._cls
-
-        params_lookup = cls._params_lookup
-
-        description = ""
-        description += f"""
+        The classes in html elements assume that bootstrap is present (which is the case in jupyter notebooks).
+        """
+        description = f"""
         <div>
-            {cls.__name__} parameters:
+            {self._cls.__name__} iterable parameters:
         </div>
         <div class="accordion" id="accordion" style="margin-left: 20px">"""
 
-        for group in [self._inputs_group, *params_lookup]:
+        for group in self.param_groups:
 
             group_name = group['group_name']
             san_name = group_name.replace(" ", "").replace("`", "")
