@@ -98,7 +98,7 @@ class ParametersDescriptor:  #pylint: disable=too-few-public-methods
         """
         from IPython.display import HTML, display
         try:
-            from ipywidgets import widgets
+            from ipywidgets import widgets  #pylint: disable=import-error
 
             description = f"""
             <div>
