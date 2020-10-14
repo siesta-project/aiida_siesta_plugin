@@ -7,11 +7,11 @@ import sys
 #AiiDA classes and functions
 from aiida.engine import submit
 from aiida.orm import load_code
-from aiida.orm import (Float, Dict, StructureData, KpointsData)
+from aiida.orm import (Int, Float, Dict, StructureData, KpointsData)
 from aiida_siesta.data.psf import PsfData
 from aiida_siesta.workflows.eos import EqOfStateFixedCellShape
 
-# This example shows the use of the IsotropicEosFast
+# This example shows the use of the EqOfStateFixedCellShape
 # Requires a working aiida profile and the set up of
 # a code (it submits the WorkChain to the daemon).
 # To run it: runaiida example_eos.py codename
@@ -120,7 +120,8 @@ inputs = {
     'kpoints': kpoints,
     'pseudos': pseudos_dict,
     'options': options,
-    'volume_per_atom': Float(19)
+    'volume_per_atom': Float(19),
+    'batch_size': Int(7) #selects the number of volumes to run at the same time
 }
 
 process = submit(EqOfStateFixedCellShape, **inputs)

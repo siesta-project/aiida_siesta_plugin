@@ -1,5 +1,5 @@
-SIESTA Iterator workflow
-+++++++++++++++++++++++++++++++++
+Iterator workflow
++++++++++++++++++
 
 Description
 -----------
@@ -8,15 +8,18 @@ The **SiestaIterator** is a tool to facilitate the submission of several Siesta 
 in an automatic way. It allows the iteration over Siesta parameters
 and, more in general, over inputs of a **SiestaBaseWorkChain**.
 An example on the use of the **SiestaConverger** is
-/aiida_siesta/examples/workflows/example_iterate.py.
+`/aiida_siesta/examples/workflows/example_iterate.py`.
 
 
 Supported Siesta versions
 -------------------------
 
-At least 4.0.1 of the 4.0 series, and 4.1-b3 of the 4.1 series, which
+At least 4.0.1 of the 4.0 series, 4.1-b3 of the 4.1 series and the MaX-1.0 release, which
 can be found in the development platform
 (https://gitlab.com/siesta-project/siesta).
+For more up to date info on compatibility, please check the      
+`wiki <https://github.com/albgar/aiida_siesta_plugin/wiki/Supported-siesta-versions>`_.
+
 
 .. _siesta-iterator-inputs:
 
@@ -32,14 +35,14 @@ The additional inputs are:
 * **iterate_over**, class :py:class:`Dict  <aiida.orm.Dict>`, *Mandatory*
 
   A dictionary where each key is the name of a parameter we want to iterate
-  over (`str`) and each value is a `list` with all the values to iterate over for
+  over (:py:class:`str <str>`) and each value is a :py:class:`list <list>` with all the values to iterate over for
   the corresponding key.  
   Accepted keys are:
 
   * Name of the input ports of the **SiestaBaseWorkChain**. Meaning all the names listed
     :ref:`here <siesta-base-wc-inputs>`.
-    In this case, the corresponding values list must contains the list of `DataType` nodes
-    (stored or unstored) accepted by the key. Examples are::
+    In this case, the corresponding values list must contains the list of :py:class:`Data <aiida.orm.Data>` 
+    nodes (stored or unstored) accepted by the key. Examples are::
 
         code1 = load_code("SiestaHere@localhost")
         code2 = load_code("SiestaThere@remotemachine")
@@ -49,9 +52,10 @@ The additional inputs are:
         struct2 = StructureData(ase=ase_struct_2)
         iterate_over = {"structure" : [struct1,struct2]}
 
-  * Name of accepted Siesta input keywords (for instance `mesh-cutoff`, `pao-energy-shift`, etc ...).
+  * Name of accepted Siesta input keywords (for instance ``mesh-cutoff``, ``pao-energy-shift``, etc ...).
     In this case, the corresponding values list must contains the list of values directly, meaning
-    `str`, `float`, `int` or `bool` python types. Examples are::
+    :py:class:`str <str>`, :py:class:`float <float>`, :py:class:`int <int>` or :py:class:`bool <bool>` 
+    python types. Examples are::
 
         iterate_over = {"spin" : ["polarized", "spin-orbit"]}
 
@@ -110,7 +114,7 @@ However inputs of the **SiestaBaseWorkChain** can be obtained in a dictionary in
         inp_gen = SiestaBaseWorkChain.inputs_generator()
         inputs = inp_gen.get_inputs_dict(structure, calc_engines, protocols)
 
-The inputs of `get_inputs_dict` are explained in the :ref:`protocols documentation <how-to>`.
+The inputs of ``get_inputs_dict`` are explained in the :ref:`protocols documentation <how-to>`.
 Then the user must define at least the input **iterate_over** in order to be able to submit
 the **SiestaIterator** WorkChain.
 

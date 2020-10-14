@@ -18,6 +18,8 @@ class STMParser(Parser):
     Parser for the output of the "plstm" program in the Siesta distribution.
     """
 
+    _version = "Dev-post-1.1.0"
+
     def parse(self, **kwargs):
         """
         Receives in input a dictionary of retrieved nodes.
@@ -61,9 +63,8 @@ class STMParser(Parser):
 
         self.out('stm_array', stm_data)
 
-        parser_version = '1.0.1'
         parser_info = {}
-        parser_info['parser_info'] = 'AiiDA STM(Siesta) Parser V. {}'.format(parser_version)
+        parser_info['parser_info'] = 'AiiDA STM(Siesta) Parser V. {}'.format(self._version)
         parser_info['parser_warnings'] = []
         parser_info['output_data_filename'] = filename_plot
 

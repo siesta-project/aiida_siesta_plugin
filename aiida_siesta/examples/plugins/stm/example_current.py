@@ -1,5 +1,4 @@
 #!/usr/bin/env runaiida
-# -*- coding: utf-8 -*-
 #
 # Test for STM plugin
 #
@@ -17,9 +16,6 @@
 #  The height argument is optional. It is the height (in the z coordinate of
 #  the LDOS box) at which the "image" is going to be computed.
 #
-
-from __future__ import absolute_import
-from __future__ import print_function
 
 import sys
 

@@ -1,18 +1,31 @@
 from abc import ABCMeta, abstractmethod
-from aiida_siesta.workflows.utils.protocols import ProtocolManager
+from .protocols import ProtocolManager
 
 
 class InputsGenerator(ProtocolManager, metaclass=ABCMeta):
     """
-    This metaclass sets the structure for WorkChain specific inputs generators.
-    The subclasses needs to define _calc_types (containing the schema for the
-    computational resources to use), and the _workchain_class (the WorkChain the
-    subclass will produce inputs for).
-    Moreover the methods `get_inputs_dict` and `get_filled_builder` must be overidden.
-    The `get_inputs_dict` will implement all the logic to construct all the inputs
-    and return them in a dictionary. The `get_filled_builder`, in theory, could
-    be general, but it calls `get_inputs_dict` and this method can have different
-    signature when overridden.
+    This abstract class sets the structure for WorkChain specific inputs generators,
+    meaning classes that are able to produce WorkChain inputs starting from
+    a structure, a protocol and few more task specific options.
+
+    Child classes need to define _calc_types (containing the schema for the
+    computational resources to use) and the methods `get_inputs_dict` and `get_filled_builder`.
+    The `get_inputs_dict` will implement all the logic to construct the inputs
+    and return them in a dictionary. The `get_filled_builder` has the duty to create an already filled
+    builder of the WorkChain. This last method, in theory, could be a general
+    method that the child classes don't need to override. In fact it just call `get_inputs_dict`
+    and places the dictionary entry in the empty builder.
+    However the signature of `get_inputs_dict` can change case by case and the one of
+    `get_filled_builder` must be change as well accordingly. If there was a possibility
+    to impose automatically to `get_filled_builder` the same signature of `get_inputs_dict`,
+    there woudn't be the need to define `get_filled_builder` as abstactmethod.
+
+    Moreover, the workchain_class (the WorkChain the subclass will produce inputs for)
+    is passed as a first argument during the instanciation of the class..
+    This is not strictly necessary (the workchain_class could be requested as an attribute
+    of child classes - exactly like _calc_types), however this strategy was adopted in order
+    to avoid cyclic dependence and it can be advantageous if more then one workchain_class
+    works with the exact same input generator.
     """
 
     _calc_types = None

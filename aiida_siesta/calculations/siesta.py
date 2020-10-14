@@ -21,7 +21,7 @@ class SiestaCalculation(CalcJob):
     """
     Siesta calculator class for AiiDA.
     """
-    _siesta_plugin_version = '1.0.1'
+    #_version = '' Aiida gets the plugin version automatically from package __init__
 
     ###################################################################
     ## Important distinction between input.spec of the class (can be ##
@@ -409,6 +409,11 @@ class SiestaCalculation(CalcJob):
         calcinfo.retrieve_list += settings_retrieve_list
 
         return calcinfo
+
+    @classmethod
+    def inputs_generator(cls):  # pylint: disable=no-self-argument,no-self-use
+        from aiida_siesta.utils.inputs_generators import SiestaCalculationInputsGenerator
+        return SiestaCalculationInputsGenerator(cls)
 
 
 def _uppercase_dict(indic, dict_name):

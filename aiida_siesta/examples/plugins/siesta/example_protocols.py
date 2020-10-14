@@ -1,14 +1,29 @@
 #!/usr/bin/env runaiida
 """
-File showcasing the submission of a SiestaBaseWorkChain using the protocol system.
+File showcasing the submission of a SiestaCalculation using the protocol system.
 """
 import sys
-from aiida_siesta.workflows.base import SiestaBaseWorkChain
+from aiida_siesta.calculations.siesta import SiestaCalculation
 from aiida.engine import submit
 from aiida.orm import Dict, StructureData
 
+
 try:
-    codename = sys.argv[1]
+    dontsend = sys.argv[1]
+    if dontsend == "--dont-send":
+        submit_test = True
+    elif dontsend == "--send":
+        submit_test = False
+    else:
+        raise IndexError
+except IndexError:
+    print(("The first parameter can only be either "
+           "--send or --dont-send"),
+          file=sys.stderr)
+    sys.exit(1)
+
+try:
+    codename = sys.argv[2]
 except IndexError:
     codename = 'SiestaHere@localhost'
 
@@ -50,7 +65,7 @@ relaxation_type = "atoms_only"
 spin = "polarized"
 
 
-inp_gen = SiestaBaseWorkChain.inputs_generator()
+inp_gen = SiestaCalculation.inputs_generator()
 builder = inp_gen.get_filled_builder(structure, calc_engines, protocol)
 #builder = inp_gen.get_builder(structure, calc_engines, protocol, path_generator, relaxation_type, spin)
 
@@ -68,8 +83,16 @@ new_params['max_scf_iterations'] = 200
 builder.parameters = Dict(dict=new_params)
 
 # Here we just submit the builder
-process = submit(builder)
-print("Submitted workchain; ID={}".format(process.pk))
-print("For information about this workchain type: verdi process show {}".format(process.pk))
-print("For a list of running processes type: verdi process list")
+if submit_test:
+    builder.metadata["dry_run"] = True 
+    builder.metadata["store_provenance"] = False
+    process = submit(builder)
+    print("Submited test for calculation (uuid='{}')".format(process.uuid))
+    print("Check the folder submit_test for the result of the test")
+
+else:
+    process = submit(builder)
+    print("Submitted calculation; ID={}".format(process.pk))
+    print("For information about this calculation type: verdi process show {}".format(process.pk))
+    print("For a list of running processes type: verdi process list")
 

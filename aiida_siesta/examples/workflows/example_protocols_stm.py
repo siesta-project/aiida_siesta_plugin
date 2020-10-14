@@ -1,10 +1,11 @@
+#!/usr/bin/env runaiida
 """
 File showcasing the submission of a SiestaBaseWorkChain using the protocol system.
 """
 import sys
 from aiida_siesta.workflows.stm import SiestaSTMWorkChain
 from aiida.engine import submit
-from aiida.orm import Dict, StructureData
+from aiida.orm import Dict, StructureData, Float
 
 try:
     codename = sys.argv[1]
@@ -15,9 +16,6 @@ try:
 except IndexError:
     stmcodename = 'STMhere@localhost'
 
-
-#Three are the mandatory inputs: structure, a dictionary with the comp resources
-#(calc_engines) and the protocol name
 
 
 # Structure -----------------------------------------
@@ -60,15 +58,15 @@ s.append_atom(position=(5.604, 0.000, 0.000), symbols=['H'])
 calc_engines = {
      'siesta': {
          'code': codename, 
-         'options': {'resources': {'num_machines': 1, "num_mpiprocs_per_machine": 1}, "max_wallclock_seconds": 1360 }
+         'options': {'resources': {'num_machines': 1, "num_mpiprocs_per_machine": 1}, "max_wallclock_seconds": 3600 }
          },
      'stm': {
          'code': stmcodename,
-         'options': {'resources': {'num_machines': 1, "num_mpiprocs_per_machine": 1}, "max_wallclock_seconds": 360 }
+         'options': {'resources': {'num_machines': 1, "num_mpiprocs_per_machine": 1}, "max_wallclock_seconds": 1360 }
          }
      }
 
-protocol="standard"
+protocol="standard_psml"
 
 stm_mode = "constant-height"
 
@@ -86,10 +84,8 @@ print(inp_gen.how_to_pass_computation_options())
 
 # As we get the builder and not stored nodes, before submission any user has complete
 # freedom to change something before submission.
-# If no change is performed, just submitting the builder should still work and produce sensible results.
-new_params = builder.parameters.get_dict()
-new_params['max_scf_iterations'] = 200
-builder.parameters = Dict(dict=new_params)
+# For instance the energy range for the construction of the LDOS.
+builder.emin = Float(-6.4) #eV respect to Fermi energy
 
 # Here we just submit the builder
 process = submit(builder)

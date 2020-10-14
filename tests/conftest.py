@@ -176,6 +176,24 @@ def generate_psml_data():
     return _generate_psml_data
 
 
+@pytest.fixture(scope='session')
+def generate_psml_fam(generate_psml_data):
+    """Return a `PsmlData` instance for the given element a file for which should exist in `tests/pseudos`."""
+
+    def _generate_psml_fam(fam_name, element):
+        """Return `PsmlData` node."""
+        
+        from aiida_siesta.groups.pseudos import PsmlFamily
+
+        group, created = PsmlFamily.objects.get_or_create(fam_name)
+        psml = generate_psml_data(element)
+        psml.store()
+        group.add_nodes([psml])
+
+
+    return _generate_psml_fam
+
+
 @pytest.fixture
 def generate_structure():
     """Return a `StructureData` representing bulk silicon."""

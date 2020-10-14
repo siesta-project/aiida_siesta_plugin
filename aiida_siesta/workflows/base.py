@@ -237,5 +237,5 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
 
     @classmethod
     def inputs_generator(cls):  # pylint: disable=no-self-argument,no-self-use
-        from aiida_siesta.workflows.utils.inputs_generators import BaseWorkChainInputsGenerator
+        from aiida_siesta.utils.inputs_generators import BaseWorkChainInputsGenerator
         return BaseWorkChainInputsGenerator(cls)

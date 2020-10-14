@@ -57,5 +57,5 @@ class BandgapWorkChain(SiestaBaseWorkChain):
 
     @classmethod
     def inputs_generator(cls):  # pylint: disable=no-self-argument,no-self-use
-        from aiida_siesta.workflows.utils.inputs_generators import BandgapWorkChainInputsGenerator
+        from aiida_siesta.utils.inputs_generators import BandgapWorkChainInputsGenerator
         return BandgapWorkChainInputsGenerator(cls)
