@@ -167,7 +167,8 @@ pseudopotentials must be downloaded from `PseudoDojo`_ and stored in the databas
 with the same name. From command line::
      
       wget http://www.pseudo-dojo.org/pseudos/nc-sr-04_pbe_standard_psml.tgz
-      tar -xf nc-sr-04_pbe_standard_psml.tgz
+      mkdir nc-sr-04_pbe_standard_psml
+      tar -xf nc-sr-04_pbe_standard_psml.tgz -C nc-sr-04_pbe_standard_psml
       verdi data psml uploadfamily nc-sr-04_pbe_standard_psml nc-sr-04_pbe_standard_psml "Scalar-relativistic psf standard"
         
 ..      wget https://icmab.es/leem/SIESTA_MATERIAL/tmp_PseudoDojo/nc-sr-04_pbe_standard-psf.tgz
