@@ -161,3 +161,16 @@ Here the code::
       verdi data psml uploadfamily nc-sr-04_pbe_standard_psml nc-sr-04_pbe_standard_psml "Scalar-relativistic psml standard"
  
 We created a pseudo family and populated the database with our first data.
+
+Submit a single siesta calculation
+----------------------------------
+
+-draft-
+
+We provide a file. Explore it.
+
+.. code-block:: python
+
+   runaiida example.py
+
+Explore the outputs from the shell.
