@@ -1,0 +1,163 @@
+.. _ICN2 2020 Homepage:
+
+2020, ICN2, Barcelona, Spain
+=================================
+
+
++-----------------+----------------------------------------------------------------------------+
+| Related resources                                                                            |
++=================+============================================================================+
+| Virtual Machine | `Quantum Mobile 20.06.1`_                                                  |
++-----------------+----------------------------------------------------------------------------+
+| python packages | `aiida-core 1.4.2`_, `aiida-siesta 1.1.0`_,                                |
++-----------------+----------------------------------------------------------------------------+
+| codes           | `Siesta v4.1-rc1`_                                                         |
++-----------------+----------------------------------------------------------------------------+
+
+.. _Quantum Mobile 20.06.1: https://github.com/marvel-nccr/quantum-mobile/releases/tag/20.06.1
+.. _aiida-core 1.4.2: https://pypi.org/project/aiida-core/1.4.2
+.. _aiida-siesta 1.1.0: https://pypi.org/project/aiida-siesta/1.1.0
+.. _Siesta v4.1-rc1: https://gitlab.com/siesta-project/siesta/-/wikis/Guide-to-Siesta-versions
+
+These are the notes of the tutorial delivered to the "Theory and Simulation group" at ICN2 (Barcelona) the 19th of October 2020.
+The tutorial was carried on using the Quantum Mobile Virtual Machine, however the steps described below can be 
+replicated (with some small modifications pointed out along the way) on a local machine to obtain a working AiiDA (and aiida-siesta)
+installation.
+Tutors: Emanuele Bosoni, Pol Febrer.
+
+Installation
+------------
+
+Installation is through ``pip`` after moving to a new virual environment (we use ``virtualenv``, but any alternative is valid, only
+make sure to select a python version 3.6 or above). We call the virtual environment ``tutorial``.
+
+.. code-block:: python
+
+   virtualenv -p=/usr/bin/python3.6 tutorial
+   cd tutorial
+   source bin/activate
+   pip install aiida-siesta==1.1.0
+
+This will install an appropriate version of ``aiida-core`` (last realease at the time of the tutorial is 1.4.2).
+
+.. note:: If you are not on the Quantum Mobile Virtual Machine, a preliminary step is required to install
+   PostgreSQL and RabbitMQ, as described
+   `here <https://aiida.readthedocs.io/projects/aiida-core/en/latest/intro/installation.html#installing-prerequisites>`_
+
+Because we want to isolate the current installation from other installations that might be present in the machine,
+we add the following line to the virual environment file (``bin/activate``)::
+
+        export AIIDA_PATH='/home/max/tutorial'  # use .aiida configuration in this folder
+
+Moreover we can add in the same file the line::
+
+        eval "$(_VERDI_COMPLETE=source verdi)"
+
+in order to activate tab-completion.
+
+Relaod the environment and check the status of the installation::
+
+        source bin/activate
+        verdi status
+
+This should show that the configuration directory is the present directory and that no profile has been set up yet.
+
+Setting up the AiiDA profile
+----------------------------
+
+The aiida profile is set up with one single command::
+
+        verdi quicksetup
+
+An interactive shell will ask some data and after that the creation of the profile starts. It concludes with the message "Success: database migration completed".
+Now is time to scan for plugins and start the daemon::
+
+        reentry scan
+        verdi daemon start
+
+If all the steps has been succesfull, you should be able to see all green ticks when typing
+
+.. code-block:: python
+
+        verdi status
+
+and also be able to see "siesta.siesta" among the available calculations plugins::
+
+        verdi plugin list aiida.calculations
+
+We are ready to set up a code and computer.
+
+Computer and code setup
+-----------------------
+
+The setup of a computer is done through::
+
+        verdi computer setup
+
+and filling in the interactive shell requirements. For the Quantum Mobile they are::
+
+        Computer label: localhost
+        Hostname: localhost
+        Description []: This machine
+        Transport plugin: local
+        Scheduler plugin: slurm
+        Shebang line (first line of each script, starting with #!) [#!/bin/bash]:
+        Work directory on the computer [/scratch/{username}/aiida/]: /home/max/tut/aiidarun
+        Mpirun command [mpirun -np {tot_num_mpiprocs}]:
+        Default number of CPUs per machine: 2
+
+Then a file is automatically opened with "vi" editor. It allows to insert text to prepend/append to
+any submission script. We don't require it. Therefore just press ``Esc`` and type ``:wq``.
+
+Any remote computer can be set up in the exact same way, just making sure to have a passwordless
+access to it (ssh key) and selecting "ssh" as "Transport plugin". 
+
+Te computer must be configured, this allows to select some advanced features::
+
+        verdi computer configure local localhost
+
+The default values are ok for the sake of this tutorial, therefore just press enter.
+The computer setup is over and the success of this action can be checked with::
+
+        verdi computer test localhost
+
+The next step is the setup of a code.
+
+.. note:: This section covers the set up of the Siesta code already installed in the Quantum Mobile virtual
+   machine. In case of local installation, make sure to include the right specifications for your Siesta code
+   (that might be on a remote cluster).
+
+The command is::
+
+        verdi code setup
+
+and the interactive shell will facilitate the setting up of the code. For Quantum Mobile we insert::
+
+        Label: siesta-v4.1
+        Description []: siesta-v4.1-rc1
+        Default calculation input plugin: siesta.siesta
+        Installed on target computer? [True]: 
+        Computer: localhost
+        Remote absolute path: /usr/local/bin/siesta
+
+Again a file is opened, asking to specify an optional text to prepend/append to the submission script.
+Typically here is where we include the calls to modules that are needed to run the code.
+In our case we insert "ulimit -s unlimited" as prepend text. The writing mode of "vi" is activated
+pressing ``i``, after the insertion, ``Esc`` and ``:wq`` to save the file.
+
+The computer is set up.
+
+Creating a preudo family
+------------------------
+
+Before starting to play with `aiida-siesta`, it can be useful to learn how to
+set up of a pseudopotenetial family. We will download a set of
+pseudopotentials from PseudoDojo and store tham in the database.
+Here the code::
+
+      wget http://www.pseudo-dojo.org/pseudos/nc-sr-04_pbe_standard_psml.tgz
+      mkdir nc-sr-04_pbe_standard_psml
+      tar -xf nc-sr-04_pbe_standard_psml.tgz -C nc-sr-04_pbe_standard_psml
+      verdi data psml uploadfamily nc-sr-04_pbe_standard_psml nc-sr-04_pbe_standard_psml "Scalar-relativistic psml standard"
+ 
+We created a pseudo family and populated the database with our first data.
