@@ -55,7 +55,7 @@ Moreover we can add in the same file the line::
 
 in order to activate tab-completion.
 
-Relaod the environment and check the status of the installation::
+Reload the environment and check the status of the installation::
 
         source bin/activate
         verdi status
@@ -75,7 +75,7 @@ Now is time to scan for plugins and start the daemon::
         reentry scan
         verdi daemon start
 
-If all the steps has been succesfull, you should be able to see all green ticks when typing
+If all the steps have been succesfull, you should be able to see all green ticks when typing
 
 .. code-block:: python
 
@@ -112,7 +112,7 @@ any submission script. We don't require it. Therefore just press ``Esc`` and typ
 Any remote computer can be set up in the exact same way, just making sure to have a passwordless
 access to it (ssh key) and selecting "ssh" as "Transport plugin". 
 
-Te computer must be configured, this allows to select some advanced features::
+The computer must be configured, this allows to select some advanced features::
 
         verdi computer configure local localhost
 
@@ -147,13 +147,13 @@ pressing ``i``, after the insertion, ``Esc`` and ``:wq`` to save the file.
 
 The computer is set up.
 
-Creating a preudo family
+Creating a pseudo family
 ------------------------
 
 Before starting to play with `aiida-siesta`, it can be useful to learn how to
-set up of a pseudopotenetial family. We will download a set of
-pseudopotentials from PseudoDojo and store tham in the database.
-Here the code::
+set up of a pseudopotential family. We will download a set of
+pseudopotentials from `PseudoDojo <http://www.pseudo-dojo.org/>`_ and store them in the database.
+Here is the code::
 
       wget http://www.pseudo-dojo.org/pseudos/nc-sr-04_pbe_standard_psml.tgz
       mkdir nc-sr-04_pbe_standard_psml
