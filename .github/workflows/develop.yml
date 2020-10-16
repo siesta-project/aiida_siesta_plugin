@@ -74,7 +74,7 @@ jobs:
                 SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
                 SLACK_ICON: https://www.materialscloud.org/discover/images/0ba0a17d.aiida-logo-128.png
                 SLACK_USERNAME: aiida-siesta
-                SLACK_CHANNEL: dev-aiida-siesta
+                SLACK_CHANNEL: actions
                 SLACK_COLOR: b60205
                 SLACK_TITLE: "Nightly build against `aiida-core/develop` failed"
                 SLACK_MESSAGE: "The tests fail with the current version of `aiida-core/develop`."
