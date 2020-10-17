@@ -49,7 +49,7 @@ we specify the aiida configuration directory in the virtual environment activati
         echo 'export AIIDA_PATH=$VIRTUAL_ENV' >> $VIRTUAL_ENV/bin/postactivate
         workon tutorial
 
-The configuration directory is now ``~/.virtualenvs/tutorial``
+The configuration directory is now ``~/.virtualenvs/tutorial``.
 
 Moreover we can add in the same file a line to activate tab-completion::
 
@@ -173,16 +173,55 @@ and store tham in the database under the name "nc-sr-04_pbe_standard_psml"::
 
       verdi data psml uploadfamily nc-sr-04_pbe_standard_psml nc-sr-04_pbe_standard_psml "Scalar-relativistic psml standard"
 
+Same can be done for psf pseudopotentials, for instance::
+
+      wget https://icmab.es/leem/SIESTA_MATERIAL/tmp_PseudoDojo/nc-sr-04_pbe_standard-psf.tgz
+      tar -xf nc-sr-04_pbe_standard-psf.tgz
+      verdi data psf uploadfamily nc-sr-04_pbe_standard-psf nc-sr-04_pbe_standard-psf "Scalar Relativistic psf"
+
+.. note:: The presudopotentials sets used in this tutorial come with no guarantee!! Use with care!
+
 
 Submit a single siesta calculation
 ----------------------------------
 
--draft-
+Open the file ``example_bands.py`` and explore the setting up of the various inputs.
+Run the script with::
 
-We provide a file. Explore it.
+        runaiida --dont-send example_bands.py
 
-.. code-block:: python
+The option ``--dont-send`` has been added in order to activate the "dry_run" option that every aiida process has.
+This option allows to create all the inputs of the calculation, but do not submit it.
+You can explore in the folder ``submit_test`` how AiiDA prepared all the inputs of a siesta calculation for you.
 
-   runaiida example.py
+Now run::
 
-Explore the outputs from the shell.
+        runaiida --send example_bands.py
+
+AiiDA took charge of your script, created the inputs and submitted the calculation. Look at the state of the
+process with the command ``verdi process show`` as suggested in the shell.
+
+In few seconds the calculation is finished and we could explore the outputs. This can be done from command line,
+for instance::
+
+        verdi data array show <PK_forces_and_stress>
+
+        
+however it is worth exploring the shell provided by AiiDA::
+
+        verdi shell
+
+Inside the shell::
+
+        l=load_node(<PK_calculation>)
+
+and explore all the methods making use of tab completion. For instance::
+
+        l.outputs.bands.export(path="Si_bands", fileformat="gnuplot", y_max_lim=10)
+
+The command above creates a file that can be plot with gnuplot in order to visualize the bands::
+
+        gnuplot --persist Si_bands
+
+Take the chance to explore methods and attributes of data types associated to 
+the inputs and outputs of a ``SiestaCalculation``.
