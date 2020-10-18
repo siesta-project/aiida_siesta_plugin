@@ -331,7 +331,6 @@ Now, we just need to tell jupyter that our environment exists. For this, you nee
 
 And then use `ipykernel` to inform jupyter::
 
-        pip install ipykernel
         ipython kernel install --user --name=tutorial
 
 That's about it. **Let's move on!**
