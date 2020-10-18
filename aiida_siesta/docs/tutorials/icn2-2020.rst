@@ -276,3 +276,14 @@ Now open the shell and::
         inp_gen.get_protocols()
 
 The new protocol is on the list and we can use it to submit a calculation.
+
+
+Run a convergence workflow
+--------------------------
+
+Pol
+
+Create a WorkChain
+------------------
+
+Probably a jupyter file. Pol
