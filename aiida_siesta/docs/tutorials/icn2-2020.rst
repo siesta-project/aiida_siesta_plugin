@@ -339,6 +339,7 @@ It's quite easy to run a convergence workflow using `aiida-siesta`.
 You can find detailed information about it in :download:`this notebook <data_icn2_2020/Iterators presentation.ipynb>`
 
 However, as a quick summary you can do::
+
         from aiida_siesta.workflows.converge import SiestaSequentialConverger
         from aiida.engine import run
 
