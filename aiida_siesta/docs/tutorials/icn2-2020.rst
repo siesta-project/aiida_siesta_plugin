@@ -335,11 +335,51 @@ That's about it. **Let's move on!**
 Run a convergence workflow
 --------------------------
 
+It's quite easy to run a convergence workflow using `aiida-siesta`.
+You can find detailed information about it in :download:`this notebook <data_icn2_2020/Iterators presentation.ipynb>`
+
+However, as a quick summary you can do::
+        from aiida_siesta.workflows.converge import SiestaSequentialConverger
+        from aiida.engine import run
+
+        calc_node=load_node(<PK_calculation>)
+
+        run(SiestaSequentialConverger,
+
+                iterate_over=[
+                        {"kpoints_0": [4,5,6,7,8,9,10,11,12,13,14,15]},
+                        {"kpoints_1": [4,5,6,7,8,9,10,11,12,13,14,15]}
+                ],
+
+                converger_inputs={
+                        'code':load_code('siesta-v4.1@localhost'),
+                        'pseudo_family': Str('nc-sr-04_pbe_standard-psf')
+                        'structure': calc_node.inputs.structure,
+                        'parameters': Dict(),
+                        'options': {'resources': {'num_machines': 1, "num_mpiprocs_per_machine": 1},"max_wallclock_seconds": 3600}
+                        'batch_size': Int(3)
+                }
+
+        )
+
+to converge your structure's kpoints (first and second components), running three simulations at a time.
 
 Create a WorkChain
 ------------------
 
-Probably a jupyter file. Pol
+In this section, we will guide you through your first steps at creating workchains. 
+
+Please download :download:`this zip file <data_icn2_2020/first_workchain.zip>` where you will find all the contents for the section.
+Then unzip it and enter the directory::
+
+        unzip first_workchain.zip
+        cd first_workchain
+
+Once you are inside, launch jupyter::
+
+        jupyter notebook
+
+and open the `First workchain.ipynb` notebook. From here, just follow the instructions on the notebook :)
 
 Setting up the hpcq
 --------------------
