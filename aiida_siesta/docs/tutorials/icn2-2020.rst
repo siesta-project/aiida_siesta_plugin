@@ -309,11 +309,6 @@ The new protocol is on the list and we can use it to run a calculation::
 The command ``run`` send the calcualation in the shell in interactive mode (does not submit to the builder
 as ``submit`` would do).
 
-Run a convergence workflow
---------------------------
-
-Pol
-
 Using jupyter in the Quantum Mobile VM
 ---------------------------------------
 
@@ -337,7 +332,99 @@ And then use `ipykernel` to inform jupyter::
 
 That's about it. **Let's move on!**
 
+Run a convergence workflow
+--------------------------
+
+
 Create a WorkChain
 ------------------
 
 Probably a jupyter file. Pol
+
+Setting up the hpcq
+--------------------
+
+We already set up a computer and code in the `Computer and code setup`_ section. Remote computers, and therefore HPCQ, are no different.
+To set them up, you need to follow the same steps. There's just one difference, you need to **generate the ssh keys** so that aiida can login to
+the remote computer in your behalf without needing the password.
+
+You can generate them with::
+
+        ssh-keygen -t rsa -b 4096 -m PEM
+
+And then register them to the hpcq so that it allows you to access::
+
+        ssh-copy-id <username>@10.100.2.51
+
+Just with that, you would be able to access like `ssh <username>@10.100.2.51`, but aiida wants to access without knowing your username (`ssh 10.100.2.51`).
+For this, you need to:
+
+        vi ~/.ssh/config
+
+And include the following lines to the file (with one empty line before and after):
+
+        Host 10.100.2.51
+          User <username>
+
+With this, you are all good to go! We just need to setup the computer and the code.
+
+There's a **small gotcha** though with the hpcq: *Each farm needs to be setup as a different computer, as it has a different architecture 
+and it runs a different compilation of the code.*
+
+Therefore for each farm we will need to setup a computer with this configuration::
+
+        label: "hpcq-farm<farm name>"
+        hostname: "10.100.2.51" 
+        description: "hpcq farm <farm name>"
+        shebang: "#!/bin/bash"
+        transport: "ssh"
+        scheduler: "slurm"
+        work_dir: "/home/ICN2/{username}/.aiida"
+        mpirun_command: "mpirun -np {tot_num_mpiprocs}"
+        mpiprocs_per_machine: <num cores per node of the farm>
+
+where `<farm name>` and `<num cores per node of the farm>` need to be replaced by the appropiate values for each farm.
+
+Correspondingly, we need to setup a code with this configuration::
+
+        label: "siesta_farm<farm name>"
+        description: "Siesta compilation to run in hpcq-farm<farm name>"
+        input_plugin: "siesta.siesta"
+        on_computer: true
+        remote_abs_path: <path_to_siesta>
+        computer: "hpcq-farm<farm name>"
+        prepend_text: |
+                <load all modules that you need here>
+
+                ulimit -l unlimited
+                ulimit -s 51200
+                ulimit -n 51200
+        custom_scheduler_commands:  "#SBATCH -p <farm name>"
+
+We know this is a cumbersome process, therefore you can :download:`download all the config files from here<data_icn2_2020/aiida-hpcq-config.zip>`.
+
+Unzip the downloaded zip and enter the directory to check what you have there::
+
+        unzip aiida-hpcq-config.zip
+        cd aiida-hpcq-config
+
+You still need to go through each of them manually. So, enter the `Computers` directory and setup the ones you want by running the following command::
+
+        verdi computer setup --config hpcq-farm<farm name>.yml
+
+and then configure it::
+
+        verdi computer configure ssh hpcq-farm<farm name>
+
+You can (should) test it to check that everything is ok::
+
+        verdi computer test hpcq-farm<farm name>
+
+Then, for each farm that you set up, we need to set up its code. With the downloaded zip, you are provided some binaries for each farm in <siesta-binaries>.
+For a quick test, you can copy the `siesta-binaries` folder to your hpcq home, and then use the config files in the `Codes` directory::
+
+        verdi code setup --config siesta-farm<farm name>.yml
+
+Now you will be able to submit calculations to the hpcq by setting the code input to the `siesta@hpcq-farm<farm name>` :)
+
+``
