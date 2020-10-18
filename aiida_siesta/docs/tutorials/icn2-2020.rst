@@ -225,3 +225,54 @@ The command above creates a file that can be plot with gnuplot in order to visua
 
 Take the chance to explore methods and attributes of data types associated to 
 the inputs and outputs of a ``SiestaCalculation``.
+
+Protocols
+---------
+Stay on the shell and look at the following::
+
+        from aiida_siesta.calculations.siesta import SiestaCalculation
+        inp_gen=SiestaCalculation.inputs_generator()
+
+You just imported the inputs generator for the `SiestaCalculation`. We can explore its functionality::
+
+        inp_gen.get_protocols()
+        inp.gen.get_spins()
+
+And many more...
+Now::
+        struct = l.inputs.structure
+        calc_engines = {
+            'siesta': {
+                'code': "siesta-v4.1@localhost",
+                'options': {'resources': {'num_machines': 1, "num_mpiprocs_per_machine": 1},"max_wallclock_seconds": 3600}
+                }
+            }
+        builder = inp_gen.get_filled_builder(struct,calc_engines,"standard_psml")
+
+We got a builder ready to be submitted. look for instance at::
+
+        builder.parameters.attributes
+
+We can add the spin polarization with::
+
+        builder = inp_gen.get_filled_builder(struct,calc_engines,"standard_psml",spin="polarized")
+
+Try again ``builder.parameters.attributes``, what are the differences compared to before?
+
+We could run the builder straight away, however::
+
+        inp_gen.get_protocol_info("standard_psml")
+
+remind us that the protocol we are using does not support siesta-4.1 because it uses psml pseudopotentials.
+
+Close the shell and look at the file ``my_protocols_registry.yaml``. It contains a new set of inputs and the psf pseudos. Do:: 
+
+        export AIIDA_SIESTA_PROTOCOLS="/home/max/tut/my_protocols_registry.yaml"
+
+Now open the shell and::
+
+        from aiida_siesta.calculations.siesta import SiestaCalculation
+        inp_gen=SiestaCalculation.inputs_generator()
+        inp_gen.get_protocols()
+
+The new protocol is on the list and we can use it to submit a calculation.

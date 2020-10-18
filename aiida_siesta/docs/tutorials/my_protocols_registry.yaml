@@ -1,0 +1,47 @@
+my_protocol:
+  description: 'A standard list of inputs for Siesta. No guarantee. No support for Spin-Orbit.'
+  parameters:
+    xc-functional: "GGA"
+    xc-authors: "PBE"
+    max-scf-iterations: 50
+    scf-mixer-history: 5
+    scf-mixer-weight: 0.1
+    scf-dm-tolerance: 1.e-4  #1.e-5
+    solution-method: 'diagon'
+    electronic-temperature: '25 meV'
+    write-forces: True
+    mesh-cutoff: '200 Ry'
+  spin_additions:
+    write-mulliken-pop: 1
+  relax_additions:
+    scf-dm-tolerance: 1.e-4
+    md-max-force-tol: '0.04 eV/ang'
+    md-max-stress-tol: '0.1 GPa'
+  basis:
+    pao-energy-shift: '50 meV'
+    pao-basis-size: 'DZP'
+  pseudo_family: 'nc-sr-04_pbe_standard-psf'
+  kpoints:
+    distance: 0.1 #0.062
+    offset: [0., 0., 0.]
+  atomic_heuristics:
+    Li:
+      basis:
+        polarization: 'non-perturbative'
+    Be:
+      basis:
+        polarization: 'non-perturbative'
+    Na:
+      basis:
+        polarization: 'non-perturbative'
+    Mg:
+      basis:
+        polarization: 'non-perturbative'
+    Ca:
+      basis:
+        split-tail-norm: True
+    Sr:
+      basis:
+        split-tail-norm: True
+    Ba:
+        split-tail-norm: True
