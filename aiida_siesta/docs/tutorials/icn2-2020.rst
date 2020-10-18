@@ -37,13 +37,13 @@ make sure to select a python version 3.6 or above). We call the virtual environm
    workon tutorial
    pip install aiida-siesta==1.1.0
 
-This will install an appropriate version of ``aiida-core`` (last realease at the time of the tutorial is 1.4.2).
+This will install an appropriate version of ``aiida-core`` (last release at the time of the tutorial is 1.4.2).
 
 .. note:: If you are not on the Quantum Mobile Virtual Machine, a preliminary step is required to install
    PostgreSQL and RabbitMQ, as described
    `here <https://aiida.readthedocs.io/projects/aiida-core/en/latest/intro/installation.html#installing-prerequisites>`_
 
-Because we want to isolate the current installation from other installations that might be present in the machine,
+Because we want to isolate the current AiiDA installation from other installations that might be present in the machine,
 we specify the aiida configuration directory in the virtual environment activation file::
 
         echo 'export AIIDA_PATH=$VIRTUAL_ENV' >> $VIRTUAL_ENV/bin/postactivate
@@ -75,7 +75,7 @@ Now is time to scan for plugins and start the daemon::
         reentry scan
         verdi daemon start
 
-If all the steps have been succesfull, you should be able to see all green ticks when typing
+If all the steps have been successful, you should be able to see all green ticks when typing
 
 .. code-block:: python
 
@@ -109,7 +109,7 @@ and filling in the interactive shell requirements. For the Quantum Mobile they a
 Then a file is automatically opened with "vi" editor. It allows to insert text to prepend/append to
 any submission script. We don't require it. Therefore just press ``Esc`` and type ``:wq``.
 
-Any remote computer can be set up in the exact same way, just making sure to have a passwordless
+Any remote computer can be set up in the exact same way, just making sure to have a password-less
 access to it (ssh key) and selecting "ssh" as "Transport plugin". 
 
 The computer must be configured, this allows to select some advanced features::
@@ -226,20 +226,31 @@ The command above creates a file that can be plot with gnuplot in order to visua
 Take the chance to explore methods and attributes of data types associated to 
 the inputs and outputs of a ``SiestaCalculation``.
 
+The script can be modified very easily in order to run a ``SiestaBaseWorkChain`` instead of a
+``SiestaCalculation``. Look at the commented part of the ``example_bands.py`` script in order to understand the differences.
+The "dry_run" option is not available for the ``SiestaBaseWorkChain``.
+A ``SiestaBaseWorkChain`` automatically takes care
+of fixing some `common errors of a siesta calculation
+<https://aiida-siesta-plugin.readthedocs.io/en/latest/workflows/base.html#error-handling>`_,
+therefore it adds robustness in running siesta calculations.
+
 Protocols
 ---------
 Stay on the shell and look at the following::
 
-        from aiida_siesta.calculations.siesta import SiestaCalculation
-        inp_gen=SiestaCalculation.inputs_generator()
+        from aiida_siesta.workflows.base import SiestaBaseWorkChain
+        inp_gen=SiestaBaseWorkChain.inputs_generator()
 
-You just imported the inputs generator for the `SiestaCalculation`. We can explore its functionality::
+You just imported the inputs generator for the ``SiestaBaseWorkChain``. We can explore its functionality::
 
         inp_gen.get_protocols()
         inp.gen.get_spins()
 
 And many more...
-Now::
+
+The main feature of the input generator is the possibility to obtain a ``builder`` (a tool that helps you build 
+the inputs for the specific process) that is ready to be submitted::
+
         struct = l.inputs.structure
         calc_engines = {
             'siesta': {
@@ -249,11 +260,13 @@ Now::
             }
         builder = inp_gen.get_filled_builder(struct,calc_engines,"standard_psml")
 
-We got a builder ready to be submitted. look for instance at::
+Explore the ``builder``::
 
         builder.parameters.attributes
+        builder.basis.attributes
+        ...
 
-We can add the spin polarization with::
+We can add spin polarization to the calculation with::
 
         builder = inp_gen.get_filled_builder(struct,calc_engines,"standard_psml",spin="polarized")
 
@@ -265,18 +278,34 @@ We could run the builder straight away, however::
 
 remind us that the protocol we are using does not support siesta-4.1 because it uses psml pseudopotentials.
 
-Close the shell and look at the file ``my_protocols_registry.yaml``. It contains a new set of inputs and the psf pseudos. Do:: 
+Close the shell and look at the file ``my_protocols_registry.yaml``. It contains a new set of inputs and the psf pseudos. 
+This file can be modified at will and its content will become a new protocol. Simply do:: 
 
         export AIIDA_SIESTA_PROTOCOLS="/home/max/tut/my_protocols_registry.yaml"
 
 Now open the shell and::
 
-        from aiida_siesta.calculations.siesta import SiestaCalculation
-        inp_gen=SiestaCalculation.inputs_generator()
+        from aiida_siesta.workflows.base import SiestaBaseWorkChain
+        inp_gen=SiestaBaseWorkChain.inputs_generator()
         inp_gen.get_protocols()
 
-The new protocol is on the list and we can use it to submit a calculation.
+The new protocol is on the list and we can use it to run a calculation::
 
+        l=load_node(<PK_calculation>)
+        struct = l.inputs.structure
+        calc_engines = {
+            'siesta': {
+                'code': "siesta-v4.1@localhost",
+                'options': {'resources': {'num_machines': 1, "num_mpiprocs_per_machine": 1},"max_wallclock_seconds": 3600}
+                }
+            }
+        builder = inp_gen.get_filled_builder(struct,calc_engines,"my_protocol")
+
+        from aiida.engine import run
+        run(builder)
+
+The command `run` send the calcualation in the shell in interactive mode (does not submit to the builder
+as ``submit`` would do).
 
 Run a convergence workflow
 --------------------------

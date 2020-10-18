@@ -11,6 +11,7 @@ from aiida.engine import submit
 from aiida.orm import load_code
 from aiida.orm import (Dict, StructureData, KpointsData)
 from aiida_siesta.calculations.siesta import SiestaCalculation
+from aiida_siesta.workflows.base import SiestaBaseWorkChain
 from aiida_siesta.data.psf import PsfData
 from aiida.tools import get_explicit_kpoints_path
 
@@ -106,9 +107,14 @@ inputs = {
     'pseudos': pseudos_dict,
     'metadata': {
         "label": "TestOnSiliconBands",
-        'options': options,
     }
 }
+
+#SiestaCalulation
+inputs['metadata']['options'] = options
+
+#SiestaBaseWorkChain
+#inputs['options'] = Dict(dict=options)
 
 if submit_test:
     inputs["metadata"]["dry_run"] = True
@@ -119,6 +125,7 @@ if submit_test:
 
 else:
     process = submit(SiestaCalculation, **inputs)
+    #process = submit(SiestaBaseWorkChain, **inputs)
     print("Submitted calculation; ID={}".format(process.pk))
     print("For information about this calculation type: verdi process show {}".
           format(process.pk))
