@@ -12,7 +12,7 @@ from aiida.orm import load_code
 from aiida.orm import (Dict, StructureData, KpointsData)
 from aiida_siesta.calculations.siesta import SiestaCalculation
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
-from aiida_siesta.data.psf import PsfData
+from aiida_siesta.data.psf import get_pseudos_from_structure
 from aiida.tools import get_explicit_kpoints_path
 
 try:
@@ -82,10 +82,7 @@ bandskpoints = KpointsData()
 bandskpoints = result['explicit_kpoints']
 
 #The pseudopotentials
-pseudos_dict = {}
-absname = op.realpath(op.join(op.dirname(__file__), "Si.psf"))
-pseudo, created = PsfData.get_or_create(absname)
-pseudos_dict["Si"]=pseudo
+pseudos_dict = get_pseudos_from_structure(structure, 'nc-sr-04_pbe_standard-psf')
 
 #Resources
 options = {

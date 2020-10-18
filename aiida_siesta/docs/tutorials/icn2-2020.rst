@@ -41,7 +41,7 @@ This will install an appropriate version of ``aiida-core`` (last release at the 
 
 .. note:: If you are not on the Quantum Mobile Virtual Machine, a preliminary step is required to install
    PostgreSQL and RabbitMQ, as described
-   `here <https://aiida.readthedocs.io/projects/aiida-core/en/latest/intro/installation.html#installing-prerequisites>`_
+   `here <https://aiida.readthedocs.io/projects/aiida-core/en/latest/intro/installation.html#installing-prerequisites>`_.
 
 Because we want to isolate the current AiiDA installation from other installations that might be present in the machine,
 we specify the aiida configuration directory in the virtual environment activation file::
@@ -185,7 +185,7 @@ Same can be done for psf pseudopotentials, for instance::
 Submit a single siesta calculation
 ----------------------------------
 
-Open the file ``example_bands.py`` and explore the setting up of the various inputs.
+Open the file :download:`example_bands.py <data_icn2_2020/example_bands.py>` and explore the setting up of the various inputs.
 Run the script with::
 
         runaiida --dont-send example_bands.py
@@ -219,7 +219,8 @@ and explore all the methods making use of tab completion. For instance::
 
         l.outputs.bands.export(path="Si_bands", fileformat="gnuplot", y_max_lim=10)
 
-The command above creates a file that can be plot with gnuplot in order to visualize the bands::
+The command above creates a file that can be plot with gnuplot in order to visualize the bands. Open a new shell and
+type::
 
         gnuplot --persist Si_bands
 
@@ -236,7 +237,7 @@ therefore it adds robustness in running siesta calculations.
 
 Protocols
 ---------
-Stay on the shell and look at the following::
+Go back to the `verdi shell` and look at the following::
 
         from aiida_siesta.workflows.base import SiestaBaseWorkChain
         inp_gen=SiestaBaseWorkChain.inputs_generator()
@@ -278,7 +279,8 @@ We could run the builder straight away, however::
 
 remind us that the protocol we are using does not support siesta-4.1 because it uses psml pseudopotentials.
 
-Close the shell and look at the file ``my_protocols_registry.yaml``. It contains a new set of inputs and the psf pseudos. 
+Close the shell and look at the file :download:`my_protocols_registry.yaml <data_icn2_2020/my_protocols_registry.yaml>`. 
+It contains a new set of inputs and the psf pseudos. 
 This file can be modified at will and its content will become a new protocol. Simply do:: 
 
         export AIIDA_SIESTA_PROTOCOLS="/home/max/tut/my_protocols_registry.yaml"
@@ -304,7 +306,7 @@ The new protocol is on the list and we can use it to run a calculation::
         from aiida.engine import run
         run(builder)
 
-The command `run` send the calcualation in the shell in interactive mode (does not submit to the builder
+The command ``run`` send the calcualation in the shell in interactive mode (does not submit to the builder
 as ``submit`` would do).
 
 Run a convergence workflow

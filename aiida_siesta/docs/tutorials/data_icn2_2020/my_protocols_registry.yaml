@@ -10,7 +10,7 @@ my_protocol:
     solution-method: 'diagon'
     electronic-temperature: '25 meV'
     write-forces: True
-    mesh-cutoff: '200 Ry'
+    mesh-cutoff: '150 Ry'
   spin_additions:
     write-mulliken-pop: 1
   relax_additions:
@@ -18,7 +18,7 @@ my_protocol:
     md-max-force-tol: '0.04 eV/ang'
     md-max-stress-tol: '0.1 GPa'
   basis:
-    pao-energy-shift: '50 meV'
+    pao-energy-shift: '100 meV'
     pao-basis-size: 'DZP'
   pseudo_family: 'nc-sr-04_pbe_standard-psf'
   kpoints:
