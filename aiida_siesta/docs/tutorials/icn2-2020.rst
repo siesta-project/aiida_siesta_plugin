@@ -398,11 +398,11 @@ And then register them to the hpcq so that it allows you to access::
         ssh-copy-id <username>@10.100.2.51
 
 Just with that, you would be able to access like `ssh <username>@10.100.2.51`, but aiida wants to access without knowing your username (`ssh 10.100.2.51`).
-For this, you need to:
+For this, you need to: ::
 
         vi ~/.ssh/config
 
-And include the following lines to the file (with one empty line before and after):
+And include the following lines to the file (with one empty line before and after)::
 
         Host 10.100.2.51
           User <username>
