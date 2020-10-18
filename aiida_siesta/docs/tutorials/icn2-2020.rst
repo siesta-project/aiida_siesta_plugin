@@ -316,7 +316,7 @@ Using jupyter in the Quantum Mobile VM
 ---------------------------------------
 
 For the next sections, we are going to use jupyter notebooks to make it more interactive. Installing jupyter in Quantum Mobile is quite easy.
-Since jupyter has some incompatibilities with `aiida`, we are going to install it in the base python, which will make it accessible globally.
+Since **jupyter has some incompatibilities with `aiida`**, we are going to install it in the base python, which will make it accessible globally.
 So, if you are inside a virtual environment, just leave::
 
         deactivate
