@@ -312,6 +312,30 @@ Run a convergence workflow
 
 Pol
 
+Using jupyter in the Quantum Mobile VM
+---------------------------------------
+
+For the next sections, we are going to use jupyter notebooks to make it more interactive. Installing jupyter in Quantum Mobile is quite easy.
+Since **jupyter has some incompatibilities with `aiida`**, we are going to install it in the base python, which will make it accessible globally.
+So, if you are inside a virtual environment, just leave::
+
+        deactivate
+
+And proceed to install jupyter::
+
+        pip3 install jupyter
+
+Now, we just need to tell jupyter that our environment exists. For this, you need to activate the environment::
+
+        workon tutorial
+
+And then use `ipykernel` to inform jupyter::
+
+        pip install ipykernel
+        ipython kernel install --user --name=tutorial
+
+That's about it. **Let's move on!**
+
 Create a WorkChain
 ------------------
 
