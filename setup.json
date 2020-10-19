@@ -32,7 +32,8 @@
         "docs": [
             "Sphinx",
             "docutils",
-            "sphinx_rtd_theme"
+            "sphinx_rtd_theme",
+	    "sphinx-copybutton"
         ]
     },
     "entry_points": {
