@@ -259,6 +259,9 @@ the inputs for the specific process) that is ready to be submitted::
             }
         builder = inp_gen.get_filled_builder(struct,calc_engines,"standard_psml")
 
+The ``calc_engines`` is a dictionary with fixed keys, whose aim is to pass the computational resourses
+for the calculation.
+
 Explore the ``builder``::
 
         builder.parameters.attributes
@@ -283,11 +286,13 @@ This file can be modified at will and its content will become a new protocol. Si
 
         export AIIDA_SIESTA_PROTOCOLS="/home/max/abs_path_to/my_protocols_registry.yaml"
 
+taking care of passing the correct absolute path where you have ``my_protocols_registry.yaml``.
+
 Now open the shell and::
 
         from aiida_siesta.workflows.base import SiestaBaseWorkChain
         inp_gen=SiestaBaseWorkChain.inputs_generator()
-        inp_gen.get_protocols()
+        inp_gen.get_protocol_names()
 
 The new protocol is on the list and we can use it to run a calculation::
 
@@ -306,6 +311,7 @@ The new protocol is on the list and we can use it to run a calculation::
 
 The command ``run`` send the calcualation in the shell in interactive mode (does not submit to the builder
 as ``submit`` would do).
+Our set up will occupy the shell for a minute or so and at the end it will return the outputs of the calculation.
 
 Using jupyter in the Quantum Mobile VM
 ---------------------------------------
