@@ -34,6 +34,7 @@ exclude_patterns = ['ignore/*.rst']
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    'sphinx_copybutton',
     "sphinx_rtd_theme",
     'sphinx.ext.viewcode',
     'sphinx.ext.githubpages',
