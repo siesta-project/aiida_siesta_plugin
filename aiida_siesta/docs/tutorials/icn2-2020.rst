@@ -147,15 +147,10 @@ pressing ``i``, after the insertion, ``Esc`` and ``:wq`` to save the file.
 
 The code is set up.
 
-.. note:: It is also possible to set up computer and codes from a configuration file. The computer::
-        
-        verdi computer setup --yaml hpcq.yml
+.. note:: It is also possible to set up computer and codes from a configuration file. See section
+   `Setting up the hpcq`_ for an example.
 
-   The code::
 
-        verdi code setup --yaml siesta_farm5.yml
-
-   Examples of these yaml files are provided.
 
 
 Creating a pseudo family
@@ -467,5 +462,3 @@ For a quick test, you can copy the `siesta-binaries` folder to your hpcq home, a
         verdi code setup --config siesta-farm<farm name>.yml
 
 Now you will be able to submit calculations to the hpcq by setting the code input to the `siesta@hpcq-farm<farm name>` :)
-
-``
