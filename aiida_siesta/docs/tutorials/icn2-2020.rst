@@ -242,7 +242,7 @@ Go back to the ``verdi shell`` and look at the following::
 You just imported the inputs generator for the ``SiestaBaseWorkChain``. We can explore its functionality::
 
         inp_gen.get_protocol_names()
-        inp.gen.get_spins()
+        inp_gen.get_spins()
 
 And many more... Use tab complition to explore them. These methods allows you
 to understand which options you can pass to ``get_filled_builder``, as will be explained in a second.
