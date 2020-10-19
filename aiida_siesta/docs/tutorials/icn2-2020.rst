@@ -33,7 +33,7 @@ make sure to select a python version 3.6 or above). We call the virtual environm
 
 .. code-block:: python
 
-   mkvirtualenv -p=/usr/bin/python3.6 tutorial
+   mkvirtualenv tutorial
    workon tutorial
    pip install aiida-siesta==1.1.0
 
