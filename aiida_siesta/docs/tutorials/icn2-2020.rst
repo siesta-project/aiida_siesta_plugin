@@ -102,7 +102,7 @@ and filling in the interactive shell requirements. For the Quantum Mobile they a
         Transport plugin: local
         Scheduler plugin: slurm
         Shebang line (first line of each script, starting with #!) [#!/bin/bash]:
-        Work directory on the computer [/scratch/{username}/aiida/]: /home/max/tut/aiidarun
+        Work directory on the computer [/scratch/{username}/aiida/]: /home/max/aiidarun
         Mpirun command [mpirun -np {tot_num_mpiprocs}]:
         Default number of CPUs per machine: 2
 
@@ -183,7 +183,7 @@ Submit a single siesta calculation
 Open the file :download:`example_bands.py <data_icn2_2020/example_bands.py>` and explore the setting up of the various inputs.
 Run the script with::
 
-        runaiida --dont-send example_bands.py
+        runaiida example_bands.py --dont-send
 
 The option ``--dont-send`` has been added in order to activate the "dry_run" option that every aiida process has.
 This option allows to create all the inputs of the calculation, but do not submit it.
@@ -191,12 +191,14 @@ You can explore in the folder ``submit_test`` how AiiDA prepared all the inputs 
 
 Now run::
 
-        runaiida --send example_bands.py
+        runaiida example_bands.py --send
 
 AiiDA took charge of your script, created the inputs and submitted the calculation. Look at the state of the
-process with the command ``verdi process show`` as suggested in the shell.
+process with the command ``verdi process show <pk>`` as suggested in the shell. The ``<pk>`` number
+uniquely identify your calculation and it will be used later on.
 
-In few seconds the calculation is finished and we could explore the outputs. This can be done from command line,
+In few seconds the calculation is finished. You will relized that when ``verdi process show <pk>`` 
+shows "Finished" status and reports the oututs. We explore the outputs. This can be done from command line,
 for instance::
 
         verdi data array show <PK_forces_and_stress>
@@ -219,10 +221,10 @@ type::
 
         gnuplot --persist Si_bands
 
-Take the chance to explore methods and attributes of data types associated to 
-the inputs and outputs of a ``SiestaCalculation``.
+Take the chance to explore in the ``verdi shell`` some methods and attributes of data types associated to 
+the inputs and outputs of a ``SiestaCalculation``. Use tab complition of ``l.inputs``, ``l.outputs``, ``l.attributes``, ..
 
-The script can be modified very easily in order to run a ``SiestaBaseWorkChain`` instead of a
+The submission script can be modified very easily in order to run a ``SiestaBaseWorkChain`` instead of a
 ``SiestaCalculation``. Look at the commented part of the ``example_bands.py`` script in order to understand the differences.
 The "dry_run" option is not available for the ``SiestaBaseWorkChain``.
 A ``SiestaBaseWorkChain`` automatically takes care
@@ -232,17 +234,18 @@ therefore it adds robustness in running siesta calculations.
 
 Protocols
 ---------
-Go back to the `verdi shell` and look at the following::
+Go back to the ``verdi shell`` and look at the following::
 
         from aiida_siesta.workflows.base import SiestaBaseWorkChain
         inp_gen=SiestaBaseWorkChain.inputs_generator()
 
 You just imported the inputs generator for the ``SiestaBaseWorkChain``. We can explore its functionality::
 
-        inp_gen.get_protocols()
+        inp_gen.get_protocol_names()
         inp.gen.get_spins()
 
-And many more...
+And many more... Use tab complition to explore them. These methods allows you
+to understand which options you can pass to ``get_filled_builder``, as will be explained in a second.
 
 The main feature of the input generator is the possibility to obtain a ``builder`` (a tool that helps you build 
 the inputs for the specific process) that is ready to be submitted::
@@ -278,7 +281,7 @@ Close the shell and look at the file :download:`my_protocols_registry.yaml <data
 It contains a new set of inputs and the psf pseudos. 
 This file can be modified at will and its content will become a new protocol. Simply do:: 
 
-        export AIIDA_SIESTA_PROTOCOLS="/home/max/tut/my_protocols_registry.yaml"
+        export AIIDA_SIESTA_PROTOCOLS="/home/max/abs_path_to/my_protocols_registry.yaml"
 
 Now open the shell and::
 
