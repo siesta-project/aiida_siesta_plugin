@@ -48,12 +48,6 @@ class SislAtomicOrbital(AtomicOrbital, Orbital):
                 format(self.__class__)
             )
 
-        if self.orb._r_inp_array is None or self.orb._f_inp_array is None:
-            raise ValidationError(
-                'SislAtomicOrbital do not support the passing of the radial function explicitly. '
-                'A tuple (r,f) must be passed'
-            )
-
         validated_dict = {}
         validated_dict['_orbital_type'] = entry_point.name
         validated_dict["n"] = self.n
@@ -63,7 +57,7 @@ class SislAtomicOrbital(AtomicOrbital, Orbital):
         validated_dict["P"] = self.P
         validated_dict["R"] = self.R
         validated_dict["q0"] = self.q0
-        validated_dict['spherical'] = (self.orb._r_inp_array, self.orb._f_inp_array)
+        validated_dict['spherical'] = (self.orb.__getstate__()["r"], self.orb.__getstate__()["f"])
 
         return validated_dict
 
@@ -302,10 +296,12 @@ class BasisAtomicElement(OrbitalData):
 
         string = "{}Z{}P".format(dictma[max_z - 1], dictpo[max_pz - 1])
 
-        self.logger.warning("Carefull. This information is an approximation. It is extracted looking "
-                "at the maximum Z for polarized and unpolarized orbitals. Not all the siesta basis "
-                "choises can be condensed into a simple string. Check the `get_pao_block` for "
-                "more detailed information")
+        self.logger.warning(
+            "Carefull. This information is an approximation. It is extracted looking "
+            "at the maximum Z for polarized and unpolarized orbitals. Not all the siesta basis "
+            "choises can be condensed into a simple string. Check the `get_pao_block` for "
+            "more detailed information"
+        )
 
         return string
 
@@ -385,8 +381,9 @@ class PaoModifier:
                     atomic_paobasis_card += "  n={}  {}  {} \n".format(i, j, len(dictl[i][j]))
                     listi = [dictl[i][j][l] for l in dictl[i][j]]
                     atomic_paobasis_card += '\t'.join([f' {val}' for val in listi]) + "\n"
-    
+
         return atomic_paobasis_card[:-1]
+
 
 #class BasisData(Data):
 #    """
