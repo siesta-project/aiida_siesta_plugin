@@ -284,7 +284,16 @@ class SiestaCalculation(CalcJob):
         #BandLinesScale =pi/a is not supported at the moment because currently
         #a=1 always. BandLinesScale ReciprocalLatticeVectors is always set
         if bandskpoints is not None:
-            #first we rise a warning about consequences when the cell is relaxed
+            #first, we check that the user constracted the kpoints using the cell
+            #of the input structure, and not a random cell. This helps parsing
+            kpcell = bandskpoints.get_attribute("cell", None)
+            if kpcell:
+                if kpcell != structure.cell:
+                    raise ValueError(
+                        'The cell used for `bandskpoints` must be the same of the input structure.'
+                        'Alternatively do not set any cell to the bandskpoints.'
+                    )
+            #second we rise a warning about consequences when the cell is relaxed
             var_cell_keys = [FDFDict.translate_key("md-variable-cell"), FDFDict.translate_key("md-constant-volume")]
             var_cell_keys.append(FDFDict.translate_key("md-relax-cell-only"))
             for key in input_params:

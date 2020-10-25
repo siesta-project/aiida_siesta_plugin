@@ -113,7 +113,8 @@ def test_blocked_keyword(aiida_profile, fixture_sandbox, generate_calc_job,
     fixture_code, generate_structure, generate_kpoints_mesh, generate_basis,
     generate_param, generate_psf_data, generate_psml_data, file_regression):
     """
-    Test that the plugin is able to detect the forbidden keyword 'system-name'.
+    Test that the plugin is able to detect the forbidden keyword 'system-name'
+    and "pao".
     """
 
     entry_point_name = 'siesta.siesta'
@@ -147,6 +148,58 @@ def test_blocked_keyword(aiida_profile, fixture_sandbox, generate_calc_job,
     from aiida.common import InputValidationError
     import pytest
     with pytest.raises(InputValidationError):
+        calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
+
+
+def test_cell_consistency(aiida_profile, fixture_sandbox, generate_calc_job,
+    fixture_code, generate_structure, generate_kpoints_mesh, generate_basis,
+    generate_param, generate_psf_data, generate_psml_data, file_regression):
+    """
+    Tests that is forbidden to define a cell in bandskpoints
+    different from the structure in inputs.
+    """
+
+    entry_point_name = 'siesta.siesta'
+
+    psf = generate_psf_data('Si')
+    psml = generate_psml_data('Si')
+
+    parameters = generate_param()
+
+    s=generate_structure()
+    seekpath_parameters = orm.Dict(dict={
+    'reference_distance': 0.02,
+    'symprec': 0.0001
+    })
+    result = get_explicit_kpoints_path(s, **seekpath_parameters.get_dict())
+    structure = result['primitive_structure']
+
+    bandskpoints = orm.KpointsData()
+    bandskpoints = result['explicit_kpoints']
+    bandskpoints.set_cell([[1., 1., 0.0], [0.0, 2., 2.], [2., 0.0, 2.]])
+
+    inputs = {
+        'bandskpoints' : bandskpoints,
+        'code': fixture_code(entry_point_name),
+        'structure': generate_structure(),
+        'kpoints': generate_kpoints_mesh(2),
+        'parameters': parameters,
+        'basis': generate_basis(),
+        'pseudos': {
+            'Si': psf,
+            'SiDiff': psml
+        },
+        'metadata': {
+            'options': {
+               'resources': {'num_machines': 1  },
+               'max_wallclock_seconds': 1800,
+               'withmpi': False,
+               }
+        }
+    }
+
+    import pytest
+    with pytest.raises(ValueError):
         calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
 
 
