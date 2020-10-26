@@ -118,7 +118,6 @@ bandskpoints = result['explicit_kpoints']
 ##Mandatory to set cell and pbc. Do not set labels!
 ##This calls BandsPoint
 #kpp = [(0.500,  0.250, 0.750), (0.500,  0.500, 0.500), (0., 0., 0.)]
-#bandskpoints.set_cell(structure.cell, structure.pbc)
 #bandskpoints.set_kpoints(kpp)
 ##3)
 ##...The option to define a path touching specific kpoints...
@@ -127,7 +126,6 @@ bandskpoints = result['explicit_kpoints']
 #kpp = [('W',  (0.500,  0.250, 0.750), 'L', (0.500,  0.500, 0.500), 40),
 #        ('L', (0.500,  0.500, 0.500), 'G', (0., 0., 0.), 40)]
 #tmp=legacy_path(kpp)
-#bandskpoints.set_cell(structure.cell, structure.pbc)
 #bandskpoints.set_kpoints(tmp[3])
 #bandskpoints.labels=tmp[4]
 
