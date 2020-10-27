@@ -135,7 +135,7 @@ class BandgapWorkChain(WorkChain):
             if not self.ctx.final_run.is_finished_ok:
                 return self.exit_codes.ERROR_FINAL_WC
             outps = self.ctx.final_run.outputs
-            self.out('output_structure', self.ctx.workchain_base.outputs.output_structure)
+            self.out('output_structure', self.ctx.final_run.inputs.structure)
         else:
             outps = self.ctx.workchain_base.outputs
 

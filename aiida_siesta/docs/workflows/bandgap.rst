@@ -5,13 +5,9 @@ Description
 -----------
 
 The **BandgapWorkChain** is an extension of the **SietaBaseWorkChain** 
-that introduces a simple post-process with the scope to return the metallic or
+that introduces some logic to automatically obtain the bands and
+applyes a simple post-process with the scope to return the metallic or
 insulating nature of the material and, possibly, the band gap.
-The purpose of this WorkChain is mostly educational, showing how easy is
-to introduce pre-processes or post-processes in the WorkChain logic.
-The class **BandgapWorkChain** is, in fact, a subclass of the **SietaBaseWorkChain**
-that just overrides few methods and introduces the
-additional output **band_gap_info**.
 
 To calculate the gap, this workchain makes use of a tool distributed in aiida-core,
 the method ``find_bandgap`` hosted in ``aiida.orm.nodes.data.array.bands``.
@@ -33,8 +29,21 @@ All the **SiestaBaseWorkChain** inputs are as well inputs of the **BangapWorkCha
 therefore the system and DFT specifications (structure, parameters, etc.) are
 inputted in the WorkChain using the same syntax explained in the **SiestaBaseWorkChain**
 :ref:`documentation <siesta-base-wc-inputs>`.
-The only difference is that the **bandskpoints** are now a mandatory input and the WorkChain
-will rise an error if they are not present.
+There is however the addition of an importan feature. If **bandskpoints** are not set
+in inputs, the **BandgapWorkChain** will anyway calculate the bands following these rules:
+
+* If a single-point calculation is requested, the kpoints path for bands is set automatically using seekpath.
+Please note that this choice might change the structure, as explained here.
+
+* If a relaxation was asked, first a siesta calculation without bands is performed to take
+care of the relaxation, then a separate single-point calculation is set up and the bands are
+calculated for a symmetry path in k-space decided by seekpath using the output structure of the relaxation.
+This overcomes the problem of the compatibility between bands and variable-cell relaxations.
+In fact, the final cell obtained from a relaxation, can not be known in advance, and to set
+the kpoint path without knowing the cell is generally a poor choice.
+Again note that seekpath might change the structure, in this second case, only the structure
+of the final single-point calculation will be changed. The changed structure is returned as
+**output_structure** port of the workchain.
 
 Outputs
 -------

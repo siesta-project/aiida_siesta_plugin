@@ -67,7 +67,7 @@ parameters = Dict(
         'Solution-method': 'diagon',
         'electronic-temperature': '25 meV',
         'write-forces': True,
-        'md-steps' : 0,
+        'md-steps' : 10,
     })
 
 #The basis set
