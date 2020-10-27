@@ -60,13 +60,14 @@ parameters = Dict(
     dict={
         'xc-functional': 'LDA',
         'xc-authors': 'CA',
-        'max-scfiterations': 4,
+        'max-scfiterations': 40,
         'dm-numberpulay': 4,
         'dm-mixingweight': 0.3,
         'dm-tolerance': 1.e-5,
         'Solution-method': 'diagon',
         'electronic-temperature': '25 meV',
         'write-forces': True,
+        'md-steps' : 0,
     })
 
 #The basis set
@@ -124,7 +125,7 @@ inputs = {
     'kpoints': kpoints,
     'pseudos': pseudos_dict,
     'options': options,
-    'bandskpoints': bandskpoints
+    #'bandskpoints': bandskpoints
 }
 
 process = submit(BandgapWorkChain, **inputs)

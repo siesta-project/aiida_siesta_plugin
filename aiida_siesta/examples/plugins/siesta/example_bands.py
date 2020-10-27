@@ -115,13 +115,12 @@ bandskpoints = KpointsData()
 bandskpoints = result['explicit_kpoints']
 ##2)
 ##.................Only discrete points.............
-##Mandatory to set cell and pbc. Do not set labels!
 ##This calls BandsPoint
 #kpp = [(0.500,  0.250, 0.750), (0.500,  0.500, 0.500), (0., 0., 0.)]
 #bandskpoints.set_kpoints(kpp)
 ##3)
 ##...The option to define a path touching specific kpoints...
-##It make use of a legacy function. Mandatory to set cell and pbc
+##It make use of a legacy function.
 #from aiida.tools.data.array.kpoints.legacy import get_explicit_kpoints_path as legacy_path
 #kpp = [('W',  (0.500,  0.250, 0.750), 'L', (0.500,  0.500, 0.500), 40),
 #        ('L', (0.500,  0.500, 0.500), 'G', (0., 0., 0.), 40)]

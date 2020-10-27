@@ -39,21 +39,21 @@ def test_baseworkchain_inpgen(aiida_profile, fixture_code, generate_structure):
 
     assert "parameters" in build
 
-def test_bandgapworkchain_inpgen(aiida_profile, fixture_code, generate_structure):
-    """Test the validation of subclasses of `InputsGenerator`."""
+#def test_bandgapworkchain_inpgen(aiida_profile, fixture_code, generate_structure):
+#    """Test the validation of subclasses of `InputsGenerator`."""
 
-    from aiida_siesta.utils.inputs_generators import BandgapWorkChainInputsGenerator
+#    from aiida_siesta.utils.inputs_generators import BandgapWorkChainInputsGenerator
 
-    inp_gen = BandgapWorkChainInputsGenerator(WorkflowFactory("siesta.bandgap"))
-    structure = generate_structure()
-    protocol = inp_gen.get_default_protocol_name()
-    code = fixture_code("siesta.siesta")
-    code.store()
-    calc_engines = {"siesta": {'code': code.uuid, 'options': {"resources": {"num_mpiprocs_per_machine": 1}, "max_wallclock_seconds": 360}}}
+#    inp_gen = BandgapWorkChainInputsGenerator(WorkflowFactory("siesta.bandgap"))
+#    structure = generate_structure()
+#    protocol = inp_gen.get_default_protocol_name()
+#    code = fixture_code("siesta.siesta")
+#    code.store()
+#    calc_engines = {"siesta": {'code': code.uuid, 'options': {"resources": {"num_mpiprocs_per_machine": 1}, "max_wallclock_seconds": 360}}}
 
-    build = inp_gen.get_filled_builder(structure, calc_engines, protocol, bands_path_generator="seekpath")
+#    build = inp_gen.get_filled_builder(structure, calc_engines, protocol, bands_path_generator="seekpath")
 
-    assert "parameters" in build
+#    assert "parameters" in build
 
 def test_eosworkchain_inpgen(aiida_profile, fixture_code, generate_structure):
     """Test the validation of subclasses of `InputsGenerator`."""
