@@ -38,7 +38,12 @@ def get_bandgap(e_fermi, band):
 
 class BandgapWorkChain(WorkChain):
     """
-    Workchain to obtain the bandgap of a structure through Siesta.
+    Workchain to obtain the bands and bandgap of a structure through Siesta.
+    If "bandskpoints" are set in inputs, it behaves like `SiestaBaseWorkChain`
+    adding just the bandgap calculation at the end. If no bandskpoints
+    was specified, the bands are computed anyway on a kpoints path automatically
+    assigned using seekpath and the input (output) structure
+    of the single-point (relaxation/md) calculation.
     """
 
     @classmethod
@@ -46,6 +51,15 @@ class BandgapWorkChain(WorkChain):
         super().define(spec)
         spec.expose_inputs(SiestaBaseWorkChain, exclude=('metadata',))
         spec.expose_outputs(SiestaBaseWorkChain)
+        spec.input(
+            'seekpath_dict',
+            valid_type=orm.Dict,
+            default=lambda: orm.Dict(dict={
+                'reference_distance': 0.02,
+                'symprec': 0.0001
+            }),
+            help='dictionary of seekpath parameters that are pased to `get_explicit_kpoints_path`'
+        )
         spec.output('band_gap_info', valid_type=orm.Dict, required=False)
         spec.outline(
             cls.preprocess,
@@ -77,16 +91,19 @@ class BandgapWorkChain(WorkChain):
                     break
 
         if "bandskpoints" not in self.inputs:
-            self.report(
-                "The kpoints path for the calculation of bands will be automatically generated "
-                "using seekpath. Because of seekpath, the cell might change. In case of relaxation "
-                "the bands calculation will be performed on a separate final step "
-                "and only at that step the cell might change. In case of single-point calculation, the cell "
-                "might change since the beginning."
-            )
             if var_geom:
+                self.report(
+                    "The kpoints path for the calculation of bands will be automatically generated "
+                    "using seekpath. Because a relaxation was requested, the bands calculation will "
+                    "be performed on a separate final step. The cell of the final step might change "
+                    "due to seekpath. This cell is returned in `output_structure`."
+                )
                 self.ctx.need_fin_step = True
             else:
+                self.report(
+                    "The kpoints path for the calculation of bands will be automatically generated "
+                    "using seekpath. Because of seekpath, the cell might change."
+                )
                 self.ctx.need_to_generate_bandskp = True
 
     def run_siesta_wc(self):
@@ -99,7 +116,7 @@ class BandgapWorkChain(WorkChain):
         inputs = AttributeDict(self.exposed_inputs(SiestaBaseWorkChain))
 
         if self.ctx.need_to_generate_bandskp:
-            seekpath_parameters = {'reference_distance': 0.02, 'symprec': 0.0001}
+            seekpath_parameters = self.inputs.seekpath_dict.get_dict()
             result = get_explicit_kpoints_path(inputs["structure"], **seekpath_parameters)
             inputs["structure"] = result['primitive_structure']
             inputs["bandskpoints"] = result['explicit_kpoints']
@@ -118,7 +135,7 @@ class BandgapWorkChain(WorkChain):
             return self.exit_codes.ERROR_MAIN_WC
 
         if self.ctx.need_fin_step:
-            seekpath_parameters = {'reference_distance': 0.02, 'symprec': 0.0001}
+            seekpath_parameters = self.inputs.seekpath_dict.get_dict()
             out_structure = self.ctx.workchain_base.outputs.output_structure
             result = get_explicit_kpoints_path(out_structure, **seekpath_parameters)
             new_calc = self.ctx.workchain_base.get_builder_restart()
@@ -127,7 +144,7 @@ class BandgapWorkChain(WorkChain):
             new_param = drop_md_keys(new_calc.parameters.get_dict())
             new_calc.parameters = orm.Dict(dict=new_param)
             running = self.submit(new_calc)
-            self.report("Launcing a bands calculation")
+            self.report('Launched SiestaBaseWorkChain<{}> to calculate bands.'.format(running.pk))
             return ToContext(final_run=running)
 
     def run_results(self):

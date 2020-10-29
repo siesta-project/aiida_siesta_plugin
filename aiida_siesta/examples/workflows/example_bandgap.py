@@ -125,6 +125,7 @@ inputs = {
     'kpoints': kpoints,
     'pseudos': pseudos_dict,
     'options': options,
+    #'seekpath_dict': Dict(dict={'symprec': 0.00000001, 'reference_distance': 0.2})
     #'bandskpoints': bandskpoints
 }
 
