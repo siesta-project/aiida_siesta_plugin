@@ -36,18 +36,18 @@ There is however the addition of an importan feature. If **bandskpoints** are no
 in inputs, the **BandgapWorkChain** will anyway calculate the bands following these rules:
 
 * If a single-point calculation is requested, the kpoints path for bands is set automatically using SeeK-path.
-Please note that this choice might change the structure, as explained in the 
-`SeeK-path`_ documentation.
+  Please note that this choice might change the structure, as explained in the 
+  `SeeK-path`_ documentation.
 
 * If a relaxation was asked, first a siesta calculation without bands is performed to take
-care of the relaxation, then a separate single-point calculation is set up and the bands are
-calculated for a symmetry path in k-space decided by SeeK-path using the output structure of the relaxation.
-This overcomes the problem of the compatibility between bands and variable-cell relaxations.
-In fact, the final cell obtained from a relaxation, can not be known in advance, and to set
-the kpoint path without knowing the cell is generally a poor choice.
-Again note that SeeK-path might change the structure. In this second case, only the structure
-of the final single-point calculation will be changed. The changed structure is returned as
-**output_structure** port of the workchain.
+  care of the relaxation, then a separate single-point calculation is set up and the bands are
+  calculated for a symmetry path in k-space decided by SeeK-path using the output structure of the relaxation.
+  This overcomes the problem of the compatibility between bands and variable-cell relaxations.
+  In fact, the final cell obtained from a relaxation, can not be known in advance, and to set
+  the kpoint path without knowing the cell is generally a poor choice.
+  Again note that SeeK-path might change the structure. In this second case, only the structure
+  of the final single-point calculation will be changed. The changed structure is returned as
+  **output_structure** port of the workchain.
 
 If the **bandskpoints** is set by the user in inputs, no action is
 taken and the behaviour follow what explained for the **SiestaBaseWorkChain**
