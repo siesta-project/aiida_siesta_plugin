@@ -5,8 +5,21 @@ bands:
   array|kpoints:
   - 3
   - 3
+  cell:
+  - - 2.715
+    - 2.715
+    - 0.0
+  - - 2.715
+    - 0.0
+    - 2.715
+  - - 0.0
+    - 2.715
+    - 2.715
   label_numbers: []
   labels: []
+  pbc1: true
+  pbc2: true
+  pbc3: true
   units: eV
 forces_and_stress:
   array|forces:

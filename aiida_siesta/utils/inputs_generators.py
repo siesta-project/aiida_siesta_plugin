@@ -205,26 +205,26 @@ class BaseWorkChainInputsGenerator(SiestaCalculationInputsGenerator):
         return inps
 
 
-class BandgapWorkChainInputsGenerator(BaseWorkChainInputsGenerator):
-    """
-    Inputs generator for the BandgapWorkChain, makes use of the methods
-    of the BaseWorkChainInputsGenerator, only the __init__ requires the correct
-    workchain class in input and the `get_inputs_dict` implements a check for the
-    presence of `bands_path_generator`. In fact the band calculation is required.
-    """
-
-    def get_inputs_dict(
-        self, structure, calc_engines, protocol, bands_path_generator=None, relaxation_type=None, spin=None
-    ):
-
-        if not bands_path_generator:
-            raise RuntimeError(
-                'Method `get_inputs_dict` of class `{0}` requires `bands_path_generator`'.format(
-                    self.__class__.__name__
-                )
-            )
-
-        return super().get_inputs_dict(structure, calc_engines, protocol, bands_path_generator, relaxation_type, spin)
+#class BandgapWorkChainInputsGenerator(BaseWorkChainInputsGenerator):
+#    """
+#    Inputs generator for the BandgapWorkChain, makes use of the methods
+#    of the BaseWorkChainInputsGenerator, only the __init__ requires the correct
+#    workchain class in input and the `get_inputs_dict` implements a check for the
+#    presence of `bands_path_generator`. In fact the band calculation is required.
+#    """
+#
+#    def get_inputs_dict(
+#        self, structure, calc_engines, protocol, bands_path_generator=None, relaxation_type=None, spin=None
+#    ):
+#
+#        if not bands_path_generator:
+#            raise RuntimeError(
+#                'Method `get_inputs_dict` of class `{0}` requires `bands_path_generator`'.format(
+#                    self.__class__.__name__
+#                )
+#            )
+#
+#        return super().get_inputs_dict(structure, calc_engines, protocol, bands_path_generator, relaxation_type, spin)
 
 
 class EosWorkChainInputsGenerator(BaseWorkChainInputsGenerator):
