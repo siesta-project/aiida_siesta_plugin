@@ -14,7 +14,7 @@ output_parameters:
   - 36
   nnz: 19594
   no_u: 26
-  parser_info: AiiDA Siesta Parser V. Dev-post-1.1.0
+  parser_info: AiiDA Siesta Parser V. 1.1.1
   siesta:Arch: qmobile
   siesta:Flags: mpif90 -O2 -g
   siesta:Mode: Parallel

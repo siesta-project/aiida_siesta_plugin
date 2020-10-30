@@ -1,5 +1,6 @@
-include *.rst *.json *.txt *.md
+include *.rst *.json *.txt *.md *.yml
 recursive-include aiida_siesta/docs/ *.rst
 recursive-include aiida_siesta/examples/ *.txt *.psf *.psml *.cif 00_README
 recursive-include aiida_siesta/utils *.yaml
 prune tests
+prune aiida_siesta/docs/tutorials

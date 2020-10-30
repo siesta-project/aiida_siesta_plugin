@@ -1,5 +1,36 @@
 # Changelog
 
+## v1.1.1
+
+Version compatible with aiida-core>=1.3.0,<2.0.0.
+
+### Improvements
+- Improvement in the `BandGapWorkChain`. A new feature has been introduced:
+  when no `bandskpoints` are set in input, the workchain automatically calculates the bands
+  using a k-space path automatically selected by SeeK-path.
+  In particular, if a molecular dynamics run was also requested (usually a relaxation),
+  the dynamics is run first and the bands are calculated on a separate Siesta run. This
+  allows to select the k-space path for bands automatically using the output structure.
+  When the `bandskpoints` is selected in input, the behavior is the same of previous versions.
+- A tutorial is now available in the documentation, covering the submission of simple siesta
+  calculations, the use of protocols, the use of the iterator/converger workchains and
+  a simple example on how to create custom workchains.
+
+### Bug fixes
+- A bag was reported regarding the wrong selection of the kpoints path for bands
+  when a relaxation with variable cell was also requested. The energy values were correct,
+  but the distance between kpoints was not corresponding to the one of the Siesta
+  file ".bands". The bug is now fixed.
+- The method `inputs_generator().get_inputs_dict` (available for `SiestaCalculations` and
+  all the workchains in the package) had a minor bug. In case the kpoints or bandskpoints
+  were not requested, the dictionary was anyway returning items for "bandskpoints"
+  and "kpoints" with value "None". This has been fixed.
+  The method `inputs_generator().get_filled_builder` was instead correct.
+
+### For developers
+- Set up a nightly built in GitHub actions that tests the plugin (run all its tests)
+  against the develop branch of `aiida-core`.
+
 ## v1.1.0
 
 Version compatible with aiida-core>=1.3.0,<2.0.0. Previous versions of aiida-core do not have a working `BaseRestartWorkChain`, which is the building piece of many workchain in aiida-siesta.
