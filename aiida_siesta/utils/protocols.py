@@ -168,7 +168,7 @@ class ProtocolManager:
                                 "Wrong `mesh-cutoff` value for heuristc "
                                 "{0} of protocol {1}".format(kind.symbol, key)
                             )
-                        if meshcut_glob:
+                        if meshcut_glob is not None:
                             if cust_meshcut > float(meshcut_glob):
                                 meshcut_glob = cust_meshcut
                         else:
@@ -181,7 +181,7 @@ class ProtocolManager:
                                     "{0} of protocol {1}".format(kind.symbol, key)
                                 )
 
-            if meshcut_glob:
+            if meshcut_glob is not None:
                 parameters["mesh-cutoff"] = "{0} {1}".format(meshcut_glob, meshcut_units)
 
         return parameters

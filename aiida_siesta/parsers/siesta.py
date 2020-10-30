@@ -45,7 +45,7 @@ def get_min_split(output_path):
             split_norm_error = True
             words = line.split()
 
-    if split_norm_error:
+    if split_norm_error is not None:
         min_sp = words[4]
         min_split_norm = float(min_sp[:-1])
 
