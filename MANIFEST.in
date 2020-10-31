@@ -3,4 +3,5 @@ recursive-include aiida_siesta/docs/ *.rst
 recursive-include aiida_siesta/examples/ *.txt *.psf *.psml *.cif 00_README
 recursive-include aiida_siesta/utils *.yaml
 prune tests
-prune aiida_siesta/docs/tutorials
+prune aiida_siesta/docs/tutorialis/first_workchain
+prune aiida_siesta/docs/tutorialis/data_icn2_2020
