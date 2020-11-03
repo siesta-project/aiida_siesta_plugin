@@ -141,7 +141,38 @@ def test_sequential(aiida_profile, generate_workchain_seq_converger, generate_wc
 
     process._analyze_process(convergerwc)
 
+    assert process.ctx.already_converged == {"test_par_1":1111,"test_par_2":"eV"}
     assert process.ctx.last_target_value == val_conv
     assert "parameters" in process.ctx.last_inputs
     assert "test_par_1" in process.ctx.last_inputs.parameters.attributes
     assert process.ctx.last_inputs.parameters.attributes["test_par_2"] == "eV"
+
+
+
+def test_sequential_not_conv(aiida_profile, generate_workchain_seq_converger, generate_wc_job_node,
+        fixture_localhost):
+    """
+    We test here the SiestaSequentialConverger, in the case a Converger fails
+    to converge.
+    """
+
+    from aiida.common.extendeddicts import AttributeDict
+
+    process = generate_workchain_seq_converger()
+    process.initialize()
+
+    assert process.ctx.iteration_keys == ('iterate_over',)
+
+    convergerwc = generate_wc_job_node("siesta.converger", fixture_localhost)
+    convergerwc.set_process_state(ProcessState.FINISHED)
+    convergerwc.set_exit_status(ExitCode(0).status)
+    out_conv = orm.Bool(False)
+    out_conv.store()
+    out_conv.add_incoming(convergerwc, link_type=LinkType.RETURN, link_label='converged')
+
+    process.ctx.last_inputs = AttributeDict({"parameters":{"yo":"yo"}})
+
+    process._analyze_process(convergerwc)
+
+    assert process.ctx.already_converged == {}
+    assert "parameters" in process.ctx.last_inputs

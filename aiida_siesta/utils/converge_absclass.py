@@ -217,7 +217,7 @@ class SequentialConverger(BaseIterator):
             help="The values for the parameters that was enough to achieve convergence. "
             "If converged is not achieved, it won't be returned",
         )
-        spec.output('converged_target_value', help="The value of the target with convergence reached.")
+        spec.output('converged_target_value', required=False, help="The value of the target with convergence reached.")
 
     @classmethod
     def _iterate_input_serializer(cls, iterate_over):
@@ -297,9 +297,10 @@ class SequentialConverger(BaseIterator):
 
             self.ctx._iteration_parsing = {"iterate_over": {}}
 
-        self.ctx.last_target_value = process_node.outputs.converged_target_value
+            self.ctx.last_target_value = process_node.outputs.converged_target_value
 
     def return_results(self):
 
         self.out('converged_parameters', DataFactory('dict')(dict=self.ctx.already_converged).store())
-        self.out('converged_target_value', self.ctx.last_target_value)
+        if "last_target_value" in self.ctx:
+            self.out('converged_target_value', self.ctx.last_target_value)
