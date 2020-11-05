@@ -163,7 +163,8 @@ def test_sequential_not_conv(aiida_profile, generate_workchain_seq_converger, ge
 
     assert process.ctx.iteration_keys == ('iterate_over',)
 
-    convergerwc = generate_wc_job_node("siesta.converger", fixture_localhost)
+    inputs = {"iterate_over": orm.Dict(dict={"s":[2,2]})}
+    convergerwc = generate_wc_job_node("siesta.converger", fixture_localhost, inputs)
     convergerwc.set_process_state(ProcessState.FINISHED)
     convergerwc.set_exit_status(ExitCode(0).status)
     out_conv = orm.Bool(False)
