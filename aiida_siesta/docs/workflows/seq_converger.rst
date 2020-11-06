@@ -102,6 +102,15 @@ The following outputs are returned:
   The values for the parameters that was enough to achieve convergence.
   If converged is not achieved, it will be an empty dictionary.
 
+.. |br| raw:: html
+
+    <br />
+
+* **unconverged_parameters** :py:class:`List <aiida.orm.List>`
+
+  If one or more parameters fail to converge, we list them
+  in this output.
+
 
 Protocol system
 ---------------
