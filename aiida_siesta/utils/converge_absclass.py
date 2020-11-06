@@ -214,7 +214,7 @@ class SequentialConverger(BaseIterator):
         spec.output(
             'converged_parameters',
             help="The values for the parameters that was enough to achieve convergence. "
-            "If converged is not achieved, it will be an empty dictionary",
+            "If convergence is not achieved, it will be an empty dictionary",
         )
         spec.output('unconverged_parameters', required=False, help="The list of unconverged parameters.")
 
@@ -303,23 +303,21 @@ class SequentialConverger(BaseIterator):
             key = list(process_node.inputs.iterate_over.get_dict().keys())
             self.report(
                 "\n WARINING: the next step of the sequential converger, if any, will be performed "
-                f"using the value of {key} specified in `converger_inputs`, not the last attempted value"
+                f"with unchanged value for {key}, not with the last attempted value of the failed convergence."
             )
 
     def return_results(self):
 
         self.out('converged_parameters', DataFactory('dict')(dict=self.ctx.already_converged).store())
 
-        #Create and return a list of parameters that did not converged. We compare
+        #Create and return a list of parameters that did not converge. We compare
         #the iterate_over input and the self.ctx.already_converged. Both contains
-        #untraslated keywords.
-        unconv_list = []
+        #untranslated keywords.
         iterate_over = self.ctx.inputs.iterate_over.get_list()
-        for pk_n in iterate_over:
-            step = load_node(pk_n).get_dict()
-            for par in step.keys():
-                if par not in self.ctx.already_converged:
-                    unconv_list.append(par)
+        # Get the list of all (possibly duplicated) parameters that have been iterated
+        all_parameters = [key for pk_n in iterate_over for key in load_node(pk_n).get_dict()]
+        # Find those that have not converged (while removing duplicates)
+        unconv_list = list(set(all_parameters).difference(self.ctx.already_converged))
         if unconv_list:
             self.out('unconverged_parameters', DataFactory('list')(list=unconv_list).store())
 
