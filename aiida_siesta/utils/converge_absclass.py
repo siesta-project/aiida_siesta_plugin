@@ -1,7 +1,7 @@
 import numpy as np
 
 from aiida.engine import calcfunction
-from aiida.orm import Float, Str, List, Bool, Int
+from aiida.orm import Float, Str, List, Bool, Int, load_node
 from aiida.plugins import DataFactory
 
 from .iterate_absclass import BaseIterator
@@ -213,11 +213,12 @@ class SequentialConverger(BaseIterator):
 
         spec.output(
             'converged_parameters',
-            required=False,
             help="The values for the parameters that was enough to achieve convergence. "
-            "If converged is not achieved, it won't be returned",
+            "If convergence is not achieved, it will be an empty dictionary",
         )
-        spec.output('converged_target_value', help="The value of the target with convergence reached.")
+        spec.output('unconverged_parameters', required=False, help="The list of unconverged parameters.")
+
+        spec.output('converged_target_value', required=False, help="The value of the target with convergence reached.")
 
     @classmethod
     def _iterate_input_serializer(cls, iterate_over):
@@ -289,7 +290,6 @@ class SequentialConverger(BaseIterator):
                 # Get the last inputs
                 inputs = self.ctx.last_inputs
                 proc_input, parse_func = self._process_class.process_input_and_parse_func(key)
-
                 self.ctx._iteration_parsing[key] = {"input_key": proc_input, "parse_func": parse_func}
                 # Modify "inputs" accordingly. Note that since we are using cls._reuse_inputs = True,
                 # what we are modifying here will be used in the next iteration.
@@ -297,9 +297,29 @@ class SequentialConverger(BaseIterator):
 
             self.ctx._iteration_parsing = {"iterate_over": {}}
 
-        self.ctx.last_target_value = process_node.outputs.converged_target_value
+            self.ctx.last_target_value = process_node.outputs.converged_target_value
+
+        else:
+            key = list(process_node.inputs.iterate_over.get_dict().keys())
+            self.report(
+                "\n WARINING: the next step of the sequential converger, if any, will be performed "
+                f"with unchanged value for {key}, not with the last attempted value of the failed convergence."
+            )
 
     def return_results(self):
 
         self.out('converged_parameters', DataFactory('dict')(dict=self.ctx.already_converged).store())
-        self.out('converged_target_value', self.ctx.last_target_value)
+
+        #Create and return a list of parameters that did not converge. We compare
+        #the iterate_over input and the self.ctx.already_converged. Both contains
+        #untranslated keywords.
+        iterate_over = self.ctx.inputs.iterate_over.get_list()
+        # Get the list of all (possibly duplicated) parameters that have been iterated
+        all_parameters = [key for pk_n in iterate_over for key in load_node(pk_n).get_dict()]
+        # Find those that have not converged (while removing duplicates)
+        unconv_list = list(set(all_parameters).difference(self.ctx.already_converged))
+        if unconv_list:
+            self.out('unconverged_parameters', DataFactory('list')(list=unconv_list).store())
+
+        if "last_target_value" in self.ctx:
+            self.out('converged_target_value', self.ctx.last_target_value)
