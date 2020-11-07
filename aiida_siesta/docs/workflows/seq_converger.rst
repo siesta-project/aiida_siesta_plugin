@@ -72,6 +72,15 @@ Two are the required inputs:
   Note that one can converge the same parameters again if wanted,
   for instance set up different rounds for kpoints convergence.
 
+.. warning:: If one of the parameters does not converge, no action is taken and
+   the following convergence step is performed using the inputs specified in **converger_inputs**,
+   not using the last attempted value in the previous convergence.
+   For instance, in the example above, if the ``meshcutoff`` does not converged at ``900 Ry``,
+   the ``pao-energyshift`` convergence will be done using the inputs parameters
+   specified in the ``parameters`` of ``converger_inputs``, not including
+   ``meshcutoff = "900 Ry"``.
+
+
 
 Outputs
 -------
@@ -82,7 +91,7 @@ The following outputs are returned:
 * **converged_target_value** :py:class:`Dict <aiida.orm.Dict>`
 
   The value of the target when the convergence has been reached. Returned only if
-  the convergence is succesfull.
+  at least one of the sequential convergences has been completed succesfull.
 
 .. |br| raw:: html
 
@@ -91,7 +100,16 @@ The following outputs are returned:
 * **converged_parameters** :py:class:`Dict <aiida.orm.Dict>`
 
   The values for the parameters that was enough to achieve convergence.
-  If converged is not achieved, it won't be returned.
+  If converged is not achieved, it will be an empty dictionary.
+
+.. |br| raw:: html
+
+    <br />
+
+* **unconverged_parameters** :py:class:`List <aiida.orm.List>`
+
+  If one or more parameters fail to converge, we list them
+  in this output.
 
 
 Protocol system

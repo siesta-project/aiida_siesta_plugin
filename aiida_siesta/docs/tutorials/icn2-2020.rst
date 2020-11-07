@@ -1,0 +1,474 @@
+.. _ICN2 2020 Homepage:
+
+2020, ICN2, Barcelona, Spain
+=================================
+
+
++-----------------+----------------------------------------------------------------------------+
+| Related resources                                                                            |
++=================+============================================================================+
+| Virtual Machine | `Quantum Mobile 20.06.1`_                                                  |
++-----------------+----------------------------------------------------------------------------+
+| python packages | `aiida-core 1.4.2`_, `aiida-siesta 1.1.0`_,                                |
++-----------------+----------------------------------------------------------------------------+
+| codes           | `Siesta v4.1-rc1`_                                                         |
++-----------------+----------------------------------------------------------------------------+
+
+.. _Quantum Mobile 20.06.1: https://github.com/marvel-nccr/quantum-mobile/releases/tag/20.06.1
+.. _aiida-core 1.4.2: https://pypi.org/project/aiida-core/1.4.2
+.. _aiida-siesta 1.1.0: https://pypi.org/project/aiida-siesta/1.1.0
+.. _Siesta v4.1-rc1: https://gitlab.com/siesta-project/siesta/-/wikis/Guide-to-Siesta-versions
+
+These are the notes of the tutorial delivered to the "Theory and Simulation group" at ICN2 (Barcelona) the 19th of October 2020.
+The tutorial was carried on using the Quantum Mobile Virtual Machine, however the steps described below can be 
+replicated (with some small modifications pointed out along the way) on a local machine to obtain a working AiiDA (and aiida-siesta)
+installation.
+Tutors: Emanuele Bosoni, Pol Febrer.
+
+Installation
+------------
+
+Installation is through ``pip`` after moving to a new virual environment (we use ``virtualenvwrapper``, but any alternative is valid, only
+make sure to select a python version 3.6 or above). We call the virtual environment ``tutorial``.
+
+.. code-block:: python
+
+   mkvirtualenv tutorial
+   workon tutorial
+   pip install aiida-siesta==1.1.0
+
+This will install an appropriate version of ``aiida-core`` (last release at the time of the tutorial is 1.4.2).
+
+.. note:: If you are not on the Quantum Mobile Virtual Machine, a preliminary step is required to install
+   PostgreSQL and RabbitMQ, as described
+   `here <https://aiida.readthedocs.io/projects/aiida-core/en/latest/intro/installation.html#installing-prerequisites>`_.
+
+Because we want to isolate the current AiiDA installation from other installations that might be present in the machine,
+we specify the aiida configuration directory in the virtual environment activation file::
+
+        echo 'export AIIDA_PATH=$VIRTUAL_ENV' >> $VIRTUAL_ENV/bin/postactivate
+        workon tutorial
+
+The configuration directory is now ``~/.virtualenvs/tutorial``.
+
+Moreover we can add in the same file a line to activate tab-completion::
+
+        echo 'eval "$(_VERDI_COMPLETE=source verdi)"' >> $VIRTUAL_ENV/bin/postactivate
+        workon tutorial
+
+Check the status of the installation::
+
+        verdi status
+
+This should show that the configuration directory is set, but no profile has been created yet.
+
+Setting up the AiiDA profile
+----------------------------
+
+The aiida profile is set up with one single command::
+
+        verdi quicksetup
+
+An interactive shell will ask some data and after that the creation of the profile starts. It concludes with the message "Success: database migration completed".
+Now is time to scan for plugins and start the daemon::
+
+        reentry scan
+        verdi daemon start
+
+If all the steps have been successful, you should be able to see all green ticks when typing
+
+.. code-block:: python
+
+        verdi status
+
+and also be able to see "siesta.siesta" among the available calculations plugins::
+
+        verdi plugin list aiida.calculations
+
+We are ready to set up a code and computer.
+
+Computer and code setup
+-----------------------
+
+The setup of a computer is done through::
+
+        verdi computer setup
+
+and filling in the interactive shell requirements. For the Quantum Mobile they are::
+
+        Computer label: localhost
+        Hostname: localhost
+        Description []: This machine
+        Transport plugin: local
+        Scheduler plugin: slurm
+        Shebang line (first line of each script, starting with #!) [#!/bin/bash]:
+        Work directory on the computer [/scratch/{username}/aiida/]: /home/max/aiidarun
+        Mpirun command [mpirun -np {tot_num_mpiprocs}]:
+        Default number of CPUs per machine: 2
+
+Then a file is automatically opened with "vi" editor. It allows to insert text to prepend/append to
+any submission script. We don't require it. Therefore just press ``Esc`` and type ``:wq``.
+
+Any remote computer can be set up in the exact same way, just making sure to have a password-less
+access to it (ssh key) and selecting "ssh" as "Transport plugin". 
+
+The computer must be configured, this allows to select some advanced features::
+
+        verdi computer configure local localhost
+
+The default values are ok for the sake of this tutorial, therefore just press enter.
+The computer setup is over and the success of this action can be checked with::
+
+        verdi computer test localhost
+
+The next step is the setup of a code.
+
+.. note:: This section covers the set up of the Siesta code already installed in the Quantum Mobile virtual
+   machine. In case of local installation, make sure to include the right specifications for your Siesta code
+   (that might be on a remote cluster).
+
+The command is::
+
+        verdi code setup
+
+and the interactive shell will facilitate the setting up of the code. For Quantum Mobile we insert::
+
+        Label: siesta-v4.1
+        Description []: siesta-v4.1-rc1
+        Default calculation input plugin: siesta.siesta
+        Installed on target computer? [True]: 
+        Computer: localhost
+        Remote absolute path: /usr/local/bin/siesta
+
+Again a file is opened, asking to specify an optional text to prepend/append to the submission script.
+Typically here is where we include the calls to modules that are needed to run the code.
+In our case we insert "ulimit -s unlimited" as prepend text. The writing mode of "vi" is activated
+pressing ``i``, after the insertion, ``Esc`` and ``:wq`` to save the file.
+
+The code is set up.
+
+.. note:: It is also possible to set up computer and codes from a configuration file. See section
+   `Setting up the hpcq`_ for an example.
+
+
+
+
+Creating a pseudo family
+------------------------
+
+Before starting to play with `aiida-siesta`, it can be useful to learn how to
+set up of a pseudopotential family. We download a set of
+pseudopotentials from `PseudoDojo <http://www.pseudo-dojo.org/>`_::
+
+      wget http://www.pseudo-dojo.org/pseudos/nc-sr-04_pbe_standard_psml.tgz
+      mkdir nc-sr-04_pbe_standard_psml
+      tar -xf nc-sr-04_pbe_standard_psml.tgz -C nc-sr-04_pbe_standard_psml
+
+and store tham in the database under the name "nc-sr-04_pbe_standard_psml"::
+
+      verdi data psml uploadfamily nc-sr-04_pbe_standard_psml nc-sr-04_pbe_standard_psml "Scalar-relativistic psml standard"
+
+Same can be done for psf pseudopotentials, for instance::
+
+      wget https://icmab.es/leem/SIESTA_MATERIAL/tmp_PseudoDojo/nc-sr-04_pbe_standard-psf.tgz
+      tar -xf nc-sr-04_pbe_standard-psf.tgz
+      verdi data psf uploadfamily nc-sr-04_pbe_standard-psf nc-sr-04_pbe_standard-psf "Scalar Relativistic psf"
+
+.. note:: The presudopotentials sets used in this tutorial come with no guarantee!! Use with care!
+
+
+Submit a single siesta calculation
+----------------------------------
+
+Open the file :download:`example_bands.py <data_icn2_2020/example_bands.py>` and explore the setting up of the various inputs.
+Run the script with::
+
+        runaiida example_bands.py --dont-send
+
+The option ``--dont-send`` has been added in order to activate the "dry_run" option that every aiida process has.
+This option allows to create all the inputs of the calculation, but do not submit it.
+You can explore in the folder ``submit_test`` how AiiDA prepared all the inputs of a siesta calculation for you.
+
+Now run::
+
+        runaiida example_bands.py --send
+
+AiiDA took charge of your script, created the inputs and submitted the calculation. Look at the state of the
+process with the command ``verdi process show <pk>`` as suggested in the shell. The ``<pk>`` number
+uniquely identify your calculation and it will be used later on.
+
+In few seconds the calculation is finished. You will relized that when ``verdi process show <pk>`` 
+shows "Finished" status and reports the oututs. We explore the outputs. This can be done from command line,
+for instance::
+
+        verdi data array show <PK_forces_and_stress>
+
+        
+however it is worth exploring the shell provided by AiiDA::
+
+        verdi shell
+
+Inside the shell::
+
+        l=load_node(<PK_calculation>)
+
+and explore all the methods making use of tab completion. For instance::
+
+        l.outputs.bands.export(path="Si_bands", fileformat="gnuplot", y_max_lim=10)
+
+The command above creates a file that can be plot with gnuplot in order to visualize the bands. Open a new shell and
+type::
+
+        gnuplot --persist Si_bands
+
+Take the chance to explore in the ``verdi shell`` some methods and attributes of data types associated to 
+the inputs and outputs of a ``SiestaCalculation``. Use tab complition of ``l.inputs``, ``l.outputs``, ``l.attributes``, ..
+
+The submission script can be modified very easily in order to run a ``SiestaBaseWorkChain`` instead of a
+``SiestaCalculation``. Look at the commented part of the ``example_bands.py`` script in order to understand the differences.
+The "dry_run" option is not available for the ``SiestaBaseWorkChain``.
+A ``SiestaBaseWorkChain`` automatically takes care
+of fixing some `common errors of a siesta calculation
+<https://aiida-siesta-plugin.readthedocs.io/en/latest/workflows/base.html#error-handling>`_,
+therefore it adds robustness in running siesta calculations.
+
+Protocols
+---------
+Go back to the ``verdi shell`` and look at the following::
+
+        from aiida_siesta.workflows.base import SiestaBaseWorkChain
+        inp_gen=SiestaBaseWorkChain.inputs_generator()
+
+You just imported the inputs generator for the ``SiestaBaseWorkChain``. We can explore its functionality::
+
+        inp_gen.get_protocol_names()
+        inp_gen.get_spins()
+
+And many more... Use tab complition to explore them. These methods allows you
+to understand which options you can pass to ``get_filled_builder``, as will be explained in a second.
+
+The main feature of the input generator is the possibility to obtain a ``builder`` (a tool that helps you build 
+the inputs for the specific process) that is ready to be submitted::
+
+        struct = l.inputs.structure
+        calc_engines = {
+            'siesta': {
+                'code': "siesta-v4.1@localhost",
+                'options': {'resources': {'num_machines': 1, "num_mpiprocs_per_machine": 1},"max_wallclock_seconds": 3600}
+                }
+            }
+        builder = inp_gen.get_filled_builder(struct,calc_engines,"standard_psml")
+
+The ``calc_engines`` is a dictionary with fixed keys, whose aim is to pass the computational resourses
+for the calculation.
+
+Explore the ``builder``::
+
+        builder.parameters.attributes
+        builder.basis.attributes
+        ...
+
+We can add spin polarization to the calculation with::
+
+        builder = inp_gen.get_filled_builder(struct,calc_engines,"standard_psml",spin="polarized")
+
+Try again ``builder.parameters.attributes``, what are the differences compared to before?
+
+We could run the builder straight away, however::
+
+        inp_gen.get_protocol_info("standard_psml")
+
+remind us that the protocol we are using does not support siesta-4.1 because it uses psml pseudopotentials.
+
+Close the shell and look at the file :download:`my_protocols_registry.yaml <data_icn2_2020/my_protocols_registry.yaml>`. 
+It contains a new set of inputs and the psf pseudos. 
+This file can be modified at will and its content will become a new protocol. Simply do:: 
+
+        export AIIDA_SIESTA_PROTOCOLS="/home/max/abs_path_to/my_protocols_registry.yaml"
+
+taking care of passing the correct absolute path where you have ``my_protocols_registry.yaml``.
+
+Now open the shell and::
+
+        from aiida_siesta.workflows.base import SiestaBaseWorkChain
+        inp_gen=SiestaBaseWorkChain.inputs_generator()
+        inp_gen.get_protocol_names()
+
+The new protocol is on the list and we can use it to run a calculation::
+
+        l=load_node(<PK_calculation>)
+        struct = l.inputs.structure
+        calc_engines = {
+            'siesta': {
+                'code': "siesta-v4.1@localhost",
+                'options': {'resources': {'num_machines': 1, "num_mpiprocs_per_machine": 1},"max_wallclock_seconds": 3600}
+                }
+            }
+        builder = inp_gen.get_filled_builder(struct,calc_engines,"my_protocol")
+
+        from aiida.engine import run
+        run(builder)
+
+The command ``run`` send the calcualation in the shell in interactive mode (does not submit to the builder
+as ``submit`` would do).
+Our set up will occupy the shell for a minute or so and at the end it will return the outputs of the calculation.
+
+Using jupyter in the Quantum Mobile VM
+---------------------------------------
+
+For the next sections, we are going to use jupyter notebooks to make it more interactive. Installing jupyter in Quantum Mobile is quite easy.
+Since **jupyter has some incompatibilities with aiida** (to be solved with https://github.com/aiidateam/aiida-core/pull/4317), we are going to install it in the base python, which will make it accessible globally.
+So, if you are inside a virtual environment, just leave::
+
+        deactivate
+
+And proceed to install jupyter::
+
+        pip3 install jupyter
+
+Now, we just need to tell jupyter that our environment exists. For this, you need to activate the environment::
+
+        workon tutorial
+
+And then use `ipykernel` to inform jupyter::
+
+        pip install ipykernel
+        ipython kernel install --user --name=tutorial
+
+That's about it. **Let's move on!**
+
+Run a convergence workflow
+--------------------------
+
+It's quite easy to run a convergence workflow using `aiida-siesta`.
+You can find detailed information about it in :download:`this notebook <data_icn2_2020/Iterators presentation.ipynb>`
+
+However, as a quick summary you can do::
+
+        from aiida_siesta.workflows.converge import SiestaSequentialConverger
+        from aiida.engine import run
+
+        calc_node=load_node(<PK_calculation>)
+
+        run(SiestaSequentialConverger,
+
+                iterate_over=[
+                        {"kpoints_0": [4,5,6,7,8,9,10,11,12,13,14,15]},
+                        {"kpoints_1": [4,5,6,7,8,9,10,11,12,13,14,15]}
+                ],
+
+                converger_inputs={
+                        'code':load_code('siesta-v4.1@localhost'),
+                        'pseudo_family': Str('nc-sr-04_pbe_standard-psf')
+                        'structure': calc_node.inputs.structure,
+                        'parameters': Dict(),
+                        'options': {'resources': {'num_machines': 1, "num_mpiprocs_per_machine": 1},"max_wallclock_seconds": 3600}
+                        'batch_size': Int(3)
+                }
+
+        )
+
+to converge your structure's kpoints (first and second components), running three simulations at a time.
+
+Create a WorkChain
+------------------
+
+In this section, we will guide you through your first steps at creating workchains. 
+
+Please download :download:`this zip file <data_icn2_2020/first_workchain.zip>` where you will find all the contents for the section.
+Then unzip it and enter the directory::
+
+        unzip first_workchain.zip
+        cd first_workchain
+
+Once you are inside, launch jupyter::
+
+        jupyter notebook
+
+and open the `First workchain.ipynb` notebook. From here, just follow the instructions on the notebook :)
+
+Setting up the hpcq
+--------------------
+
+We already set up a computer and code in the `Computer and code setup`_ section. Remote computers, and therefore HPCQ, are no different.
+To set them up, you need to follow the same steps. There's just one difference, you need to **generate the ssh keys** so that aiida can login to
+the remote computer in your behalf without needing the password.
+
+You can generate them with::
+
+        ssh-keygen -t rsa -b 4096 -m PEM
+
+And then register them to the hpcq so that it allows you to access::
+
+        ssh-copy-id <username>@10.100.2.51
+
+Just with that, you would be able to access like `ssh <username>@10.100.2.51`, but aiida wants to access without knowing your username (`ssh 10.100.2.51`).
+For this, you need to: ::
+
+        vi ~/.ssh/config
+
+And include the following lines to the file (with one empty line before and after)::
+
+        Host 10.100.2.51
+          User <username>
+
+With this, you are all good to go! We just need to setup the computer and the code.
+
+There's a **small gotcha** though with the hpcq: *Each farm needs to be setup as a different computer, as it has a different architecture 
+and it runs a different compilation of the code.*
+
+Therefore for each farm we will need to setup a computer with this configuration::
+
+        label: "hpcq-farm<farm name>"
+        hostname: "10.100.2.51" 
+        description: "hpcq farm <farm name>"
+        shebang: "#!/bin/bash"
+        transport: "ssh"
+        scheduler: "slurm"
+        work_dir: "/home/ICN2/{username}/.aiida"
+        mpirun_command: "mpirun -np {tot_num_mpiprocs}"
+        mpiprocs_per_machine: <num cores per node of the farm>
+
+where `<farm name>` and `<num cores per node of the farm>` need to be replaced by the appropiate values for each farm.
+
+Correspondingly, we need to setup a code with this configuration::
+
+        label: "siesta_farm<farm name>"
+        description: "Siesta compilation to run in hpcq-farm<farm name>"
+        input_plugin: "siesta.siesta"
+        on_computer: true
+        remote_abs_path: <path_to_siesta>
+        computer: "hpcq-farm<farm name>"
+        prepend_text: |
+                <load all modules that you need here>
+
+                ulimit -l unlimited
+                ulimit -s 51200
+                ulimit -n 51200
+        custom_scheduler_commands:  "#SBATCH -p <farm name>"
+
+We know this is a cumbersome process, therefore you can :download:`download all the config files from here<data_icn2_2020/aiida-hpcq-config.zip>`.
+
+Unzip the downloaded zip and enter the directory to check what you have there::
+
+        unzip aiida-hpcq-config.zip
+        cd aiida-hpcq-config
+
+You still need to go through each of them manually. So, enter the `Computers` directory and setup the ones you want by running the following command::
+
+        verdi computer setup --config hpcq-farm<farm name>.yml
+
+and then configure it::
+
+        verdi computer configure ssh hpcq-farm<farm name>
+
+You can (should) test it to check that everything is ok::
+
+        verdi computer test hpcq-farm<farm name>
+
+Then, for each farm that you set up, we need to set up its code. With the downloaded zip, you are provided some binaries for each farm in <siesta-binaries>.
+For a quick test, you can copy the `siesta-binaries` folder to your hpcq home, and then use the config files in the `Codes` directory::
+
+        verdi code setup --config siesta-farm<farm name>.yml
+
+Now you will be able to submit calculations to the hpcq by setting the code input to the `siesta@hpcq-farm<farm name>` :)

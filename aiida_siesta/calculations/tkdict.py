@@ -43,12 +43,12 @@ class TKDict(MutableMapping):
         # _storage is internal dictionary stored as: {<translated_key>: (<value>, <initial_key>), }
         self._storage = {}
 
-        if inp_dict:
+        if inp_dict is not None:
             if not isinstance(inp_dict, dict):
                 message = 'invalid argument for `{}`: it only accepts a dictionary'.format(self.__class__.__name__)
                 raise RuntimeError(message)
 
-        if inp_dict:
+        if inp_dict is not None:
             for inp_key in inp_dict:
                 self[inp_key] = inp_dict[inp_key]
 
