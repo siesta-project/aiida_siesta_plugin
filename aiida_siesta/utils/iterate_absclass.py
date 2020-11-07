@@ -5,9 +5,8 @@ import numpy as np
 
 from aiida.plugins import DataFactory
 from aiida.engine import WorkChain, while_, ToContext
-from aiida.orm import Str, List, Int, Node
+from aiida.orm import Str, List, Int, Node, load_node
 from aiida.orm.nodes.data.base import to_aiida_type
-from aiida.orm.utils import load_node
 from aiida.common import AttributeDict
 
 
