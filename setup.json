@@ -59,7 +59,7 @@
         "aiida.data": [
             "siesta.psf = aiida_siesta.data.psf:PsfData",
             "siesta.psml = aiida_siesta.data.psml:PsmlData",
-	    "siesta.basis = aiida_siesta.data.basis:BasisAtomicElement"
+	    "siesta.basis = aiida_siesta.data.basis:BasisAtomicElementData"
         ],
         "aiida.cmdline.data": [
             "psf = aiida_siesta.commands.data_psf:psfdata",

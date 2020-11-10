@@ -20,7 +20,7 @@ class SislAtomicOrbital(AtomicOrbital, Orbital):
         https://github.com/zerothi/sisl/blob/e28cdfff68d444139d54a755596de2a0285b0fd6/sisl/orbital.py#L689
         In addition we call `_set_orbital_dict`, that stores the info of the orbital in an internal dictionary.
         This is required in order to use this class as an orbital of a OrbitalData (the entity storable in the
-        database! In fact this class is not a Data!)
+        database! In fact, the present class is not a `Data`, will not be stored in database!)
         """
         super().__init__(*args, **kwargs)
 
@@ -62,7 +62,7 @@ class SislAtomicOrbital(AtomicOrbital, Orbital):
         return validated_dict
 
 
-class BasisAtomicElement(OrbitalData):
+class BasisAtomicElementData(OrbitalData):
     """
     Class with the scope to host the orbitals (instances of SislAtomicOrbital) asociated to an atomic species
     and implement several methods to help the management of basis.
