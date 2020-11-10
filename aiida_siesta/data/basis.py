@@ -81,7 +81,7 @@ class BasisAtomicElementData(OrbitalData):
         self.set_attribute("name", None)
         self.set_attribute("atomic_number", None)
         self.set_attribute("mass", None)
-        self.set_attribute("pseudo_pk", None)
+        self.set_attribute("pseudo_uuid", None)
         self._orbital_list = []
 
     @property
@@ -136,18 +136,18 @@ class BasisAtomicElementData(OrbitalData):
         self.set_attribute('mass', value)
 
     @property
-    def pseudo_pk(self):
+    def pseudo_uuid(self):
         """
-        For the basis (and orbitals)  generation, siesta starts from the pseudopotential. We force here to store
-        the pseudo pk that ia associated to the orbitals in this class.
+        For the basis (and orbitals)  generation, siesta starts from the pseudopotential. We allow here to store
+        the pseudo uuid that is associated to the orbitals in this class.
         """
-        return copy.deepcopy(self.get_attribute('pseudo_pk'))
+        return copy.deepcopy(self.get_attribute('pseudo_uuid'))
 
-    @pseudo_pk.setter
-    def pseudo_pk(self, value):
-        self.set_pseudo_pk(value)
+    @pseudo_uuid.setter
+    def pseudo_uuid(self, value):
+        self.set_pseudo_uuid(value)
 
-    def set_pseudo_pk(self, value):
+    def set_pseudo_uuid(self, value):
         from aiida.common.exceptions import ModificationNotAllowed
         if self.is_stored:
             raise ModificationNotAllowed('The BasisAtomicElement object cannot be modified, it has already been stored')
@@ -155,20 +155,20 @@ class BasisAtomicElementData(OrbitalData):
             try:
                 pse_node = load_node(value)
             except NotExistent:
-                raise ValueError("pseudo_pk must be a valid pk number.")
+                raise ValueError("pseudo_uuid must be a valid uuid number.")
             if not isinstance(pse_node,
                               DataFactory("siesta.psf")) and not isinstance(pse_node, DataFactory("siesta.psml")):
-                raise ValueError("pseudo_pk must associated to a pseudo data node.")
-        self.set_attribute('pseudo_pk', value)
+                raise ValueError("pseudo_uuid must associated to a pseudo data node.")
+        self.set_attribute('pseudo_uuid', value)
 
-    def set_atom_info(self, name, atomic_number, mass, pseudo_pk=None):
+    def set_atom_info(self, name, atomic_number, mass, pseudo_uuid=None):
         """
         Function to collectively define the defining attributes of the class.
         """
         self.set_name(name)
         self.set_mass(mass)
         self.set_atomic_number(atomic_number)
-        self.set_pseudo_pk(pseudo_pk)
+        self.set_pseudo_uuid(pseudo_uuid)
 
     def set_orbitals(self, orbitals):
         """
@@ -182,8 +182,8 @@ class BasisAtomicElementData(OrbitalData):
         if attr["name"] is None or attr["atomic_number"] is None or attr["mass"] is None:
             raise ValueError("need to set first the atom_info with `set_atom_info`")
 
-        if attr["pseudo_pk"] is None:
-            self.logger.warning("It is always better to define also a pseudo_pk")
+        if attr["pseudo_uuid"] is None:
+            self.logger.warning("It is always better to define also a pseudo_uuid")
 
         if not isinstance(orbitals, list):
             orbitals = [orbitals]
@@ -202,12 +202,12 @@ class BasisAtomicElementData(OrbitalData):
         if not isinstance(sislatom, Atom):
             raise ValueError("only sisl.AtomicOrbital are accepted as orbitals")
 
-        self.set_attribute("name", sislatom.symbol)
+        self.set_attribute("name", sislatom.tag)
         self.set_attribute("mass", sislatom.mass)
         self.set_attribute("atomic_number", sislatom.Z)
         listorb = []
         for i in sislatom.orbitals:
-            atorb = SislAtomicOrbital(i.name(), (i.orb._r_inp_array, i.orb._r_inp_array), q0=i.q0)
+            atorb = SislAtomicOrbital(i.name(), (i.orb.__getstate__()["r"], i.orb.__getstate__()["f"]), q0=i.q0)
             listorb.append(atorb)
         self.set_orbitals(listorb)
 
