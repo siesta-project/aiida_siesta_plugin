@@ -30,7 +30,7 @@ Version compatible with aiida-core>=1.3.0,<2.0.0.
   and "kpoints" with value "None". This has been fixed.
   The method `inputs_generator().get_filled_builder` was instead correct.
 - A bug was leading to the failure of `SiestaSequentialConverger` in case one of
-  the parameters to coverge in the sequential process was not reacing convergence.
+  the parameters to converge in the sequential process was not reaching convergence.
   It is now fixed and, in addition, an output listing the unconverged parameters has been
   added.
 
