@@ -420,7 +420,7 @@ class PsmlData(SinglefileData):
 
         query.append(PsmlFamily, tag='group', project='*')
 
-        if user:
+        if user is not None:
             query.append(User, filters={'email': {'==': user}}, with_group='group')
 
         if isinstance(filter_elements, str):

@@ -67,8 +67,8 @@ class SiestaCalculationInputsGenerator(InputsGenerator):
         except KeyError:
             raise ValueError("Wrong spin type: no spin with name {} implemented".format(key))
 
-    #pylint: disable=too-many-statements,too-many-branches,arguments-differ
-    def get_inputs_dict(
+    #pylint: disable=too-many-statements,arguments-differ
+    def get_inputs_dict(  # noqa: MC0001  - is mccabe too complex funct -
         self, structure, calc_engines, protocol, bands_path_generator=None, relaxation_type=None, spin=None
     ):
         """
@@ -82,13 +82,13 @@ class SiestaCalculationInputsGenerator(InputsGenerator):
         from aiida.tools import get_explicit_kpoints_path
 
         #Checks
-        if spin:
+        if spin is not None:
             if spin not in self.get_spins():
                 raise ValueError("No `spin` with name {} implemented".format(bands_path_generator))
-        if bands_path_generator:
+        if bands_path_generator is not None:
             if bands_path_generator not in self.get_bands_path_generators():
                 raise ValueError("No `bands_path_generator` with name {} implemented".format(bands_path_generator))
-        if relaxation_type:
+        if relaxation_type is not None:
             if relaxation_type not in self.get_relaxation_types():
                 raise ValueError("No `relaxation_type` with name {} implemented".format(relaxation_type))
         if not self.is_valid_protocol(protocol):
@@ -100,7 +100,7 @@ class SiestaCalculationInputsGenerator(InputsGenerator):
             raise ValueError("Wrong syntax in `calc_engines`. Check method `how_to_pass_computation_options`.")
 
         #Bandskpoints (might change structure)
-        if bands_path_generator:
+        if bands_path_generator is not None:
             if bands_path_generator == "legacy":
                 legacy_kpath_parameters = {
                     'kpoint_distance': 0.05  # In units of b1, b2, b3 (Around 20 points per side...)
@@ -120,13 +120,13 @@ class SiestaCalculationInputsGenerator(InputsGenerator):
         #Parameters
         prot_param = self._get_param(protocol, ok_structure)
         #Add relaxation options in case requested
-        if spin:
+        if spin is not None:
             sp_parameters = self._add_spin_options(protocol, prot_param)
             sp_parameters["spin"] = spin
         else:
             sp_parameters = prot_param.copy()
         #Add relaxation options in case requested
-        if relaxation_type:
+        if relaxation_type is not None:
             parameters = self._add_relaxation_options(protocol, sp_parameters)
             parameters["md-type-of-run"] = "cg"
             parameters["md-num-cg-steps"] = 100
@@ -156,13 +156,17 @@ class SiestaCalculationInputsGenerator(InputsGenerator):
             'parameters': Dict(dict=parameters),
             'code': code,
             'basis': Dict(dict=basis),
-            'kpoints': kpoints_mesh,
             'pseudos': pseudos,
             'metadata': {
                 "options": options
             },
-            'bandskpoints': bandskpoints
         }
+
+        #bandskpoints and kpoints are optional, possible return None
+        if kpoints_mesh is not None:
+            inputs['kpoints'] = kpoints_mesh
+        if bandskpoints is not None:
+            inputs['bandskpoints'] = bandskpoints
 
         return inputs
 
@@ -205,26 +209,26 @@ class BaseWorkChainInputsGenerator(SiestaCalculationInputsGenerator):
         return inps
 
 
-class BandgapWorkChainInputsGenerator(BaseWorkChainInputsGenerator):
-    """
-    Inputs generator for the BandgapWorkChain, makes use of the methods
-    of the BaseWorkChainInputsGenerator, only the __init__ requires the correct
-    workchain class in input and the `get_inputs_dict` implements a check for the
-    presence of `bands_path_generator`. In fact the band calculation is required.
-    """
-
-    def get_inputs_dict(
-        self, structure, calc_engines, protocol, bands_path_generator=None, relaxation_type=None, spin=None
-    ):
-
-        if not bands_path_generator:
-            raise RuntimeError(
-                'Method `get_inputs_dict` of class `{0}` requires `bands_path_generator`'.format(
-                    self.__class__.__name__
-                )
-            )
-
-        return super().get_inputs_dict(structure, calc_engines, protocol, bands_path_generator, relaxation_type, spin)
+#class BandgapWorkChainInputsGenerator(BaseWorkChainInputsGenerator):
+#    """
+#    Inputs generator for the BandgapWorkChain, makes use of the methods
+#    of the BaseWorkChainInputsGenerator, only the __init__ requires the correct
+#    workchain class in input and the `get_inputs_dict` implements a check for the
+#    presence of `bands_path_generator`. In fact the band calculation is required.
+#    """
+#
+#    def get_inputs_dict(
+#        self, structure, calc_engines, protocol, bands_path_generator=None, relaxation_type=None, spin=None
+#    ):
+#
+#        if not bands_path_generator:
+#            raise RuntimeError(
+#                'Method `get_inputs_dict` of class `{0}` requires `bands_path_generator`'.format(
+#                    self.__class__.__name__
+#                )
+#            )
+#
+#        return super().get_inputs_dict(structure, calc_engines, protocol, bands_path_generator, relaxation_type, spin)
 
 
 class EosWorkChainInputsGenerator(BaseWorkChainInputsGenerator):

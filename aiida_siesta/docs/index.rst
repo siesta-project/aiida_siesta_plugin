@@ -92,6 +92,15 @@ Workflows
    workflows/index
 ..
    
+Tutorials
+=========
+
+.. toctree::
+   :maxdepth: 4
+
+   tutorials/index
+
+
 
 Indices and tables
 ==================

@@ -38,8 +38,9 @@ def set_up_parameters_dict(val, inputs, parameter, input_key, defaults=None):
     parameters = FDFDict(parameters.get_dict())
 
     # Set the units for the value if needed
-    if isinstance(val, (int, float)) and defaults and "units" in defaults:
-        val = f'{val} {defaults["units"]}'
+    if isinstance(val, (int, float)):
+        if defaults is not None and "units" in defaults:
+            val = f'{val} {defaults["units"]}'
 
     # Then set the value of the parameter in the FDF dict.
     parameters[parameter] = val
