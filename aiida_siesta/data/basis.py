@@ -253,11 +253,11 @@ class BasisAtomicElementData(OrbitalData):
 
         #The polarization of 2p is 3d (2d does not exist).
         #Same for polarization of 1s e 3d.
-        for num in [2,3,4]:
+        for num in [2, 3, 4]:
             if num in pol_dict and num not in gen_dict:
-                pol_dict[num-1] = pol_dict[num]
+                pol_dict[num - 1] = pol_dict[num]
                 pol_dict.pop(num)
-    
+
         return gen_dict, pol_dict
 
     def get_pao_modifier(self):
@@ -365,7 +365,7 @@ class PaoModifier:
         From the info of the gen_dict, pol_dict, creates the PAO block.
         return a string card containing the block.
         """
-        AngToBohr = 1.8897161646321
+        ang_to_bohr = 1.8897161646321
         number_of_l = 0
         dictl = self.gen_dict
         pol = self.pol_dict
@@ -378,16 +378,16 @@ class PaoModifier:
                 if i in pol:
                     if j in pol[i]:
                         atomic_paobasis_card += "  n={}  {}  {}  P {} \n".format(i, j, len(dictl[i][j]), len(pol[i][j]))
-                        listi = [dictl[i][j][l]*AngToBohr for l in dictl[i][j]]
+                        listi = [dictl[i][j][l] * ang_to_bohr for l in dictl[i][j]]
                         atomic_paobasis_card += '\t'.join([f' {val}' for val in listi]) + "\n"
                     else:
                         atomic_paobasis_card += "  n={}  {}  {} \n".format(i, j, len(dictl[i][j]))
                         #print("  n={}  {}  {}".format(i, j, len(dictl[i][j])))
-                        listi = [dictl[i][j][l]*AngToBohr for l in dictl[i][j]]
+                        listi = [dictl[i][j][l] * ang_to_bohr for l in dictl[i][j]]
                         atomic_paobasis_card += '\t'.join([f' {val}' for val in listi]) + "\n"
                 else:
                     atomic_paobasis_card += "  n={}  {}  {} \n".format(i, j, len(dictl[i][j]))
-                    listi = [dictl[i][j][l]*AngToBohr for l in dictl[i][j]]
+                    listi = [dictl[i][j][l] * ang_to_bohr for l in dictl[i][j]]
                     atomic_paobasis_card += '\t'.join([f' {val}' for val in listi]) + "\n"
 
         return atomic_paobasis_card[:-1]
