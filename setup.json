@@ -1,7 +1,7 @@
 {
     "version": "Dev-post1.1.1",
     "name": "aiida-siesta",
-    "url": "https://github.com/albgar/aiida_siesta_plugin",
+    "url": "https://github.com/siesta-project/aiida_siesta_plugin",
     "keywords": ["aiida", "siesta", "dft"],
     "license": "MIT License",
     "author": "Alberto Garcia, Victor M. Garcia-Suarez, Emanuele Bosoni, Vladimir Dikan, Pol Febrer",

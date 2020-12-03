@@ -12,7 +12,7 @@ In this case, make sure to refer to the appropriate documentation part ("stable"
 
 Because the package is under development, in order to enjoy the most recent features
 one can clone the github repository
-(https://github.com/albgar/aiida_siesta_plugin) and install
+(https://github.com/siesta-project/aiida_siesta_plugin) and install
 from the top level of the plugin directory with::
 
     pip install -e .
