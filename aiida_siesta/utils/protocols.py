@@ -288,8 +288,8 @@ class ProtocolManager:
                 card = '\n'
                 for k, v in size_dict.items():
                     card = card + '  {0}  {1} \n'.format(k, v)
-                card = card + '%endblock paobasessizes'
-                basis['%block pao-bases-sizes'] = card
+                card = card + '%endblock paobasissizes'
+                basis['%block pao-basis-sizes'] = card
             if pao_block_dict:
                 card = '\n'
                 for k, v in pao_block_dict.items():
