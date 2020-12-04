@@ -33,17 +33,17 @@ class SiestaCalculation(CalcJob):
     ###################################################################
 
     # Parameters stored as class variables
-    # 1) Keywords that cannot be set (need to canonoze this?)
+    # 1) Keywords that cannot be set (already canonized by FDFDict)
     # 2) Filepaths of certain outputs
-    _aiida_blocked_keywords = ['system-name', 'system-label']
-    _aiida_blocked_keywords.append('number-of-species')
-    _aiida_blocked_keywords.append('number-of-atoms')
-    _aiida_blocked_keywords.append('lattice-constant')
-    _aiida_blocked_keywords.append('atomic-coordinates-format')
-    _aiida_blocked_keywords.append('use-tree-timer')
-    _aiida_blocked_keywords.append('xml-write')
-    _aiida_blocked_keywords.append('dm-use-save-dm')
-    _aiida_blocked_keywords.append('geometry-must-converge')
+    _aiida_blocked_keywords = [FDFDict.translate_key('system-name'), FDFDict.translate_key('system-label')]
+    _aiida_blocked_keywords.append(FDFDict.translate_key('number-of-species'))
+    _aiida_blocked_keywords.append(FDFDict.translate_key('number-of-atoms'))
+    _aiida_blocked_keywords.append(FDFDict.translate_key('lattice-constant'))
+    _aiida_blocked_keywords.append(FDFDict.translate_key('atomic-coordinates-format'))
+    _aiida_blocked_keywords.append(FDFDict.translate_key('use-tree-timer'))
+    _aiida_blocked_keywords.append(FDFDict.translate_key('xml-write'))
+    _aiida_blocked_keywords.append(FDFDict.translate_key('dm-use-save-dm'))
+    _aiida_blocked_keywords.append(FDFDict.translate_key('geometry-must-converge'))
     _PSEUDO_SUBFOLDER = './'
     _OUTPUT_SUBFOLDER = './'
     _JSON_FILE = 'time.json'
@@ -193,19 +193,17 @@ class SiestaCalculation(CalcJob):
         input_params = FDFDict(parameters.get_dict())
 
         # Look for blocked keywords and add the proper values to the dictionary
-        for blocked_key in self._aiida_blocked_keywords:
-            canonical_blocked = FDFDict.translate_key(blocked_key)
-            for key in input_params:
-                if key == canonical_blocked:
-                    raise InputValidationError(
-                        "You cannot specify explicitly the '{}' flag in the "
-                        "input parameters".format(input_params.get_last_untranslated_key(key))
-                    )
-                if "pao" in key:
-                    raise InputValidationError(
-                        "You can not put PAO options in the parameters input port "
-                        "they belong to the basis input port "
-                    )
+        for key in input_params:
+            if "pao" in key:
+                raise InputValidationError(
+                    "You can not put PAO options in the parameters input port "
+                    "they belong to the basis input port "
+                )
+            if key in self._aiida_blocked_keywords:
+                raise InputValidationError(
+                    "You cannot specify explicitly the '{}' flag in the "
+                    "input parameters".format(input_params.get_last_untranslated_key(key))
+                )
 
         input_params.update({'system-name': self.inputs.metadata.options.prefix})
         input_params.update({'system-label': self.inputs.metadata.options.prefix})
@@ -330,13 +328,43 @@ class SiestaCalculation(CalcJob):
         #BandLinesScale =pi/a is not supported at the moment because currently
         #a=1 always. BandLinesScale ReciprocalLatticeVectors is always set
         if bandskpoints is not None:
+            #first, we check that the user constracted the kpoints using the cell
+            #of the input structure, and not a random cell. This helps parsing
+            kpcell = bandskpoints.get_attribute("cell", None)
+            if kpcell:
+                if kpcell != structure.cell:
+                    raise ValueError(
+                        'The cell used for `bandskpoints` must be the same of the input structure.'
+                        'Alternatively do not set any cell to the bandskpoints.'
+                    )
+            #second we rise a warning about consequences when the cell is relaxed
+            var_cell_keys = [FDFDict.translate_key("md-variable-cell"), FDFDict.translate_key("md-constant-volume")]
+            var_cell_keys.append(FDFDict.translate_key("md-relax-cell-only"))
+            for key in input_params:
+                if key in var_cell_keys:
+                    logline = (
+                        "Requested calculation of bands after a relaxation with variable cell! " +
+                        "If the symmetry of the cell will change, the kpoints path for bands will be wrong. " +
+                        "It is suggested to use the `BandGapWorkChain` instead."
+                    )
+                    if isinstance(input_params[key], str):
+                        if FDFDict.translate_key(input_params[key]) in ["t", "true", "yes"]:
+                            self.logger.warning(logline)
+                            break
+                    else:
+                        if input_params[key] is True:
+                            self.logger.warning(logline)
+                            break
+            #the band line scale
             bandskpoints_card_list = ["BandLinesScale ReciprocalLatticeVectors\n"]
+            #set the BandPoints
             if bandskpoints.labels is None:
                 bandskpoints_card_list.append("%block BandPoints\n")
                 for kpo in bandskpoints.get_kpoints():
                     bandskpoints_card_list.append("{0:8.3f} {1:8.3f} {2:8.3f} \n".format(kpo[0], kpo[1], kpo[2]))
                 fbkpoints_card = "".join(bandskpoints_card_list)
                 fbkpoints_card += "%endblock BandPoints\n"
+            #set the BandLines
             else:
                 bandskpoints_card_list.append("%block BandLines\n")
                 savindx = []

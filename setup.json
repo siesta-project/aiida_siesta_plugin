@@ -1,7 +1,7 @@
 {
-    "version": "Dev-pre-1.1.0",
+    "version": "Dev-post1.1.1",
     "name": "aiida-siesta",
-    "url": "https://github.com/albgar/aiida_siesta_plugin",
+    "url": "https://github.com/siesta-project/aiida_siesta_plugin",
     "keywords": ["aiida", "siesta", "dft"],
     "license": "MIT License",
     "author": "Alberto Garcia, Victor M. Garcia-Suarez, Emanuele Bosoni, Vladimir Dikan, Pol Febrer",
@@ -12,7 +12,8 @@
 	"Programming Language :: Python :: 3.6",
 	"Programming Language :: Python :: 3.7",
 	"Programming Language :: Python :: 3.8",
-	"Development Status :: 4 - Beta"
+	"Development Status :: 5 - Production/Stable",
+	"Framework :: AiiDA"
     ],
     "install_requires": [
 	"aiida_core>=1.3.0,<2.0.0",
@@ -32,7 +33,8 @@
         "docs": [
             "Sphinx",
             "docutils",
-            "sphinx_rtd_theme"
+            "sphinx_rtd_theme",
+	    "sphinx-copybutton"
         ]
     },
     "entry_points": {

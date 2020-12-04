@@ -13,7 +13,7 @@ The aiida-siesta python package interfaces the SIESTA DFT code
 (http://www.aiida.net).  The package contains: plugins for SIESTA
 itself and for other utility programs, new data structures, and basic
 workflows. It is distributed under the MIT license and available from
-(https://github.com/albgar/aiida_siesta_plugin).
+(https://github.com/siesta-project/aiida_siesta_plugin).
 If you use this package, please cite J. Chem. Phys. **152**, 204108 (2020) 
 (https://doi.org/10.1063/5.0005077).
 
@@ -92,6 +92,15 @@ Workflows
    workflows/index
 ..
    
+Tutorials
+=========
+
+.. toctree::
+   :maxdepth: 4
+
+   tutorials/index
+
+
 
 Indices and tables
 ==================

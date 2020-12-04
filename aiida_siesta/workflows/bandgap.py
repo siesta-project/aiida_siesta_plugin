@@ -1,6 +1,17 @@
 from aiida import orm
-from aiida.engine import calcfunction
+from aiida.engine import WorkChain, calcfunction, ToContext
+from aiida.common import AttributeDict
+from aiida.tools import get_explicit_kpoints_path
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
+from aiida_siesta.calculations.tkdict import FDFDict
+
+
+def drop_md_keys(param):
+    for item in param.copy().keys():
+        trans_item = FDFDict.translate_key(item)
+        if trans_item.startswith("md"):
+            param.pop(item)
+    return param
 
 
 @calcfunction
@@ -25,37 +36,139 @@ def get_bandgap(e_fermi, band):
     return orm.Dict(dict=output)
 
 
-class BandgapWorkChain(SiestaBaseWorkChain):
+class BandgapWorkChain(WorkChain):
     """
-    Workchain to obtain the bandgap of a structure through Siesta.
+    Workchain to obtain the bands and bandgap of a structure through Siesta.
+    If "bandskpoints" are set in inputs, it behaves like `SiestaBaseWorkChain`
+    adding just the bandgap calculation at the end. If no bandskpoints
+    was specified, the bands are computed anyway on a kpoints path automatically
+    assigned using seekpath and the input (output) structure
+    of the single-point (relaxation/md) calculation.
     """
 
     @classmethod
     def define(cls, spec):
-        super(BandgapWorkChain, cls).define(spec)
+        super().define(spec)
+        spec.expose_inputs(SiestaBaseWorkChain, exclude=('metadata',))
+        spec.expose_outputs(SiestaBaseWorkChain)
+        spec.input(
+            'seekpath_dict',
+            valid_type=orm.Dict,
+            default=lambda: orm.Dict(dict={
+                'reference_distance': 0.02,
+                'symprec': 0.0001
+            }),
+            help='dictionary of seekpath parameters that are pased to `get_explicit_kpoints_path`'
+        )
         spec.output('band_gap_info', valid_type=orm.Dict, required=False)
+        spec.outline(
+            cls.preprocess,
+            cls.run_siesta_wc,
+            cls.run_last,
+            cls.run_results,
+        )
+        spec.exit_code(200, 'ERROR_MAIN_WC', message='The main SiestaBaseWorkChain failed')
+        spec.exit_code(201, 'ERROR_FINAL_WC', message='The SiestaBaseWorkChain to obtain the bands failed')
 
     def preprocess(self):
         """
-        Only pre process is to check that the bandskpoints is defined in input.
+        In the preprocess, we make decisions on bandskpoints if they are not requested in input.
+        In case of single point calculation, bandskpoints are added using seekpath.
+        In case of relaxation, the relaxation is run, but an extra step at the end of
+        the calculation will calculate the bands.
         """
-        if "bandskpoints" not in self.inputs:
-            raise ValueError(
-                'you are running the bandgap WorkChain without requesting the bands calculation, '
-                'set the port bandskpoints in input'
-            )
+        self.ctx.need_fin_step = False
+        var_geom = False
+        self.ctx.need_to_generate_bandskp = False
 
-    def postprocess(self):
+        #The relaxation in Siesta is triggered by md-steps keyword.
+        #I verified taht md-type of run alone do not trigger veriable geometry.
+        fdf_par = FDFDict(self.inputs.parameters.get_dict())
+        for item in fdf_par:
+            if item in [FDFDict.translate_key("mdsteps"), FDFDict.translate_key("mdnumcgsteps")]:
+                if fdf_par[item] != 0:
+                    var_geom = True
+                    break
+
+        if "bandskpoints" not in self.inputs:
+            if var_geom:
+                self.report(
+                    "The kpoints path for the calculation of bands will be automatically generated "
+                    "using seekpath. Because a relaxation was requested, the bands calculation will "
+                    "be performed on a separate final step. The cell of the final step might change "
+                    "due to seekpath. This cell is returned in `output_structure`."
+                )
+                self.ctx.need_fin_step = True
+            else:
+                self.report(
+                    "The kpoints path for the calculation of bands will be automatically generated "
+                    "using seekpath. Because of seekpath, the cell might change."
+                )
+                self.ctx.need_to_generate_bandskp = True
+
+    def run_siesta_wc(self):
+        """
+        Run the SiestaBaseWorkChain, might be a relaxation or a scf only.
+        """
+
+        self.report('Initial checks where succesfull')
+
+        inputs = AttributeDict(self.exposed_inputs(SiestaBaseWorkChain))
+
+        if self.ctx.need_to_generate_bandskp:
+            seekpath_parameters = self.inputs.seekpath_dict.get_dict()
+            result = get_explicit_kpoints_path(inputs["structure"], **seekpath_parameters)
+            inputs["structure"] = result['primitive_structure']
+            inputs["bandskpoints"] = result['explicit_kpoints']
+            self.report("Added bandskpoints to the calculation using seekpath")
+
+        running = self.submit(SiestaBaseWorkChain, **inputs)
+        self.report('Launched SiestaBaseWorkChain<{}> to perform the siesta calculation.'.format(running.pk))
+
+        return ToContext(workchain_base=running)
+
+    def run_last(self):
         """
         Only post process is the calculation of the band gap from the band, knowing the fermi energy.
         """
+        if not self.ctx.workchain_base.is_finished_ok:
+            return self.exit_codes.ERROR_MAIN_WC
+
+        if self.ctx.need_fin_step:
+            seekpath_parameters = self.inputs.seekpath_dict.get_dict()
+            out_structure = self.ctx.workchain_base.outputs.output_structure
+            result = get_explicit_kpoints_path(out_structure, **seekpath_parameters)
+            new_calc = self.ctx.workchain_base.get_builder_restart()
+            new_calc.structure = result['primitive_structure']
+            new_calc.bandskpoints = result['explicit_kpoints']
+            new_param = drop_md_keys(new_calc.parameters.get_dict())
+            new_calc.parameters = orm.Dict(dict=new_param)
+            running = self.submit(new_calc)
+            self.report('Launched SiestaBaseWorkChain<{}> to calculate bands.'.format(running.pk))
+            return ToContext(final_run=running)
+
+    def run_results(self):
+        if self.ctx.need_fin_step:
+            if not self.ctx.final_run.is_finished_ok:
+                return self.exit_codes.ERROR_FINAL_WC
+            outps = self.ctx.final_run.outputs
+            self.out('output_structure', self.ctx.final_run.inputs.structure)
+        else:
+            outps = self.ctx.workchain_base.outputs
+
+        if 'forces_and_stress' in outps:
+            self.out('forces_and_stress', outps['forces_and_stress'])
+        self.out('bands', outps['bands'])
+        self.out('output_parameters', outps['output_parameters'])
+        self.out('remote_folder', outps['remote_folder'])
+
         self.report("Obtaining the band gap")
-        out_par = self.outputs['output_parameters']
+        out_par = outps['output_parameters']
         e_fermi = out_par.get_dict()['E_Fermi']
-        res_dict = get_bandgap(orm.Float(e_fermi), self.outputs["bands"])
+        res_dict = get_bandgap(orm.Float(e_fermi), outps["bands"])
         self.out('band_gap_info', res_dict)
 
     @classmethod
     def inputs_generator(cls):  # pylint: disable=no-self-argument,no-self-use
-        from aiida_siesta.utils.inputs_generators import BandgapWorkChainInputsGenerator
-        return BandgapWorkChainInputsGenerator(cls)
+        from aiida_siesta.utils.inputs_generators import BaseWorkChainInputsGenerator
+        return BaseWorkChainInputsGenerator(cls)

@@ -5,9 +5,8 @@ import numpy as np
 
 from aiida.plugins import DataFactory
 from aiida.engine import WorkChain, while_, ToContext
-from aiida.orm import Str, List, Int, Node
+from aiida.orm import Str, List, Int, Node, load_node
 from aiida.orm.nodes.data.base import to_aiida_type
-from aiida.orm.utils import load_node
 from aiida.common import AttributeDict
 
 
@@ -16,24 +15,175 @@ class ParametersDescriptor:  #pylint: disable=too-few-public-methods
     Uses the _params_lookup variable of an iterator to provide a helpful description of the possibilities.
     """
 
+    def __init__(self, cls=None):
+
+        self._cls = cls
+
+        if cls is not None:
+
+            cls.spec()
+
+            process_class = cls._process_class
+
+            if cls._iteration_inputs:
+
+                self._iteration_inputs_group = {
+                    "group_name": "Iteration inputs",
+                    "help": """These are input ports that are intrinsically iterable in the sense that
+                    you provide the list of values directly to them, instead of using "iterate_over".
+                    """,
+                    "keys": cls._iteration_inputs
+                }
+
+            self._inputs_group = {
+                "group_name": f"`{process_class.__name__}` inputs",
+                "help": f"""These are the inputs of {process_class.__name__}.
+                You can iterate over them even if they are not exposed.""",
+                "keys": {key: None for key in process_class.spec().inputs}
+            }
+
+    @property
+    def param_groups(self):
+        """Returns all the iterable parameter groups available to the Workchain"""
+        groups = ()
+
+        # If the iterate_over port is enabled, add all the parameters
+        # that can be accessed
+        if self._cls._iterate_over_port:
+            groups = (self._inputs_group, *self._cls._params_lookup)
+
+        # Include explicitly declared iteration inputs, if any.
+        if getattr(self, "_iteration_inputs_group", None):
+            groups = (self._iteration_inputs_group, *groups)
+
+        return groups
+
     def __get__(self, instance, owner):
+        return self.__class__(owner)
 
-        params_lookup = owner._params_lookup
+    def __str__(self):
+        """
+        Builds a string representation of a help message for an iterator parameters.
 
+        It is also used for markdown (see _repr_markdown_).
+        """
         description = ""
-        for group in params_lookup:
+
+        for group in self.param_groups:
             description += f"{group['group_name']}\n-------------\n"
 
             description += group.get("help", "").strip()
 
-            description += "\n\nExplicitly supported keys:\n\t- "
-            description += "\n\t- ".join([key for key in group["keys"]])  #pylint: disable=unnecessary-comprehension
+            description += "\n\nExplicitly supported keys:\n- "
+            description += "\n- ".join(group["keys"])
 
             if group.get("condition") is not None:
-                description += "\nKey matching condition:\n"
-                description += inspect.getsource(group["condition"])
+                description += "\n\nKey matching condition:\n"
+                description += f"`{inspect.getsource(group['condition'])}`"
 
             description += "\n\n"
+
+        return description
+
+    __repr__ = __str__
+
+    _repr_markdown_ = __str__
+
+    def _ipython_display_(self):
+        """
+        Displays the help message in ipython.
+
+        First tries to use ipywidgets if available, otherwise builds an html string
+        """
+        from IPython.display import HTML, display
+        try:
+            from ipywidgets import widgets  #pylint: disable=import-error
+
+            description = f"""
+            <div>
+                {self._cls.__name__} iterable parameters:
+            </div>
+            """
+
+            accordions = []
+
+            for group in self.param_groups:
+
+                group_name = group['group_name']
+
+                description = ""
+                description += f"""<div class="alert alert-info" style="margin: 10px 0px">'
+                    {group.get("help", "").strip()}</div>"""
+
+                description += "<div>Explicitly supported keys:</div><ul><li>"
+                description += "</li><li>".join(group["keys"])
+                description += "</li></ul>"
+
+                if group.get("condition") is not None:
+                    description += "<div>Key matching condition: "
+                    description += f'<code>{inspect.getsource(group["condition"]).strip()}</code>'
+                    description += "</div>"
+
+                accordion = widgets.Accordion([widgets.HTML(description)], selected_index=None)
+                accordion.set_title(0, group_name)
+
+                accordions.append(accordion)
+
+            intro = HTML(f"<div>{self._cls.__name__} iterable parameters:</div>")
+
+            display(intro, *accordions)
+        except ModuleNotFoundError:
+            display(HTML(self._repr_html_()))
+
+    def _repr_html_(self):
+        """
+        Builds an html representation of the help message.
+
+        The classes in html elements assume that bootstrap is present (which is the case in jupyter notebooks).
+        """
+        description = f"""
+        <div>
+            {self._cls.__name__} iterable parameters:
+        </div>
+        <div class="accordion" id="accordion" style="margin-left: 20px">"""
+
+        for group in self.param_groups:
+
+            group_name = group['group_name']
+            san_name = group_name.replace(" ", "").replace("`", "")
+
+            description += f"""
+            <div class="card" style="margin: 10px 0px; padding-left: 15px; border-left: solid 1px #ccc">
+            <div class="card-header" id="{san_name}" data-toggle="collapse"
+                    data-target="#collapse{san_name}" aria-expanded="true" aria-controls="collapse{san_name}"
+                    style="cursor: pointer; padding-bottom: 2px">
+                <h3>
+                {group_name}
+                </h3>
+            </div>
+            """
+
+            description += f"""
+            <div id="collapse{san_name}" class="collapse"
+                aria-labelledby="{san_name}" data-parent="#accordion">
+                <div class="card-body">
+            """
+
+            description += f"""<div class="alert alert-info" style="margin: 10px 0px">
+                {group.get("help", "").strip()}</div>"""
+
+            description += "<div>Explicitly supported keys:</div><ul><li>"
+            description += "</li><li>".join(group["keys"])
+            description += "</li></ul>"
+
+            if group.get("condition") is not None:
+                description += "<div>Key matching condition: "
+                description += f'<code>{inspect.getsource(group["condition"]).strip()}</code>'
+                description += "</div>"
+
+            description += "</div></div></div>"
+
+        description += "</div>"
 
         return description
 

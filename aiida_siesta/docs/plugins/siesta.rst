@@ -1,5 +1,5 @@
-Standard Siesta plugin
-++++++++++++++++++++++
+Siesta calculations
++++++++++++++++++++
 
 Description
 -----------
@@ -13,6 +13,8 @@ Supported Siesta versions
 
 At least 4.0.1 of the 4.0 series, 4.1-b3 of the 4.1 series and the MaX-1.0 release, which
 can be found in the development platform (https://gitlab.com/siesta-project/siesta).
+For more up to date info on compatibility, please check the 
+`wiki <https://github.com/siesta-project/aiida_siesta_plugin/wiki/Supported-siesta-versions>`_.
 
 .. _siesta-plugin-inputs:
 
@@ -229,20 +231,18 @@ Some examples are referenced in the following list. They are located in the fold
 * **bandskpoints**, class :py:class:`KpointsData <aiida.orm.KpointsData>`, *Optional*
 
   Reciprocal space points for the calculation of bands.
-  This keyword is meant to facilitate the management of kpoints
-  exploiting the functionality
+  The **full list of kpoints must be passed** to ``bandskpoints``
+  and they must be in **units of the reciprocal lattice vectors**.
+  There is no obligation to set the cell in ``bandskpoints``, however this might be useful
+  in order to exploit the functionality
   of the class :py:class:`KpointsData <aiida.orm.KpointsData>`.
-  The full list of kpoints must be passed to the class
-  and they must be in units of the reciprocal lattice vectors.
-  Moreover the cell must be set in the :py:class:`KpointsData <aiida.orm.KpointsData>`
-  class.
-  
-  This can be achieved manually listing a set of kpoints::
-  
+  If set, the cell must be the same of the input **structure**.
+  Some examples on how to pass the kpoints are the following.
+
+  One can manually listing a set of isolated kpoints::
           from aiida.orm import KpointsData
           bandskpoints=KpointsData()
-          bandskpoints.set_cell(structure.cell, structure.pbc)
-          kpp = [(0.500,  0.250, 0.750), (0.500,  0.500, 0.500), (0., 0., 0.)]
+          kpp = [(0.1,  0.1, 0.1), (0.5,  0.5, 0.5), (0., 0., 0.)]
           bandskpoints.set_kpoints(kpp)
   In this case the Siesta input will use the "BandPoints" block.
   
@@ -261,14 +261,6 @@ Some examples are referenced in the following list. They are located in the fold
   In this case the block "BandLines" is set in the Siesta
   calculation.
 
-  .. note:: The ``get_explicit_kpoints_path`` make use of "SeeK-path".
-     Please cite the `HPKOT paper`_ if you use this tool. "SeeK-path"
-     is a external utility, not a requirement for aiida-core, therefore
-     it is not available by default. It can be easily installed using 
-     ``pip install seekpath``. "SeeK-path" allows to
-     determine canonical unit cells and k-point information in an easy
-     way. For more general information, refer to the `SeeK-path documentation`_.
-
   .. warning:: "SeeK-path"
      might modify the structure to follow particular conventions
      and the generated kpoints might only 
@@ -278,20 +270,37 @@ Some examples are referenced in the following list. They are located in the fold
      Siesta calculation::
           structure = kpresult['primitive_structure']
 
+  .. warning:: As we use the initial structure cell in order to obtain
+     the kpoints path, it is very risky to apply this method when also a relaxation
+     of the cell is performed!
+     The cell might relax in a different symmetry resulting in a wrong
+     path for the bands.
+     Consider to use the `BandGapWorkChain` if a relaxation is needed
+     before computing the bands.
+
+  .. note:: The ``get_explicit_kpoints_path`` make use of "SeeK-path".
+     Please cite the `HPKOT paper`_ if you use this tool. "SeeK-path"
+     is a external utility, not a requirement for aiida-core, therefore
+     it is not available by default. It can be easily installed using
+     ``pip install seekpath``. "SeeK-path" allows to
+     determine canonical unit cells and k-point information in an easy
+     way. For more general information, refer to the `SeeK-path documentation`_.
 
 
-  The final option (unrecommended) covers the situation
-  when one really needs to maintain a specific convention for the
-  structure or one needs to calculate the bands on a specific path
-  that is not a high-symmetry direction, the following (very involved)
-  option is available::
+  The final option covers the situation
+  when one needs to calculate the bands on a specific path
+  (and maybe needs to maintain a specific convention for the
+  structure). The full list of kpoints must be passed and, very
+  importantly, labels must be set for the high symmetry points!
+  This is essential for the correct set up of the "BandLines" in Siesta.
+  External tolls can be used to create equidistant points, whithin aiida
+  the following (very involved) option is available::
         from aiida.orm import KpointsData
         bandskpoints=KpointsData()
         from aiida.tools.data.array.kpoints.legacy import get_explicit_kpoints_path as legacy_path
         kpp = [('A',  (0.500,  0.250, 0.750), 'B', (0.500,  0.500, 0.500), 40),
         ('B', (0.500,  0.500, 0.500), 'C', (0., 0., 0.), 40)]
         tmp=legacy_path(kpp)
-        bandskpoints.set_cell(structure.cell, structure.pbc)
         bandskpoints.set_kpoints(tmp[3])
         bandskpoints.labels=tmp[4]
   The legacy ``get_explicit_kpoints_path`` shares only the name with the function in
@@ -301,8 +310,8 @@ Some examples are referenced in the following list. They are located in the fold
 
   .. warning:: The implementation relies on the correct description of
      the labels in the class :py:class:`KpointsData <aiida.orm.KpointsData>`.
-     Refrain from the use of ``bandskpoints.labels`` in any other
-     situation apart from the one described above. An incorrect use of the labels
+     Refrain from improper use of ``bandskpoints.labels`` and follow the 
+     the instructions described above. An incorrect use of the labels
      might result in an incorrect parsing of the bands.
 
   If the keyword node **bandskpoints** is not present, no band structure is computed.

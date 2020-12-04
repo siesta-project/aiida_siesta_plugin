@@ -6,11 +6,11 @@ from aiida_siesta.calculations.siesta import SiestaCalculation
 
 def prepare_pseudo_inputs(structure, pseudos, pseudo_family):
 
-    if pseudos and pseudo_family:
+    if pseudos is not None and pseudo_family is not None:
         raise ValueError('you cannot specify both "pseudos" and "pseudo_family"')
     elif pseudos is None and pseudo_family is None:
         raise ValueError('neither an explicit pseudos dictionary nor a pseudo_family was specified')
-    elif pseudo_family:
+    elif pseudo_family is not None:
         # This will already raise some exceptions
         pseudos = get_pseudos_from_structure(structure, pseudo_family.value)
 

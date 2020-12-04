@@ -1,5 +1,5 @@
 standard_psml:
-  description: 'A standard list of inputs for Siesta. Performaces tested on crystal elements giving an average Delta of 6.8 meV. No support for Spin-Orbit.'
+  description: 'A standard list of inputs for Siesta. Performaces tested on crystal elements giving an average Delta of 7.1 meV. No support for Spin-Orbit. Use of PSML pseudos, not supported by Siesta 4.0.*/4.1.* versions'
   parameters:
     xc-functional: "GGA"
     xc-authors: "PBE"
@@ -31,6 +31,8 @@ standard_psml:
       basis:
         polarization: 'non-perturbative'
     Be:
+      parameters:
+        mesh-cutoff: '250 Ry'
       basis:
         polarization: 'non-perturbative'
     Na:
@@ -43,9 +45,15 @@ standard_psml:
         mesh-cutoff: '250 Ry'
       basis:
         polarization: 'non-perturbative'
+    Mn:
+      parameters:
+        mesh-cutoff: '400 Ry'
+    Fe:
+      parameters:
+        mesh-cutoff: '400 Ry'
     Ag:
       parameters:
-        mesh-cutoff: '250 Ry'
+        mesh-cutoff: '300 Ry'
     Ca:
       basis:
         pao-block: "Ca 3 \n  n=3   0   1 \n  3.505 \n n=4   0   2  \n 7.028      0.000 \n n=3   1   1 \n 4.072"
@@ -58,6 +66,9 @@ standard_psml:
       basis:
         pao-block: "Ba 3 \n  n=5   0   1 \n  4.369 \n n=6   0   2  \n 7.602      0.000 \n n=5   1   1 \n 5.205"
         split-tail-norm: True
+    Sb:
+      parameters:
+        mesh-cutoff: '400 Ry'
     Hg:
       basis:
         pao-block: "Hg 4 \n  n=5   0   1 \n  3.568 \n n=6   0   2  \n 6.573  0.0 \n n=5   1   2 \n 4.059  0.0 \n n=5   2  1 \n 5.918"

@@ -78,13 +78,13 @@ class InputsGenerator(ProtocolManager, metaclass=ABCMeta):
 
     def _fill_builder(self, inp_dict):
         """
-        Return a builder, prefilled. Needs _accepted_workchain to obtain the builder
-        and in input `inp_dict`, the dictionary containing all the inputs
+        Return a builder, prefilled. Needs `_workchain_class` to obtain the builder
+        and in input `inp_dict`, the dictionary containing all the inputs.
         """
         builder = self._workchain_class.get_builder()
 
         for k, v in inp_dict.items():
-            if v:
+            if v is not None:
                 builder[k] = v
 
         return builder

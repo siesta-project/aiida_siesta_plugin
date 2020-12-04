@@ -45,7 +45,7 @@ def get_min_split(output_path):
             split_norm_error = True
             words = line.split()
 
-    if split_norm_error:
+    if split_norm_error is not None:
         min_sp = words[4]
         min_split_norm = float(min_sp[:-1])
 
@@ -276,7 +276,7 @@ class SiestaParser(Parser):
     Parser for the output of Siesta.
     """
 
-    _version = 'Dev-pre-1.1.0'
+    _version = 'Dev-post1.1.1'
 
     def parse(self, **kwargs):  # noqa: MC0001  - is mccabe too complex funct -
         """
@@ -386,9 +386,14 @@ class SiestaParser(Parser):
                 return self.exit_codes.BANDS_PARSE_FAIL
             from aiida.orm import BandsData
             arraybands = BandsData()
-            bkp = self.node.inputs.bandskpoints
-            arraybands.set_kpoints(bkp.get_kpoints(cartesian=True))
-            arraybands.labels = bkp.labels
+            #Reset the cell for KpointsData of bands, necessary
+            #for bandskpoints without cell and if structure changed
+            bkp = self.node.inputs.bandskpoints.clone()
+            if output_dict['variable_geometry']:
+                bkp.set_cell_from_structure(struc)
+            else:
+                bkp.set_cell_from_structure(self.node.inputs.structure)
+            arraybands.set_kpointsdata(bkp)
             arraybands.set_bands(bands, units="eV")
             self.out('bands', arraybands)
             #bandsparameters = Dict(dict={"kp_coordinates": coords})
@@ -447,11 +452,11 @@ class SiestaParser(Parser):
 
     def _get_warnings_from_file(self, messages_path):
         """
-     Generates a list of warnings from the 'MESSAGES' file, which  contains a line per message,
-     prefixed with 'INFO', 'WARNING' or 'FATAL'.
+        Generates a list of warnings from the 'MESSAGES' file, which  contains a line per message,
+        prefixed with 'INFO', 'WARNING' or 'FATAL'.
 
-     Returns a boolean indicating success (True) or failure (False) and a list of strings.
-     """
+        Returns a boolean indicating success (True) or failure (False) and a list of strings.
+        """
         thefile = open(messages_path)
         lines = thefile.read().split('\n')  # There will be a final '' element
 
@@ -484,7 +489,6 @@ class SiestaParser(Parser):
         tottx = []
         thefile = open(bands_path)
         tottx = thefile.read().split()
-
         #ef = float(tottx[0])
         if self.node.inputs.bandskpoints.labels is None:
             #minfreq, maxfreq = float(tottx[1]), float(tottx[2])
