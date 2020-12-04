@@ -8,7 +8,7 @@ jobs:
 
     tests:
 
-        if: github.repository == 'albgar/aiida_siesta_plugin'  # Prevent running the builds on forks as well
+        if: github.repository == 'siesta-project/aiida_siesta_plugin'  # Prevent running the builds on forks as well
 
         runs-on: ubuntu-latest
 

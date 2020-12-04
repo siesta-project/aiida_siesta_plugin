@@ -51,7 +51,7 @@ with support for psml pseudopotential. At least **the MaX-1.0 release of Siesta*
 can be found in the development platform
 (https://gitlab.com/siesta-project/siesta), meets this requirement.
 For more up to date info on compatibility, please check the
-`wiki <https://github.com/albgar/aiida_siesta_plugin/wiki/Supported-siesta-versions>`_.
+`wiki <https://github.com/siesta-project/aiida_siesta_plugin/wiki/Supported-siesta-versions>`_.
 
 
 
@@ -119,7 +119,7 @@ peculiarities of particular elements.
   We are working on a more accurate (and expensive) protocol that will provide much better
   values of delta.
   New tests and checks on the *standard_psml* protocol will be added in the aiida-siesta 
-  `wiki <https://github.com/albgar/aiida_siesta_plugin/wiki/Protocols-validations>`_.
+  `wiki <https://github.com/siesta-project/aiida_siesta_plugin/wiki/Protocols-validations>`_.
 
 
   
