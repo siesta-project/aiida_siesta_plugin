@@ -1,11 +1,5 @@
-import copy
-from aiida.common.exceptions import NotExistent
-from aiida.plugins import DataFactory
-from aiida.orm import OrbitalData, load_node
-from aiida.tools.data.orbital import Orbital
-from aiida.common.exceptions import ValidationError
 from aiida.plugins.entry_point import get_entry_point_from_class
-from sisl import AtomicOrbital, Atom
+from sisl import AtomicOrbital
 
 
 class SislAtomicOrbital(AtomicOrbital):
@@ -32,11 +26,11 @@ class SislAtomicOrbital(AtomicOrbital):
         """
 
         orbital_dict = {}
-         
+
         entry_point = get_entry_point_from_class(self.__class__.__module__, self.__class__.__name__)[1]
         if entry_point is not None:
             orbital_dict['orbital_type'] = entry_point.name
-        
+
         orbital_dict["n"] = self.n
         orbital_dict["l"] = self.l
         orbital_dict["m"] = self.m
@@ -47,4 +41,3 @@ class SislAtomicOrbital(AtomicOrbital):
         #orbital_dict['spherical'] = (self.orb.__getstate__()["r"], self.orb.__getstate__()["f"])
 
         return orbital_dict
-
