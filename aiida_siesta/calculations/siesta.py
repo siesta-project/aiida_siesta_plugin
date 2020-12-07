@@ -7,7 +7,7 @@ from aiida.orm import Dict, StructureData, BandsData, ArrayData
 from aiida_siesta.calculations.tkdict import FDFDict
 from aiida_siesta.data.psf import PsfData
 from aiida_siesta.data.psml import PsmlData
-from aiida_siesta.data.basis import BasisAtomicElementData
+from aiida_siesta.data.ion import IonData
 
 # See the LICENSE.txt and AUTHORS.txt files.
 
@@ -87,7 +87,7 @@ class SiestaCalculation(CalcJob):
         spec.output('bands', valid_type=BandsData, required=False, help='Optional band structure')
         #spec.output('bands_parameters', valid_type=Dict, required=False, help='Optional parameters of bands')
         spec.output('forces_and_stress', valid_type=ArrayData, required=False, help='Optional forces and stress')
-        spec.output_namespace('basis_orbitals', valid_type=BasisAtomicElementData, dynamic=True, required=False)
+        spec.output_namespace('ion_files', valid_type=IonData, dynamic=True, required=False)
 
         # Option that allows acces through node.res should be existing output node and a Dict
         spec.default_output_node = 'output_parameters'
@@ -429,7 +429,7 @@ class SiestaCalculation(CalcJob):
         xml_file = str(metadataoption.prefix) + ".xml"
         bands_file = str(metadataoption.prefix) + ".bands"
         calcinfo.retrieve_list.append(metadataoption.output_filename)
-        calcinfo.retrieve_list.append(metadataoption.input_filename)
+        #calcinfo.retrieve_list.append(metadataoption.input_filename)
         calcinfo.retrieve_list.append(xml_file)
         calcinfo.retrieve_list.append(self._JSON_FILE)
         calcinfo.retrieve_list.append(self._MESSAGES_FILE)

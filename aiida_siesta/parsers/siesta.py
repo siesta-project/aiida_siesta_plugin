@@ -1,7 +1,7 @@
+import os
 import numpy as np
 from aiida.parsers import Parser
 from aiida.orm import Dict
-#from six.moves import range
 from aiida.common import OutputParsingError
 from aiida.common import exceptions
 
@@ -290,7 +290,7 @@ class SiestaParser(Parser):
         except exceptions.NotExistent:
             raise OutputParsingError("Folder not retrieved")
 
-        output_path, input_path, messages_path, xml_path, json_path, bands_path = \
+        output_path, messages_path, xml_path, json_path, bands_path = \
             self._fetch_output_files(output_folder)
 
         if xml_path is None:
@@ -300,9 +300,6 @@ class SiestaParser(Parser):
 
         if output_path is None:
             raise OutputParsingError("output file not retrieved")
-
-        #if input_path is None:
-        #    raise OutputParsingError("input file not retrieved")
 
         output_dict = dict(list(result_dict.items()) + list(parser_info.items()))
 
@@ -353,20 +350,19 @@ class SiestaParser(Parser):
             arraydata.set_array('stress', np.array(stress))
             self.out('forces_and_stress', arraydata)
 
-        if input_path is not None:
-            import sisl
-            from aiida_siesta.data.basis import BasisAtomicElementData
-            silefdf = sisl.get_sile(input_path)
-            basis = silefdf.read_basis()
-            atomic_basis = {}
-            for elements in basis:
-                basis_atomic_elements = BasisAtomicElementData()
-                basis_atomic_elements.set_from_sisl_atoms(elements)
-                name = basis_atomic_elements.name
-                pseudo_name = "pseudos__" + name
-                basis_atomic_elements.pseudo_uuid = self.node.inputs[pseudo_name].uuid
-                atomic_basis[name] = basis_atomic_elements
-            self.out('basis_orbitals', atomic_basis)
+        #Attempt to parse the ion files.
+        from aiida_siesta.data.ion import IonData
+        ions = {}
+        in_struc = self.node.inputs.structure
+        for kind in in_struc.get_kind_names():
+            ion_file_name = kind + ".ion.xml"
+            if ion_file_name in output_folder._repository.list_object_names():
+                ion_file_path = os.path.join(output_folder._repository._get_base_folder().abspath, ion_file_name)
+                ions[kind] = IonData(ion_file_path)
+            else:
+                self.logger.warning(f"no ion file retrieved for {kind}")
+        if ions:
+            self.out('ion_files', ions)
 
         # Error analysis
         if have_errors_to_analyse:
@@ -432,7 +428,6 @@ class SiestaParser(Parser):
         Checks the output folder for standard output and standard error files, returns their absolute paths
         or "None" in case the file is not found in the remote folder.
         """
-        import os
 
         list_of_files = out_folder._repository.list_object_names()
 
@@ -441,15 +436,10 @@ class SiestaParser(Parser):
         xml_path = None
         json_path = None
         bands_path = None
-        input_path = None
 
         if self.node.get_option('output_filename') in list_of_files:
             oufil = self.node.get_option('output_filename')
             output_path = os.path.join(out_folder._repository._get_base_folder().abspath, oufil)
-
-        if self.node.get_option('input_filename') in list_of_files:
-            infil = self.node.get_option('input_filename')
-            input_path = os.path.join(out_folder._repository._get_base_folder().abspath, infil)
 
         namexmlfile = str(self.node.get_option('prefix')) + ".xml"
         if namexmlfile in list_of_files:
@@ -469,7 +459,7 @@ class SiestaParser(Parser):
         if namebandsfile in list_of_files:
             bands_path = os.path.join(out_folder._repository._get_base_folder().abspath, namebandsfile)
 
-        return output_path, input_path, messages_path, xml_path, json_path, bands_path
+        return output_path, messages_path, xml_path, json_path, bands_path
 
     def _get_warnings_from_file(self, messages_path):
         """

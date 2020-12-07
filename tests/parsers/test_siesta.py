@@ -43,6 +43,37 @@ def test_siesta_default(aiida_profile, fixture_localhost, generate_calc_job_node
     })
 
 
+
+def test_siesta_no_ion(aiida_profile, fixture_localhost, generate_calc_job_node, 
+    generate_parser, generate_structure, data_regression):
+    """
+    Test a parser of a siesta calculation, but the .ion.xml are not found
+    """
+
+    name = 'no_ion'
+    entry_point_calc_job = 'siesta.siesta'
+    entry_point_parser = 'siesta.parser'
+
+    structure=generate_structure()
+
+    inputs = AttributeDict({
+        'structure': structure
+    })
+
+    attributes=AttributeDict({'input_filename':'aiida.fdf', 'output_filename':'aiida.out', 'prefix':'aiida'})
+
+    node = generate_calc_job_node(entry_point_calc_job, fixture_localhost, name, inputs, attributes)
+    parser = generate_parser(entry_point_parser)
+    results, calcfunction = parser.parse_from_node(node, store_provenance=False)
+
+    assert calcfunction.is_finished
+    assert calcfunction.exception is None
+    assert calcfunction.is_finished_ok
+    assert calcfunction.exit_message is None
+    assert len(orm.Log.objects.get_logs_for(node)) == 2
+    assert "no ion file retrieved" in orm.Log.objects.get_logs_for(node)[0].message
+
+
 # As it is implemented now, there is no point to test also the case bandslines as
 # I assert the attributes of bands, not the actual array!
 def test_siesta_bandspoints(aiida_profile, fixture_localhost, generate_calc_job_node,

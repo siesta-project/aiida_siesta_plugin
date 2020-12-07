@@ -59,7 +59,7 @@
         "aiida.data": [
             "siesta.psf = aiida_siesta.data.psf:PsfData",
             "siesta.psml = aiida_siesta.data.psml:PsmlData",
-	    "siesta.basis = aiida_siesta.data.basis:BasisAtomicElementData"
+	    "siesta.ion = aiida_siesta.data.ion:IonData"
         ],
         "aiida.cmdline.data": [
             "psf = aiida_siesta.commands.data_psf:psfdata",
@@ -70,7 +70,7 @@
             "data.psml.family = aiida_siesta.groups.pseudos:PsmlFamily"
     	],
 	"aiida.tools.data.orbitals": [
-	    "siesta.atomic_orbital = aiida_siesta.data.basis:SislAtomicOrbital"
+	    "siesta.atomic_orbital = aiida_siesta.data.atomic_orbitals:SislAtomicOrbital"
 	]
     }
 }
