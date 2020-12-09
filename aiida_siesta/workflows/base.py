@@ -125,9 +125,8 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
             for name in node.outputs:
                 if "ion_files" in name:
                     output = node.get_outgoing(link_label_filter=name).one().node
-                    ions[name.replace("ion_files__","")] = output
+                    ions[name.replace("ion_files__", "")] = output
             self.out("ion_files", ions)
-
 
     @process_handler(priority=70, exit_codes=_proc_exit_cod.GEOM_NOT_CONV)  #pylint: disable = no-member
     def handle_error_geom_not_conv(self, node):
