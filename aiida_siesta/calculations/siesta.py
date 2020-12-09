@@ -166,7 +166,6 @@ class SiestaCalculation(CalcJob):
                 'Kinds: {}'.format(', '.join(list(kinds))),
             )
       
-
         ##############################
         # END OF INITIAL INPUT CHECK #
         ##############################
