@@ -248,21 +248,16 @@ class SiestaCalculation(CalcJob):
             if "GHOST" in kind.name.upper():
                 atomic_species_card_list.append("{0:5} {1:5} {2:5}\n".format(spind[kind.name],
                     (-1)*datmn[kind.symbol], kind.name.rjust(6)))
-            
             else:
                 atomic_species_card_list.append("{0:5} {1:5} {2:5}\n".format(spind[kind.name],
                     datmn[kind.symbol], kind.name.rjust(6)))
-
-
             psp = pseudos[kind.name]
-
             # Add this pseudo file to the list of files to copy, with
             # the appropiate name. In the case of sub-species
             # (different kind.name but same kind.symbol, e.g.,
             # 'C_surf', sharing the same pseudo with 'C'), we will
             # copy the file ('C.psf') twice, once as 'C.psf', and once
             # as 'C_surf.psf'.  This is required by Siesta.
-
             # ... list of tuples with format ('node_uuid', 'filename', relativedestpath')
             # We probably should be pre-pending 'self._PSEUDO_SUBFOLDER' in the
             # last slot, for generality...
