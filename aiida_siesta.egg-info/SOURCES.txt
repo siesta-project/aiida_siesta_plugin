@@ -66,13 +66,8 @@ aiida_siesta/examples/plugins/siesta/example_restart.py
 aiida_siesta/examples/plugins/siesta/example_scf_fail.py
 aiida_siesta/examples/plugins/siesta/example_soc_bands.py
 aiida_siesta/examples/plugins/siesta/example_varcell.py
-aiida_siesta/examples/plugins/siesta-lua/neb/with-force-read-DM-lua/H.psf
-aiida_siesta/examples/plugins/siesta-lua/neb/with-force-read-DM-lua/O.psf
-aiida_siesta/examples/plugins/siesta-lua/neb/with-remote-folder/Mg.psml
-aiida_siesta/examples/plugins/siesta-lua/neb/with-remote-folder/O.psml
-aiida_siesta/examples/plugins/siesta-lua/neb/with-remote-folder/VO.psml
-aiida_siesta/examples/plugins/siesta-lua/neb/with-retrieved-folder/H.psf
-aiida_siesta/examples/plugins/siesta-lua/neb/with-retrieved-folder/O.psf
+aiida_siesta/examples/plugins/siesta-lua/neb/psf/H.psf
+aiida_siesta/examples/plugins/siesta-lua/neb/psf/O.psf
 aiida_siesta/examples/plugins/siesta/data/O2_ICSD_173933.cif
 aiida_siesta/examples/plugins/siesta/data/__init__.py
 aiida_siesta/examples/plugins/siesta/data/sample-psf-family/C.psf

@@ -246,13 +246,12 @@ class SiestaCalculation(CalcJob):
             spind[kind.name] = spcount
             # AAKHTAR if in name we have ghost string it will save it with negative Z number
             if "GHOST" in kind.name.upper():
-                atomic_species_card_list.append(
-                        "{0:5} {1:5} {2:5}\n".format(spind[kind.name],(-1)*datmn[kind.symbol], kind.name.rjust(6)))
+                atomic_species_card_list.append("{0:5} {1:5} {2:5}\n".format(spind[kind.name],
+                    (-1)*datmn[kind.symbol], kind.name.rjust(6)))
             
             else:
-                atomic_species_card_list.append(
-                "{0:5} {1:5} {2:5}\n".format(spind[kind.name],datmn[kind.symbol], kind.name.rjust(6)))
-
+                atomic_species_card_list.append("{0:5} {1:5} {2:5}\n".format(spind[kind.name],
+                    datmn[kind.symbol], kind.name.rjust(6)))
 
 
             psp = pseudos[kind.name]
