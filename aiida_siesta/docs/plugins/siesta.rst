@@ -63,6 +63,10 @@ Some examples are referenced in the following list. They are located in the fold
        s.append_atom(position=(0.000,0.000,4.442),symbols=['C'])
        s.append_atom(position=(0.000,0.000,5.604),symbols=['H'])
 
+   .. note::
+         Using name with suffix "_ghost" will assume the species is ghost species. For example "O_ghost" will be Oxygen ghost atom with Z=-8.  
+  
+       
   The class :py:class:`StructureData <aiida.orm.StructureData>` uses Angstrom
   as internal units, the cell and atom positions must be specified in Angstrom.
 
@@ -172,6 +176,33 @@ Some examples are referenced in the following list. They are located in the fold
 .. |br| raw:: html
 
     <br />
+
+* **luadata**,input namespace of class :py:class:`LuaData  <aiida_siesta.data.lua.LUAData>`
+  OR class :py:class:`PsmlData  <aiida_siesta.data.lua.LUAData>`, *Optional*
+  
+    The `LUAData  <aiida_siesta.data.lua.LUAData>`  classes have been implemented similar to 
+    the psf and psml class of aiida-siesta.
+  Several lua file could be used which depends on functionality of lua script. For the example
+  above::
+
+  from aiida_siesta.data.lua import LUAData
+  lua_file_to_species_map = [ ("neb_with_restart-new.lua", ['lua']),
+                            ("image-idpp-wg-0.xyz", ['images0']),
+                            ("image-idpp-wg-1.xyz", ['images1']),
+                            ("image-idpp-wg-2.xyz", ['images2']),
+                            ("image-idpp-wg-3.xyz", ['images3']),
+                            ("image-idpp-wg-4.xyz", ['images4']),
+                            ("image-idpp-wg-5.xyz", ['images5']),
+                            ("image-idpp-wg-6.xyz", ['images6']),
+                          ]
+  lua_dict = {}
+  for fname, kinds, in lua_file_to_species_map:
+      absname = os.path.realpath(os.path.join("./",fname))
+      lua, created = LUAData.get_or_create(absname, use_first=True)
+      for j in kinds:
+              lua_dict[j]=lua
+
+
 
 * **basis**, class :py:class:`Dict  <aiida.orm.Dict>`, *Optional*
 

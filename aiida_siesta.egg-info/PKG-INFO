@@ -1,9 +1,9 @@
 Metadata-Version: 2.1
 Name: aiida-siesta
-Version: 1.0.1
+Version: Dev-post1.1.1
 Summary: A plugin for Siesta's basic functionality within the AiiDA framework.
-Home-page: https://github.com/albgar/aiida_siesta_plugin
-Author: Alberto Garcia, Victor M. Garcia-Suarez, Emanuele Bosoni, Vladimir Dikan
+Home-page: https://github.com/siesta-project/aiida_siesta_plugin
+Author: Alberto Garcia, Victor M. Garcia-Suarez, Emanuele Bosoni, Vladimir Dikan, Pol Febrer
 Author-email: albertog@icmab.es
 License: MIT License
 Description: AiiDA Siesta plugins and workflows
@@ -35,6 +35,7 @@ Classifier: License :: OSI Approved :: MIT License
 Classifier: Programming Language :: Python :: 3.6
 Classifier: Programming Language :: Python :: 3.7
 Classifier: Programming Language :: Python :: 3.8
-Classifier: Development Status :: 4 - Beta
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Framework :: AiiDA
 Provides-Extra: dev
 Provides-Extra: docs

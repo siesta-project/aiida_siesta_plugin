@@ -25,5 +25,6 @@ siesta.base = aiida_siesta.workflows.base:SiestaBaseWorkChain
 siesta.converger = aiida_siesta.workflows.converge:SiestaConverger
 siesta.eos = aiida_siesta.workflows.eos:EqOfStateFixedCellShape
 siesta.iterator = aiida_siesta.workflows.iterate:SiestaIterator
+siesta.sequential_converger = aiida_siesta.workflows.converge:SiestaSequentialConverger
 siesta.stm = aiida_siesta.workflows.stm:SiestaSTMWorkChain
 
