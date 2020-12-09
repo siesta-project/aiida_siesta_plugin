@@ -68,9 +68,7 @@ def get_dict_from_xml_doc(xmldoc):
 
     # List of scalar values from CML to be transferred to AiiDA
     #pylint: disable=invalid-name
-    #aakhtar
-    #standard_output_list = ['siesta:FreeE', 'siesta:E_KS', 'siesta:Ebs', 'siesta:E_Fermi', 'siesta:stot']
-    standard_output_list = ['siesta:FreeE', 'siesta:E_KS', 'siesta:Ebs', 'siesta:E_Fermi', 'siesta:stot','siesta:Emad','siesta:Etot']
+    standard_output_list = ['siesta:FreeE', 'siesta:E_KS', 'siesta:Ebs', 'siesta:E_Fermi', 'siesta:stot']
 
     # Scalar items
     scalar_dict = {}

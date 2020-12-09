@@ -4,23 +4,19 @@ This module manages the LUA in the local repository. Its Similar to Pseudoptenia
 """
 
 import io
-from aiida.common.utils import classproperty
 from aiida.common.files import md5_file
 from aiida.orm.nodes import SinglefileData
 
 
-def parse_lua(fname, check_filename=True):
+def parse_lua(fname):
     """
     Try to get relevant information from the LUA. For the moment, only the
     element name.
     If check_filename is True, raise a ParsingError exception if the filename
     does not start with the element name.
     """
-    import os
 
     from aiida.common.exceptions import ParsingError
-    # from aiida.common import AIIDA_LOGGER
-    from aiida.orm.nodes.data.structure import _valid_symbols
 
     parsed_data = {}
 
@@ -41,16 +37,6 @@ def parse_lua(fname, check_filename=True):
     if element is None:
         raise ParsingError("Unable to find the element of lua {}".format(fname))
     element = element.capitalize()
-#    if element not in _valid_symbols:
-#        raise ParsingError("Unknown element symbol {} for file {}".format(element, fname))
-
-#    if check_filename:
-#        if not os.path.basename(fname).lower().startswith(element.lower()):
-#            raise ParsingError(
-#                "Filename {0} was recognized for element "
-#                "{1}, but the filename does not start "
-#                "with {1}".format(fname, element)
-#            )
 
     parsed_data['element'] = element
 
@@ -103,8 +89,6 @@ class LUAData(SinglefileData):
             )
 
         return (luafile[0], False)
-
-
 
     def store(self, *args, **kwargs):  # pylint: disable=arguments-differ
         """
@@ -168,7 +152,6 @@ class LUAData(SinglefileData):
         self.set_attribute('element', str(element))
         self.set_attribute('md5', md5sum)
 
-
     @property
     def element(self):
         return self.get_attribute('element', None)
@@ -215,6 +198,3 @@ class LUAData(SinglefileData):
 
         if attr_md5 != md5:
             raise ValidationError("Attribute 'md5' says '{}' but '{}' was " "parsed instead.".format(attr_md5, md5))
-
-
-

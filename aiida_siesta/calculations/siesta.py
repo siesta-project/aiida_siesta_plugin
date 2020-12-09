@@ -3,14 +3,11 @@ from aiida import orm
 from aiida.common import CalcInfo, CodeInfo, InputValidationError
 from aiida.common.constants import elements
 from aiida.engine import CalcJob
-#aakhtar
-#from aiida.orm import Dict, StructureData, BandsData, ArrayData
-from aiida.orm import Dict, StructureData, BandsData, ArrayData,SinglefileData,FolderData
-#aakhtar
+from aiida.orm import Dict, StructureData, BandsData, ArrayData
 from aiida_siesta.calculations.tkdict import FDFDict
 from aiida_siesta.data.psf import PsfData
 from aiida_siesta.data.psml import PsmlData
-from aiida_siesta.data.lua  import LUAData
+from aiida_siesta.data.lua import LUAData
 
 # See the LICENSE.txt and AUTHORS.txt files.
 
@@ -56,9 +53,7 @@ class SiestaCalculation(CalcJob):
 
     # in restarts, it will copy from the parent the following
     # (fow now, just the density matrix file)
-    # aakhtar
     _restart_copy_from = os.path.join(_OUTPUT_SUBFOLDER, '*.DM*')
-    # aakhtar
 
     # in restarts, it will copy the previous folder in the following one
     _restart_copy_to = _OUTPUT_SUBFOLDER
@@ -77,10 +72,8 @@ class SiestaCalculation(CalcJob):
         spec.input('parameters', valid_type=orm.Dict, help='Input parameters')
         spec.input('parent_calc_folder', valid_type=orm.RemoteData, required=False, help='Parent folder')
         spec.input_namespace('pseudos', valid_type=(PsfData, PsmlData), help='Input pseudo potentials', dynamic=True)
-        #aakhtar
         #the LUAData added here the first option is just for onefile to send but the later one is the main one
-        spec.input_namespace('luafiles',valid_type=(LUAData),required=False, help='lua input file',dynamic=True)
-        #aakhtar
+        spec.input_namespace('luafiles', valid_type=(LUAData), required=False, help='lua input file', dynamic=True)
         # Metadada.options host the inputs that are not stored as a separate node, but attached to `CalcJobNode`
         # as attributes. They are optional, since a default is specified, but they might be changed by the user.
         # The first one is siesta specific. The others are defined in the CalcJob, here we change the default.
@@ -151,12 +144,7 @@ class SiestaCalculation(CalcJob):
             parent_calc_folder = self.inputs.parent_calc_folder
         else:
             parent_calc_folder = None
-        #aakhtar
-        #if 'luafiles' in self.inputs:
-        #    luafiles = self.inputs.luafiles
-        #else:
-        #    luafiles = None
-        #aakhtar
+
         pseudos = self.inputs.pseudos
         kinds = [kind.name for kind in structure.kinds]
         if set(kinds) != set(pseudos.keys()):
@@ -165,7 +153,7 @@ class SiestaCalculation(CalcJob):
                 'Pseudos: {} \n'.format(', '.join(list(pseudos.keys()))),
                 'Kinds: {}'.format(', '.join(list(kinds))),
             )
-      
+
         ##############################
         # END OF INITIAL INPUT CHECK #
         ##############################
@@ -174,17 +162,16 @@ class SiestaCalculation(CalcJob):
         # List of the file to copy in the folder where the calculation
         # runs, for instance pseudo files
         local_copy_list = []
-        #aakhtar
         if "luafiles" in self.inputs:
-            luafiles=self.inputs.luafiles
+            luafiles = self.inputs.luafiles
             for name in luafiles.keys():
-                llua=luafiles[name]
+                llua = luafiles[name]
                 if isinstance(llua, LUAData):
-                    local_copy_list.append((llua.uuid,llua.filename,llua.filename))
+                    local_copy_list.append((llua.uuid, llua.filename, llua.filename))
         else:
             luafiles = None
-       #aakhtar
-        # List of files for restart
+
+    # List of files for restart
         remote_copy_list = []
 
         # ============== Preprocess of input parameters ===============
@@ -245,11 +232,13 @@ class SiestaCalculation(CalcJob):
             spind[kind.name] = spcount
             # AAKHTAR if in name we have ghost string it will save it with negative Z number
             if "GHOST" in kind.name.upper():
-                atomic_species_card_list.append("{0:5} {1:5} {2:5}\n".format(spind[kind.name],
-                    (-1)*datmn[kind.symbol], kind.name.rjust(6)))
+                atomic_species_card_list.append(
+                    "{0:5} {1:5} {2:5}\n".format(spind[kind.name], (-1) * datmn[kind.symbol], kind.name.rjust(6))
+                )
             else:
-                atomic_species_card_list.append("{0:5} {1:5} {2:5}\n".format(spind[kind.name],
-                    datmn[kind.symbol], kind.name.rjust(6)))
+                atomic_species_card_list.append(
+                    "{0:5} {1:5} {2:5}\n".format(spind[kind.name], datmn[kind.symbol], kind.name.rjust(6))
+                )
             psp = pseudos[kind.name]
             # Add this pseudo file to the list of files to copy, with
             # the appropiate name. In the case of sub-species
