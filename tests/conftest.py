@@ -177,6 +177,25 @@ def generate_psml_data():
 
 
 @pytest.fixture(scope='session')
+def generate_ion_data():
+    """Return a `PsmlData` instance for the given element a file for which should exist in `tests/ions`."""
+
+    def _generate_ion_data(element):
+        """Return `IonData` node."""
+        from aiida_siesta.data.ion import IonData
+
+        filename = os.path.join('tests', 'ions', '{}.ion.xml'.format(element))
+        filepath = os.path.abspath(filename)
+
+        with io.open(filepath, 'r') as handle:
+            ion = IonData(file=handle.name)
+
+        return ion
+
+    return _generate_ion_data
+
+
+@pytest.fixture(scope='session')
 def generate_psml_fam(generate_psml_data):
     """Return a `PsmlData` instance for the given element a file for which should exist in `tests/pseudos`."""
 
