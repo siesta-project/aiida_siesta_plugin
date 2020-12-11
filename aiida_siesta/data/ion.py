@@ -86,19 +86,18 @@ class IonData(SinglefileData):
 
         return super().store(*args, **kwargs)
 
-    def validate_others_atts(self, element, name, atomic_number):
+    def validate_others_atts(self, elem, name, atm_n):
         """
         Validate the given element, name, atomic_number are the one of the stored file.
         Unfortunately it requires to reparse the file.
-        :param element: the symbol of the element.
+        :param elem: the symbol of the element.
                name: the name assigned to the atom/site.
-               atomic_number: the atomic number of the atom/site.
+               atm_n: the atomic number of the atom/site.
         :raises ValueError: if the element symbol is invalid.
         """
         with self.open(mode='r') as handle:
             parsed_data = parse_ion(handle.name)
-        if element != parsed_data["element"] or name != parsed_data["name"] or atomic_number != parsed_data[
-            "atomic_number"]:
+        if elem != parsed_data["element"] or name != parsed_data["name"] or atm_n != parsed_data["atomic_number"]:
             raise ValueError(
                 'element, name or atomic_number do not correspond to the the one in the ion file. '
                 'The attributes of this class can not be modified manually.'
