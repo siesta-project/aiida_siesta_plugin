@@ -36,8 +36,10 @@ class PaoManager:
         """
         Checks that the attributes are set, used in any function that
         is meant to return results.
+        Plase note that we also require self._pol_dict to be not None, in case
+        no polarized orbitals are present, self._pol_dict must be set to {}.
         """
-        if self.name is None or self._gen_dict is None:
+        if self.name is None or self._gen_dict is None or self._pol_dict is None:
             raise RuntimeError("You need to set first a PAO block")
 
     def set_from_ion(self, ion_data_instance):
