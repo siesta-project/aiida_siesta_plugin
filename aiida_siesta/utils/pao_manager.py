@@ -4,6 +4,8 @@ The PAO Manager
 
 from aiida.plugins import DataFactory
 
+ANG_TO_BOHR = 1.8897161646321
+
 
 class PaoManager:
     """
@@ -22,11 +24,14 @@ class PaoManager:
         3) self._pol_dict, containing information about the polarized orbitals (the one
            with attr "P" True)
         The structure of both dicts is
-            {n1 : { l1 : { z1 : r1, z2 : r2, ...}, l2 : ...} ...}
-        where n* l* z* are integers carring the value of the n,l shells and z (please note we do not
+            {n1 : { l1 : { Z1 : r1, Z2 : r2, ...}, l2 : ...} ...}
+        where n* l* Z* are integers carring the value of the n,l shells and Z (please note we do not
         keep track of quantum number m as in the PAO construction is not possible to specify different
         feature for m shells with same l) and r* are the maximum radius for the n,l,z orbital.
         Maximum radius for the siesta orbitals means the radius after which the radial part is zero.
+        Also note that the radii are parsed in Å (from IonData) and treated internally as Å like
+        any other aiida internals, however the Pao Block requires the radii in Bohr, therefore
+        extra care is necessary for methods that return the block and that accept explicit radii.
         """
         self.name = None
         self._gen_dict = None
@@ -42,11 +47,35 @@ class PaoManager:
         if self.name is None or self._gen_dict is None or self._pol_dict is None:
             raise RuntimeError("You need to set first a PAO block")
 
+    @staticmethod
+    def _validate_nlz(n, l, Z):  #pylint: disable=invalid-name
+        """
+        Checks that the passed n, l, Z conform with what it expected.
+
+        :param n: int, principal quantum number of the orbital to be polarized
+        :param l: int, angular quantum number of the orbital to be polarized
+        :param Z: int, the Z orbital to be changed.
+        """
+        for i in [n, l, Z]:
+            if not isinstance(i, int):
+                raise ValueError("n, l, Z must be integers")
+
+        if n < 0:
+            raise ValueError("n must be bigger or equal to zero")
+
+        if l < 0:
+            raise ValueError("l must be bigger or equal to zero")
+
+        if Z <= 0:
+            raise ValueError("Z must be bigger then zero")
+
     def set_from_ion(self, ion_data_instance):
         """
         Sets the basic attributes of the class from an IonData.
         It goes through orbitals and extracts the two fundamental dictionaries of the class:
         `_gen_dict` and `_pol_dict`.
+
+        :param ion_data_instance: the IonData instance from which to exctract the info.
         """
 
         if not isinstance(ion_data_instance, DataFactory("siesta.ion")):
@@ -89,11 +118,13 @@ class PaoManager:
 
     def change_all_radius(self, percentage):
         """
-        increment or decrement of all orbitas of a percentage.
-        :param: percentage: positive (for inscreasing) or negative
-                (for decrising) float representing the percentage
-                of change of the radius
-        Please nota that all radius are changed!
+        Increment or decrement the radius of all orbitas of a percentage.
+
+        :param percentage: positive (for inscreasing) or negative
+            (for decrising) float representing the percentage
+            of change of the radius.
+
+        All radii are changed, also the polarized one.
         """
         self._validate_attrs()
 
@@ -104,6 +135,8 @@ class PaoManager:
                     dictl[i][j][l] = dictl[i][j][l] + percentage / 100 * dictl[i][j][l]
         self._gen_dict = dictl
 
+        #Note that for the sake of a new pao_block, the radius of polarized
+        #orbitals does not matter. However we change it for consistency
         if self._pol_dict:
             pol = self._pol_dict.copy()
             for i in pol:
@@ -112,14 +145,62 @@ class PaoManager:
                         pol[i][j][l] = pol[i][j][l] + percentage / 100 * pol[i][j][l]
             self._pol_dict = pol
 
-    def add_polarization(self, n, l):  #pylint: disable=invalid-name
+    def reset_radius(self, radius_units, new_radius, n, l, Z=1):  #pylint: disable=invalid-name
         """
-        Add polarization to the orbital with quantum numbers n, l.
-        :param: n: principal quantum number of the orbital to be polarized
-        :param: l: angular quantum number of the orbital to be polarized
+        Reset the radius of an orbital with n, l, Z quantum numbers.
+
+        :param radius_units: either Bohr or Ang
+        :param new_radius: new radius that will be set, in Bohr or Ang
+        :param n: int, principal quantum number of the orbital to be polarized
+        :param l: int, angular quantum number of the orbital to be polarized
+        :param Z: int, the Z orbital to be changed.
+
+        For consistency, if a Z=1 orbital is changed, also the corresponding
+        polarized orbital is changed if present and the following Zs of the
+        polarized orbital (if presents) are set to zero.
+        Note: this last action is irrelevant for the the creation of Pao Blocks
+        as the radii of polarized orbitals can not be set manually in the Pao block.
         """
 
         self._validate_attrs()
+        self._validate_nlz(n, l, Z)
+
+        if radius_units not in ["Bohr", "Ang"]:
+            raise ValueError("`radius_units` only accepts 'Bohr' or 'Ang'")
+
+        if radius_units == "Bohr":
+            new_radius = new_radius / ANG_TO_BOHR
+
+        if n not in self._gen_dict or l not in self._gen_dict[n] or Z not in self._gen_dict[n][l]:
+            raise ValueError(f"No orbital defined with n={n}, l={l}, Z={Z}")
+
+        self._gen_dict[n][l][Z] = new_radius
+
+        if Z == 1:
+            try:
+                self._pol_dict[n][l][Z] = new_radius
+                if len(self._pol_dict[n][l]) > 1:
+                    for other_z in range(len(self._pol_dict[n][l]) - 1):
+                        self._pol_dict[n][l][other_z + 2] = 0.000
+            except KeyError:
+                pass
+
+    def add_polarization(self, n, l):  #pylint: disable=invalid-name
+        """
+        Add polarization to the orbital with quantum numbers n, l.
+
+        :param: n: principal quantum number of the orbital to be polarized
+        :param: l: angular quantum number of the orbital to be polarized
+
+        The polarized orbital is added in the internal `self._pol_dict` with
+        the same radius of the corresponding orbital in the `self._gen_dict`.
+        If more z are present, the radius is the one of the first zeta.
+        Note that for the sake of a new pao_block, the radius of polarized
+        orbitals does not matter. However we introduce it for consistency
+        """
+
+        self._validate_attrs()
+        self._validate_nlz(n, l, 1)
 
         try:
             self._gen_dict[n][l]
@@ -132,15 +213,111 @@ class PaoManager:
         else:
             self._pol_dict[n][l] = {"1": self._gen_dict[n][l][1]}
 
+    def remove_polarization(self, n, l):  #pylint: disable=invalid-name
+        """
+        Add polarization to the orbital with quantum numbers n, l.
+
+        :param: n: principal quantum number of the orbital to be polarized
+        :param: l: angular quantum number of the orbital to be polarized
+        """
+
+        self._validate_attrs()
+        self._validate_nlz(n, l, 1)
+
+        try:
+            self._pol_dict[n][l]
+        except KeyError:
+            raise ValueError(f"no polarized orbital with n={n} and l={l} is present in the basis")
+
+        num_z = len(self._pol_dict[n][l])
+        if num_z > 1:
+            self._pol_dict[n][l].pop(num_z)
+        else:
+            self._pol_dict[n].pop(l)
+
+        #remove eampty self._pol_dict[n]
+        if not self._pol_dict[n]:
+            self._pol_dict.pop(n)
+
+    def add_orbital(self, radius_units, radius, n, l, Z=1):  #pylint: disable=invalid-name
+        """
+        Add an orbital with n, l, Z quantum numbers.
+
+        :param radius_units: either Bohr or Ang
+        :param radius: new radius that will be set, in Bohr or Ang
+        :param n: int, principal quantum number of the orbital to be polarized
+        :param l: int, angular quantum number of the orbital to be polarized
+        :param Z: int, the Z orbital to be changed.
+
+        Note that the addition of Zs is sequential, meaning it is not possible
+        to add Z=m if Z=m-1 is not present.
+        """
+
+        self._validate_attrs()
+        self._validate_nlz(n, l, Z)
+
+        if radius_units not in ["Bohr", "Ang"]:
+            raise ValueError("`radius_units` only accepts 'Bohr' or 'Ang'")
+
+        if radius_units == "Bohr":
+            radius = radius / ANG_TO_BOHR
+
+        if n in self._gen_dict and l in self._gen_dict[n] and Z in self._gen_dict[n][l]:
+            raise ValueError(f"Orbital with n={n}, l={l}, Z={Z} is already present. Can not be added.")
+
+        if Z != 1:
+            try:
+                self._gen_dict[n][l][Z - 1]
+            except KeyError:
+                raise ValueError(f"Orbital with n={n}, l={l}, Z={Z-1} not present. Can not add further Zs")
+
+        try:
+            self._gen_dict[n][l][Z] = radius
+        except KeyError:
+            try:
+                self._gen_dict[n][l] = {Z: radius}
+            except KeyError:
+                self._gen_dict[n] = {l: {Z: radius}}
+
+    def remove_orbital(self, n, l, Z):  #pylint: disable=invalid-name
+        """
+        Add an orbital with n, l, Z quantum numbers.
+
+        :param radius_units: either Bohr or Ang
+        :param radius: new radius that will be set, in Bohr or Ang
+        :param n: int, principal quantum number of the orbital to be polarized
+        :param l: int, angular quantum number of the orbital to be polarized
+        :param Z: int, the Z orbital to be changed.
+        """
+
+        self._validate_attrs()
+        self._validate_nlz(n, l, Z)
+
+        if n not in self._gen_dict or l not in self._gen_dict[n] or Z not in self._gen_dict[n][l]:
+            raise ValueError(f"Orbital with n={n}, l={l}, Z={Z} is not present. Can not be removed.")
+
+        if Z + 1 in self._gen_dict[n][l]:
+            raise ValueError(f"Orbital with n={n}, l={l}, Z={Z+1} found. This needs to be removed first")
+
+        self._gen_dict[n][l].pop(Z)
+
+        #remove eampty dicts
+        if not self._gen_dict[n][l]:
+            self._gen_dict[n].pop(l)
+        if not self._gen_dict[n]:
+            self._gen_dict.pop(n)
+
     def get_pao_block(self):
         """
         From the info of the `_gen_dict`, `_pol_dict`, creates the PAO block.
+
         return: a string card containing the block.
+
+        Conversion into Bohr is performed.
         """
 
         self._validate_attrs()
 
-        ang_to_bohr = 1.8897161646321
         number_of_l = 0
         dictl = self._gen_dict
         pol = self._pol_dict
@@ -153,16 +330,16 @@ class PaoManager:
                 if i in pol:
                     if j in pol[i]:
                         atomic_paobasis_card += "  n={}  {}  {}  P {} \n".format(i, j, len(dictl[i][j]), len(pol[i][j]))
-                        listi = [dictl[i][j][l] * ang_to_bohr for l in dictl[i][j]]
+                        listi = [dictl[i][j][l] * ANG_TO_BOHR for l in dictl[i][j]]
                         atomic_paobasis_card += '\t'.join([f' {val}' for val in listi]) + "\n"
                     else:
                         atomic_paobasis_card += "  n={}  {}  {} \n".format(i, j, len(dictl[i][j]))
                         #print("  n={}  {}  {}".format(i, j, len(dictl[i][j])))
-                        listi = [dictl[i][j][l] * ang_to_bohr for l in dictl[i][j]]
+                        listi = [dictl[i][j][l] * ANG_TO_BOHR for l in dictl[i][j]]
                         atomic_paobasis_card += '\t'.join([f' {val}' for val in listi]) + "\n"
                 else:
                     atomic_paobasis_card += "  n={}  {}  {} \n".format(i, j, len(dictl[i][j]))
-                    listi = [dictl[i][j][l] * ang_to_bohr for l in dictl[i][j]]
+                    listi = [dictl[i][j][l] * ANG_TO_BOHR for l in dictl[i][j]]
                     atomic_paobasis_card += '\t'.join([f' {val}' for val in listi]) + "\n"
 
         return atomic_paobasis_card[:-1]
@@ -180,14 +357,16 @@ class PaoManager:
 
         max_z = 0
         for i in self._gen_dict:
-            if len(self._gen_dict[i]) > max_z:
-                max_z = len(self._gen_dict[i])
+            for j in self._gen_dict[i]:
+                if len(self._gen_dict[i][j]) > max_z:
+                    max_z = len(self._gen_dict[i][j])
 
         if self._pol_dict:
             max_pz = 0
             for i in self._pol_dict:
-                if len(self._pol_dict[i]) > max_pz:
-                    max_pz = len(self._pol_dict[i])
+                for j in self._pol_dict[i]:
+                    if len(self._pol_dict[i][j]) > max_pz:
+                        max_pz = len(self._pol_dict[i][j])
 
         dictma = ["S", "D", "T"]
         dictpo = ["", "D", "T"]
