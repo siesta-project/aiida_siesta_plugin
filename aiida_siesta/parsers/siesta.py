@@ -1,7 +1,7 @@
+import os
 import numpy as np
 from aiida.parsers import Parser
 from aiida.orm import Dict
-#from six.moves import range
 from aiida.common import OutputParsingError
 from aiida.common import exceptions
 
@@ -350,6 +350,20 @@ class SiestaParser(Parser):
             arraydata.set_array('stress', np.array(stress))
             self.out('forces_and_stress', arraydata)
 
+        #Attempt to parse the ion files.
+        from aiida_siesta.data.ion import IonData
+        ions = {}
+        in_struc = self.node.inputs.structure
+        for kind in in_struc.get_kind_names():
+            ion_file_name = kind + ".ion.xml"
+            if ion_file_name in output_folder._repository.list_object_names():
+                ion_file_path = os.path.join(output_folder._repository._get_base_folder().abspath, ion_file_name)
+                ions[kind] = IonData(ion_file_path)
+            else:
+                self.logger.warning(f"no ion file retrieved for {kind}")
+        if ions:
+            self.out('ion_files', ions)
+
         # Error analysis
         if have_errors_to_analyse:
             # No metter if "INFO: Job completed" is present (succesfull) or not, we check for known
@@ -414,7 +428,6 @@ class SiestaParser(Parser):
         Checks the output folder for standard output and standard error files, returns their absolute paths
         or "None" in case the file is not found in the remote folder.
         """
-        import os
 
         list_of_files = out_folder._repository.list_object_names()
 

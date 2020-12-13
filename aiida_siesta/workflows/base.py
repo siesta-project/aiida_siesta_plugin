@@ -55,11 +55,7 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
             cls.postprocess,
         )
 
-        spec.output('forces_and_stress', valid_type=orm.ArrayData, required=False)
-        spec.output('bands', valid_type=orm.BandsData, required=False)
-        spec.output('output_structure', valid_type=orm.StructureData, required=False)
-        spec.output('output_parameters', valid_type=orm.Dict)
-        spec.output('remote_folder', valid_type=orm.RemoteData)
+        spec.expose_outputs(SiestaCalculation)
 
         spec.exit_code(403, 'ERROR_BASIS_POL', message='Basis polarization problem.')
         spec.exit_code(404, 'ERROR_BANDS_PARSING', message='Error in the parsing of bands')
@@ -118,8 +114,19 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
 
     def postprocess(self):
         """
-        Here a higher level WorkChain could put postprocesses
+        In theory, the BaseRestartWorkChain should already return all the output
+        requested in spec if they are returned (output nodes) by the last completed
+        process. However this fails for `output_namespaces` (issue #4623 aiida-core).
+        For this reason I do the procedure to attach the `output_namespaces` here.
         """
+        if "ion_files" in self.spec().outputs:
+            ions = {}
+            node = self.ctx.children[self.ctx.iteration - 1]
+            for name in node.outputs:
+                if "ion_files" in name:
+                    output = node.get_outgoing(link_label_filter=name).one().node
+                    ions[name.replace("ion_files__", "")] = output
+            self.out("ion_files", ions)
 
     @process_handler(priority=70, exit_codes=_proc_exit_cod.GEOM_NOT_CONV)  #pylint: disable = no-member
     def handle_error_geom_not_conv(self, node):
