@@ -59,7 +59,8 @@
         "aiida.data": [
             "siesta.psf = aiida_siesta.data.psf:PsfData",
             "siesta.psml = aiida_siesta.data.psml:PsmlData",
-	    "siesta.ion = aiida_siesta.data.ion:IonData"
+	    "siesta.ion = aiida_siesta.data.ion:IonData",
+	    "siesta.pdos = aiida_siesta.data.pdos:PdosData"
         ],
         "aiida.cmdline.data": [
             "psf = aiida_siesta.commands.data_psf:psfdata",
