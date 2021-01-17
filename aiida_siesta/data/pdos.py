@@ -149,3 +149,31 @@ class PdosData(SinglefileData):
         os.remove("tmp.PDOS")
 
         return sisl_data[2]
+
+    def get_orbitals_list(self):
+
+        import sisl
+        import os
+
+        tmp_file = open("tmp.PDOS", "w")
+        tmp_file.write(self.get_content())
+        tmp_file.close()
+        sile = sisl.get_sile("tmp.PDOS")
+        sisl_data = sile.read_data()
+        os.remove("tmp.PDOS")
+
+        geom = sisl_data[0]
+
+        array_orbs = []
+        for count, atom in enumerate(geom.atoms):
+            for orbital in atom:
+                array_orbs.append([orbital, atom.tag, geom.xyz[count]])
+
+        return array_orbs
+
+    def get_pdos_manager(self):
+        from aiida_siesta.utils.pdos_manager import PdosManager
+
+        man = PdosManager()
+        man.set_from_pdos(self)
+        return man
