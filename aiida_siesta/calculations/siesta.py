@@ -5,6 +5,7 @@ from aiida.common.constants import elements
 from aiida.engine import CalcJob
 from aiida.orm import Dict, StructureData, BandsData, ArrayData
 from aiida_siesta.calculations.tkdict import FDFDict
+from aiida_siesta.data.eig import EigData
 from aiida_siesta.data.psf import PsfData
 from aiida_siesta.data.psml import PsmlData
 from aiida_siesta.data.ion import IonData
@@ -82,6 +83,7 @@ class SiestaCalculation(CalcJob):
         spec.inputs['metadata']['options']['parser_name'].default = 'siesta.parser'
 
         # Output nodes
+        spec.output('eig', valid_type=EigData, required=False, help='The eigenvalues')
         spec.output('output_parameters', valid_type=Dict, required=True, help='The calculation results')
         spec.output('output_structure', valid_type=StructureData, required=False, help='Optional relaxed structure')
         spec.output('bands', valid_type=BandsData, required=False, help='Optional band structure')
@@ -426,10 +428,14 @@ class SiestaCalculation(CalcJob):
         # messages file, and the json timing file.
         # If bandskpoints, also the bands file is added to the retrieve list.
         calcinfo.retrieve_list = []
+        eig_file = str(metadataoption.prefix) + ".EIG"
+        kp_file = str(metadataoption.prefix) + ".KP"
         xml_file = str(metadataoption.prefix) + ".xml"
         bands_file = str(metadataoption.prefix) + ".bands"
         calcinfo.retrieve_list.append(metadataoption.output_filename)
         #calcinfo.retrieve_list.append(metadataoption.input_filename)
+        calcinfo.retrieve_list.append(eig_file)
+        calcinfo.retrieve_list.append(kp_file)
         calcinfo.retrieve_list.append(xml_file)
         calcinfo.retrieve_list.append(self._JSON_FILE)
         calcinfo.retrieve_list.append(self._MESSAGES_FILE)

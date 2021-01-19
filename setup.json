@@ -57,6 +57,7 @@
 	    "siesta.sequential_converger = aiida_siesta.workflows.converge:SiestaSequentialConverger"
         ],
         "aiida.data": [
+	    "siesta.eig = aiida_siesta.data.eig:EigData",
             "siesta.psf = aiida_siesta.data.psf:PsfData",
             "siesta.psml = aiida_siesta.data.psml:PsmlData",
 	    "siesta.ion = aiida_siesta.data.ion:IonData"

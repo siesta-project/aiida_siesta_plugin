@@ -350,6 +350,23 @@ class SiestaParser(Parser):
             arraydata.set_array('stress', np.array(stress))
             self.out('forces_and_stress', arraydata)
 
+        from aiida_siesta.data.eig import EigData
+        import sisl
+        kp_file = str(self.node.get_option('prefix')) + ".KP"
+        eig_file = str(self.node.get_option('prefix')) + ".EIG"
+        if eig_file in output_folder._repository.list_object_names():
+            eig_file_path = os.path.join(output_folder._repository._get_base_folder().abspath, eig_file)
+            sile = sisl.get_sile(eig_file_path)
+            data_eig = sile.read_data()
+            eig = EigData()
+            eig.set_eigs(data_eig)
+            eig.e_fermi = sile.read_fermi_level()
+            if kp_file in output_folder._repository.list_object_names():
+                kp_file_path = os.path.join(output_folder._repository._get_base_folder().abspath, kp_file)
+                sile = sisl.get_sile(kp_file_path)
+                eig.set_kpoints(sile.read_data()[0],weights=sile.read_data()[1])
+            self.out('eig', eig)
+
         #Attempt to parse the ion files.
         from aiida_siesta.data.ion import IonData
         ions = {}
