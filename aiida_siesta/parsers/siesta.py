@@ -359,8 +359,10 @@ class SiestaParser(Parser):
             sile = sisl.get_sile(eig_file_path)
             data_eig = sile.read_data()
             eig = EigData()
-            eig.set_eigs(data_eig)
             eig.e_fermi = sile.read_fermi_level()
+            #CAREFULL: sile.read_data() already shift the eig to e_fermi = 0, but we do not want that!!!
+            #I have to resum the fermi energy. Then in EigData optionally can be subtracted again.
+            eig.set_eigs(data_eig + eig.e_fermi)
             if kp_file in output_folder._repository.list_object_names():
                 kp_file_path = os.path.join(output_folder._repository._get_base_folder().abspath, kp_file)
                 sile = sisl.get_sile(kp_file_path)

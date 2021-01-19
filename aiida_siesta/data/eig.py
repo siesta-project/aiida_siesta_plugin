@@ -12,7 +12,7 @@ class EigData(KpointsData):
         """
         The fermi energy, in eV
         """
-        return self.get_attribute('ef', None)
+        return self.get_attribute('e_fermi', None)
 
     @e_fermi.setter
     def e_fermi(self, e_fermi):
