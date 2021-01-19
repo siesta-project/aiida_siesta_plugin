@@ -364,7 +364,7 @@ class SiestaParser(Parser):
             if kp_file in output_folder._repository.list_object_names():
                 kp_file_path = os.path.join(output_folder._repository._get_base_folder().abspath, kp_file)
                 sile = sisl.get_sile(kp_file_path)
-                eig.set_kpoints(sile.read_data()[0],weights=sile.read_data()[1])
+                eig.set_kpoints(sile.read_data()[0], weights=sile.read_data()[1])
             self.out('eig', eig)
 
         #Attempt to parse the ion files.
