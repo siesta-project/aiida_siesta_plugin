@@ -178,7 +178,7 @@ def generate_psml_data():
 
 @pytest.fixture(scope='session')
 def generate_ion_data():
-    """Return a `PsmlData` instance for the given element a file for which should exist in `tests/ions`."""
+    """Return a `IonData` instance for the given element a file for which should exist in `tests/ions`."""
 
     def _generate_ion_data(element):
         """Return `IonData` node."""
