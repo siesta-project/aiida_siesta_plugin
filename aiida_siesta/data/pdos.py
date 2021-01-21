@@ -9,7 +9,7 @@ from aiida.common.exceptions import StoringNotAllowed
 def parse_pdos(fname):
     """
     Try to get few relevant information from the pdos. For the moment, only the
-    element symbol, name, mass and atomic number.
+    n_spin, n_orbitals, fermi_energy, min_energy, max_energy, bins.
     Raise a ParsingError exception if the file does not contain the element symbol
     or the atomic number. The presence in the file of mass and name is, instead, considered
     optional. If not present, None is returned.
@@ -45,9 +45,7 @@ class PdosData(SinglefileData):
         """
         This is called in the __init__ of SingleFileData
         """
-        # print("Called set_file","type of filename:",type(filename))
         parsed_data = parse_pdos(file_abs_path)
-        #md5 = md5_file(file_abs_path)
 
         super().set_file(file_abs_path, filename)
 
@@ -62,7 +60,7 @@ class PdosData(SinglefileData):
         """
         Store the node. It requires a previous check on the assigned attributes.
         In fact, the attributes of this particular class must just reflect the info
-        in the ion file. However the design of `Data` class do not allow to
+        in the pdos file. However the design of `Data` class do not allow to
         make attributes immutable before storing and, therefore, a crazy user
         might think to change them before storing.
         Here we check that the attributes actually corresponds to the file info.
@@ -123,7 +121,10 @@ class PdosData(SinglefileData):
         return self.get_attribute('bins', None)
 
     def get_energy_array(self):
-
+        """
+        Uses sisl to get the array of energies where the pdos has been calculated.
+        The array has dimention 1.
+        """
         import sisl
         import os
 
@@ -137,9 +138,14 @@ class PdosData(SinglefileData):
         return sisl_data[1]
 
     def get_pdoses_array(self):
-
+        """
+        Return the pdoses array, a np.array of dimension n_spin x n_orbitals x len(energy_array).
+        The sisl_data[2] returns an array of the right dimensions only for spin >=2. For
+        spin 1 it returns an array n_orbitals x len(energy_array), we fix this here.
+        """
         import sisl
         import os
+        import numpy as np
 
         tmp_file = open("tmp.PDOS", "w")
         tmp_file.write(self.get_content())
@@ -148,9 +154,18 @@ class PdosData(SinglefileData):
         sisl_data = sile.read_data()
         os.remove("tmp.PDOS")
 
+        if self.n_spin == 1:
+            return np.array([sisl_data[2]])
+
         return sisl_data[2]
 
     def get_orbitals_list(self):
+        """
+        Return the list of orbitals whose pdos has been calculated.
+        each element of the list is a list containing the `sisl.AtomicOrbital`
+        corresponding hosting the orbital info, the symbol and the position
+        of the atom hosting the orbital.
+        """
 
         import sisl
         import os
@@ -172,6 +187,10 @@ class PdosData(SinglefileData):
         return array_orbs
 
     def get_pdos_manager(self):
+        """
+        Return an instance of PdosManager, where the pdos info are already set from
+        the current PdosData.
+        """
         from aiida_siesta.utils.pdos_manager import PdosManager
 
         man = PdosManager()
