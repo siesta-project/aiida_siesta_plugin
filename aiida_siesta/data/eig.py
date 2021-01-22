@@ -79,7 +79,7 @@ class EigData(KpointsData):
         if smearing is None:
             smearing = K2EV * 300
         else:
-            if not isinstance(e_max, (float, int)):
+            if not isinstance(smearing, (float, int)):
                 raise ValueError("The `smearing` must be an integer or a float")
 
         return e_max, e_min, smearing

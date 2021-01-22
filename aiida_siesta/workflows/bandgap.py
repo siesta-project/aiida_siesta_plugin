@@ -7,6 +7,12 @@ from aiida_siesta.calculations.tkdict import FDFDict
 
 
 def drop_md_keys(param):
+    """
+    Drop the molecular dinamics keyword from the parameters dictionary.
+
+    :param param: dict containing the parameters of the calculation
+    :retuen param: dict where the md keywords have been removed
+    """
     for item in param.copy().keys():
         trans_item = FDFDict.translate_key(item)
         if trans_item.startswith("md"):
