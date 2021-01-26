@@ -189,12 +189,21 @@ def get_last_structure(xmldoc, input_structure):
     if finalmodule is None:
         return False, input_structure
 
+    # When using floating orbitals, Siesta associates 'atomic positions' to them, and
+    # the structure (and forces) in the XML file include these fake atoms.
+    # In order to return physical structures and forces, we need to remove them.
+    #
+    # Recall that the input structure is the physical one, as the floating orbitals
+    # are specified in the 'basis' input
+
+    number_of_real_atoms = len(input_structure.sites)
+
     atoms = finalmodule.getElementsByTagName('atom')
     cellvectors = finalmodule.getElementsByTagName('latticeVector')
 
     atomlist = []
 
-    for atm in atoms:
+    for atm in atoms[0:number_of_real_atoms]:
         kind = atm.attributes['elementType'].value
         x = atm.attributes['x3'].value
         y = atm.attributes['y3'].value
@@ -206,14 +215,26 @@ def get_last_structure(xmldoc, input_structure):
         data = latt.childNodes[0].data.split()
         cell.append([float(s) for s in data])
 
-    # Generally it is better to pass the input structure and reset the data, since site
+    # Generally it is better to clone the input structure and reset the data, since site
     # 'names' are not handled by the CML file (at least not in Siesta versions <= 4.0)
-    stru = input_structure.clone()
-    stru.reset_cell(cell)
-    new_pos = [atom[1] for atom in atomlist]
-    stru.reset_sites_positions(new_pos)
 
-    return True, stru
+    import copy
+    from aiida.orm.nodes.data.structure import Site
+    new_structure = input_structure.clone()
+    new_structure.reset_cell(cell)
+    new_structure.clear_sites()
+    for i in range(number_of_real_atoms):
+        new_site = Site(site=input_structure.sites[i])
+        new_site.position = copy.deepcopy(atomlist[i][1])
+        new_structure.append_site(new_site)
+
+    # The most obvious alternative does not work, as the reset method below does not
+    # work if the numbers do not match.
+    #
+    ## new_pos = [atom[1] for atom in atomlist]
+    ## new_structure.reset_sites_positions(new_pos)
+
+    return True, new_structure
 
 
 def get_final_forces_and_stress(xmldoc):
@@ -329,16 +350,32 @@ class SiestaParser(Parser):
         output_data = Dict(dict=output_dict)
         self.out('output_parameters', output_data)
 
+        #
+        # When using floating orbitals, Siesta associates 'atomic positions' to them, and
+        # the structure and forces in the XML file include these fake atoms.
+        # In order to return physical structures and forces, we need to remove them.
+        #
+        # Recall that the input structure is the physical one, and the floating orbitals
+        # are specified in the 'basis' input
+        #
+        physical_structure = self.node.inputs.structure
+        number_of_real_atoms = len(physical_structure.sites)
+        
         # If the structure has changed, save it
+        # 
         if output_dict['variable_geometry']:
             in_struc = self.node.inputs.structure
             # The next function never fails. If problems arise, the initial structure is
             # returned. The input structure is also necessary because the CML file
             # traditionally contains only the atomic symbols and not the site names.
-            success, struc = get_last_structure(xmldoc, in_struc)
+            #
+            # The returned structure does not have any floating atoms
+            #
+            success, out_struc = get_last_structure(xmldoc, in_struc)
             if not success:
                 self.logger.warning("Problem in parsing final structure, returning inp structure in output_structure")
-            self.out('output_structure', struc)
+
+            self.out('output_structure', out_struc)
 
         # Attempt to parse forces and stresses. In case of failure "None" is returned.
         # Therefore the function never crashes
@@ -346,11 +383,17 @@ class SiestaParser(Parser):
         if forces is not None and stress is not None:
             from aiida.orm import ArrayData
             arraydata = ArrayData()
-            arraydata.set_array('forces', np.array(forces))
+            arraydata.set_array('forces', np.array(forces[0:number_of_real_atoms]))
             arraydata.set_array('stress', np.array(stress))
             self.out('forces_and_stress', arraydata)
 
         #Attempt to parse the ion files.
+        #
+        # Note that no "floating orbs" ion files will be processed with the
+        # code below, since they do not appear in the input structure
+        # To cover them, the 'basis' input needs to be examined for any floating
+        # orbitals entry, and the items added here. (ToDo)
+        #
         from aiida_siesta.data.ion import IonData
         ions = {}
         in_struc = self.node.inputs.structure

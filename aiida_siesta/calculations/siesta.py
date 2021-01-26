@@ -116,8 +116,16 @@ class SiestaCalculation(CalcJob):
         ###########################################################################
 
         code = self.inputs.code
-        structure = self.inputs.structure
+
+        #
+        # Make a copy of the input structure object
+        #
+        import copy
+        original_structure = self.inputs.structure
+        structure = copy.deepcopy(original_structure)
+        
         parameters = self.inputs.parameters
+        pseudos = self.inputs.pseudos
 
         if 'kpoints' in self.inputs:
             kpoints = self.inputs.kpoints
@@ -145,14 +153,6 @@ class SiestaCalculation(CalcJob):
         else:
             parent_calc_folder = None
 
-        pseudos = self.inputs.pseudos
-        kinds = [kind.name for kind in structure.kinds]
-        if set(kinds) != set(pseudos.keys()):
-            raise ValueError(
-                'Mismatch between the defined pseudos and the list of kinds of the structure.\n',
-                'Pseudos: {} \n'.format(', '.join(list(pseudos.keys()))),
-                'Kinds: {}'.format(', '.join(list(kinds))),
-            )
 
         ##############################
         # END OF INITIAL INPUT CHECK #
@@ -166,6 +166,19 @@ class SiestaCalculation(CalcJob):
         # List of files for restart
         remote_copy_list = []
 
+        # --- Preliminary check for floating orbitals ---
+
+        if basis is not None:
+            basis_dict = basis.get_dict()
+            floating = basis_dict.pop('floating_orbitals', None)
+            floating_species_names = []
+            if floating is not None:
+                for item in floating:
+                    structure.append_atom(position=item[2],
+                                          symbols=[item[1]],
+                                          name=item[0])
+                    floating_species_names.append(item[0])
+                    
         # ============== Preprocess of input parameters ===============
 
         input_params = FDFDict(parameters.get_dict())
@@ -222,10 +235,31 @@ class SiestaCalculation(CalcJob):
         for kind in structure.kinds:
             spcount += 1  # species count
             spind[kind.name] = spcount
+            atomic_number = datmn[kind.symbol]
+            #
+            # Siesta expects negative atomic numbers for floating species
+            #
+            if kind.name in floating_species_names:
+                atomic_number = -atomic_number
+                
             atomic_species_card_list.append(
-                "{0:5} {1:5} {2:5}\n".format(spind[kind.name], datmn[kind.symbol], kind.name.rjust(6))
+                "{0:5} {1:5} {2:5}\n".format(spind[kind.name], atomic_number, kind.name.rjust(6))
             )
-            psp = pseudos[kind.name]
+            #
+            # Now we process the pseudopotentials. If we cannot find
+            # that correponding to a given species name (for example,
+            # C_surf, or Na_ghost), we try with the atomic symbol (C
+            # or Na, respectively). If this fails, we abort.
+            #
+            try:
+                psp = pseudos[kind.name]
+            except KeyError:
+                try:
+                    psp = pseudos[kind.symbol]
+                except KeyError:
+                    raise InputValidationError("I cannot find a pseudopotential for species {}\n".format(kind.name))
+                    
+                    
             # Add this pseudo file to the list of files to copy, with the appropiate name.
             # In the case of sub-species (different kind.name but same kind.symbol, e.g.,
             # 'C_surf', sharing the same pseudo with 'C'), we copy the file ('C.psf')
@@ -233,12 +267,15 @@ class SiestaCalculation(CalcJob):
             # It is passed in form of a list of tuples with format ('node_uuid', 'filename',
             # relativedestpath'). We probably should be pre-pending 'self._PSEUDO_SUBFOLDER'
             # in the last slot, for generality, even if is not necessary for siesta.
+            
             if isinstance(psp, PsfData):
                 local_copy_list.append((psp.uuid, psp.filename, kind.name + ".psf"))
             elif isinstance(psp, PsmlData):
                 local_copy_list.append((psp.uuid, psp.filename, kind.name + ".psml"))
             else:
                 pass
+        #--- end of 'for kind' loop
+        
         atomic_species_card_list = (["%block chemicalspecieslabel\n"] + list(atomic_species_card_list))
         atomic_species_card = "".join(atomic_species_card_list)
         atomic_species_card += "%endblock chemicalspecieslabel\n"
@@ -381,7 +418,7 @@ class SiestaCalculation(CalcJob):
             # in the basis dictionary in the input script.
             if basis is not None:
                 infile.write("#\n# -- Basis Set Info follows\n#\n")
-                for k, v in basis.get_dict().items():
+                for k, v in basis_dict.items():
                     infile.write("%s %s\n" % (k, v))
 
             # Write previously generated cards now
