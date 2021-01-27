@@ -364,6 +364,16 @@ class SiestaParser(Parser):
         if ions:
             self.out('ion_files', ions)
 
+        # Parse eps2 file produced by optical-properties analysis
+        eps2_file = str(self.node.get_option('prefix')) + ".EPSIMG"
+        if eps2_file in output_folder._repository.list_object_names():
+            eps2_file_path = os.path.join(output_folder._repository._get_base_folder().abspath, eps2_file)
+            eps2_list = self._get_eps2(eps2_file_path)
+            optical_eps2 = ArrayData()
+            optical_eps2.set_array('e_eps2', np.array(eps2_list))
+            self.out('optical_eps2', optical_eps2)
+            
+            
         # Error analysis
         if have_errors_to_analyse:
             # No metter if "INFO: Job completed" is present (succesfull) or not, we check for known
@@ -493,6 +503,8 @@ class SiestaParser(Parser):
         #Therefore the list is eampty but the Bool knows that something was wrong.
         return False, lines[:-1]
 
+                  
+        
     def _get_bands(self, bands_path):
         # The parsing is different depending on whether I have Bands or Points.
         # I recognise these two situations by looking at bandskpoints.label
@@ -544,3 +556,23 @@ class SiestaParser(Parser):
             raise ValueError('detected nspin > 2, something wrong')
 
         return bands  #, coords
+
+    #
+    # Simple parser for EPSIMG file
+    #
+    def _get_eps2(self, eps2_path):
+
+        eps2_list = []
+
+        with open(eps2_path,'r') as fh:
+            for line in fh:
+                # check if the current line
+                # starts with "#"
+                if line.startswith("#"):
+                    pass
+                else:
+                    e_and_eps2  = [ float(i) for i in line.split()]
+                    eps2_list.append(e_and_eps2)
+                        
+        return eps2_list
+                  
