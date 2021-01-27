@@ -30,8 +30,9 @@ class SiestaCalculation(CalcJob):
     ###################################################################
 
     # Parameters stored as class variables
-    # 1) Keywords that cannot be set (already canonized by FDFDict)
-    # 2) Filepaths of certain outputs
+
+    # 1) Keywords that cannot be set (already canonicalized by FDFDict)
+
     _aiida_blocked_keywords = [FDFDict.translate_key('system-name'), FDFDict.translate_key('system-label')]
     _aiida_blocked_keywords.append(FDFDict.translate_key('number-of-species'))
     _aiida_blocked_keywords.append(FDFDict.translate_key('number-of-atoms'))
@@ -41,6 +42,9 @@ class SiestaCalculation(CalcJob):
     _aiida_blocked_keywords.append(FDFDict.translate_key('xml-write'))
     _aiida_blocked_keywords.append(FDFDict.translate_key('dm-use-save-dm'))
     _aiida_blocked_keywords.append(FDFDict.translate_key('geometry-must-converge'))
+    _aiida_blocked_keywords.append(FDFDict.translate_key('optical-calculation'))
+    
+    # 2) Filepaths of certain outputs
     _PSEUDO_SUBFOLDER = './'
     _OUTPUT_SUBFOLDER = './'
     _JSON_FILE = 'time.json'
@@ -68,6 +72,7 @@ class SiestaCalculation(CalcJob):
         spec.input('kpoints', valid_type=orm.KpointsData, help='Input kpoints', required=False)
         spec.input('bandskpoints', valid_type=orm.KpointsData, help='Input kpoints for bands', required=False)
         spec.input('basis', valid_type=orm.Dict, help='Input basis', required=False)
+        spec.input('optical', valid_type=orm.Dict, help='Specifications for optical properties', required=False)
         spec.input('settings', valid_type=orm.Dict, help='Input settings', required=False)
         spec.input('parameters', valid_type=orm.Dict, help='Input parameters')
         spec.input('parent_calc_folder', valid_type=orm.RemoteData, required=False, help='Parent folder')
@@ -87,6 +92,7 @@ class SiestaCalculation(CalcJob):
         spec.output('bands', valid_type=BandsData, required=False, help='Optional band structure')
         #spec.output('bands_parameters', valid_type=Dict, required=False, help='Optional parameters of bands')
         spec.output('forces_and_stress', valid_type=ArrayData, required=False, help='Optional forces and stress')
+        spec.output('optical_eps2', valid_type=ArrayData, required=False, help='Optional eps2 optical data')
         spec.output_namespace('ion_files', valid_type=IonData, dynamic=True, required=False)
 
         # Option that allows acces through node.res should be existing output node and a Dict
@@ -139,6 +145,11 @@ class SiestaCalculation(CalcJob):
             bandskpoints = self.inputs.bandskpoints
         else:
             bandskpoints = None
+
+        if 'optical' in self.inputs:
+            optical = self.inputs.optical
+        else:
+            optical = None
 
         if 'parent_calc_folder' in self.inputs:
             parent_calc_folder = self.inputs.parent_calc_folder
@@ -278,6 +289,7 @@ class SiestaCalculation(CalcJob):
             kpoints_card += "%endblock kgrid_monkhorst_pack\n"
             del kpoints_card_list
 
+            
         # ----------------- K-POINTS-FOR-BANDS ----------------------
         #Two possibility are supported in Siesta: BandLines ad BandPoints
         #At the moment the user can't choose directly one of the two options
@@ -370,11 +382,15 @@ class SiestaCalculation(CalcJob):
         input_filename = folder.get_abs_path(metadataoption.input_filename)
 
         with open(input_filename, 'w') as infile:
-            # here print keys and values tp file
 
+            # here print keys and values to file
+            # Should we put this at the end, in case some of the items override
+            # more "controlled" input? (e.g. some optical properties option)
+            
             for k, v in sorted(input_params.get_filtered_items()):
                 infile.write("%s %s\n" % (k, v))
 
+            #-------------------------------------------------
             # Basis set info is processed just like the general
             # parameters section. Some discipline is needed to
             # put any basis-related parameters (including blocks)
@@ -384,14 +400,56 @@ class SiestaCalculation(CalcJob):
                 for k, v in basis.get_dict().items():
                     infile.write("%s %s\n" % (k, v))
 
+            #
+            #-------------------------------------------------
+            # Optical properties info. Again, this is just given in a standard
+            # dictionary, but we make sure that the option is turned on, and
+            # that we have a direction vector.
+            # For now, only 'polarized' calculations are allowed
+            # The k-point sampling is modeled after the scf one if absent.
+
+            # Since we are making "default" choices here, how do we record
+            # the actual values used? (direction, mesh, etc)?
+            # (This is in addition to the other 'defaults' elsewhere, for
+            # optical properties and the whole program.
+            #
+            if optical is not None:
+
+                optical_dict = FDFDict(optical.get_dict())
+                optical_dict.update({'optical-calculation': True})
+                optical_dict.update({'optical-polarization-type': 'polarized'})
+                    
+                infile.write("#\n# -- Optical properties Info follows\n#\n")
+                for k, v in optical_dict.items():
+                    infile.write("%s %s\n" % (k, v))
+                #
+                if not ('%block optical-vector' in optical_dict):
+                    infile.write("# (default vector direction)\n")
+                    infile.write("%block optical-vector\n")
+                    infile.write("1.0 0.0 0.0\n")
+                    infile.write("%endblock optical-vector\n")
+
+                if not ('%block optical-mesh' in optical_dict):
+                    if kpoints is not None:
+                        mesh, offset = kpoints.get_kpoints_mesh()
+                        infile.write("# (mesh generated by default from scf sampling info)\n")
+                        infile.write("%block optical-mesh\n")
+                        infile.write("{0:6} {1:6} {2:6}\n".format(mesh[0], mesh[1], mesh[2]))
+                        infile.write("%endblock optical-mesh\n")
+
+                        
             # Write previously generated cards now
+            #
+            #-------------------------------------------------
             infile.write("#\n# -- Structural Info follows\n#\n")
             infile.write(atomic_species_card)
             infile.write(cell_parameters_card)
             infile.write(atomic_positions_card)
+
             if kpoints is not None:
                 infile.write("#\n# -- K-points Info follows\n#\n")
                 infile.write(kpoints_card)
+
             if bandskpoints is not None:
                 infile.write("#\n# -- Bandlines/Bandpoints Info follows\n#\n")
                 infile.write(fbkpoints_card)
@@ -422,20 +480,29 @@ class SiestaCalculation(CalcJob):
         calcinfo.stdin_name = metadataoption.input_filename
         calcinfo.stdout_name = metadataoption.output_filename
         calcinfo.codes_info = [codeinfo]
+        
         # Retrieve by default: the output file, the xml file, the
         # messages file, and the json timing file.
         # If bandskpoints, also the bands file is added to the retrieve list.
+        # If getting optical props, also the .EPSIMG file is added.
+        
         calcinfo.retrieve_list = []
         xml_file = str(metadataoption.prefix) + ".xml"
         bands_file = str(metadataoption.prefix) + ".bands"
+        eps2_file = str(metadataoption.prefix) + ".EPSIMG"
+
         calcinfo.retrieve_list.append(metadataoption.output_filename)
         #calcinfo.retrieve_list.append(metadataoption.input_filename)
         calcinfo.retrieve_list.append(xml_file)
         calcinfo.retrieve_list.append(self._JSON_FILE)
         calcinfo.retrieve_list.append(self._MESSAGES_FILE)
         calcinfo.retrieve_list.append("*.ion.xml")
+
         if bandskpoints is not None:
             calcinfo.retrieve_list.append(bands_file)
+        if optical is not None:
+            calcinfo.retrieve_list.append(eps2_file)
+
         # Any other files specified in the settings dictionary
         settings_retrieve_list = settings_dict.pop('ADDITIONAL_RETRIEVE_LIST', [])
         calcinfo.retrieve_list += settings_retrieve_list
