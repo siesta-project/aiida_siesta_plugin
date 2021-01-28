@@ -383,6 +383,15 @@ class SiestaParser(Parser):
         if ions:
             self.out('ion_files', ions)
 
+        #Attempt to parse PDOS. If only if PDOS requested in input (check parameters?)
+        #Warning if not retrieved but no error.
+        from aiida_siesta.data.pdos import PdosData
+        pdos_file = str(self.node.get_option('prefix')) + ".PDOS"
+        if pdos_file in output_folder._repository.list_object_names():
+            pdos_file_path = os.path.join(output_folder._repository._get_base_folder().abspath, pdos_file)
+            pdos = PdosData(pdos_file_path)
+            self.out('pdos', pdos)
+
         # Error analysis
         if have_errors_to_analyse:
             # No metter if "INFO: Job completed" is present (succesfull) or not, we check for known

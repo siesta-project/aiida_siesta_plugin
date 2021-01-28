@@ -9,6 +9,7 @@ from aiida_siesta.data.eig import EigData
 from aiida_siesta.data.psf import PsfData
 from aiida_siesta.data.psml import PsmlData
 from aiida_siesta.data.ion import IonData
+from aiida_siesta.data.pdos import PdosData
 
 # See the LICENSE.txt and AUTHORS.txt files.
 
@@ -89,6 +90,7 @@ class SiestaCalculation(CalcJob):
         spec.output('bands', valid_type=BandsData, required=False, help='Optional band structure')
         #spec.output('bands_parameters', valid_type=Dict, required=False, help='Optional parameters of bands')
         spec.output('forces_and_stress', valid_type=ArrayData, required=False, help='Optional forces and stress')
+        spec.output('pdos', valid_type=PdosData, required=False, help='Optional pdos file')
         spec.output_namespace('ion_files', valid_type=IonData, dynamic=True, required=False)
 
         # Option that allows acces through node.res should be existing output node and a Dict
@@ -432,6 +434,8 @@ class SiestaCalculation(CalcJob):
         kp_file = str(metadataoption.prefix) + ".KP"
         xml_file = str(metadataoption.prefix) + ".xml"
         bands_file = str(metadataoption.prefix) + ".bands"
+        pdos_file = str(metadataoption.prefix) + ".PDOS"
+        dos_file = str(metadataoption.prefix) + ".DOS"
         calcinfo.retrieve_list.append(metadataoption.output_filename)
         #calcinfo.retrieve_list.append(metadataoption.input_filename)
         calcinfo.retrieve_list.append(eig_file)
@@ -440,6 +444,9 @@ class SiestaCalculation(CalcJob):
         calcinfo.retrieve_list.append(self._JSON_FILE)
         calcinfo.retrieve_list.append(self._MESSAGES_FILE)
         calcinfo.retrieve_list.append("*.ion.xml")
+        if "%block projecteddensityofstates" in input_params:
+            calcinfo.retrieve_list.append(pdos_file)
+            calcinfo.retrieve_list.append(dos_file)
         if bandskpoints is not None:
             calcinfo.retrieve_list.append(bands_file)
         # Any other files specified in the settings dictionary
