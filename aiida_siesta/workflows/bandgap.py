@@ -117,7 +117,7 @@ class BandgapWorkChain(WorkChain):
         Run the SiestaBaseWorkChain, might be a relaxation or a scf only.
         """
 
-        self.report('Initial checks where succesfull')
+        self.report('Initial checks were succesfull')
 
         inputs = AttributeDict(self.exposed_inputs(SiestaBaseWorkChain))
 

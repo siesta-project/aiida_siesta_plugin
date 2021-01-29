@@ -245,6 +245,25 @@ class EosWorkChainInputsGenerator(BaseWorkChainInputsGenerator):
     }
 
 
+class DosPdosWorkChainInputsGenerator(BaseWorkChainInputsGenerator):
+    """
+    Inputs generator for the DosPdosWorkChain, makes use of the methods
+    of the BaseWorkChainInputsGenerator, only the __init__ requires the correct
+    workchain class in input and the `get_inputs_dict` an extra input to set
+    the automatic choice of kpoints for the dos/pdos calculation.
+    """
+
+    def get_inputs_dict(
+        self, structure, calc_engines, protocol, bands_path_generator=None, relaxation_type=None, spin=None
+    ):
+
+        inps = super().get_inputs_dict(structure, calc_engines, protocol, bands_path_generator, relaxation_type, spin)
+
+        inps['dos'] = {'kpoints_mesh': 'automatic'}
+
+        return inps
+
+
 class StmWorkChainInputsGenerator(BaseWorkChainInputsGenerator):
     """
     Inputs generator for the STMWorkChain, makes use of the methods
