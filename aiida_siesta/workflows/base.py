@@ -40,6 +40,7 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
         spec.input('bandskpoints', valid_type=orm.KpointsData, required=False)
         spec.input('parameters', valid_type=orm.Dict)
         spec.input('basis', valid_type=orm.Dict, required=False)
+        spec.input('optical', valid_type=orm.Dict, required=False)
         spec.input('settings', valid_type=orm.Dict, required=False)
         spec.input('options', valid_type=orm.Dict)
 
@@ -101,6 +102,8 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
         if 'bandskpoints' in self.inputs:
             self.ctx.want_band_structure = True
             self.ctx.inputs['bandskpoints'] = self.inputs.bandskpoints
+        if 'optical' in self.inputs:
+            self.ctx.inputs['optical'] = self.inputs.optical.get_dict()
         if 'parent_calc_folder' in self.inputs:
             self.ctx.inputs['parent_calc_folder'] = self.inputs.parent_calc_folder
 

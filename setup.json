@@ -1,5 +1,5 @@
 {
-    "version": "Dev-post1.1.1",
+    "version": "Dev-post1.1.1-optical",
     "name": "aiida-siesta",
     "url": "https://github.com/siesta-project/aiida_siesta_plugin",
     "keywords": ["aiida", "siesta", "dft"],
@@ -52,6 +52,7 @@
 	    "siesta.eos = aiida_siesta.workflows.eos:EqOfStateFixedCellShape",
 	    "siesta.bandgap = aiida_siesta.workflows.bandgap:BandgapWorkChain",
             "siesta.stm = aiida_siesta.workflows.stm:SiestaSTMWorkChain",
+            "siesta.epsilon = aiida_siesta.workflows.epsilon:EpsilonWorkChain",
 	    "siesta.iterator = aiida_siesta.workflows.iterate:SiestaIterator",
 	    "siesta.converger = aiida_siesta.workflows.converge:SiestaConverger",
 	    "siesta.sequential_converger = aiida_siesta.workflows.converge:SiestaSequentialConverger"
