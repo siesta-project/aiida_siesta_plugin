@@ -280,7 +280,7 @@ class DosPdosWorkChain(WorkChain):
 
         spec.output('dos_array', valid_type=orm.ArrayData)
         spec.output('eig', valid_type=EigData)
-        spec.output('pdos', valid_type=PdosData)
+        spec.output('pdos', valid_type=PdosData, required=False)
 
         spec.outline(
             cls.run_main_siesta_wc,
