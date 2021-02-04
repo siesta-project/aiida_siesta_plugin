@@ -123,7 +123,7 @@ class SiestaCalculation(CalcJob):
         import copy
         original_structure = self.inputs.structure
         structure = copy.deepcopy(original_structure)
-        
+
         parameters = self.inputs.parameters
         pseudos = self.inputs.pseudos
 
@@ -153,7 +153,6 @@ class SiestaCalculation(CalcJob):
         else:
             parent_calc_folder = None
 
-
         ##############################
         # END OF INITIAL INPUT CHECK #
         ##############################
@@ -174,11 +173,9 @@ class SiestaCalculation(CalcJob):
             floating_species_names = []
             if floating is not None:
                 for item in floating:
-                    structure.append_atom(position=item[2],
-                                          symbols=[item[1]],
-                                          name=item[0])
+                    structure.append_atom(position=item[2], symbols=[item[1]], name=item[0])
                     floating_species_names.append(item[0])
-                    
+
         # ============== Preprocess of input parameters ===============
 
         input_params = FDFDict(parameters.get_dict())
@@ -241,7 +238,7 @@ class SiestaCalculation(CalcJob):
             #
             if kind.name in floating_species_names:
                 atomic_number = -atomic_number
-                
+
             atomic_species_card_list.append(
                 "{0:5} {1:5} {2:5}\n".format(spind[kind.name], atomic_number, kind.name.rjust(6))
             )
@@ -258,8 +255,7 @@ class SiestaCalculation(CalcJob):
                     psp = pseudos[kind.symbol]
                 except KeyError:
                     raise InputValidationError("I cannot find a pseudopotential for species {}\n".format(kind.name))
-                    
-                    
+
             # Add this pseudo file to the list of files to copy, with the appropiate name.
             # In the case of sub-species (different kind.name but same kind.symbol, e.g.,
             # 'C_surf', sharing the same pseudo with 'C'), we copy the file ('C.psf')
@@ -267,7 +263,7 @@ class SiestaCalculation(CalcJob):
             # It is passed in form of a list of tuples with format ('node_uuid', 'filename',
             # relativedestpath'). We probably should be pre-pending 'self._PSEUDO_SUBFOLDER'
             # in the last slot, for generality, even if is not necessary for siesta.
-            
+
             if isinstance(psp, PsfData):
                 local_copy_list.append((psp.uuid, psp.filename, kind.name + ".psf"))
             elif isinstance(psp, PsmlData):
@@ -275,7 +271,7 @@ class SiestaCalculation(CalcJob):
             else:
                 pass
         #--- end of 'for kind' loop
-        
+
         atomic_species_card_list = (["%block chemicalspecieslabel\n"] + list(atomic_species_card_list))
         atomic_species_card = "".join(atomic_species_card_list)
         atomic_species_card += "%endblock chemicalspecieslabel\n"

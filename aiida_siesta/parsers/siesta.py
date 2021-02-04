@@ -360,9 +360,9 @@ class SiestaParser(Parser):
         #
         physical_structure = self.node.inputs.structure
         number_of_real_atoms = len(physical_structure.sites)
-        
+
         # If the structure has changed, save it
-        # 
+        #
         if output_dict['variable_geometry']:
             in_struc = self.node.inputs.structure
             # The next function never fails. If problems arise, the initial structure is
@@ -445,7 +445,7 @@ class SiestaParser(Parser):
             #for bandskpoints without cell and if structure changed
             bkp = self.node.inputs.bandskpoints.clone()
             if output_dict['variable_geometry']:
-                bkp.set_cell_from_structure(struc)
+                bkp.set_cell_from_structure(out_struc)
             else:
                 bkp.set_cell_from_structure(self.node.inputs.structure)
             arraybands.set_kpointsdata(bkp)
