@@ -3,7 +3,7 @@ from aiida import orm
 from aiida.common import AttributeDict
 
 def test_siesta_default(aiida_profile, fixture_localhost, generate_calc_job_node, 
-    generate_parser, generate_structure, data_regression):
+    generate_parser, generate_structure, generate_basis, data_regression):
     """
     Test a parser of a siesta calculation.
     The output is created by running a dead simple SCF calculation for a silicon structure. 
@@ -17,9 +17,12 @@ def test_siesta_default(aiida_profile, fixture_localhost, generate_calc_job_node
     entry_point_parser = 'siesta.parser'
 
     structure=generate_structure()
+    basis=generate_basis().get_dict()
+    basis["floating_orbitals"] = [ ('Si_bond', 'Si', ( 0.125, 0.125, 0.125) ) ]
 
     inputs = AttributeDict({
-        'structure': structure
+        'structure': structure,
+        'basis' : orm.Dict(dict=basis)
     })
 
     attributes=AttributeDict({'input_filename':'aiida.fdf', 'output_filename':'aiida.out', 'prefix':'aiida'})
@@ -36,6 +39,9 @@ def test_siesta_default(aiida_profile, fixture_localhost, generate_calc_job_node
     assert 'forces_and_stress' in results
     assert 'output_parameters' in results
     assert 'output_structure' in results
+    assert 'ion_files' in results
+    assert 'Si' in results['ion_files']
+    assert 'Si_bond' in results['ion_files']
 
     data_regression.check({
         'forces_and_stress': results['forces_and_stress'].attributes,
@@ -45,7 +51,7 @@ def test_siesta_default(aiida_profile, fixture_localhost, generate_calc_job_node
 
 
 def test_siesta_no_ion(aiida_profile, fixture_localhost, generate_calc_job_node, 
-    generate_parser, generate_structure, data_regression):
+    generate_parser, generate_basis, generate_structure, data_regression):
     """
     Test a parser of a siesta calculation, but the .ion.xml are not found
     """
@@ -55,9 +61,12 @@ def test_siesta_no_ion(aiida_profile, fixture_localhost, generate_calc_job_node,
     entry_point_parser = 'siesta.parser'
 
     structure=generate_structure()
+    basis=generate_basis().get_dict()
+    basis["floating_orbitals"] = [ ('Si_bond', 'Si', ( 0.125, 0.125, 0.125) ) ]
 
     inputs = AttributeDict({
-        'structure': structure
+        'structure': structure,
+        'basis' : orm.Dict(dict=basis)
     })
 
     attributes=AttributeDict({'input_filename':'aiida.fdf', 'output_filename':'aiida.out', 'prefix':'aiida'})
@@ -70,8 +79,9 @@ def test_siesta_no_ion(aiida_profile, fixture_localhost, generate_calc_job_node,
     assert calcfunction.exception is None
     assert calcfunction.is_finished_ok
     assert calcfunction.exit_message is None
-    assert len(orm.Log.objects.get_logs_for(node)) == 2
-    assert "no ion file retrieved" in orm.Log.objects.get_logs_for(node)[0].message
+    assert len(orm.Log.objects.get_logs_for(node)) == 3
+    assert "no ion file retrieved for Si_bond" in orm.Log.objects.get_logs_for(node)[0].message
+    assert "no ion file retrieved for Si" in orm.Log.objects.get_logs_for(node)[2].message
 
 
 # As it is implemented now, there is no point to test also the case bandslines as
@@ -242,7 +252,10 @@ def test_siesta_no_geom_conv(aiida_profile, fixture_localhost, generate_calc_job
     assert 'output_parameters' in results
     assert 'output_structure' in results
 
-    data_regression.check({'output_parameters': results['output_parameters'].get_dict()})
+    data_regression.check({
+        'output_structure': results['output_structure'].attributes,
+        'output_parameters': results['output_parameters'].get_dict()
+        })
 
 
 def test_siesta_bands_error(aiida_profile, fixture_localhost, generate_calc_job_node,
