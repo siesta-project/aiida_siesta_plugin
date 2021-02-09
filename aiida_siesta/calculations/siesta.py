@@ -17,6 +17,17 @@ from aiida_siesta.data.ion import IonData
 ## to the WorkChains. Use of class variables & the input spec is necessary.      ##
 ###################################################################################
 
+def clone_structure (s):
+    """
+    A cloned structure is not quite ready to store more atoms. 
+    This function fixes it
+    """
+
+    t=s.clone()
+    t._internal_kind_tags={}
+
+    return t
+
 
 class SiestaCalculation(CalcJob):
     """
@@ -159,7 +170,7 @@ class SiestaCalculation(CalcJob):
         #We make use of a cloned structure to add the ghost sites. In case there aren't ghosts,
         #the cloned structure will be exactly like the original and can be used later on.
         #The list `floating_species_names` is used later and must be empty list if there aren't floating_orbs.
-        structure = original_structure.clone()
+        structure = clone_structure(original_structure)
         floating_species_names = []
         #Add ghosts to the structure
         if basis is not None:
