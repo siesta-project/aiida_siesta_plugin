@@ -79,9 +79,11 @@ def test_siesta_no_ion(aiida_profile, fixture_localhost, generate_calc_job_node,
     assert calcfunction.exception is None
     assert calcfunction.is_finished_ok
     assert calcfunction.exit_message is None
-    assert len(orm.Log.objects.get_logs_for(node)) == 3
-    assert "no ion file retrieved for Si_bond" in orm.Log.objects.get_logs_for(node)[0].message
-    assert "no ion file retrieved for Si" in orm.Log.objects.get_logs_for(node)[2].message
+    log = orm.Log.objects.get_logs_for(node)
+    assert len(log) == 3
+    sum_strings = log[0].message + log[1].message + log[2].message
+    assert "no ion file retrieved for Si_bond" in sum_strings
+    assert "no ion file retrieved for Si" in sum_strings
 
 
 # As it is implemented now, there is no point to test also the case bandslines as
