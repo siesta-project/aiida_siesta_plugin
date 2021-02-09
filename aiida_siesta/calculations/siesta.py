@@ -17,16 +17,17 @@ from aiida_siesta.data.ion import IonData
 ## to the WorkChains. Use of class variables & the input spec is necessary.      ##
 ###################################################################################
 
-def clone_structure (s):
+
+def clone_structure(structure):
     """
-    A cloned structure is not quite ready to store more atoms. 
+    A cloned structure is not quite ready to store more atoms.
     This function fixes it
     """
 
-    t=s.clone()
-    t._internal_kind_tags={}
+    tweaked = structure.clone()
+    tweaked._internal_kind_tags = {}
 
-    return t
+    return tweaked
 
 
 class SiestaCalculation(CalcJob):
