@@ -92,7 +92,7 @@ kpoints.set_kpoints_mesh([4, 4, 4])
 
 #The pseudopotentials
 pseudos_dict = {}
-raw_pseudos = [("Si.psf", ['Si'])]
+raw_pseudos = [("Si.psf", ['Si_bond','Si_one','alt_Si'])]
 for fname, kinds in raw_pseudos:
     absname = op.realpath(
         op.join(op.dirname(__file__), "data/sample-psf-family", fname))

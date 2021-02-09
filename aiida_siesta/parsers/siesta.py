@@ -192,7 +192,6 @@ def get_last_structure(xmldoc, input_structure):
     # When using floating orbitals, Siesta associates 'atomic positions' to them, and
     # the structure (and forces) in the XML file include these fake atoms.
     # In order to return physical structures and forces, we need to remove them.
-    #
     # Recall that the input structure is the physical one, as the floating orbitals
     # are specified in the 'basis' input
 
@@ -368,9 +367,8 @@ class SiestaParser(Parser):
             # The next function never fails. If problems arise, the initial structure is
             # returned. The input structure is also necessary because the CML file
             # traditionally contains only the atomic symbols and not the site names.
-            #
-            # The returned structure does not have any floating atoms
-            #
+            # The returned structure does not have any floating atoms, they are removed
+            # in the `get_last_structure` call.
             success, out_struc = get_last_structure(xmldoc, in_struc)
             if not success:
                 self.logger.warning("Problem in parsing final structure, returning inp structure in output_structure")
@@ -388,14 +386,9 @@ class SiestaParser(Parser):
             self.out('forces_and_stress', arraydata)
 
         #Attempt to parse the ion files.
-        #
-        # Note that no "floating orbs" ion files will be processed with the
-        # code below, since they do not appear in the input structure
-        # To cover them, the 'basis' input needs to be examined for any floating
-        # orbitals entry, and the items added here. (ToDo)
-        #
         from aiida_siesta.data.ion import IonData
         ions = {}
+        #Ions from the structure
         in_struc = self.node.inputs.structure
         for kind in in_struc.get_kind_names():
             ion_file_name = kind + ".ion.xml"
@@ -404,6 +397,23 @@ class SiestaParser(Parser):
                 ions[kind] = IonData(ion_file_path)
             else:
                 self.logger.warning(f"no ion file retrieved for {kind}")
+        #Ions from floating_orbitals
+        if "basis" in self.node.inputs:
+            basis_dict = self.node.inputs.basis.get_dict()
+            if "floating_orbitals" in basis_dict:
+                floating_kinds = []
+                for orb in basis_dict["floating_orbitals"]:
+                    if orb[0] not in floating_kinds:
+                        floating_kinds.append(orb[0])
+                        ion_file_name = orb[0] + ".ion.xml"
+                        if ion_file_name in output_folder._repository.list_object_names():
+                            ion_file_path = os.path.join(
+                                output_folder._repository._get_base_folder().abspath, ion_file_name
+                            )
+                            ions[orb[0]] = IonData(ion_file_path)
+                        else:
+                            self.logger.warning(f"no ion file retrieved for {orb[0]}")
+        #Return the outputs
         if ions:
             self.out('ion_files', ions)
 
