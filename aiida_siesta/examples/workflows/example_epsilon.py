@@ -81,10 +81,10 @@ optical = Dict(dict={
 'optical-broaden': '0.5 eV',
 'optical-energy-maximum': '20.0 eV',
 '%block optical-mesh': """
- 8 8 8
+ 20 20 20
 %endblock optical-mesh""",
 '%block optical-vector': """
- 1.0 1.0 1.0
+ 1.0 0.0 0.0
 %endblock optical-vector""",
     })
 

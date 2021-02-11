@@ -6,7 +6,7 @@ def get_epsilon_from_eps2(eps2_array):
     """
     Computes epsilon(0) from eps2(w) using Kramers-Kronig relations. 
     For this particular case:
-       epsilon(0) = 2/pi int_0^\infinity { eps2(w)/w dw}
+       epsilon(0) = 1 + 2/pi int_0^\infinity { eps2(w)/w dw}
 
     :param: eps2_array: An ArrayData object with a 2D array (e and eps2(e))
                         Note that units do not matter, so e or w can be used.
@@ -24,7 +24,7 @@ def get_epsilon_from_eps2(eps2_array):
     delta = e[-1] - e[-2]      # grid separation of energy points
     eps2 = array[:,1]
 
-    epsilon = (2.0 / np.pi) * delta * sum(eps2/e)
+    epsilon = 1 + (2.0 / np.pi) * delta * sum(eps2/e)
 
     epsilon = round(epsilon,3)
     return epsilon
