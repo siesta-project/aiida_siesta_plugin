@@ -341,6 +341,19 @@ def test_floating_orbs(aiida_profile, fixture_sandbox, generate_calc_job,
         }
     }
 
+    #fail because no list
+    basis = generate_basis().get_dict()
+    basis["floating_sites"] = "www"
+    inputs['basis'] = orm.Dict(dict=basis)
+    with pytest.raises(ValueError):
+        calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
+
+    #fail because no dictionaries
+    basis = generate_basis().get_dict()
+    basis["floating_sites"] = ["ddd","www"]
+    inputs['basis'] = orm.Dict(dict=basis)
+    with pytest.raises(ValueError):
+        calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
 
     #fail because missing name
     basis = generate_basis().get_dict()
