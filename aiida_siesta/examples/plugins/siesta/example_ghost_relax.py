@@ -78,12 +78,9 @@ parameters = Dict(
 
 #The basis set
 basis = Dict(dict={
-    'floating_orbitals': [ ('Si_bond', 'Si', ( 0.125*alat, 0.125*alat, 0.125*alat) ) ],
-'pao-energy-shift': '300 meV',
-'%block pao-basis-sizes': """
-Si_one SZP
-Si_bond SZ
-%endblock pao-basis-sizes""",
+    'floating_sites': [{"name":'Si_bond', "symbols":'Si', "position":(0.125*alat, 0.125*alat, 0.125*alat)}],
+    'pao-energy-shift': '300 meV',
+    '%block pao-basis-sizes': """\n Si_one SZP\n Si_bond SZ\n%endblock pao-basis-sizes""",
     })
 
 #The kpoints

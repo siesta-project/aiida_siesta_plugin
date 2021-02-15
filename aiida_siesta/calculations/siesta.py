@@ -140,6 +140,15 @@ class SiestaCalculation(CalcJob):
 
         if 'basis' in self.inputs:
             basis = self.inputs.basis
+            if 'floating_sites' in basis.get_dict():
+                message = "Wrong specification of floating_sites, "
+                if not isinstance(basis.get_dict()['floating_sites'], list):
+                    raise ValueError(message + "it must be a list of dictionaries")
+                for item in basis.get_dict()['floating_sites']:
+                    if not isinstance(item, dict):
+                        raise ValueError(message + "it must be a list of dictionaries")
+                    if not all(x in item.keys() for x in ['name', 'symbols', 'position']):
+                        raise ValueError(message + "'name', 'symbols' and 'position' must be specified")
         else:
             basis = None
 
@@ -176,17 +185,17 @@ class SiestaCalculation(CalcJob):
         #Add ghosts to the structure
         if basis is not None:
             basis_dict = basis.get_dict()
-            floating = basis_dict.pop('floating_orbitals', None)
+            floating = basis_dict.pop('floating_sites', None)
             if floating is not None:
                 original_kind_names = [kind.name for kind in structure.kinds]
                 for item in floating:
-                    if item[0] in original_kind_names:
+                    if item["name"] in original_kind_names:
                         raise ValueError(
-                            "It is not possibe to specify `floating_orbitals` "
+                            "It is not possibe to specify `floating_sites` "
                             "(ghosts states) with the same name of a structure kind."
                         )
-                    structure.append_atom(position=item[2], symbols=[item[1]], name=item[0])
-                    floating_species_names.append(item[0])
+                    structure.append_atom(position=item["position"], symbols=item["symbols"], name=item["name"])
+                    floating_species_names.append(item["name"])
         #Check each kind in the structure (including freshly added ghosts) have a corresponding pseudo.
         kinds = [kind.name for kind in structure.kinds]
         if set(kinds) != set(pseudos.keys()):

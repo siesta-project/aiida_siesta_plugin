@@ -341,16 +341,38 @@ def test_floating_orbs(aiida_profile, fixture_sandbox, generate_calc_job,
         }
     }
 
-    #fail because same name
+
+    #fail because missing name
     basis = generate_basis().get_dict()
-    basis["floating_orbitals"] = [ ('SiDiff', 'Si', ( 0.125, 0.125, 0.125) ) ]
+    basis["floating_sites"] = [{"symbols":'Si',"position": ( 0.125, 0.125, 0.125)}]
+    inputs['basis'] = orm.Dict(dict=basis)
+    with pytest.raises(ValueError):
+        calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
+
+    #fail because missing symbols
+    basis = generate_basis().get_dict()
+    basis["floating_sites"] = [{"name":'SiDiff',"position": ( 0.125, 0.125, 0.125)}]
+    inputs['basis'] = orm.Dict(dict=basis)
+    with pytest.raises(ValueError):
+        calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
+
+    #fail because missing position
+    basis = generate_basis().get_dict()
+    basis["floating_sites"] = [{"name":'SiDiff',"symbols":'Si'}]
+    inputs['basis'] = orm.Dict(dict=basis)
+    with pytest.raises(ValueError):
+        calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
+
+    #fail because same name of a site in real structure
+    basis = generate_basis().get_dict()
+    basis["floating_sites"] = [{"name":'SiDiff',"symbols":'Si',"position": ( 0.125, 0.125, 0.125)}]
     inputs['basis'] = orm.Dict(dict=basis)
     with pytest.raises(ValueError):
         calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
     
     #fail because no pseudo:
     basis = generate_basis().get_dict()
-    basis["floating_orbitals"] = [ ('Si_bond', 'Si', ( 0.125, 0.125, 0.125) ) ]
+    basis["floating_sites"] = [{"name":'Si_bond',"symbols":'Si',"position": ( 0.125, 0.125, 0.125)}] 
     inputs['basis'] = orm.Dict(dict=basis)
     with pytest.raises(ValueError):
         calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
