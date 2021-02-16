@@ -18,7 +18,7 @@ def test_siesta_default(aiida_profile, fixture_localhost, generate_calc_job_node
 
     structure=generate_structure()
     basis=generate_basis().get_dict()
-    basis["floating_orbitals"] = [ ('Si_bond', 'Si', ( 0.125, 0.125, 0.125) ) ]
+    basis["floating_sites"] = [{"name":'Si_bond',"symbols":'Si',"position": ( 0.125, 0.125, 0.125)}]
 
     inputs = AttributeDict({
         'structure': structure,
@@ -62,7 +62,7 @@ def test_siesta_no_ion(aiida_profile, fixture_localhost, generate_calc_job_node,
 
     structure=generate_structure()
     basis=generate_basis().get_dict()
-    basis["floating_orbitals"] = [ ('Si_bond', 'Si', ( 0.125, 0.125, 0.125) ) ]
+    basis["floating_sites"] = [{"name":'Si_bond',"symbols":'Si',"position": ( 0.125, 0.125, 0.125)}]
 
     inputs = AttributeDict({
         'structure': structure,
