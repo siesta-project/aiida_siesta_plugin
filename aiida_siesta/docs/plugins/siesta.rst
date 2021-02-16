@@ -70,6 +70,8 @@ Some examples are referenced in the following list. They are located in the fold
   ase structures or pymatgen structures. These two tools can be used to load
   structure from files. See example `example_cif_bands.py`.
 
+  The specification of ghost states is done on the **basis** dictionary (see below).
+
 .. |br| raw:: html
 
     <br />
@@ -202,6 +204,27 @@ Some examples are referenced in the following list. They are located in the fold
   In case no basis is set, the Siesta calculation will not include
   any basis specification and it will run with the default basis: DZP 
   plus (many) other defaults.
+
+  The **basis** dictionary also accepts a special key called ``floating_sites`` that
+  can be used to specify ghost states. The associated value must be a list of dictionaries
+  and each dictionary must include at least the "name", "symbols" and "position" of the
+  floating site.
+  An example is::
+
+        basis = Dict(dict={
+                'floating_sites': [{"name":'Si_bond', "symbols":'Si', "position":(0.125, 0.125, 0.125)}],
+                '%block pao-basis-sizes': 
+                """
+                Si_bond SZ
+                %endblock pao-basis-sizes""",
+        })
+
+
+  The "position" must be specified in Angstrom. A "name" that corresponds also to an atomic site
+  is forbidden.
+  As shown in the example, in case a basis specification wants to be added for one or more ``floating_sites``, it must
+  reported in the basis dictionary in the same way as any other atomic kind.
+  Please look at the examples `example_ghost.py` and `example_ghost_relax.py` for a practical example.
 
 .. |br| raw:: html
 
