@@ -4,17 +4,42 @@ from aiida_siesta.data.common import get_pseudos_from_structure
 from aiida_siesta.calculations.siesta import SiestaCalculation
 
 
-def prepare_pseudo_inputs(structure, pseudos, pseudo_family):
+def prepare_pseudo_inputs(structure, pseudos, pseudo_family, basis):  # noqa: MC0001  - is mccabe too complex funct -
 
+    floating_kind_names = []
     if pseudos is not None and pseudo_family is not None:
         raise ValueError('you cannot specify both "pseudos" and "pseudo_family"')
     elif pseudos is None and pseudo_family is None:
         raise ValueError('neither an explicit pseudos dictionary nor a pseudo_family was specified')
-    elif pseudo_family is not None:
+    elif pseudo_family is not None:  #pylint: disable=too-many-nested-blocks
         # This will already raise some exceptions
         pseudos = get_pseudos_from_structure(structure, pseudo_family.value)
+        # Adding pseudos for floating sites, if present.
+        if basis is not None:
+            if "floating_sites" in basis:
+                if not isinstance(basis["floating_sites"], list):
+                    raise ValueError('The `floating_sites` must be a list of dictionaries')
+                family = orm.Group.get(label=pseudo_family.value)
+                for item in basis["floating_sites"]:
+                    if not isinstance(item, dict):
+                        raise ValueError('The `floating_sites` must be a list of dictionaries')
+                    if "symbols" not in item or "name" not in item:
+                        raise ValueError('Each `floating_site` must define a "symbols" and a "name"')
+                    floating_kind_names.append(item["name"])
+                    if not isinstance(item["symbols"], str):
+                        raise ValueError(
+                            '"symbols" of `floating_site` must be a simple `str`, alloys are not supported'
+                        )
+                    for node in family.nodes:
+                        if node.element == item["symbols"]:
+                            if item["name"] in pseudos:
+                                raise ValueError('The `floating_sites` can not have the same name of a structure kind')
+                            pseudos[item["name"]] = node
 
     for kind in structure.get_kind_names():
+        if kind not in pseudos:
+            raise ValueError('no pseudo available for element {}'.format(kind))
+    for kind in floating_kind_names:
         if kind not in pseudos:
             raise ValueError('no pseudo available for element {}'.format(kind))
 
@@ -82,20 +107,25 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
             if self.inputs.pseudos:
                 pseudos = self.inputs.pseudos
 
+        if 'basis' in self.inputs:
+            copy_basis_dict = self.inputs.basis.get_dict()
+        else:
+            copy_basis_dict = None
+
         self.ctx.inputs = {
             'code': self.inputs.code,
             'structure': structure,
-            'pseudos': prepare_pseudo_inputs(structure, pseudos, pseudo_family),
+            'pseudos': prepare_pseudo_inputs(structure, pseudos, pseudo_family, copy_basis_dict),
             'parameters': self.inputs.parameters.get_dict(),
             'metadata': {
                 'options': self.inputs.options.get_dict(),
             }
         }
         # Now the optional inputs
+        if 'basis' in self.inputs:
+            self.ctx.inputs['basis'] = copy_basis_dict
         if 'kpoints' in self.inputs:
             self.ctx.inputs['kpoints'] = self.inputs.kpoints
-        if 'basis' in self.inputs:
-            self.ctx.inputs['basis'] = self.inputs.basis.get_dict()
         if 'settings' in self.inputs:
             self.ctx.inputs['settings'] = self.inputs.settings.get_dict()
         if 'bandskpoints' in self.inputs:

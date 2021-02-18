@@ -40,6 +40,7 @@ Some examples are referenced in the following list. They are located in the fold
   conditions (such as basis set characteristics) for specific atoms
   (e.g., surface atoms might have a richer basis set). This is
   implemented through the ``name`` attribute of the Site objects. For example::
+
       from aiida.orm import StructureData
 
       alat = 15. # angstrom
@@ -69,6 +70,12 @@ Some examples are referenced in the following list. They are located in the fold
   The :py:class:`StructureData <aiida.orm.StructureData>` can also import 
   ase structures or pymatgen structures. These two tools can be used to load
   structure from files. See example `example_cif_bands.py`.
+
+  .. note:: Siesta can handle *ghost atoms*, carrying only extra
+	    orbitals, to increase the variational freedom. In the AiiDA
+	    plugin, these ghost atoms are specified in the **basis**
+	    dictionary (see below), and they should **not** be part of
+	    the input StructureData object.
 
 .. |br| raw:: html
 
@@ -203,6 +210,28 @@ Some examples are referenced in the following list. They are located in the fold
   any basis specification and it will run with the default basis: DZP 
   plus (many) other defaults.
 
+  The **basis** dictionary also accepts a special key called ``floating_sites`` that
+  can be used to specify the location and kind of *ghost atoms*, or
+  sites carrying only floating orbitals. The associated value must be a list of dictionaries
+  and each dictionary must include as keys at least the ``name``, ``symbols`` and ``position`` of the
+  floating site.
+  An example is::
+
+        basis = Dict(dict={
+                'floating_sites': [{"name":'Si_bond', "symbols":'Si', "position":(0.125, 0.125, 0.125)}],
+                '%block pao-basis-sizes': 
+                """
+                Si_bond SZ
+                %endblock pao-basis-sizes""",
+        })
+
+
+  The "position" must be specified in Angstrom. A "name" that corresponds to an existing atomic site
+  is forbidden.
+  As shown in the example, in case a basis specification has to be added for one or more ``floating_sites``, it must
+  be included in the basis dictionary in the same way as those for any other atomic kinds.
+  Please look at the examples `example_ghost.py` and `example_ghost_relax.py` for a practical example.
+
 .. |br| raw:: html
 
     <br />
@@ -212,6 +241,7 @@ Some examples are referenced in the following list. They are located in the fold
   Reciprocal space points for the full sampling of the BZ during the
   self-consistent-field iteration. It must be given in mesh form. There is no support
   yet for Siesta's "kgrid-cutoff" keyword::
+
           from aiida.orm import KpointsData
           kpoints=KpointsData()
           kp_mesh = 5
@@ -240,22 +270,26 @@ Some examples are referenced in the following list. They are located in the fold
   Some examples on how to pass the kpoints are the following.
 
   One can manually listing a set of isolated kpoints::
+
           from aiida.orm import KpointsData
           bandskpoints=KpointsData()
           kpp = [(0.1,  0.1, 0.1), (0.5,  0.5, 0.5), (0., 0., 0.)]
           bandskpoints.set_kpoints(kpp)
+
   In this case the Siesta input will use the "BandPoints" block.
   
   Alternatively (recommended) the high-symmetry path associated to the
   structure under investigation can be
   automatically generated through the aiida tool ``get_explicit_kpoints_path``.
   Here how to use it::
+
           from aiida.orm import KpointsData
           bandskpoints=KpointsData()
           from aiida.tools import get_explicit_kpoints_path
           symmpath_parameters = Dict(dict={'reference_distance': 0.02})
           kpresult = get_explicit_kpoints_path(s, **symmpath_parameters.get_dict())
           bandskpoints = kpresult['explicit_kpoints']
+
   Where 's' in the input structure and ``reference_distance`` is
   the distance between two subsequent kpoints.
   In this case the block "BandLines" is set in the Siesta
@@ -268,7 +302,8 @@ Some examples are referenced in the following list. They are located in the fold
      on the input structure that was provided. The correct
      way to use this tool is to use the generated 'primitive_structure' also for the
      Siesta calculation::
-          structure = kpresult['primitive_structure']
+
+       structure = kpresult['primitive_structure']
 
   .. warning:: As we use the initial structure cell in order to obtain
      the kpoints path, it is very risky to apply this method when also a relaxation
@@ -295,6 +330,7 @@ Some examples are referenced in the following list. They are located in the fold
   This is essential for the correct set up of the "BandLines" in Siesta.
   External tolls can be used to create equidistant points, whithin aiida
   the following (very involved) option is available::
+
         from aiida.orm import KpointsData
         bandskpoints=KpointsData()
         from aiida.tools.data.array.kpoints.legacy import get_explicit_kpoints_path as legacy_path
@@ -303,6 +339,7 @@ Some examples are referenced in the following list. They are located in the fold
         tmp=legacy_path(kpp)
         bandskpoints.set_kpoints(tmp[3])
         bandskpoints.labels=tmp[4]
+
   The legacy ``get_explicit_kpoints_path`` shares only the name with the function in
   ``aiida.tools``, but it is very different in scope.
 
@@ -369,6 +406,7 @@ To run the calculation in an interactive way::
 
         from aiida.engine import run
         results = run(builder)
+
 Here the results variable will contain a dictionary 
 containing all the nodes that were produced as output.
 
@@ -376,22 +414,28 @@ Another option is to submit it to the daemon::
 
         from aiida.engine import submit
         calc = submit(builder)
+
 In this case, calc is the calculation node and not the results dictionary.
 
 .. note:: In order to inspect the inputs created by AiiDA without 
    actually running the calculation, we can perform a dry run of the submission process::
+
         builder.metadata.dry_run = True
         builder.metadata.store_provenance = False
+
    This will create the input files, that are available for inspection.
 
 .. note:: The use of the builder makes the process more intuitive, but it
    is not mandatory. The inputs can be provided as keywords argument when you 
    launch the calculation, passing the calculation class as the first argument::
+
         run(SiestaCalculation, structure=s, pseudos=pseudos, kpoints = kpoints, ...)
+
    same syntax for the command ``submit``.
 
 A large set of examples covering some standard cases are in the folder 
 `aiida_siesta/examples/plugins/siesta`. They can be run with::
+
         runaiida example_name.py {--send, --dont-send} code@computer
 
 The parameter ``--dont-send`` will activate the "dry run" option. In that case a test
@@ -417,6 +461,7 @@ accessed with the ``calculation.outputs`` method.
   list, and possibly a timing section.
   Units are specified by means of an extra item with '_units'
   appended to the key::
+
     {
       "siesta:Version": "siesta-4.0.2",
       "E_Fermi": -3.24,
@@ -465,6 +510,7 @@ accessed with the ``calculation.outputs`` method.
 
   Contains the final forces (`eV/Angstrom`) and stresses (`GPa`) in array form.
   To access their values::
+
         forces_and_stress.get_array("forces")
         forces_and_stress.get_array("stress")
   

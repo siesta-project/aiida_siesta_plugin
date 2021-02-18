@@ -18,6 +18,18 @@ from aiida_siesta.data.ion import IonData
 ###################################################################################
 
 
+def clone_structure(structure):
+    """
+    A cloned structure is not quite ready to store more atoms.
+    This function fixes it
+    """
+
+    tweaked = structure.clone()
+    tweaked._internal_kind_tags = {}
+
+    return tweaked
+
+
 class SiestaCalculation(CalcJob):
     """
     Siesta calculator class for AiiDA.
@@ -109,15 +121,17 @@ class SiestaCalculation(CalcJob):
         :return: `aiida.common.datastructures.CalcInfo` instance
         """
 
-        ###########################################################################
-        # BEGINNING OF INITIAL INPUT CHECK                                        #
-        # All input ports that are defined via spec.input are checked by default, #
-        # only need to asses their presence in case they are optional.            #
-        ###########################################################################
+        # =================== Initial inputs checks =====================
+        # All input ports that are defined via spec.input are validated by default,
+        # only need to asses their presence in case they are optional.
 
         code = self.inputs.code
-        structure = self.inputs.structure
+
+        original_structure = self.inputs.structure
+
         parameters = self.inputs.parameters
+
+        pseudos = self.inputs.pseudos
 
         if 'kpoints' in self.inputs:
             kpoints = self.inputs.kpoints
@@ -126,6 +140,15 @@ class SiestaCalculation(CalcJob):
 
         if 'basis' in self.inputs:
             basis = self.inputs.basis
+            if 'floating_sites' in basis.get_dict():
+                message = "Wrong specification of floating_sites, "
+                if not isinstance(basis.get_dict()['floating_sites'], list):
+                    raise ValueError(message + "it must be a list of dictionaries")
+                for item in basis.get_dict()['floating_sites']:
+                    if not isinstance(item, dict):
+                        raise ValueError(message + "it must be a list of dictionaries")
+                    if not all(x in item.keys() for x in ['name', 'symbols', 'position']):
+                        raise ValueError(message + "'name', 'symbols' and 'position' must be specified")
         else:
             basis = None
 
@@ -145,31 +168,46 @@ class SiestaCalculation(CalcJob):
         else:
             parent_calc_folder = None
 
-        pseudos = self.inputs.pseudos
+        # =================== Initialization of some lists =====================
+
+        # List of files to copy in the folder where the calculation runs, e.g. pseudo files
+        local_copy_list = []
+        # List of files for restart
+        remote_copy_list = []
+
+        # =============== Checks for floating orbitals and pseudos ===============
+
+        #We make use of a cloned structure to add the ghost sites. In case there aren't ghosts,
+        #the cloned structure will be exactly like the original and can be used later on.
+        #The list `floating_species_names` is used later and must be empty list if there aren't floating_orbs.
+        structure = clone_structure(original_structure)
+        floating_species_names = []
+        #Add ghosts to the structure
+        if basis is not None:
+            basis_dict = basis.get_dict()
+            floating = basis_dict.pop('floating_sites', None)
+            if floating is not None:
+                original_kind_names = [kind.name for kind in structure.kinds]
+                for item in floating:
+                    if item["name"] in original_kind_names:
+                        raise ValueError(
+                            "It is not possibe to specify `floating_sites` "
+                            "(ghosts states) with the same name of a structure kind."
+                        )
+                    structure.append_atom(position=item["position"], symbols=item["symbols"], name=item["name"])
+                    floating_species_names.append(item["name"])
+        #Check each kind in the structure (including freshly added ghosts) have a corresponding pseudo.
         kinds = [kind.name for kind in structure.kinds]
         if set(kinds) != set(pseudos.keys()):
             raise ValueError(
                 'Mismatch between the defined pseudos and the list of kinds of the structure.\n',
                 'Pseudos: {} \n'.format(', '.join(list(pseudos.keys()))),
-                'Kinds: {}'.format(', '.join(list(kinds))),
+                'Kinds (including ghosts): {}'.format(', '.join(list(kinds))),
             )
-
-        ##############################
-        # END OF INITIAL INPUT CHECK #
-        ##############################
-
-        # ============== Initialization of some lists ===============
-        # List of the file to copy in the folder where the calculation
-        # runs, for instance pseudo files
-        local_copy_list = []
-
-        # List of files for restart
-        remote_copy_list = []
 
         # ============== Preprocess of input parameters ===============
 
         input_params = FDFDict(parameters.get_dict())
-
         # Look for blocked keywords and add the proper values to the dictionary
         for key in input_params:
             if "pao" in key:
@@ -182,7 +220,6 @@ class SiestaCalculation(CalcJob):
                     "You cannot specify explicitly the '{}' flag in the "
                     "input parameters".format(input_params.get_last_untranslated_key(key))
                 )
-
         input_params.update({'system-name': self.inputs.metadata.options.prefix})
         input_params.update({'system-label': self.inputs.metadata.options.prefix})
         input_params.update({'use-tree-timer': 'T'})
@@ -215,15 +252,19 @@ class SiestaCalculation(CalcJob):
         folder.get_subfolder(self._OUTPUT_SUBFOLDER, create=True)
         atomic_species_card_list = []
         # Dictionary to get the atomic number of a given element
-        #pylint: disable=consider-using-dict-comprehension
-        datmn = dict([(v['symbol'], k) for k, v in elements.items()])
+        datmn = {v['symbol']: k for k, v in elements.items()}
         spind = {}
         spcount = 0
         for kind in structure.kinds:
             spcount += 1  # species count
             spind[kind.name] = spcount
+            atomic_number = datmn[kind.symbol]
+            # Siesta expects negative atomic numbers for floating species
+            if kind.name in floating_species_names:
+                atomic_number = -atomic_number
+            #Create the core of the chemicalspecieslabel block
             atomic_species_card_list.append(
-                "{0:5} {1:5} {2:5}\n".format(spind[kind.name], datmn[kind.symbol], kind.name.rjust(6))
+                "{0:5} {1:5} {2:5}\n".format(spind[kind.name], atomic_number, kind.name.rjust(6))
             )
             psp = pseudos[kind.name]
             # Add this pseudo file to the list of files to copy, with the appropiate name.
@@ -381,7 +422,7 @@ class SiestaCalculation(CalcJob):
             # in the basis dictionary in the input script.
             if basis is not None:
                 infile.write("#\n# -- Basis Set Info follows\n#\n")
-                for k, v in basis.get_dict().items():
+                for k, v in basis_dict.items():
                     infile.write("%s %s\n" % (k, v))
 
             # Write previously generated cards now
