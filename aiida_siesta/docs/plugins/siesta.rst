@@ -71,11 +71,11 @@ Some examples are referenced in the following list. They are located in the fold
   ase structures or pymatgen structures. These two tools can be used to load
   structure from files. See example `example_cif_bands.py`.
 
-.. note:: Siesta can handle *ghost atoms*, carrying only extra
-	  orbitals, to increase the variational freedom. In the AiiDA
-	  plugin, these ghost atoms are specified in the **basis**
-	  dictionary (see below), and they should **not** be part of
-	  the input StructureData object.
+  .. note:: Siesta can handle *ghost atoms*, carrying only extra
+	    orbitals, to increase the variational freedom. In the AiiDA
+	    plugin, these ghost atoms are specified in the **basis**
+	    dictionary (see below), and they should **not** be part of
+	    the input StructureData object.
 
 .. |br| raw:: html
 
