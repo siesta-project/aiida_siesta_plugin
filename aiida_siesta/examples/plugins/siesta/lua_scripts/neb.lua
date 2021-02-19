@@ -28,10 +28,6 @@ else
 
 end
 
-local n_images = configEnv.n_images
-
-print(n_images)
-
 -- Load the FLOS module
 local flos = require "flos"
 -- The prefix of the files that contain the images

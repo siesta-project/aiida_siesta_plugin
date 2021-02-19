@@ -189,15 +189,23 @@ class SiestaCalculation(CalcJob):
 
         if 'script' in lua_inputs:
             lua_script = lua_inputs.script
+        else:
+            lua_script = None
             
         if 'parameters' in lua_inputs:
             lua_parameters = lua_inputs.parameters
+        else:
+            lua_parameters = None
             
         if 'input_files' in lua_inputs:
             lua_input_files = lua_inputs.input_files
+        else:
+            lua_input_files = None
             
         if 'retrieve_list' in lua_inputs:
             lua_retrieve_list = lua_inputs.retrieve_list
+        else:
+            lua_retrieve_list = None
             
 
         # =================== Initialization of some lists =====================
@@ -493,7 +501,7 @@ class SiestaCalculation(CalcJob):
             with open('config.lua', 'w') as f_lua:
                 f_lua.write("--- Lua script parameters \n")
                 for k, v in lua_parameters.get_dict():
-                f_lua.write("%s =  %s\n" % (k, v))
+                    f_lua.write("%s =  %s\n" % (k, v))
 
         # ====================== Code and Calc info ========================
         # Code information object and Calc information object are now
@@ -537,7 +545,7 @@ class SiestaCalculation(CalcJob):
             # Copy the whole contents of the FolderData object
             # (this syntax, with '.', is not tested yet. We might
             # have to loop over the individual files
-            calcinfo.retrieve_list += lua_retrieve_list
+            calcinfo.retrieve_list += lua_retrieve_list.get_list()
 
         # Avoid having the config.lua file in the repository
         if lua_parameters is not None:
