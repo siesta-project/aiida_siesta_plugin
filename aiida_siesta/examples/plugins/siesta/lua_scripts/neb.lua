@@ -7,26 +7,31 @@ Use optional 'config.lua' file to pass parameters to the script
 --]]
 
 local configEnv = {} -- to keep it separate from the global env
-local f,err = loadfile("config.lua", "t", configEnv)
+local f = loadfile("config.lua", "t", configEnv)
 if f then
    f() -- run the chunk
    -- now configEnv should contain your data
 
-   local n_images = configEnv.number_of_internal_images_in_path
-   local k_spring = configEnv.neb_spring_constant 
-   local image_label = configEnv.neb_image_file_prefix
+   n_images = configEnv.number_of_internal_images_in_path
+   k_spring = configEnv.neb_spring_constant 
+   image_label = configEnv.neb_image_file_prefix
 
 else
    -- no 'config.lua' file found. Set defaults
    -- (to be implemented: keep defaults for variables not in config.lua
    
-   local image_label = "image_"
+   image_label = "image_"
    -- Total  number of images
    -- (excluding initial[0] and final[n_images+1])	
-   local  n_images = 5
-   local k_spring  = 1
+   n_images = 5
+   k_spring  = 1
 
 end
+
+-- For faster access
+local n_images = n_images
+local k_spring = k_spring
+local image_label = image_label
 
 -- Load the FLOS module
 local flos = require "flos"
@@ -42,16 +47,30 @@ local read_geom = function(filename)
    local R = flos.Array.zeros(na, 3)
    file:read()
    local i = 0
-   local function tovector(s)
-      local t = {}
-      s:gsub('%S+', function(n) t[#t+1] = tonumber(n) end)
-      return t
+
+   local function get_numbers (inputstr, sep)
+        if sep == nil then
+                sep = "%s"
+        end
+        local t={}
+        for str in string.gmatch(inputstr, "([^"..sep.."]+)") do
+            try_number = tonumber(str)
+            -- We skip over non-numbers (e.g. chemical symbols)
+            if try_number then
+                table.insert(t, try_number)
+            end
+        end
+        return t
    end
+
    for i = 1, na do
       local line = file:read()
       if line == nil then break end
+
       -- Get stuff into the R
-      local v = tovector(line)
+      -- We allow chemical symbols, but
+      -- get the first three numbers
+      local v = get_numbers(line)
       R[i][1] = v[1]
       R[i][2] = v[2]
       R[i][3] = v[3]

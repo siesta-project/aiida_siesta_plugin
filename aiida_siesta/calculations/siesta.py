@@ -279,7 +279,8 @@ class SiestaCalculation(CalcJob):
             # Copy the whole contents of the FolderData object
             # (this syntax, with '.', is not tested yet. We might
             # have to loop over the individual files
-            local_copy_list.append((lua_input_files.uuid, '.', '.'))
+            for file in lua_input_files.list_object_names():
+                local_copy_list.append((lua_input_files.uuid, file, file))
             
 
         # NOTES:
@@ -497,11 +498,15 @@ class SiestaCalculation(CalcJob):
         # ==== Lua parameters file ====
 
         if lua_parameters is not None:
+            lua_config_filename = folder.get_abs_path("config.lua")
             # Generate a 'config.lua' file with Lua syntax
-            with open('config.lua', 'w') as f_lua:
+            with open(lua_config_filename, 'w') as f_lua:
                 f_lua.write("--- Lua script parameters \n")
-                for k, v in lua_parameters.get_dict():
-                    f_lua.write("%s =  %s\n" % (k, v))
+                for k, v in lua_parameters.get_dict().items():
+                    if isinstance(v,str):
+                        f_lua.write('%s = "%s"\n' % (k, v))
+                    else:
+                        f_lua.write("%s = %s\n" % (k, v))
 
         # ====================== Code and Calc info ========================
         # Code information object and Calc information object are now
@@ -549,7 +554,7 @@ class SiestaCalculation(CalcJob):
 
         # Avoid having the config.lua file in the repository
         if lua_parameters is not None:
-            calc_info.provenance_exclude_list = ['config.lua']
+            calcinfo.provenance_exclude_list = ['config.lua']
 
             
         # Any other files specified in the settings dictionary
