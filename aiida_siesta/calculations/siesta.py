@@ -30,6 +30,60 @@ def clone_structure(structure):
     return tweaked
 
 
+def validate_basis(value, _):
+    """
+    Validate basis input port
+    """
+    if value:
+        if 'floating_sites' in value.get_dict():
+            message = ": wrong specification of floating_sites, "
+            if not isinstance(value.get_dict()['floating_sites'], list):
+                return message + "it must be a list of dictionaries"
+            for item in value.get_dict()['floating_sites']:
+                if not isinstance(item, dict):
+                    return message + "it must be a list of dictionaries"
+                if not all(x in item.keys() for x in ['name', 'symbols', 'position']):
+                    return message + "'name', 'symbols' and 'position' must be specified"
+
+
+def validate_inputs(value, _):
+    """
+    Validate the entire input namespace. It takes care to ckeck the consistency
+    and compatibility of the inputed basis pseudos and ions
+    """
+    import warnings
+
+    if 'ions' in value:
+        quantity = 'ions'
+        if 'pseudos' in value:
+            warnings.warn("At least one ion file in input, all the pseudos will be ignored")
+    else:
+        if 'pseudos' not in value:
+            return "No pseudopotentials nor ions specified in input"
+        quantity = 'pseudos'
+
+    structure = clone_structure(value["structure"])
+
+    if 'basis' in value:
+        basis_dict = value["basis"].get_dict()
+        floating = basis_dict.get('floating_sites', None)
+        if floating is not None:
+            original_kind_names = [kind.name for kind in structure.kinds]
+            for item in floating:
+                if item["name"] in original_kind_names:
+                    return "Not possibe to specify `floating_sites` (ghosts) with the same name of a structure kind."
+                structure.append_atom(position=item["position"], symbols=item["symbols"], name=item["name"])
+    #Check each kind in the structure (including freshly added ghosts) have a corresponding pseudo or ion
+    kinds = [kind.name for kind in structure.kinds]
+    if set(kinds) != set(value[quantity].keys()):
+        string_out = (
+            'mismatch between the defined pseudos/ions and the list of kinds of the structure\n' +
+            'pseudos/ions: {} \n'.format(', '.join(list(value[quantity].keys()))) +
+            'kinds(including ghosts): {}'.format(', '.join(list(kinds)))
+        )
+        return string_out
+
+
 class SiestaCalculation(CalcJob):
     """
     Siesta calculator class for AiiDA.
@@ -53,6 +107,7 @@ class SiestaCalculation(CalcJob):
     _aiida_blocked_keywords.append(FDFDict.translate_key('xml-write'))
     _aiida_blocked_keywords.append(FDFDict.translate_key('dm-use-save-dm'))
     _aiida_blocked_keywords.append(FDFDict.translate_key('geometry-must-converge'))
+    _aiida_blocked_keywords.append(FDFDict.translate_key('user-basis'))
     _PSEUDO_SUBFOLDER = './'
     _OUTPUT_SUBFOLDER = './'
     _JSON_FILE = 'time.json'
@@ -79,11 +134,14 @@ class SiestaCalculation(CalcJob):
         spec.input('structure', valid_type=orm.StructureData, help='Input structure')
         spec.input('kpoints', valid_type=orm.KpointsData, help='Input kpoints', required=False)
         spec.input('bandskpoints', valid_type=orm.KpointsData, help='Input kpoints for bands', required=False)
-        spec.input('basis', valid_type=orm.Dict, help='Input basis', required=False)
+        spec.input('basis', valid_type=orm.Dict, help='Input basis', required=False, validator=validate_basis)
         spec.input('settings', valid_type=orm.Dict, help='Input settings', required=False)
         spec.input('parameters', valid_type=orm.Dict, help='Input parameters')
         spec.input('parent_calc_folder', valid_type=orm.RemoteData, required=False, help='Parent folder')
-        spec.input_namespace('pseudos', valid_type=(PsfData, PsmlData), help='Input pseudo potentials', dynamic=True)
+        spec.input_namespace(
+            'pseudos', valid_type=(PsfData, PsmlData), help='Input pseudo potentials', dynamic=True, required=False
+        )
+        spec.input_namespace('ions', valid_type=IonData, help='Input ion file', dynamic=True, required=False)
 
         # Metadada.options host the inputs that are not stored as a separate node, but attached to `CalcJobNode`
         # as attributes. They are optional, since a default is specified, but they might be changed by the user.
@@ -92,6 +150,8 @@ class SiestaCalculation(CalcJob):
         spec.inputs['metadata']['options']['input_filename'].default = cls._DEFAULT_INPUT_FILE
         spec.inputs['metadata']['options']['output_filename'].default = cls._DEFAULT_OUTPUT_FILE
         spec.inputs['metadata']['options']['parser_name'].default = 'siesta.parser'
+
+        spec.inputs.validator = validate_inputs
 
         # Output nodes
         spec.output('output_parameters', valid_type=Dict, required=True, help='The calculation results')
@@ -113,6 +173,36 @@ class SiestaCalculation(CalcJob):
         spec.exit_code(449, 'SPLIT_NORM', message='Split_norm parameter too small')
         spec.exit_code(448, 'BASIS_POLARIZ', message='Problems in the polarization of a basis element')
 
+    def initialize(self):
+        """
+        Some initialization:
+        1) Create an internal structure where possible `floating_sites` are added.
+        2) Create a list containing floating_species_names
+        3) Checks whether the info on basis and pseudos are passed directly as ion files
+        4) Remove the `floating_sites` to the basis dictionary
+        """
+        value = self.inputs
+
+        structure = clone_structure(value["structure"])
+        floating_species_names = []
+
+        basis_dict = None
+        if 'basis' in value:
+            basis_dict = value["basis"].get_dict()
+            floating = basis_dict.pop('floating_sites', None)
+            if floating is not None:
+                for item in floating:
+                    structure.append_atom(position=item["position"], symbols=item["symbols"], name=item["name"])
+                    floating_species_names.append(item["name"])
+
+        if 'ions' in value:
+            basis_dict = None
+            ion_or_pseudo = 'ions'
+        else:
+            ion_or_pseudo = 'pseudos'
+
+        return structure, basis_dict, floating_species_names, ion_or_pseudo
+
     def prepare_for_submission(self, folder):  # noqa: MC0001  - is mccabe too complex funct -
         """
         Create the input files from the input nodes passed to this instance of the `CalcJob`.
@@ -127,30 +217,17 @@ class SiestaCalculation(CalcJob):
 
         code = self.inputs.code
 
-        original_structure = self.inputs.structure
+        #The validator add ploating states to the structure and saves it.
+        structure, basis_dict, floating_species_names, ion_or_pseudo_str = self.initialize()
+
+        ion_or_pseudo = self.inputs[ion_or_pseudo_str]
 
         parameters = self.inputs.parameters
-
-        pseudos = self.inputs.pseudos
 
         if 'kpoints' in self.inputs:
             kpoints = self.inputs.kpoints
         else:
             kpoints = None
-
-        if 'basis' in self.inputs:
-            basis = self.inputs.basis
-            if 'floating_sites' in basis.get_dict():
-                message = "Wrong specification of floating_sites, "
-                if not isinstance(basis.get_dict()['floating_sites'], list):
-                    raise ValueError(message + "it must be a list of dictionaries")
-                for item in basis.get_dict()['floating_sites']:
-                    if not isinstance(item, dict):
-                        raise ValueError(message + "it must be a list of dictionaries")
-                    if not all(x in item.keys() for x in ['name', 'symbols', 'position']):
-                        raise ValueError(message + "'name', 'symbols' and 'position' must be specified")
-        else:
-            basis = None
 
         if 'settings' in self.inputs:
             settings = self.inputs.settings.get_dict()
@@ -174,36 +251,6 @@ class SiestaCalculation(CalcJob):
         local_copy_list = []
         # List of files for restart
         remote_copy_list = []
-
-        # =============== Checks for floating orbitals and pseudos ===============
-
-        #We make use of a cloned structure to add the ghost sites. In case there aren't ghosts,
-        #the cloned structure will be exactly like the original and can be used later on.
-        #The list `floating_species_names` is used later and must be empty list if there aren't floating_orbs.
-        structure = clone_structure(original_structure)
-        floating_species_names = []
-        #Add ghosts to the structure
-        if basis is not None:
-            basis_dict = basis.get_dict()
-            floating = basis_dict.pop('floating_sites', None)
-            if floating is not None:
-                original_kind_names = [kind.name for kind in structure.kinds]
-                for item in floating:
-                    if item["name"] in original_kind_names:
-                        raise ValueError(
-                            "It is not possibe to specify `floating_sites` "
-                            "(ghosts states) with the same name of a structure kind."
-                        )
-                    structure.append_atom(position=item["position"], symbols=item["symbols"], name=item["name"])
-                    floating_species_names.append(item["name"])
-        #Check each kind in the structure (including freshly added ghosts) have a corresponding pseudo.
-        kinds = [kind.name for kind in structure.kinds]
-        if set(kinds) != set(pseudos.keys()):
-            raise ValueError(
-                'Mismatch between the defined pseudos and the list of kinds of the structure.\n',
-                'Pseudos: {} \n'.format(', '.join(list(pseudos.keys()))),
-                'Kinds (including ghosts): {}'.format(', '.join(list(kinds))),
-            )
 
         # ============== Preprocess of input parameters ===============
 
@@ -229,6 +276,8 @@ class SiestaCalculation(CalcJob):
         input_params.update({'geometry-must-converge': 'T'})
         input_params.update({'lattice-constant': '1.0 Ang'})
         input_params.update({'atomic-coordinates-format': 'Ang'})
+        if ion_or_pseudo_str == "ions":
+            input_params.update({'user-basis': 'T'})
         # NOTES:
         # 1) The lattice-constant parameter must be 1.0 Ang to impose the units and consider
         #   that the dimenstions of the lattice vectors are already correct with no need of alat.
@@ -266,7 +315,7 @@ class SiestaCalculation(CalcJob):
             atomic_species_card_list.append(
                 "{0:5} {1:5} {2:5}\n".format(spind[kind.name], atomic_number, kind.name.rjust(6))
             )
-            psp = pseudos[kind.name]
+            psp_or_ion = ion_or_pseudo[kind.name]
             # Add this pseudo file to the list of files to copy, with the appropiate name.
             # In the case of sub-species (different kind.name but same kind.symbol, e.g.,
             # 'C_surf', sharing the same pseudo with 'C'), we copy the file ('C.psf')
@@ -274,12 +323,14 @@ class SiestaCalculation(CalcJob):
             # It is passed in form of a list of tuples with format ('node_uuid', 'filename',
             # relativedestpath'). We probably should be pre-pending 'self._PSEUDO_SUBFOLDER'
             # in the last slot, for generality, even if is not necessary for siesta.
-            if isinstance(psp, PsfData):
-                local_copy_list.append((psp.uuid, psp.filename, kind.name + ".psf"))
-            elif isinstance(psp, PsmlData):
-                local_copy_list.append((psp.uuid, psp.filename, kind.name + ".psml"))
-            else:
-                pass
+            if isinstance(psp_or_ion, IonData):
+                file_name = kind.name + ".ion"
+                with folder.open(file_name, 'w', encoding='utf8') as handle:
+                    handle.write(psp_or_ion.get_content_ascii_format())
+            if isinstance(psp_or_ion, PsfData):
+                local_copy_list.append((psp_or_ion.uuid, psp_or_ion.filename, kind.name + ".psf"))
+            if isinstance(psp_or_ion, PsmlData):
+                local_copy_list.append((psp_or_ion.uuid, psp_or_ion.filename, kind.name + ".psml"))
         atomic_species_card_list = (["%block chemicalspecieslabel\n"] + list(atomic_species_card_list))
         atomic_species_card = "".join(atomic_species_card_list)
         atomic_species_card += "%endblock chemicalspecieslabel\n"
@@ -420,7 +471,7 @@ class SiestaCalculation(CalcJob):
             # parameters section. Some discipline is needed to
             # put any basis-related parameters (including blocks)
             # in the basis dictionary in the input script.
-            if basis is not None:
+            if basis_dict:  #It migh also be empty dict. In such case we do not write.
                 infile.write("#\n# -- Basis Set Info follows\n#\n")
                 for k, v in basis_dict.items():
                     infile.write("%s %s\n" % (k, v))

@@ -384,37 +384,39 @@ class SiestaParser(Parser):
             arraydata.set_array('stress', np.array(stress))
             self.out('forces_and_stress', arraydata)
 
-        #Attempt to parse the ion files.
-        from aiida_siesta.data.ion import IonData
-        ions = {}
-        #Ions from the structure
-        in_struc = self.node.inputs.structure
-        for kind in in_struc.get_kind_names():
-            ion_file_name = kind + ".ion.xml"
-            if ion_file_name in output_folder._repository.list_object_names():
-                ion_file_path = os.path.join(output_folder._repository._get_base_folder().abspath, ion_file_name)
-                ions[kind] = IonData(ion_file_path)
-            else:
-                self.logger.warning(f"no ion file retrieved for {kind}")
-        #Ions from floating_sites
-        if "basis" in self.node.inputs:
-            basis_dict = self.node.inputs.basis.get_dict()
-            if "floating_sites" in basis_dict:
-                floating_kinds = []
-                for orb in basis_dict["floating_sites"]:
-                    if orb["name"] not in floating_kinds:
-                        floating_kinds.append(orb["name"])
-                        ion_file_name = orb["name"] + ".ion.xml"
-                        if ion_file_name in output_folder._repository.list_object_names():
-                            ion_file_path = os.path.join(
-                                output_folder._repository._get_base_folder().abspath, ion_file_name
-                            )
-                            ions[orb["name"]] = IonData(ion_file_path)
-                        else:
-                            self.logger.warning(f"no ion file retrieved for {orb['name']}")
-        #Return the outputs
-        if ions:
-            self.out('ion_files', ions)
+        #Attempt to parse the ion files. Files ".ion.xml" are not produced by siesta if ions are
+        #in input and `user-basis = T`. This explains the first if statement.
+        if "ions" not in self.node.inputs:  #pylint: disable=too-many-nested-blocks
+            from aiida_siesta.data.ion import IonData
+            ions = {}
+            #Ions from the structure
+            in_struc = self.node.inputs.structure
+            for kind in in_struc.get_kind_names():
+                ion_file_name = kind + ".ion.xml"
+                if ion_file_name in output_folder._repository.list_object_names():
+                    ion_file_path = os.path.join(output_folder._repository._get_base_folder().abspath, ion_file_name)
+                    ions[kind] = IonData(ion_file_path)
+                else:
+                    self.logger.warning(f"no ion file retrieved for {kind}")
+            #Ions from floating_sites
+            if "basis" in self.node.inputs:
+                basis_dict = self.node.inputs.basis.get_dict()
+                if "floating_sites" in basis_dict:
+                    floating_kinds = []
+                    for orb in basis_dict["floating_sites"]:
+                        if orb["name"] not in floating_kinds:
+                            floating_kinds.append(orb["name"])
+                            ion_file_name = orb["name"] + ".ion.xml"
+                            if ion_file_name in output_folder._repository.list_object_names():
+                                ion_file_path = os.path.join(
+                                    output_folder._repository._get_base_folder().abspath, ion_file_name
+                                )
+                                ions[orb["name"]] = IonData(ion_file_path)
+                            else:
+                                self.logger.warning(f"no ion file retrieved for {orb['name']}")
+            #Return the outputs
+            if ions:
+                self.out('ion_files', ions)
 
         # Error analysis
         if have_errors_to_analyse:

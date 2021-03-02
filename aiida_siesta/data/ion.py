@@ -8,6 +8,13 @@ from aiida.common.exceptions import StoringNotAllowed
 from aiida_siesta.utils.pao_manager import PaoManager
 
 
+def xml_element_to_string(element, tail=True):
+    string = "<" + element.tag + ">" + element.text + "</" + element.tag + ">"
+    if tail:
+        string = string + element.tail
+    return string
+
+
 def parse_ion(fname):
     """
     Try to get relevant information from the .ion. For the moment, only the
@@ -193,46 +200,63 @@ class IonData(SinglefileData):
     def md5(self):
         return self.get_attribute('md5', None)
 
+    def get_content_ascii_format(self):
+        """
+        from the content, write the ld format .ion file. Necessary since siesta reads it.
+        """
+        from xml.etree import ElementTree
 
-# def _validate(self):
-#     from aiida.common.exceptions import ValidationError
-#     from aiida.common.files import md5_from_filelike
+        root = ElementTree.fromstring(self.get_content())
+        string = ""
 
-#     super()._validate()
+        preamble_el = root.find("preamble")
 
-#     # Yet another parsing ???
-#     with self.open(mode='r') as handle:
-#         parsed_data = parse_ion(handle.name)
+        string = string + "<" + preamble_el.tag + ">" + preamble_el.text
+        string = string + xml_element_to_string(preamble_el[0])  #basis
+        string = string + xml_element_to_string(preamble_el[1])  #pseudo_header
+        string = string + "</" + preamble_el.tag + ">\n"
+        string = string + root.find("symbol").text + "\n"
+        string = string + root.find("label").text + "\n"
+        string = string + root.find("z").text + "\n"
+        string = string + root.find("valence").text + "\n"
+        string = string + root.find("mass").text + "\n"
+        string = string + root.find("self_energy").text + "\n"
+        string = string + root.find("lmax_basis").text + root.find("norbs_nl").text + "\n"
+        string = string + root.find("lmax_projs").text + root.find("nprojs_nl").text + "#\n"
 
-#     # Open in binary mode which is required for generating the md5 checksum
-#     with self.open(mode='rb') as handle:
-#         md5 = md5_from_filelike(handle)
+        string = string + "# PAOs:__________________________\n"
+        for orbital in root.find("paos"):
+            string = string + orbital.attrib["l"] + orbital.attrib["n"] + orbital.attrib["z"] + orbital.attrib[
+                "ispol"] + orbital.attrib["population"] + "\n"
+            radfunc = orbital.find("radfunc")
+            string = string + radfunc.find("npts").text + radfunc.find("delta").text + radfunc.find("cutoff").text
+            string = string + radfunc.find("data").text
 
-#     # This is erroneous exception,
-#     # as it is in the `upf` module oin `aiida_core`
-#     try:
-#         element = parsed_data['element']
-#     except KeyError:
-#         raise ValidationError("No 'element' could be parsed in the PSML " "file {}".format(self.filename))
+        string = string + "# KBs:__________________________\n"
+        for projector in root.find("kbs"):
+            string = string + projector.attrib["l"] + projector.attrib["n"] + projector.attrib["ref_energy"] + "\n"
+            radfunc = projector.find("radfunc")
+            string = string + radfunc.find("npts").text + radfunc.find("delta").text + radfunc.find("cutoff").text
+            string = string + radfunc.find("data").text
 
-#     try:
-#         attr_element = self.get_attribute('element')
-#     except AttributeError:
-#         raise ValidationError("attribute 'element' not set.")
+        string = string + "# Vna:__________________________\n"
+        radfunc = root.find("vna").find("radfunc")
+        string = string + radfunc.find("npts").text + radfunc.find("delta").text + radfunc.find("cutoff").text
+        string = string + radfunc.find("data").text
 
-#     try:
-#         attr_md5 = self.get_attribute('md5')
-#     except AttributeError:
-#         raise ValidationError("attribute 'md5' not set.")
+        string = string + "# Chlocal:__________________________\n"
+        radfunc = root.find("chlocal").find("radfunc")
+        string = string + radfunc.find("npts").text + radfunc.find("delta").text + radfunc.find("cutoff").text
+        string = string + radfunc.find("data").text
 
-#     if attr_element != element:
-#         raise ValidationError(
-#             "Attribute 'element' says '{}' but '{}' was "
-#             "parsed instead.".format(attr_element, element)
-#         )
+        core_info = radfunc = root.find("core")
+        if core_info is not None:
+            string = string + "# Core:__________________________\n"
+            radfunc = root.find("core").find("radfunc")
+            string = string + radfunc.find("npts").text + radfunc.find("delta").text + radfunc.find("cutoff").text
+            string = string + radfunc.find("data").text
 
-#     if attr_md5 != md5:
-#         raise ValidationError("Attribute 'md5' says '{}' but '{}' was " "parsed instead.".format(attr_md5, md5))
+        return string
 
     def get_orbitals(self):
         """
