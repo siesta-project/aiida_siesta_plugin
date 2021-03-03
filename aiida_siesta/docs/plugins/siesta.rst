@@ -92,8 +92,7 @@ Some examples are referenced in the following list. They are located in the fold
   not allowed (the restart options are explained :ref:`here <siesta-restart>`)
   together with the keyword ``geometry-must-converge`` (set to True by default for each
   calculation with variable geometry). Finally,  all the ``pao`` options must be avoided here, 
-  because they belong to the **basis** input 
-  (next to next in this list). Any units are
+  because they belong to the **basis** input (next in this list). Any units are
   specified for now as part of the value string. Blocks are entered
   by using an appropriate key and Python's multiline string
   constructor. For example::
@@ -141,8 +140,67 @@ Some examples are referenced in the following list. They are located in the fold
 
     <br />
 
+
+* **basis**, class :py:class:`Dict  <aiida.orm.Dict>`, *Optional*
+
+  A dictionary specifically intended for basis set information. It
+  follows the same structure as the **parameters** element, including
+  the allowed use of fdf-block items. This raw interface allows a
+  direct translation of the myriad basis-set options supported by the
+  Siesta program. In future we might have a more structured input for
+  basis-set information.
+  An example::
+
+        from aiida.orm import Dict
+
+        basis_dict = {
+        'pao-basistype':'split',
+        'pao-splitnorm': 0.150,
+        'pao-energyshift': '0.020 Ry',
+        '%block pao-basis-sizes':
+        """
+        C    SZP
+        Cred SZ
+        H    SZP
+        %endblock pao-basis-sizes""",
+        }
+
+        basis = Dict(dict=basis_dict)
+
+  In case no basis is set (and no **ions** is passed in input), the Siesta calculation will not include
+  any basis specification and it will run with the default basis: DZP plus (many) other defaults.
+
+  The **basis** dictionary also accepts a special key called ``floating_sites`` that
+  can be used to specify the location and kind of *ghost atoms*, or
+  sites carrying only floating orbitals. The associated value must be a list of dictionaries
+  and each dictionary must include as keys at least the ``name``, ``symbols`` and ``position`` of the
+  floating site.
+  An example is::
+
+        basis = Dict(dict={
+                'floating_sites': [{"name":'Si_bond', "symbols":'Si', "position":(0.125, 0.125, 0.125)}],
+                '%block pao-basis-sizes': 
+                """
+                Si_bond SZ
+                %endblock pao-basis-sizes""",
+        })
+
+
+  The "position" must be specified in Angstrom. A "name" that corresponds to an existing atomic site
+  is forbidden.
+  As shown in the example, in case a basis specification has to be added for one or more ``floating_sites``, it must
+  be included in the basis dictionary in the same way as those for any other atomic kinds.
+  Please look at the examples `example_ghost.py` and `example_ghost_relax.py` for a practical example.
+
+.. |br| raw:: html
+
+    <br />
+
+
 * **pseudos**, input namespace of class :py:class:`PsfData  <aiida_siesta.data.psf.PsfData>`
-  OR class :py:class:`PsmlData  <aiida_siesta.data.psml.PsmlData>`, *Mandatory*
+  OR class :py:class:`PsmlData  <aiida_siesta.data.psml.PsmlData>`, *Optional*
+
+  This input is mandatory except if the **ions** input is set (see below).
 
   The `PsfData  <aiida_siesta.data.psf.PsfData>` and `PsmlData  <aiida_siesta.data.psml.PsmlData>`
   classes have been implemented along the lines of the Upf class of aiida-core.
@@ -180,61 +238,43 @@ Some examples are referenced in the following list. They are located in the fold
 
     <br />
 
-* **basis**, class :py:class:`Dict  <aiida.orm.Dict>`, *Optional*
 
-  A dictionary specifically intended for basis set information. It
-  follows the same structure as the **parameters** element, including
-  the allowed use of fdf-block items. This raw interface allows a
-  direct translation of the myriad basis-set options supported by the
-  Siesta program. In future we might have a more structured input for
-  basis-set information.
-  An example::
+* **ions**, input namespace of class :py:class:`IonData  <aiida_siesta.data.ion.IonfData>`, *Optional*
 
-        from aiida.orm import Dict
+  The `IonData  <aiida_siesta.data.ion.IonData>` have been implemented along the lines of the `PsfData`
+  to host information on the quantity that in siesta terminology is called "ion". This is a single entity
+  containing both the pseudo and basis specifications through the explicit definition of the orbitals
+  used for the expansion of the Khon-Sham wave-functions. The class `IonData` stores ".ion.xml" files
+  and it also provide a method `get_content_ascii_format` that translates the content of an ".ion.xml" into
+  an ".ion" file format (the older ascii format for ions).
 
-        basis_dict = {
-        'pao-basistype':'split',
-        'pao-splitnorm': 0.150,
-        'pao-energyshift': '0.020 Ry',
-        '%block pao-basis-sizes':
-        """
-        C    SZP
-        Cred SZ
-        H    SZP
-        %endblock pao-basis-sizes""",
-        }
+  When this input is present, the plugin takes care of coping in the running folder the ".ion"
+  files and set the "user_basis" siesta keyword to True. Moreover, when this input is present,
+  **pseudos** and **basis** inputs are ignored (except possible `floating_orbitals` defined in the basis).
 
-        basis = Dict(dict=basis_dict)
+  One ions file per atomic element is required. Several species (in the
+  Siesta sense, which allows the same element to be treated differently
+  according to its environment) can share the same ion. For the example
+  above::
 
-  In case no basis is set, the Siesta calculation will not include
-  any basis specification and it will run with the default basis: DZP 
-  plus (many) other defaults.
+    import os
+    from aiida_siesta.data.ion import IonData
 
-  The **basis** dictionary also accepts a special key called ``floating_sites`` that
-  can be used to specify the location and kind of *ghost atoms*, or
-  sites carrying only floating orbitals. The associated value must be a list of dictionaries
-  and each dictionary must include as keys at least the ``name``, ``symbols`` and ``position`` of the
-  floating site.
-  An example is::
+    ion_file_to_species_map = [ ("C.ion", ['C', 'Cred']),("H.ion", ['H'])]
+    ions_dict = {}
+    for fname, kinds, in ion_file_to_species_map:
+          absname = os.path.realpath(os.path.join("path/to/file",fname))
+          pseudo, created = IonData.get_or_create(absname, use_first=True)
+          for j in kinds:
+                  ions_dict[j]=pseudo
 
-        basis = Dict(dict={
-                'floating_sites': [{"name":'Si_bond', "symbols":'Si', "position":(0.125, 0.125, 0.125)}],
-                '%block pao-basis-sizes': 
-                """
-                Si_bond SZ
-                %endblock pao-basis-sizes""",
-        })
+  The `example_ion.py` can be analyzed to better understand the use of **ions** inputs.
 
-
-  The "position" must be specified in Angstrom. A "name" that corresponds to an existing atomic site
-  is forbidden.
-  As shown in the example, in case a basis specification has to be added for one or more ``floating_sites``, it must
-  be included in the basis dictionary in the same way as those for any other atomic kinds.
-  Please look at the examples `example_ghost.py` and `example_ghost_relax.py` for a practical example.
 
 .. |br| raw:: html
 
     <br />
+
 
 * **kpoints**, class :py:class:`KpointsData <aiida.orm.KpointsData>`, *Optional*
 
@@ -540,6 +580,23 @@ accessed with the ``calculation.outputs`` method.
   of files that can be easly plot are available through ``bands.export``.
 
 .. |br| raw:: html
+
+    <br />
+
+* **ions**, :py:class:`IonData  <aiida.orm.IonData>`
+
+  Instances of `IonData` can be used as inputs of a ``SiestaCalculation``, meaning ``aiida_siesta``
+  supports the use of user basis specified directly in ".ion" files. However,
+  most of the times, pseudos and basis are defined separately for a siesta run and the basis generation makes use
+  of internal siesta algorithms that translates high-level definitions (basis-sizes, split-norm, ...) into the
+  actual orbitals for the wave-function expansion. In these cases siesta produces an ".ion.xml" file 
+  for each species in the structure.
+  These files are parsed and stored into `IonData` instances that can be than easily reused for
+  subsequent calculations. From `IonData` instances also the explicit orbitals of the basis can be obtained.
+  One **ions** for each species is created and they will be outputted with the name ``ions_El`` where
+  ``El`` is the label of the species. 
+
+  .. |br| raw:: html
 
     <br />
 
