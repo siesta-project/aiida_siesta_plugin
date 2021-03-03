@@ -384,9 +384,10 @@ class SiestaParser(Parser):
             arraydata.set_array('stress', np.array(stress))
             self.out('forces_and_stress', arraydata)
 
-        #Attempt to parse the ion files. Files ".ion.xml" are not produced by siesta if ions are
-        #in input and `user-basis = T`. This explains the first if statement.
-        if "ions" not in self.node.inputs:  #pylint: disable=too-many-nested-blocks
+        #Attempt to parse the ion files. Files ".ion.xml" are not produced by siesta if ions file are used
+        #in input (`user-basis = T`). This explains the first "if" statement. The SiestaCal input is called
+        #`ions__El` (El is the element label) therefore we look for the str "ions" in any of the inputs name.
+        if not any(["ions" in inp for inp in self.node.inputs]):  #pylint: disable=too-many-nested-blocks
             from aiida_siesta.data.ion import IonData
             ions = {}
             #Ions from the structure
