@@ -34,6 +34,8 @@ def validate_basis(value, _):
     """
     Validate basis input port
     """
+    #Before plumpy 0.17.0, the port was checked even if not required and the value
+    #set to empty tuple if not passed. This is the reason of the first "if" statement.
     if value:
         if 'floating_sites' in value.get_dict():
             message = ": wrong specification of floating_sites, "

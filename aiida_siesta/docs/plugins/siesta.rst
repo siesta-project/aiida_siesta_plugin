@@ -244,7 +244,7 @@ Some examples are referenced in the following list. They are located in the fold
   The `IonData  <aiida_siesta.data.ion.IonData>` have been implemented along the lines of the `PsfData`
   to host information on the quantity that in siesta terminology is called "ion". This is a single entity
   containing both the pseudo and basis specifications through the explicit definition of the orbitals
-  used for the expansion of the Khon-Sham wave-functions. The class `IonData` stores ".ion.xml" files
+  used for the expansion of the Kohn-Sham wave-functions. The class `IonData` stores ".ion.xml" files
   and it also provide a method `get_content_ascii_format` that translates the content of an ".ion.xml" into
   an ".ion" file format (the older ascii format for ions).
 
