@@ -12,4 +12,6 @@ suggest inputs for the WorkChain. The protocol approach still leaves compleate f
 to change the inputs before submission.
 In order to use these examples, a pseudo family named 'nc-sr-04_pbe_standard_psml' must be
 loaded in the database and it should contain the 'nc-sr-04_pbe_standard_psml' pseudo set 
-available from the PseudoDojo web site (http://www.pseudo-dojo.org/). 
+available from the PseudoDojo web site (http://www.pseudo-dojo.org/).
+
+The same pseudofamily is needed for running `example_family_and_ghost.py`. 
