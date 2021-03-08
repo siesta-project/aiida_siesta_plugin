@@ -443,3 +443,8 @@ def test_ions(aiida_profile, fixture_sandbox, generate_calc_job,
 
     file_regression.check(input_written, encoding='utf-8', extension='.fdf')
 
+    with fixture_sandbox.open('Si.ion') as ion_handle:
+        ion_input_written = ion_handle.read()
+
+    file_regression.check(ion_input_written, encoding='utf-8', extension='.ion')
+

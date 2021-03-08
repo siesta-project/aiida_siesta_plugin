@@ -200,17 +200,34 @@ class IonData(SinglefileData):
     def md5(self):
         return self.get_attribute('md5', None)
 
-    def get_content_ascii_format(self):
+    def get_content_ascii_format(self):  #pylint: disable=too-many-statements
         """
-        from the content, write the ld format .ion file. Necessary since siesta reads it.
+        from the content, write the old format .ion file. Necessary since siesta only reads
+        ion info in this format.
         """
         from xml.etree import ElementTree
 
         root = ElementTree.fromstring(self.get_content())
+
+        #preliminary check on lj_projs, necessary due to a problem in siesta.
+        #See "Add lj_projs and j support to ion xml files" commit to siesta in GitLab
+        found_lj_proj = root.find("lj_projs")
+        if found_lj_proj is not None:
+            have_lj_proj = "T" in found_lj_proj.text or "t" in found_lj_proj.text
+        else:
+            ln_list = []
+            for proj in root.find("kbs"):
+                ln_list.append((int(proj.attrib["l"]), int(proj.attrib["n"])))
+            if len(ln_list) == len(set(ln_list)):
+                have_lj_proj = False
+            else:
+                have_lj_proj = True
+
+        #start of the file content construction
         string = ""
 
+        #Construct the preamble (basis spec and pseudo header)
         preamble_el = root.find("preamble")
-
         string = string + "<" + preamble_el.tag + ">" + preamble_el.text
         string = string + xml_element_to_string(preamble_el[0])  #basis
         string = string + xml_element_to_string(preamble_el[1])  #pseudo_header
@@ -222,8 +239,12 @@ class IonData(SinglefileData):
         string = string + root.find("mass").text + "\n"
         string = string + root.find("self_energy").text + "\n"
         string = string + root.find("lmax_basis").text + root.find("norbs_nl").text + "\n"
-        string = string + root.find("lmax_projs").text + root.find("nprojs_nl").text + "#\n"
+        if have_lj_proj:
+            string = string + root.find("lmax_projs").text + root.find("nprojs_nl").text + "T\n"
+        else:
+            string = string + root.find("lmax_projs").text + root.find("nprojs_nl").text + "#\n"
 
+        #The Paos
         string = string + "# PAOs:__________________________\n"
         for orbital in root.find("paos"):
             string = string + orbital.attrib["l"] + orbital.attrib["n"] + orbital.attrib["z"] + orbital.attrib[
@@ -232,23 +253,36 @@ class IonData(SinglefileData):
             string = string + radfunc.find("npts").text + radfunc.find("delta").text + radfunc.find("cutoff").text
             string = string + radfunc.find("data").text
 
+        #The KBs. Note that (in case of have_lj_proj) the j value is not read from the .ion.xml but calculated
+        #on site. This is because the j value for each projector was added only in recent version of siesta.
+        #The implementation assumes that j=l-1/2 is always the first listed, j=l+1/2 the second! Hope it is true!!
         string = string + "# KBs:__________________________\n"
+        collect_ln = []
         for projector in root.find("kbs"):
-            string = string + projector.attrib["l"] + projector.attrib["n"] + projector.attrib["ref_energy"] + "\n"
+            l_val = int(projector.attrib["l"])
+            n_val = int(projector.attrib["n"])
+            if have_lj_proj:
+                if (l_val, n_val) in collect_ln:
+                    j_val = "   " + str(l_val + 0.5) + "  "
+                else:
+                    j_val = "   " + str(abs(l_val - 0.5)) + "  "  #abs for the l=0 case
+                string = string + " " + str(l_val) + j_val + str(n_val) + projector.attrib["ref_energy"] + "\n"
+            else:
+                string = string + " " + str(l_val) + "  " + str(n_val) + projector.attrib["ref_energy"] + "\n"
+            collect_ln.append((l_val, n_val))
             radfunc = projector.find("radfunc")
             string = string + radfunc.find("npts").text + radfunc.find("delta").text + radfunc.find("cutoff").text
             string = string + radfunc.find("data").text
 
+        #Other quantities
         string = string + "# Vna:__________________________\n"
         radfunc = root.find("vna").find("radfunc")
         string = string + radfunc.find("npts").text + radfunc.find("delta").text + radfunc.find("cutoff").text
         string = string + radfunc.find("data").text
-
         string = string + "# Chlocal:__________________________\n"
         radfunc = root.find("chlocal").find("radfunc")
         string = string + radfunc.find("npts").text + radfunc.find("delta").text + radfunc.find("cutoff").text
         string = string + radfunc.find("data").text
-
         core_info = radfunc = root.find("core")
         if core_info is not None:
             string = string + "# Core:__________________________\n"

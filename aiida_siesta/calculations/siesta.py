@@ -163,7 +163,7 @@ class SiestaCalculation(CalcJob):
         spec.output('forces_and_stress', valid_type=ArrayData, required=False, help='Optional forces and stress')
         spec.output_namespace('ion_files', valid_type=IonData, dynamic=True, required=False)
 
-        # Option that allows acces through node.res should be existing output node and a Dict
+        # Option that allows access through node.res should be existing output node and a Dict
         spec.default_output_node = 'output_parameters'
 
         # Exit codes for specific errors. Useful for error handeling in workchains
@@ -219,7 +219,7 @@ class SiestaCalculation(CalcJob):
 
         code = self.inputs.code
 
-        #The validator add ploating states to the structure and saves it.
+        #The validator adds floating sites to the structure and saves it.
         structure, basis_dict, floating_species_names, ion_or_pseudo_str = self.initialize()
 
         ion_or_pseudo = self.inputs[ion_or_pseudo_str]
