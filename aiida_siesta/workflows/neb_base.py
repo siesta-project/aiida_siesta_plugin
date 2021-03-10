@@ -3,6 +3,36 @@ from aiida.engine import WorkChain, calcfunction, ToContext
 from aiida_siesta.calculations.siesta import SiestaCalculation
 from aiida.orm.nodes.data.structure import Kind
 
+@calcfunction
+def parse_neb(retrieved,ref_structure):
+    """
+    Wrapper to preserve provenance.
+    :param: retrieved:  the retrieved folder from a NEB calculation
+                        (containing .xyz files and NEB data files)
+    :param: ref_structure: a reference structure
+    :return: a Trajectory object generated from the .xyz files, and
+             with extra arrays for NEB results.
+    """
+    import os
+    from aiida.orm import TrajectoryData
+    from aiida_siesta.utils.xyz_utils import get_structure_list_from_folder
+    from aiida_siesta.utils.neb import parse_neb_results
+    
+    folder_path = retrieved._repository._get_base_folder().abspath
+    struct_list = get_structure_list_from_folder(folder_path,ref_structure)
+
+    traj = TrajectoryData(struct_list)
+
+    neb_results_file = 'NEB.results'
+    if neb_results_file in retrieved._repository.list_object_names():
+        neb_results_path = os.path.join(folder_path, neb_results_file)
+        annotated_traj = parse_neb_results(neb_results_path,traj)
+
+        _kinds_raw = [ k.get_raw() for k in ref_structure.kinds ]
+        annotated_traj.set_attribute('kinds', _kinds_raw)
+
+    return annotated_traj
+
 class SiestaBaseNEBWorkChain(WorkChain):
 
     """
@@ -147,43 +177,19 @@ class SiestaBaseNEBWorkChain(WorkChain):
 
         # Use the 'retrieved' folder and parse the NEB data here
         #
-        from aiida.orm import TrajectoryData
-        from aiida_siesta.utils.xyz_utils import get_structure_list_from_folder
-        import os
-        
         retrieved_folder = outps['retrieved']
-        folder_path = retrieved_folder._repository._get_base_folder().abspath
-        struct_list = get_structure_list_from_folder(folder_path,
-                                                     self.ctx.reference_structure)
-        if len(struct_list) == 0:
+        ref_structure = self.ctx.reference_structure
+
+        annotated_traj = parse_neb(retrieved_folder, ref_structure)
+        # Get better diagnostics from calcfunction...
+        if annotated_traj.numsteps == 0:
             self.logger.warning("No .xyz files retrieved")
             return self.exit_codes.NO_NEB_XYZ_FILES
 
-        traj = TrajectoryData(struct_list)
-
-        # Generate NEB results information and attach to images array
-        neb_results_file = 'NEB.results'
-        if neb_results_file in retrieved_folder._repository.list_object_names():
-            neb_results_path = os.path.join(folder_path, neb_results_file)
-
-            from aiida_siesta.utils.neb import parse_neb_results
-            annotated_traj = parse_neb_results(neb_results_path,traj)
-
-            ref_structure = self.ctx.reference_structure
-            _kinds_raw = [ k.get_raw() for k in ref_structure.kinds ]
-            annotated_traj.set_attribute('kinds', _kinds_raw)
-
-            self.out('neb_output_package', annotated_traj)
-            n_iterations = annotated_traj.get_attribute('neb_iterations')
-            self.report(f'NEB process done in {n_iterations} iterations.')
+        self.out('neb_output_package', annotated_traj)
+        n_iterations = annotated_traj.get_attribute('neb_iterations')
+        self.report(f'NEB process done in {n_iterations} iterations.')
                 
-        else:
-            self.logger.warning("No NEB result file retrieved")
-            ## return self.exit_codes.NO_NEB_RESULT_FILE
-            self.out('neb_output_package', traj)
-            self.report(f'Results of NEB process not found')
-
-
 
 #    @classmethod
 #    def inputs_generator(cls):  # pylint: disable=no-self-argument,no-self-use
