@@ -398,3 +398,53 @@ def test_floating_orbs(aiida_profile, fixture_sandbox, generate_calc_job,
 
     file_regression.check(input_written, encoding='utf-8', extension='.fdf')
 
+
+def test_ions(aiida_profile, fixture_sandbox, generate_calc_job, 
+    fixture_code, generate_structure, generate_kpoints_mesh, generate_basis,
+    generate_param, generate_ion_data, generate_psml_data, file_regression):
+    """
+    Test that single calculation is submitted with the right content of the 
+    aiida.fdf file.
+    """
+
+    entry_point_name = 'siesta.siesta'
+
+    ion = generate_ion_data('Si')
+    psml = generate_psml_data('Si')
+
+    inputs = {
+        'code': fixture_code(entry_point_name),
+        'structure': generate_structure(),
+        'kpoints': generate_kpoints_mesh(2),
+        'parameters': generate_param(),
+        'ions': {
+            'Si': ion,
+    #       'SiDiff': ion
+        },
+        'metadata': {
+            'options': {
+               'resources': {'num_machines': 1  },
+               'max_wallclock_seconds': 1800,
+               'withmpi': False,
+               }
+        }
+    }
+
+    #file because missing ion for SiDiff
+    with pytest.raises(ValueError):
+        calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
+
+    inputs["ions"]['SiDiff'] = ion
+
+    calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
+
+    with fixture_sandbox.open('aiida.fdf') as handle:
+        input_written = handle.read()
+
+    file_regression.check(input_written, encoding='utf-8', extension='.fdf')
+
+    with fixture_sandbox.open('Si.ion') as ion_handle:
+        ion_input_written = ion_handle.read()
+
+    file_regression.check(ion_input_written, encoding='utf-8', extension='.ion')
+

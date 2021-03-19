@@ -51,7 +51,7 @@ def test_siesta_default(aiida_profile, fixture_localhost, generate_calc_job_node
 
 
 def test_siesta_no_ion(aiida_profile, fixture_localhost, generate_calc_job_node, 
-    generate_parser, generate_basis, generate_structure, data_regression):
+    generate_parser, generate_basis, generate_structure, generate_ion_data, data_regression):
     """
     Test a parser of a siesta calculation, but the .ion.xml are not found
     """
@@ -84,6 +84,14 @@ def test_siesta_no_ion(aiida_profile, fixture_localhost, generate_calc_job_node,
     sum_strings = log[0].message + log[1].message + log[2].message
     assert "no ion file retrieved for Si_bond" in sum_strings
     assert "no ion file retrieved for Si" in sum_strings
+
+    #However the warning should not be present if ions are in input
+    inputs["ions"] =  {"Si_bond":generate_ion_data("Si")}
+    node = generate_calc_job_node(entry_point_calc_job, fixture_localhost, name, inputs, attributes)
+    parser = generate_parser(entry_point_parser)
+    results, calcfunction = parser.parse_from_node(node, store_provenance=False)
+    log = orm.Log.objects.get_logs_for(node)
+    assert len(log) == 0
 
 
 # As it is implemented now, there is no point to test also the case bandslines as
