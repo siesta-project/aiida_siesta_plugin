@@ -27,6 +27,7 @@ output_parameters:
     state_init: 0.24
   variable_geometry: false
   warnings:
+  - - BASIS_ENTHALPY file not retrieved
   - - 'FATAL: SCF_NOT_CONV: SCF did not converge in maximum number of steps (required).'
     - ' (info): Geom step, scf iteration, dmax:    0     3     0.000194'
     - 'FATAL: ABNORMAL_TERMINATION'

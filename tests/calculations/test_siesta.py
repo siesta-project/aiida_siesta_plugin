@@ -45,7 +45,7 @@ def test_base(aiida_profile, fixture_sandbox, generate_calc_job,
 
     #cmdline_params = ['-in', 'aiida.fdf']
     local_copy_list = [(psf.uuid, psf.filename, 'Si.psf'),(psml.uuid, psml.filename,'SiDiff.psml')]
-    retrieve_list = ['MESSAGES','time.json','aiida.out','aiida.xml','*.ion.xml']
+    retrieve_list = ['BASIS_ENTHALPY', 'MESSAGES','time.json','aiida.out','aiida.xml','*.ion.xml']
     
     # Check the attributes of the returned `CalcInfo`
     assert isinstance(calc_info, datastructures.CalcInfo)
@@ -249,7 +249,7 @@ def test_bandslines(aiida_profile, fixture_sandbox, generate_calc_job,
 
     calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
 
-    retrieve_list = ['MESSAGES','time.json','aiida.out','aiida.xml','aiida.bands','*.ion.xml']
+    retrieve_list = ['BASIS_ENTHALPY', 'MESSAGES','time.json','aiida.out','aiida.xml','aiida.bands','*.ion.xml']
 
     assert sorted(calc_info.retrieve_list) == sorted(retrieve_list)
 
@@ -300,7 +300,7 @@ def test_bandspoints(aiida_profile, fixture_sandbox, generate_calc_job,
 
     calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
 
-    retrieve_list = ['MESSAGES','time.json','aiida.out','aiida.xml','aiida.bands','*.ion.xml']
+    retrieve_list = ['BASIS_ENTHALPY', 'MESSAGES','time.json','aiida.out','aiida.xml','aiida.bands','*.ion.xml']
 
     assert sorted(calc_info.retrieve_list) == sorted(retrieve_list)
 
