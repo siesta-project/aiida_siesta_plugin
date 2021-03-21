@@ -8,7 +8,7 @@ def test_siesta_default(aiida_profile, fixture_localhost, generate_calc_job_node
     Test a parser of a siesta calculation.
     The output is created by running a dead simple SCF calculation for a silicon structure. 
     We test the standard parsing of the XML file stored in the standard results node.
-    No other file (time.json or MESSAGES) is present. Therefore no error check is done,
+    No other file (time.json, MESSAGES, BASIS_ENTHALPY) is present. Therefore no error check is done,
     but the appropriate warnings are issued.
     """
 
@@ -100,7 +100,7 @@ def test_siesta_bandspoints(aiida_profile, fixture_localhost, generate_calc_job_
     generate_parser, generate_structure, data_regression):
     """
     Test parsing of bands in a siesta calculation when the bandspoints option is set in the submission file.
-    Also the time.json and MESSAGES file are added, therefore their parsing is tested as well. The MESSAGES
+    Also the time.json, MESSAGES and BASIS_ENTHALPY files are added, therefore their parsing is tested as well. The MESSAGES
     file is the standard containing only "INFO: Job completed". 
     """
 

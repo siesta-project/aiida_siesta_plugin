@@ -114,6 +114,7 @@ class SiestaCalculation(CalcJob):
     _OUTPUT_SUBFOLDER = './'
     _JSON_FILE = 'time.json'
     _MESSAGES_FILE = 'MESSAGES'
+    _BASIS_ENTHALPY_FILE = 'BASIS_ENTHALPY'
 
     # Default of the input.spec, it's just default, but user could change the name
     _DEFAULT_PREFIX = 'aiida'
@@ -527,6 +528,7 @@ class SiestaCalculation(CalcJob):
         calcinfo.retrieve_list.append(xml_file)
         calcinfo.retrieve_list.append(self._JSON_FILE)
         calcinfo.retrieve_list.append(self._MESSAGES_FILE)
+        calcinfo.retrieve_list.append(self._BASIS_ENTHALPY_FILE)
         calcinfo.retrieve_list.append("*.ion.xml")
         if bandskpoints is not None:
             calcinfo.retrieve_list.append(bands_file)
