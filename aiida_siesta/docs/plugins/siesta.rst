@@ -357,6 +357,39 @@ Some examples are referenced in the following list. They are located in the fold
 
     <br />
 
+* **lua**, input namespace, *Optional*
+
+  This input namespace accepts the following elements::
+
+        spec.input('lua.script', valid_type=orm.SinglefileData, required=False)
+        spec.input('lua.parameters', valid_type=orm.Dict, required=False)
+        spec.input('lua.input_files', valid_type=orm.FolderData, required=False)
+        spec.input('lua.retrieve_list', valid_type=orm.List, required=False)
+
+* **lua.script** is a Lua script implementing a specific
+  functionality, and possibly being able to set its own
+  operational parameters. For example, the LBFGS geometry relaxation
+  algorithm, or the NEB path-optimization scheme, can be implemented
+  in Lua. See the examples provided.
+  
+* **lua.parameters** is a dictionary containing the
+  operational parameters for the script. For example, it can set the
+  tolerance to be used in the script, or the value of the 'spring
+  constant' in NEB simulations.
+
+* **lua.input_files** is a set of auxiliary files packaged
+  in a FolderData object. For example, the initial set of
+  images for a NEB calculation.
+
+* **lua.retrieve_list** contains a list of the files
+  produced by the operation of the Lua script that need to be
+  retrieved. They should be parsed by functionality-specific
+  modules in client workchains.
+
+.. |br| raw:: html
+
+    <br />
+
 * **settings**, class  :py:class:`Dict <aiida.orm.Dict>` , *Optional*      
 
   An optional dictionary that activates non-default operations. For a list of possible

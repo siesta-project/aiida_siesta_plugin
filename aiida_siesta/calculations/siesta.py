@@ -277,8 +277,6 @@ class SiestaCalculation(CalcJob):
 
         if lua_input_files is not None:
             # Copy the whole contents of the FolderData object
-            # (this syntax, with '.', is not tested yet. We might
-            # have to loop over the individual files
             for file in lua_input_files.list_object_names():
                 local_copy_list.append((lua_input_files.uuid, file, file))
             
@@ -547,14 +545,13 @@ class SiestaCalculation(CalcJob):
             calcinfo.retrieve_list.append(bands_file)
 
         if lua_retrieve_list is not None:
-            # Copy the whole contents of the FolderData object
-            # (this syntax, with '.', is not tested yet. We might
-            # have to loop over the individual files
             calcinfo.retrieve_list += lua_retrieve_list.get_list()
 
-        # Avoid having the config.lua file in the repository
-        if lua_parameters is not None:
-            calcinfo.provenance_exclude_list = ['config.lua']
+        # If we ever want to avoid having the config.lua file in the repository,
+        # since the information is already in the lua_parameters dictionary:
+        #
+        # if lua_parameters is not None:
+        #    calcinfo.provenance_exclude_list = ['config.lua']
 
             
         # Any other files specified in the settings dictionary
