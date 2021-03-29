@@ -35,4 +35,5 @@ output_parameters:
   siesta:run_UUID: 9f80c280-314d-11ea-55fa-c1b1f37f0f6a
   variable_geometry: true
   warnings:
+  - - BASIS_ENTHALPY file not retrieved
   - []

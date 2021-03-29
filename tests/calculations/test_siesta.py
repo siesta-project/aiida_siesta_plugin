@@ -45,7 +45,7 @@ def test_base(aiida_profile, fixture_sandbox, generate_calc_job,
 
     #cmdline_params = ['-in', 'aiida.fdf']
     local_copy_list = [(psf.uuid, psf.filename, 'Si.psf'),(psml.uuid, psml.filename,'SiDiff.psml')]
-    retrieve_list = ['MESSAGES','time.json','aiida.out','aiida.xml','*.ion.xml']
+    retrieve_list = ['BASIS_ENTHALPY', 'MESSAGES','time.json','aiida.out','aiida.xml','*.ion.xml']
     
     # Check the attributes of the returned `CalcInfo`
     assert isinstance(calc_info, datastructures.CalcInfo)
@@ -249,7 +249,7 @@ def test_bandslines(aiida_profile, fixture_sandbox, generate_calc_job,
 
     calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
 
-    retrieve_list = ['MESSAGES','time.json','aiida.out','aiida.xml','aiida.bands','*.ion.xml']
+    retrieve_list = ['BASIS_ENTHALPY', 'MESSAGES','time.json','aiida.out','aiida.xml','aiida.bands','*.ion.xml']
 
     assert sorted(calc_info.retrieve_list) == sorted(retrieve_list)
 
@@ -300,7 +300,7 @@ def test_bandspoints(aiida_profile, fixture_sandbox, generate_calc_job,
 
     calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
 
-    retrieve_list = ['MESSAGES','time.json','aiida.out','aiida.xml','aiida.bands','*.ion.xml']
+    retrieve_list = ['BASIS_ENTHALPY', 'MESSAGES','time.json','aiida.out','aiida.xml','aiida.bands','*.ion.xml']
 
     assert sorted(calc_info.retrieve_list) == sorted(retrieve_list)
 
@@ -397,4 +397,54 @@ def test_floating_orbs(aiida_profile, fixture_sandbox, generate_calc_job,
         input_written = handle.read()
 
     file_regression.check(input_written, encoding='utf-8', extension='.fdf')
+
+
+def test_ions(aiida_profile, fixture_sandbox, generate_calc_job, 
+    fixture_code, generate_structure, generate_kpoints_mesh, generate_basis,
+    generate_param, generate_ion_data, generate_psml_data, file_regression):
+    """
+    Test that single calculation is submitted with the right content of the 
+    aiida.fdf file.
+    """
+
+    entry_point_name = 'siesta.siesta'
+
+    ion = generate_ion_data('Si')
+    psml = generate_psml_data('Si')
+
+    inputs = {
+        'code': fixture_code(entry_point_name),
+        'structure': generate_structure(),
+        'kpoints': generate_kpoints_mesh(2),
+        'parameters': generate_param(),
+        'ions': {
+            'Si': ion,
+    #       'SiDiff': ion
+        },
+        'metadata': {
+            'options': {
+               'resources': {'num_machines': 1  },
+               'max_wallclock_seconds': 1800,
+               'withmpi': False,
+               }
+        }
+    }
+
+    #file because missing ion for SiDiff
+    with pytest.raises(ValueError):
+        calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
+
+    inputs["ions"]['SiDiff'] = ion
+
+    calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
+
+    with fixture_sandbox.open('aiida.fdf') as handle:
+        input_written = handle.read()
+
+    file_regression.check(input_written, encoding='utf-8', extension='.fdf')
+
+    with fixture_sandbox.open('Si.ion') as ion_handle:
+        ion_input_written = ion_handle.read()
+
+    file_regression.check(ion_input_written, encoding='utf-8', extension='.ion')
 

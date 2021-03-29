@@ -38,6 +38,7 @@ output_parameters:
     state_init: 0.267
   variable_geometry: true
   warnings:
+  - - BASIS_ENTHALPY file not retrieved
   - - 'FATAL: GEOM_NOT_CONV: Geometry relaxation not converged'
     - 'FATAL: ABNORMAL_TERMINATION'
 output_structure:
