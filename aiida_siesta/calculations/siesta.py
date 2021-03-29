@@ -95,13 +95,13 @@ class SiestaCalculation(CalcJob):
 
         # Files to be retrieved should be specified in a list of
         # path specifications
-        
+
         spec.input_namespace('lua', help='Script and files for the Lua engine')
         spec.input('lua.script', valid_type=orm.SinglefileData, required=False)
         spec.input('lua.parameters', valid_type=orm.Dict, required=False)
         spec.input('lua.input_files', valid_type=orm.FolderData, required=False)
         spec.input('lua.retrieve_list', valid_type=orm.List, required=False)
-        
+
         # Metadada.options host the inputs that are not stored as a separate node, but attached to `CalcJobNode`
         # as attributes. They are optional, since a default is specified, but they might be changed by the user.
         # The first one is siesta specific. The others are defined in the CalcJob, here we change the default.
@@ -191,22 +191,21 @@ class SiestaCalculation(CalcJob):
             lua_script = lua_inputs.script
         else:
             lua_script = None
-            
+
         if 'parameters' in lua_inputs:
             lua_parameters = lua_inputs.parameters
         else:
             lua_parameters = None
-            
+
         if 'input_files' in lua_inputs:
             lua_input_files = lua_inputs.input_files
         else:
             lua_input_files = None
-            
+
         if 'retrieve_list' in lua_inputs:
             lua_retrieve_list = lua_inputs.retrieve_list
         else:
             lua_retrieve_list = None
-            
 
         # =================== Initialization of some lists =====================
 
@@ -279,7 +278,6 @@ class SiestaCalculation(CalcJob):
             # Copy the whole contents of the FolderData object
             for file in lua_input_files.list_object_names():
                 local_copy_list.append((lua_input_files.uuid, file, file))
-            
 
         # NOTES:
         # 1) The lattice-constant parameter must be 1.0 Ang to impose the units and consider
@@ -501,7 +499,7 @@ class SiestaCalculation(CalcJob):
             with open(lua_config_filename, 'w') as f_lua:
                 f_lua.write("--- Lua script parameters \n")
                 for k, v in lua_parameters.get_dict().items():
-                    if isinstance(v,str):
+                    if isinstance(v, str):
                         f_lua.write('%s = "%s"\n' % (k, v))
                     else:
                         f_lua.write("%s = %s\n" % (k, v))
@@ -553,7 +551,6 @@ class SiestaCalculation(CalcJob):
         # if lua_parameters is not None:
         #    calcinfo.provenance_exclude_list = ['config.lua']
 
-            
         # Any other files specified in the settings dictionary
         settings_retrieve_list = settings_dict.pop('ADDITIONAL_RETRIEVE_LIST', [])
         calcinfo.retrieve_list += settings_retrieve_list

@@ -136,13 +136,13 @@ def is_variable_geometry(xmldoc):
     for item in itemlist:
         # Check there is a step which is a "geometry optimization" one
         if 'dictRef' in list(item.attributes.keys()):
-            ref= item.attributes['dictRef'].value
+            ref = item.attributes['dictRef'].value
             # This is a very simple-minded approach, since
             # there might be Lua runs which are not properly
             # geometry optimizations.
-            if (ref == "Geom. Optim") or (ref == "LUA"):
+            if ref in ("Geom. Optim", "LUA"):
                 return True
-    
+
     return False
 
 
