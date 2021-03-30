@@ -39,13 +39,18 @@ except IndexError:
 #
 code = load_code(codename)
 
+#####!!!!!!!!!!!!! THIS VARIABLE MUST BE CHANGED !!!!!!!!!!!###########
+#The lua elements from flos library. The path must be an explicit path!
+lua_elements_path = "/home/ebosoni/flos/?.lua;/home/ebosoni/flos/?/init.lua;"
+
 options = {
 #    "queue_name": "debug",
     "max_wallclock_seconds": 1700,
     "resources": {
         "num_machines": 1,
         "num_mpiprocs_per_machine": 1,
-    }
+    },
+    "environment_variables":{"LUA_PATH":lua_elements_path},
 }
 #
 #-------------------------- Settings ---------------------------------
