@@ -331,6 +331,18 @@ function siesta_update_DM(old, current)
       -- only allow the IOnode to perform stuff...
       return
    end
+
+   -- Helper function. No need to put it in the NEB package
+   function file_exists(name)
+     local f = io.open(name, "r") 
+     if f ~= nil then
+       io.close(f)
+       return true
+     else
+       return false
+     end
+   end
+   
    -- Move about files so that we re-use old DM files
    local DM = label .. ".DM"
    local old_DM = DM .. "." .. tostring(old)
@@ -340,24 +352,26 @@ function siesta_update_DM(old, current)
    print ("The Label of Old DM is : " .. old_DM)
    print ("The Label of Current DM is : " .. current_DM)
    -- Saving initial DM
-   if old==0 and current==0 then
+   if old==0 and current==0 and file_exists(DM) then
      print("Removing DM for Resuming")
      IOprint("Deleting " .. DM .. " for a clean restart...")
      os.execute("rm " .. DM)
    end 
   
-   if 0 <= old and old <= NEB.n_images+1 and NEB:file_exists(DM) then
+   if 0 <= old and old <= NEB.n_images+1 and file_exists(DM) then
       -- store the current DM for restart purposes
       IOprint("Saving " .. DM .. " to " .. old_DM)
       os.execute("mv " .. DM .. " " .. old_DM)
-   elseif NEB:file_exists(DM) then
+   elseif file_exists(DM) then
       IOprint("Deleting " .. DM .. " for a clean restart...")
       os.execute("rm " .. DM)
    end
 
-   if NEB:file_exists(current_DM) then
+   if file_exists(current_DM) then
       IOprint("Deleting " .. DM .. " for a clean restart...")
-      os.execute("rm " .. DM)
+      if file_exists(DM) then
+        os.execute("rm " .. DM)
+      end
       IOprint("Restoring " .. current_DM .. " to " .. DM)
       os.execute("cp " .. current_DM .. " " .. DM)
    end
