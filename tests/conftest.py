@@ -196,6 +196,42 @@ def generate_ion_data():
 
 
 @pytest.fixture(scope='session')
+def generate_lua_file():
+    """Return a `SingleData` instance containing the lua file `lua_scripts/relax_geometry_lbfgs.lua`."""
+
+    def _generate_lua_file():
+        """Return `SingleData` node."""
+        from aiida.orm import SinglefileData
+
+        filename = os.path.join('tests', 'lua_scripts', 'relax_geometry_lbfgs.lua')
+        filepath = os.path.abspath(filename)
+
+        lua_file = SinglefileData(filepath)
+
+        return lua_file
+
+    return _generate_lua_file
+
+
+@pytest.fixture(scope='session')
+def generate_lua_folder():
+    """Return a `FolderData` instance containing extra lua files `lua_scripts/neb-data`."""
+
+    def _generate_lua_folder():
+        """Return `FolderData` node."""
+        from aiida.orm import FolderData
+
+        foldername = os.path.join('tests', 'lua_scripts', 'neb-data')
+        folderpath = os.path.abspath(foldername)
+
+        lua_folder = FolderData(tree=folderpath)
+
+        return lua_folder
+
+    return _generate_lua_folder
+
+
+@pytest.fixture(scope='session')
 def generate_psml_fam(generate_psml_data):
     """Return a `PsmlData` instance for the given element a file for which should exist in `tests/pseudos`."""
 

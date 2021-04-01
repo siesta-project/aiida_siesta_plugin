@@ -395,6 +395,47 @@ Some examples are referenced in the following list. They are located in the fold
 
     <br />
 
+* **lua**, input namespace, *Optional*
+
+  This input namespace allows control on the LUA interface to SIESTA.
+  The user should remember that to enable the LUA interface,
+  it is suggested to compile SIESTA with ``flook`` and to use the ``flos`` library 
+  (`flos documentation`_). Follow the SIESTA manual for complete
+  instructions.
+  Since this option also requires the definition of the ``LUA_PATH``, an
+  :ref:`additional step <submission-siesta-calc>` must be done before submission.
+
+  This input namespace accepts the following elements::
+
+        spec.input('lua.script', valid_type=orm.SinglefileData, required=False)
+        spec.input('lua.parameters', valid_type=orm.Dict, required=False)
+        spec.input('lua.input_files', valid_type=orm.FolderData, required=False)
+        spec.input('lua.retrieve_list', valid_type=orm.List, required=False)
+
+* **lua.script** is a Lua script implementing a specific
+  functionality, and possibly being able to set its own
+  operational parameters. For example, the LBFGS geometry relaxation
+  algorithm, or the NEB path-optimization scheme, can be implemented
+  in Lua. See the examples provided.
+  
+* **lua.parameters** is a dictionary containing the
+  operational parameters for the script. For example, it can set the
+  tolerance to be used in the script, or the value of the 'spring
+  constant' in NEB simulations.
+
+* **lua.input_files** is a set of auxiliary files packaged
+  in a FolderData object. For example, the initial set of
+  images for a NEB calculation.
+
+* **lua.retrieve_list** contains a list of the files
+  produced by the operation of the Lua script that need to be
+  retrieved. They should be parsed by functionality-specific
+  modules in client workchains.
+
+.. |br| raw:: html
+
+    <br />
+
 * **settings**, class  :py:class:`Dict <aiida.orm.Dict>` , *Optional*      
 
   An optional dictionary that activates non-default operations. For a list of possible
@@ -408,6 +449,7 @@ Some examples are referenced in the following list. They are located in the fold
 
   Optional port used to activate the :ref:`restart features <siesta-restart>`.
 
+.. _submission-siesta-calc:
 
 Submitting the calculation
 --------------------------
@@ -434,6 +476,17 @@ Finally the resources for the calculation must be set, for instance::
 
         builder.metadata.options.resources = {'num_machines': 1}
         builder.metadata.options.max_wallclock_seconds = 1800
+
+In case of LUA calculations, the ``LUA_PATH`` must be defined. To do so::
+
+        builder.metadata.options.environment_variables = {"LUA_PATH":"/flos_path/?.lua;/flos_path/?/init.lua;;;"}
+
+where ``flos_path`` is the path to the flos library repository (in the computer where SIESTA will run). 
+Please note that the explicit path must be used due to a problem of aiida 
+(https://github.com/aiidateam/aiida-core/issues/4836). This means that, for instance, the command
+``export LUA_PATH="$HOME/flos/?.lua;$HOME/flos/?/init.lua;$LUA_PATH;;"`` suggested in the `flos documentation`_ 
+must be substitute with explicit
+path of ``$HOME``.
 
 Optionally, label and description::
 
@@ -689,3 +742,4 @@ its methods ``get_object`` and ``get_object_content``.
 .. _SeeK-path documentation: https://seekpath.readthedocs.io/en/latest/
 .. _aiida guidelines: https://aiida.readthedocs.io/projects/aiida-core/en/latest/howto/run_codes.html
 .. _HPKOT paper: http://dx.doi.org/10.1016/j.commatsci.2016.10.015
+.. _flos documentation: https://github.com/siesta-project/flos

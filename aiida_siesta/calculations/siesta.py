@@ -146,6 +146,23 @@ class SiestaCalculation(CalcJob):
         )
         spec.input_namespace('ions', valid_type=IonData, help='Input ion file', dynamic=True, required=False)
 
+        # Input namespace for Lua-related material
+        # Lua scripts could be registered as "codes" somehow.
+        # Parameters are in a separate dictionary to enable a
+        # reduced set of 'universal' scripts for particular uses.
+
+        # Input files (e.g., image files for NEB) should be packaged
+        # in a FolderData object
+
+        # Files to be retrieved should be specified in a list of
+        # path specifications
+
+        spec.input_namespace('lua', help='Script and files for the Lua engine')
+        spec.input('lua.script', valid_type=orm.SinglefileData, required=False)
+        spec.input('lua.parameters', valid_type=orm.Dict, required=False)
+        spec.input('lua.input_files', valid_type=orm.FolderData, required=False)
+        spec.input('lua.retrieve_list', valid_type=orm.List, required=False)
+
         # Metadada.options host the inputs that are not stored as a separate node, but attached to `CalcJobNode`
         # as attributes. They are optional, since a default is specified, but they might be changed by the user.
         # The first one is siesta specific. The others are defined in the CalcJob, here we change the default.
@@ -248,6 +265,28 @@ class SiestaCalculation(CalcJob):
         else:
             parent_calc_folder = None
 
+        lua_inputs = self.inputs.lua
+
+        if 'script' in lua_inputs:
+            lua_script = lua_inputs.script
+        else:
+            lua_script = None
+
+        if 'parameters' in lua_inputs:
+            lua_parameters = lua_inputs.parameters
+        else:
+            lua_parameters = None
+
+        if 'input_files' in lua_inputs:
+            lua_input_files = lua_inputs.input_files
+        else:
+            lua_input_files = None
+
+        if 'retrieve_list' in lua_inputs:
+            lua_retrieve_list = lua_inputs.retrieve_list
+        else:
+            lua_retrieve_list = None
+
         # =================== Initialization of some lists =====================
 
         # List of files to copy in the folder where the calculation runs, e.g. pseudo files
@@ -279,6 +318,14 @@ class SiestaCalculation(CalcJob):
         input_params.update({'geometry-must-converge': 'T'})
         input_params.update({'lattice-constant': '1.0 Ang'})
         input_params.update({'atomic-coordinates-format': 'Ang'})
+        if lua_script is not None:
+            input_params.update({'md-type-of-run': 'Lua'})
+            input_params.update({'lua-script': lua_script.filename})
+            local_copy_list.append((lua_script.uuid, lua_script.filename, lua_script.filename))
+        if lua_input_files is not None:
+            # Copy the whole contents of the FolderData object
+            for file in lua_input_files.list_object_names():
+                local_copy_list.append((lua_input_files.uuid, file, file))
         if ion_or_pseudo_str == "ions":
             input_params.update({'user-basis': 'T'})
         # NOTES:
@@ -495,6 +542,19 @@ class SiestaCalculation(CalcJob):
             infile.write("#\n# -- Max wall-clock time block\n#\n")
             infile.write("max.walltime {}\n".format(metadataoption.max_wallclock_seconds))
 
+        # ==== Lua parameters file ====
+
+        if lua_parameters is not None:
+            lua_config_filename = folder.get_abs_path("config.lua")
+            # Generate a 'config.lua' file with Lua syntax
+            with open(lua_config_filename, 'w') as f_lua:
+                f_lua.write("--- Lua script parameters \n")
+                for k, v in lua_parameters.get_dict().items():
+                    if isinstance(v, str):
+                        f_lua.write('%s = "%s"\n' % (k, v))
+                    else:
+                        f_lua.write("%s = %s\n" % (k, v))
+
         # ====================== Code and Calc info ========================
         # Code information object and Calc information object are now
         # only used to set up the CMDLINE (the bash line that launches siesta)
@@ -530,8 +590,19 @@ class SiestaCalculation(CalcJob):
         calcinfo.retrieve_list.append(self._MESSAGES_FILE)
         calcinfo.retrieve_list.append(self._BASIS_ENTHALPY_FILE)
         calcinfo.retrieve_list.append("*.ion.xml")
+
         if bandskpoints is not None:
             calcinfo.retrieve_list.append(bands_file)
+
+        if lua_retrieve_list is not None:
+            calcinfo.retrieve_list += lua_retrieve_list.get_list()
+
+        # If we ever want to avoid having the config.lua file in the repository,
+        # since the information is already in the lua_parameters dictionary:
+        #
+        # if lua_parameters is not None:
+        #    calcinfo.provenance_exclude_list = ['config.lua']
+
         # Any other files specified in the settings dictionary
         settings_retrieve_list = settings_dict.pop('ADDITIONAL_RETRIEVE_LIST', [])
         calcinfo.retrieve_list += settings_retrieve_list

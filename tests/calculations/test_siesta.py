@@ -448,3 +448,79 @@ def test_ions(aiida_profile, fixture_sandbox, generate_calc_job,
 
     file_regression.check(ion_input_written, encoding='utf-8', extension='.ion')
 
+
+
+def test_lua(aiida_profile, fixture_sandbox, generate_calc_job, 
+    fixture_code, generate_structure, generate_kpoints_mesh, generate_basis,
+    generate_param, generate_psml_data, generate_lua_file, generate_lua_folder, file_regression):
+    """
+    Test that single calculation is submitted with the right content of the 
+    aiida.fdf file.
+    """
+
+    entry_point_name = 'siesta.siesta'
+
+    psml = generate_psml_data('Si')
+
+    lua_script = generate_lua_file()
+    lua_folder = generate_lua_folder()
+    lua_parameters = {
+        'number_of_internal_images_in_path': 5,
+        'neb_spring_constant': 0.45,
+        'neb_image_file_prefix': "image-"
+    }
+    lua_retrieve_list = ['NEB.results' ]
+
+
+    inputs = {
+        'code': fixture_code(entry_point_name),
+        'structure': generate_structure(),
+        'kpoints': generate_kpoints_mesh(2),
+        'parameters': generate_param(),
+        'pseudos': {
+            'Si': psml,
+            'SiDiff': psml
+        },
+        'lua': { 
+            'script': lua_script,
+            'input_files': lua_folder,
+            'parameters': orm.Dict(dict=lua_parameters),
+            'retrieve_list': orm.List(list=lua_retrieve_list)
+        },
+        'metadata': {
+            'options': {
+               'resources': {'num_machines': 1  },
+               'max_wallclock_seconds': 1800,
+               'withmpi': False,
+               }
+        }
+    }
+
+    calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
+
+    list_lua_fold = lua_folder.list_object_names()
+    local_copy_list = [
+            (psml.uuid, psml.filename, 'Si.psml'),
+            (psml.uuid, psml.filename, 'SiDiff.psml'),
+            (lua_script.uuid, lua_script.filename, lua_script.filename),
+            (lua_folder.uuid, list_lua_fold[0], list_lua_fold[0]),
+            (lua_folder.uuid, list_lua_fold[1], list_lua_fold[1])
+            ]
+
+    retrieve_list = ['BASIS_ENTHALPY', 'MESSAGES','time.json','aiida.out','aiida.xml','*.ion.xml','NEB.results']
+
+    assert sorted(calc_info.local_copy_list) == sorted(local_copy_list)
+    assert sorted(calc_info.retrieve_list) == sorted(retrieve_list)
+
+    with fixture_sandbox.open('aiida.fdf') as handle:
+        input_written = handle.read()
+
+    file_regression.check(input_written, encoding='utf-8', extension='.fdf')
+
+    with fixture_sandbox.open('config.lua') as conflua_handle:
+        conflua_input_written = conflua_handle.read()
+
+    file_regression.check(conflua_input_written, encoding='utf-8', extension='.lua')
+
+
+

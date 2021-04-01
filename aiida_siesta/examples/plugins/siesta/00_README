@@ -7,6 +7,7 @@ Before they can be run, the family's .psf files have to be uploaded to the datab
 
   verdi data psf uploadfamily /path/to/data/sample-psf-family sample_psf_family "Sample PSF family"
 
-
+The lua examples require the set of the `lua_elements_path` variable inside
+the script.
                                     
 
