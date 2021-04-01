@@ -122,6 +122,13 @@ for fname, kinds in raw_pseudos:
     for j in kinds:
         pseudos_dict[j]=pseudo
 
+
+
+#####!!!!!!!!!!!!! THIS VARIABLE MUST BE CHANGED !!!!!!!!!!!###########
+#The lua elements from flos library. The path must be an explicit path!
+lua_elements_path = "/home/ebosoni/flos/?.lua;/home/ebosoni/flos/?/init.lua;/home/ebosoni/flos/examples/neb_simple.lua;"
+
+
 #Resources
 options = {
     "max_wallclock_seconds": 3600,
@@ -129,7 +136,8 @@ options = {
     "resources": {
         "num_machines": 1,
         "num_mpiprocs_per_machine": 2,
-    }
+    },
+    "environment_variables":{"LUA_PATH":lua_elements_path},
 }
 
 
