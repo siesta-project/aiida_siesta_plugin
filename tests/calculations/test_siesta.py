@@ -14,13 +14,16 @@ def test_base(aiida_profile, fixture_sandbox, generate_calc_job,
     generate_param, generate_psf_data, generate_psml_data, file_regression):
     """
     Test that single calculation is submitted with the right content of the 
-    aiida.fdf file.
+    aiida.fdf file and with correct lists of options. Also checks that the
+    `settings` inputs properly works. 
     """
 
     entry_point_name = 'siesta.siesta'
 
     psf = generate_psf_data('Si')
     psml = generate_psml_data('Si')
+
+    settings_dict = {'cmdline': ['-option1', '-option2'], 'ADDITIONAL_RETRIEVE_LIST': ["w"]}
 
     inputs = {
         'code': fixture_code(entry_point_name),
@@ -32,6 +35,7 @@ def test_base(aiida_profile, fixture_sandbox, generate_calc_job,
             'Si': psf,
             'SiDiff': psml
         },
+        'settings': orm.Dict(dict=settings_dict),
         'metadata': {
             'options': {
                'resources': {'num_machines': 1  },
@@ -43,15 +47,13 @@ def test_base(aiida_profile, fixture_sandbox, generate_calc_job,
 
     calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
 
-    #cmdline_params = ['-in', 'aiida.fdf']
+    cmdline_params = ['-option1', '-option2']
     local_copy_list = [(psf.uuid, psf.filename, 'Si.psf'),(psml.uuid, psml.filename,'SiDiff.psml')]
-    retrieve_list = ['BASIS_ENTHALPY', 'MESSAGES','time.json','aiida.out','aiida.xml','*.ion.xml']
+    retrieve_list = ["w",'BASIS_ENTHALPY', 'MESSAGES','time.json','aiida.out','aiida.xml','*.ion.xml']
     
     # Check the attributes of the returned `CalcInfo`
     assert isinstance(calc_info, datastructures.CalcInfo)
-    #assert sorted(calc_info.cmdline_params) == sorted(cmdline_params) 
-    #we don't modify the command line
-    #But maybe we should check the input and output filename
+    assert sorted(calc_info.cmdline_params) == sorted(cmdline_params) 
     assert sorted(calc_info.local_copy_list) == sorted(local_copy_list)
     assert sorted(calc_info.retrieve_list) == sorted(retrieve_list)
 
@@ -107,13 +109,11 @@ def test_base(aiida_profile, fixture_sandbox, generate_calc_job,
 #    remote_copy_list = ["as.DM"]
 #    assert sorted(calc_info.remote_copy_list) == sorted(remote_copy_list)
 
-# Should be extended to all the blocked_keyworld
-def test_blocked_keyword(aiida_profile, fixture_sandbox, generate_calc_job, 
+def test_validators(aiida_profile, fixture_sandbox, generate_calc_job, 
     fixture_code, generate_structure, generate_kpoints_mesh, generate_basis,
     generate_param, generate_psf_data, generate_psml_data, file_regression):
     """
-    Test that the plugin is able to detect the forbidden keyword 'system-name'
-    and "pao".
+    Test the validators of the input ports
     """
 
     entry_point_name = 'siesta.siesta'
@@ -122,84 +122,49 @@ def test_blocked_keyword(aiida_profile, fixture_sandbox, generate_calc_job,
     psml = generate_psml_data('Si')
 
     parameters = generate_param()
+    kpoints = orm.KpointsData()
+
+    inputs = {
+        'code': fixture_code(entry_point_name),
+        'structure': generate_structure(),
+        #'kpoints': generate_kpoints_mesh(2),
+        #'parameters': parameters,
+        #'basis': generate_basis(),
+        'pseudos': {
+            'Si': psf,
+            'SiDiff': psml
+        },
+        'metadata': {
+            'options': {
+               'resources': {'num_machines': 1  },
+               'max_wallclock_seconds': 1800,
+               'withmpi': False,
+               }
+        }
+    }
+
+    # Test the parameters validator
     parameters.set_attribute('system-name',"whatever")
-    parameters.set_attribute('pao-sp',"whatever")
-
-    inputs = {
-        'code': fixture_code(entry_point_name),
-        'structure': generate_structure(),
-        'kpoints': generate_kpoints_mesh(2),
-        'parameters': parameters,
-        'basis': generate_basis(),
-        'pseudos': {
-            'Si': psf,
-            'SiDiff': psml
-        },
-        'metadata': {
-            'options': {
-               'resources': {'num_machines': 1  },
-               'max_wallclock_seconds': 1800,
-               'withmpi': False,
-               }
-        }
-    }
-
-    from aiida.common import InputValidationError
-    import pytest
-    with pytest.raises(InputValidationError):
-        calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
-
-
-def test_cell_consistency(aiida_profile, fixture_sandbox, generate_calc_job,
-    fixture_code, generate_structure, generate_kpoints_mesh, generate_basis,
-    generate_param, generate_psf_data, generate_psml_data, file_regression):
-    """
-    Tests that is forbidden to define a cell in bandskpoints
-    different from the structure in inputs.
-    """
-
-    entry_point_name = 'siesta.siesta'
-
-    psf = generate_psf_data('Si')
-    psml = generate_psml_data('Si')
-
-    parameters = generate_param()
-
-    s=generate_structure()
-    seekpath_parameters = orm.Dict(dict={
-    'reference_distance': 0.02,
-    'symprec': 0.0001
-    })
-    result = get_explicit_kpoints_path(s, **seekpath_parameters.get_dict())
-    structure = result['primitive_structure']
-
-    bandskpoints = orm.KpointsData()
-    bandskpoints = result['explicit_kpoints']
-    bandskpoints.set_cell([[1., 1., 0.0], [0.0, 2., 2.], [2., 0.0, 2.]])
-
-    inputs = {
-        'bandskpoints' : bandskpoints,
-        'code': fixture_code(entry_point_name),
-        'structure': generate_structure(),
-        'kpoints': generate_kpoints_mesh(2),
-        'parameters': parameters,
-        'basis': generate_basis(),
-        'pseudos': {
-            'Si': psf,
-            'SiDiff': psml
-        },
-        'metadata': {
-            'options': {
-               'resources': {'num_machines': 1  },
-               'max_wallclock_seconds': 1800,
-               'withmpi': False,
-               }
-        }
-    }
-
-    import pytest
+    inputs["parameters"] = parameters.clone()
     with pytest.raises(ValueError):
         calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
+    parameters.delete_attribute('system-name')
+    parameters.set_attribute('pao-sp',"whatever")
+    inputs["parameters"] = parameters.clone()
+    with pytest.raises(ValueError):
+        calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
+
+    # Test the kpoints validator
+    inputs["kpoints"] = kpoints
+    with pytest.raises(ValueError):
+        calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
+
+    # Test the bandskpoints validator
+    inputs["bandskpoints"] = kpoints
+    with pytest.raises(ValueError):
+        calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
+
+    # The basis validator is checked in the test of floating_sites. Same for the ions.
 
 
 def test_bandslines(aiida_profile, fixture_sandbox, generate_calc_job,
@@ -314,8 +279,9 @@ def test_floating_orbs(aiida_profile, fixture_sandbox, generate_calc_job,
     fixture_code, generate_structure, generate_kpoints_mesh, generate_basis,
     generate_param, generate_psf_data, generate_psml_data, file_regression):
     """
-    Test that single calculation is submitted with the right content of the 
-    aiida.fdf file.
+    Test all the parts related to the floating_sites: the validation of the
+    basis inputs, the creation of the correct aiida.fdf and the copy of the
+    correct pseudos.
     """
 
     entry_point_name = 'siesta.siesta'
@@ -403,8 +369,7 @@ def test_ions(aiida_profile, fixture_sandbox, generate_calc_job,
     fixture_code, generate_structure, generate_kpoints_mesh, generate_basis,
     generate_param, generate_ion_data, generate_psml_data, file_regression):
     """
-    Test that single calculation is submitted with the right content of the 
-    aiida.fdf file.
+    Test all the parts related to ion files:
     """
 
     entry_point_name = 'siesta.siesta'
@@ -430,7 +395,7 @@ def test_ions(aiida_profile, fixture_sandbox, generate_calc_job,
         }
     }
 
-    #file because missing ion for SiDiff
+    # faile because missing ion for SiDiff
     with pytest.raises(ValueError):
         calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
 
