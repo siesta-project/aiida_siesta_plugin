@@ -18,14 +18,26 @@ from aiida_siesta.data.ion import IonData
 ###################################################################################
 
 
-def clone_structure(structure):
+def internal_structure(structure, basis_dict=None):
     """
-    A cloned structure is not quite ready to store more atoms.
-    This function fixes it
+    Add the floating sites to the structure if necessary.
+    Return:
+    1) a structure with added floating sites if they are specified in the basis dict
+    2) a clone of the original structure if no floating sites are specified in the basis dict
+    3) None if a floating site with the same name of a site in the original struture is present
     """
 
     tweaked = structure.clone()
-    tweaked._internal_kind_tags = {}
+    tweaked._internal_kind_tags = {}  #Nedded for a bug? Investigate!
+
+    if basis_dict is not None:
+        floating = basis_dict.get('floating_sites', None)
+        if floating is not None:
+            original_kind_names = [kind.name for kind in structure.kinds]
+            for item in floating:
+                if item["name"] in original_kind_names:
+                    return None
+                tweaked.append_atom(position=item["position"], symbols=item["symbols"], name=item["name"])
 
     return tweaked
 
@@ -50,19 +62,20 @@ def validate_basis(value, _):
 
 def validate_parameters(value, _):
     """
-    Validate parameters input port.
+    Validate parameters input port
     """
-    input_params = FDFDict(value.get_dict())
-    # Look for blocked keywords and add the proper values to the dictionary
-    for key in input_params:
-        if "pao" in key:
-            return ": you can't have PAO options in the parameters input port, they belong to the basis input port."
-        if key in SiestaCalculation._aiida_blocked_keywords:
-            message = (
-                f": you can't specify explicitly the '{input_params.get_last_untranslated_key(key)}' flag " +
-                "in the input parameters."
-            )
-            return message
+    if value:
+        input_params = FDFDict(value.get_dict())
+        # Look for blocked keywords and add the proper values to the dictionary
+        for key in input_params:
+            if "pao" in key:
+                return ": you can't have PAO options in the parameters input port, they belong to the basis input port."
+            if key in SiestaCalculation._aiida_blocked_keywords:
+                message = (
+                    f": you can't specify explicitly the '{input_params.get_last_untranslated_key(key)}' flag " +
+                    "in the input parameters."
+                )
+                return message
 
 
 def validate_kpoints(value, _):
@@ -77,7 +90,7 @@ def validate_kpoints(value, _):
 
 def validate_bandskpoints(value, _):
     """
-    Validate bandskpoints input port
+    Validate bandskpoints input port.
     """
     if value:
         try:
@@ -125,7 +138,7 @@ def validate_inputs(value, _):
     """
     Validate the entire input namespace. It takes care to ckeck the consistency
     and compatibility of the inputed basis, pseudos, and ions.
-    Also calls the `check_bandskpoints` that issues warning about bandskpoints selection.
+    Also calls the `bandskpoints_warnings` that issues warning about bandskpoints selection.
     """
     import warnings
 
@@ -140,17 +153,13 @@ def validate_inputs(value, _):
             return "No pseudopotentials nor ions specified in input"
         quantity = 'pseudos'
 
-    structure = clone_structure(value["structure"])
-
     if 'basis' in value:
-        basis_dict = value["basis"].get_dict()
-        floating = basis_dict.get('floating_sites', None)
-        if floating is not None:
-            original_kind_names = [kind.name for kind in structure.kinds]
-            for item in floating:
-                if item["name"] in original_kind_names:
-                    return "Not possibe to specify `floating_sites` (ghosts) with the same name of a structure kind."
-                structure.append_atom(position=item["position"], symbols=item["symbols"], name=item["name"])
+        structure = internal_structure(value["structure"], value["basis"].get_dict())
+        if structure is None:
+            return "Not possibe to specify `floating_sites` (ghosts) with the same name of a structure kind."
+    else:
+        structure = value["structure"]
+
     #Check each kind in the structure (including freshly added ghosts) have a corresponding pseudo or ion
     kinds = [kind.name for kind in structure.kinds]
     if set(kinds) != set(value[quantity].keys()):
@@ -202,7 +211,7 @@ class SiestaCalculation(CalcJob):
 
     @classmethod
     def define(cls, spec):
-        super(SiestaCalculation, cls).define(spec)
+        super().define(spec)
 
         # Input nodes
         spec.input('code', valid_type=orm.Code, help='Input code')
@@ -271,12 +280,13 @@ class SiestaCalculation(CalcJob):
         Some initialization (called at the beginning of `prepare_for_submission`:
         1) Create an internal structure where possible `floating_sites` are added.
         2) Create a list containing floating_species_names
-        3) Checks whether the info on basis and pseudos are passed directly as ion files
-        4) Remove the `floating_sites` to the basis dictionary
+        3) Remove the `floating_sites` to the basis dictionary
+        4) Checks whether info on basis and pseudos are passed directly as ion files,
+           in that case, cancel any info passed in the basis input.
         """
         value = self.inputs
 
-        structure = clone_structure(value["structure"])
+        structure = internal_structure(value["structure"])
         floating_species_names = []
 
         basis_dict = None
@@ -309,7 +319,7 @@ class SiestaCalculation(CalcJob):
 
         code = self.inputs.code
 
-        # The validator adds floating sites to the structure and saves it.
+        # self.initialize preprocess structure and basis. Decides whether use ions or pseudos
         structure, basis_dict, floating_species_names, ion_or_pseudo_str = self.initialize()
 
         ion_or_pseudo = self.inputs[ion_or_pseudo_str]

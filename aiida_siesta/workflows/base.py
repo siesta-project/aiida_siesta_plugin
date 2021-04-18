@@ -1,49 +1,64 @@
 from aiida import orm
 from aiida.engine import BaseRestartWorkChain, ProcessHandlerReport, process_handler, while_
 from aiida_siesta.data.common import get_pseudos_from_structure
-from aiida_siesta.calculations.siesta import SiestaCalculation
+from aiida_siesta.calculations.siesta import SiestaCalculation, bandskpoints_warnings, internal_structure
+from aiida_siesta.calculations.tkdict import FDFDict
 
 
-def prepare_pseudo_inputs(structure, pseudos, pseudo_family, basis):  # noqa: MC0001  - is mccabe too complex funct -
+def validate_options(value, _):
+    """
+    Validate options input port.
+    """
+    if "max_wallclock_seconds" not in value.get_dict():
+        return ": the `max_wallclock_seconds` key is required in the options dict."
 
-    floating_kind_names = []
-    if pseudos is not None and pseudo_family is not None:
-        raise ValueError('you cannot specify both "pseudos" and "pseudo_family"')
-    elif pseudos is None and pseudo_family is None:
-        raise ValueError('neither an explicit pseudos dictionary nor a pseudo_family was specified')
-    elif pseudo_family is not None:  #pylint: disable=too-many-nested-blocks
-        # This will already raise some exceptions
-        pseudos = get_pseudos_from_structure(structure, pseudo_family.value)
-        # Adding pseudos for floating sites, if present.
-        if basis is not None:
-            if "floating_sites" in basis:
-                if not isinstance(basis["floating_sites"], list):
-                    raise ValueError('The `floating_sites` must be a list of dictionaries')
-                family = orm.Group.get(label=pseudo_family.value)
-                for item in basis["floating_sites"]:
-                    if not isinstance(item, dict):
-                        raise ValueError('The `floating_sites` must be a list of dictionaries')
-                    if "symbols" not in item or "name" not in item:
-                        raise ValueError('Each `floating_site` must define a "symbols" and a "name"')
-                    floating_kind_names.append(item["name"])
-                    if not isinstance(item["symbols"], str):
-                        raise ValueError(
-                            '"symbols" of `floating_site` must be a simple `str`, alloys are not supported'
-                        )
-                    for node in family.nodes:
-                        if node.element == item["symbols"]:
-                            if item["name"] in pseudos:
-                                raise ValueError('The `floating_sites` can not have the same name of a structure kind')
-                            pseudos[item["name"]] = node
 
-    for kind in structure.get_kind_names():
-        if kind not in pseudos:
-            raise ValueError('no pseudo available for element {}'.format(kind))
-    for kind in floating_kind_names:
-        if kind not in pseudos:
-            raise ValueError('no pseudo available for element {}'.format(kind))
+def validate_inputs(value, _):
+    """
+    Validate the entire input namespace. It takes care to ckeck the consistency
+    and compatibility of the inputed basis, pseudos, pseudofamilies and ions.
+    Also calls the `bandskpoints_warnings` that issues warning about bandskpoints selection.
+    It is similar to the `validate_inputs` of SiestaCalculation but with the additional complexity
+    due to the presence of 'pseudo_family' input.
+    """
+    import warnings
 
-    return pseudos
+    bandskpoints_warnings(value)
+
+    if 'basis' in value:
+        structure = internal_structure(value["structure"], value["basis"].get_dict())
+        if structure is None:
+            return "Not possibe to specify `floating_sites` (ghosts) with the same name of a structure kind."
+    else:
+        structure = value["structure"]
+
+    #Check each kind in the structure (including freshly added ghosts) have a corresponding pseudo or ion
+    kinds = [kind.name for kind in structure.kinds]
+    if 'ions' in value:
+        quantity = 'ions'
+        if 'pseudos' in value or 'pseudo_family' in value:
+            warnings.warn("At least one ion file in input, all the pseudos or pseudo_family will be ignored")
+    else:
+        quantity = 'pseudos'
+        if 'pseudos' not in value and 'pseudo_family' not in value:
+            return "No `pseudos`, nor `ions`, nor `pseudo_family` specified in input"
+        if 'pseudos' in value and 'pseudo_family' in value:
+            return "You cannot specify both `pseudos` and `pseudo_family`"
+
+    if 'pseudo_family' in value:
+        from aiida.common.exceptions import NotExistent
+        try:
+            get_pseudos_from_structure(structure, value['pseudo_family'].value)
+        except NotExistent:
+            return "The pseudo family do not incude all the required pseudos"
+    else:
+        if set(kinds) != set(value[quantity].keys()):
+            string_out = (
+                'mismatch between the defined pseudos/ions and the list of kinds of the structure\n' +
+                'pseudos/ions: {} \n'.format(', '.join(list(value[quantity].keys()))) +
+                'kinds(including ghosts): {}'.format(', '.join(list(kinds)))
+            )
+            return string_out
 
 
 class SiestaBaseWorkChain(BaseRestartWorkChain):
@@ -55,17 +70,9 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
 
     @classmethod
     def define(cls, spec):
-        super(SiestaBaseWorkChain, cls).define(spec)
-        spec.input('code', valid_type=orm.Code)
-        spec.input('structure', valid_type=orm.StructureData)
-        spec.input_namespace('pseudos', required=False, dynamic=True)
+        super().define(spec)
+        spec.expose_inputs(SiestaCalculation, exclude=('metadata',))
         spec.input('pseudo_family', valid_type=orm.Str, required=False)
-        spec.input('parent_calc_folder', valid_type=orm.RemoteData, required=False)
-        spec.input('kpoints', valid_type=orm.KpointsData, required=False)
-        spec.input('bandskpoints', valid_type=orm.KpointsData, required=False)
-        spec.input('parameters', valid_type=orm.Dict)
-        spec.input('basis', valid_type=orm.Dict, required=False)
-        spec.input('settings', valid_type=orm.Dict, required=False)
         spec.input('options', valid_type=orm.Dict)
 
         spec.outline(
@@ -80,6 +87,8 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
             cls.postprocess,
         )
 
+        spec.inputs.validator = validate_inputs
+
         spec.expose_outputs(SiestaCalculation)
 
         spec.exit_code(403, 'ERROR_BASIS_POL', message='Basis polarization problem.')
@@ -92,42 +101,57 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
 
     def prepare_inputs(self):
         """
-        Initialize context variables
+        Initialize context variables. Note that in context we must include
+        exactly the same data nodes obtained in input (except the parameters
+        where we add `max-walltime`)
+        On the contrary, useless nodes would be created.
         """
         self.report("Preparing inputs of the SiestaBaseWorkChain")
 
         structure = self.inputs.structure
-        pseudo_family = self.inputs.get('pseudo_family', None)
-        #The port 'pseudos' is an 'input_namespace', therefore is never undefined in the
-        #current aiida implementation (see Issue #142 plumpy), but it is an empty dictionary
-        #if pseudos are not passed in input.
-        #Therefore 'pseudos = self.inputs.get('pseudos', None)' never gives None. Better:
-        pseudos = None
-        if "pseudos" in self.inputs:  #in case in the future Issue #142 will be solved
-            if self.inputs.pseudos:
-                pseudos = self.inputs.pseudos
-
-        if 'basis' in self.inputs:
-            copy_basis_dict = self.inputs.basis.get_dict()
-        else:
-            copy_basis_dict = None
 
         self.ctx.inputs = {
             'code': self.inputs.code,
             'structure': structure,
-            'pseudos': prepare_pseudo_inputs(structure, pseudos, pseudo_family, copy_basis_dict),
-            'parameters': self.inputs.parameters.get_dict(),
+            #'parameters': self.inputs.parameters,
             'metadata': {
-                'options': self.inputs.options.get_dict(),
+                'options': self.inputs.options,
             }
         }
+
+        max_wallclock_seconds = self.inputs.options['max_wallclock_seconds']
+        params_dict = FDFDict(self.inputs.parameters.get_dict())
+        if FDFDict.translate_key('max-walltime') in params_dict:
+            if params_dict[FDFDict.translate_key('max-walltime')] < max_wallclock_seconds:
+                self.ctx.inputs['parameters'] = self.inputs.parameters
+            else:
+                params_dict[FDFDict.translate_key('max-walltime')] = max_wallclock_seconds
+                self.ctx.inputs['parameters'] = orm.Dict(dict=params_dict)
+        else:
+            params_dict[FDFDict.translate_key('max-walltime')] = max_wallclock_seconds
+            self.ctx.inputs['parameters'] = orm.Dict(dict=params_dict)
+
+        # Ions or pseudos
+        if 'ions' in self.inputs:
+            self.ctx.inputs['ions'] = self.inputs.ions
+        else:
+            if "pseudo_family" in self.inputs:
+                fam_name = self.inputs.pseudo_family.value
+                if 'basis' in self.inputs:
+                    temp_structure = internal_structure(structure, self.inputs_basis.get_dict())
+                    self.ctx.inputs['pseudos'] = get_pseudos_from_structure(temp_structure, fam_name)
+                else:
+                    self.ctx.inputs['pseudos'] = get_pseudos_from_structure(structure, fam_name)
+            else:
+                self.ctx.inputs['pseudos'] = self.inputs.pseudos
+
         # Now the optional inputs
         if 'basis' in self.inputs:
-            self.ctx.inputs['basis'] = copy_basis_dict
+            self.ctx.inputs['basis'] = self.inputs.basis
         if 'kpoints' in self.inputs:
             self.ctx.inputs['kpoints'] = self.inputs.kpoints
         if 'settings' in self.inputs:
-            self.ctx.inputs['settings'] = self.inputs.settings.get_dict()
+            self.ctx.inputs['settings'] = self.inputs.settings
         if 'bandskpoints' in self.inputs:
             self.ctx.want_band_structure = True
             self.ctx.inputs['bandskpoints'] = self.inputs.bandskpoints
@@ -135,8 +159,8 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
             self.ctx.inputs['parent_calc_folder'] = self.inputs.parent_calc_folder
 
         # Prevent SiestaCalculation from being terminated by scheduler
-        max_wallclock_seconds = self.ctx.inputs['metadata']['options']['max_wallclock_seconds']
-        self.ctx.inputs['parameters']['max-walltime'] = max_wallclock_seconds
+        #max_wallclock_seconds = self.ctx.inputs['metadata']['options']['max_wallclock_seconds']
+        #self.ctx.inputs['parameters']['max-walltime'] = max_wallclock_seconds
 
         #Note: To pass pure dictionaries or orm.Dict is the same as the WorkChain
         #will take care of wrapping in orm.Dict the pure python dict before submission,
@@ -165,7 +189,7 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
         reached.  We need to restart from the previous calculation
         """
 
-        self.report('SiestaCalculation<{}> did not reach geometry convergence'.format(node.pk))
+        self.report(f'SiestaCalculation<{node.pk}> did not reach geometry convergence')
 
         # We need to take care here of passing the
         # output geometry of old_calc to the new calculation
@@ -185,7 +209,7 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
         previous calculation without changing any of the input parameters.
         """
 
-        self.report('SiestaCalculation<{}> did not achieve scf convergence.'.format(node.pk))
+        self.report(f'SiestaCalculation<{node.pk}> did not achieve scf convergence.')
 
         #We need to take care here of passing the
         #output geometry of old_calc to the new calculation
@@ -207,8 +231,6 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
         The minimum split_norm is stored in the logs of the old calculation.
         """
 
-        from aiida_siesta.calculations.tkdict import FDFDict
-
         self.report('SiestaCalculation<{}> crashed with split_norm issue.'.format(node.pk))
 
         #This error happens only at the beginning of the run, therefore no real restart needed.
@@ -229,7 +251,7 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
         #that every fdf variant is allowed), we translate the original dict in
         #a FDFDict that is aware of the equivalent keyword.
         #A FDFDict is not accepted in the context, but it is accepted in orm.Dict.
-        transl_basis = FDFDict(self.ctx.inputs["basis"])
+        transl_basis = FDFDict(self.ctx.inputs["basis"].get_dict())
         glob_split_norm = False
         for key in transl_basis:
             if key == "paosplitnorm":
@@ -243,7 +265,7 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
             transl_basis["pao-SplitTailNorm"] = True
 
         new_basis = orm.Dict(dict=transl_basis)
-        self.ctx.inputs["basis"] = new_basis.get_dict()
+        self.ctx.inputs["basis"] = new_basis
 
         return ProcessHandlerReport(do_break=True)
 
