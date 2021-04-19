@@ -9,8 +9,9 @@ def validate_options(value, _):
     """
     Validate options input port.
     """
-    if "max_wallclock_seconds" not in value.get_dict():
-        return ": the `max_wallclock_seconds` key is required in the options dict."
+    if value:
+        if "max_wallclock_seconds" not in value.get_dict():
+            return "the `max_wallclock_seconds` key is required in the options dict."
 
 
 def validate_inputs(value, _):
@@ -73,7 +74,7 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
         super().define(spec)
         spec.expose_inputs(SiestaCalculation, exclude=('metadata',))
         spec.input('pseudo_family', valid_type=orm.Str, required=False)
-        spec.input('options', valid_type=orm.Dict)
+        spec.input('options', valid_type=orm.Dict, validator=validate_options)
 
         spec.outline(
             cls.preprocess,
@@ -113,12 +114,15 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
         self.ctx.inputs = {
             'code': self.inputs.code,
             'structure': structure,
-            #'parameters': self.inputs.parameters,
             'metadata': {
                 'options': self.inputs.options,
             }
         }
 
+        # Check if the max-walltime should be added in the list of parameters.
+        # This should prevent SiestaCalculation from being terminated by scheduler, however the
+        # strategy is not 100% effective since SIESTA checks the simulation time versus max-walltime
+        # only at the end of each SCF steps. The scheduler might kill the process durind a SCF step.
         max_wallclock_seconds = self.inputs.options['max_wallclock_seconds']
         params_dict = FDFDict(self.inputs.parameters.get_dict())
         if FDFDict.translate_key('max-walltime') in params_dict:
@@ -158,14 +162,6 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
         if 'parent_calc_folder' in self.inputs:
             self.ctx.inputs['parent_calc_folder'] = self.inputs.parent_calc_folder
 
-        # Prevent SiestaCalculation from being terminated by scheduler
-        #max_wallclock_seconds = self.ctx.inputs['metadata']['options']['max_wallclock_seconds']
-        #self.ctx.inputs['parameters']['max-walltime'] = max_wallclock_seconds
-
-        #Note: To pass pure dictionaries or orm.Dict is the same as the WorkChain
-        #will take care of wrapping in orm.Dict the pure python dict before submission,
-        #however this influences the way you fix problems in the hadlers above.
-
     def postprocess(self):
         """
         In theory, the BaseRestartWorkChain should already return all the output
@@ -191,13 +187,11 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
 
         self.report(f'SiestaCalculation<{node.pk}> did not reach geometry convergence')
 
-        # We need to take care here of passing the
-        # output geometry of old_calc to the new calculation
+        # We need to take care of passing the output geometry of old_calc to the new calculation.
         if node.outputs.output_parameters.attributes["variable_geometry"]:
             self.ctx.inputs['structure'] = node.outputs.output_structure
 
-        #The presence of `parent_calc_folder` triggers the real restart
-        #meaning the copy of the .DM and the addition of `use-saved-dm` to the parameters
+        # The presence of `parent_calc_folder` triggers the real restart, so we add it.
         self.ctx.inputs['parent_calc_folder'] = node.outputs.remote_folder
 
         return ProcessHandlerReport(do_break=True)
@@ -211,13 +205,11 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
 
         self.report(f'SiestaCalculation<{node.pk}> did not achieve scf convergence.')
 
-        #We need to take care here of passing the
-        #output geometry of old_calc to the new calculation
+        # We need to take care of passing the output geometry of old_calc to the new calculation.
         if node.outputs.output_parameters.attributes["variable_geometry"]:
             self.ctx.inputs['structure'] = node.outputs.output_structure
 
-        #The presence of `parent_calc_folder` triggers the real restart
-        #meaning the copy of the .DM and the addition of use-saved-dm to the parameters
+        # The presence of `parent_calc_folder` triggers the real restart, so we add it.
         self.ctx.inputs['parent_calc_folder'] = node.outputs.remote_folder
 
         #Should be also increase the number of scf max iterations?
@@ -229,13 +221,11 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
         """
         The split_norm parameter was too small.  We need to change it and restart.
         The minimum split_norm is stored in the logs of the old calculation.
+        This error happens only at the beginning of the run, therefore no real restart needed.
+        Just a new calculation with a new split_norm.
         """
 
-        self.report('SiestaCalculation<{}> crashed with split_norm issue.'.format(node.pk))
-
-        #This error happens only at the beginning of the run, therefore no real restart needed.
-        #Just a new calculation with a new split_norm.
-        #self.ctx.inputs['parent_calc_folder'] = node.outputs.remote_folder
+        self.report(f'SiestaCalculation<{node.pk}> crashed with split_norm issue.')
 
         #Retrive the minimum split norm from the logs of failed calc.
         logs = orm.Log.objects.get_logs_for(node)
