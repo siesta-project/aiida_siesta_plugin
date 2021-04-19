@@ -126,13 +126,9 @@ def test_validators(aiida_profile, fixture_sandbox, generate_calc_job,
 
     inputs = {
         'code': fixture_code(entry_point_name),
-        'structure': generate_structure(),
-        #'kpoints': generate_kpoints_mesh(2),
-        #'parameters': parameters,
-        #'basis': generate_basis(),
         'pseudos': {
             'Si': psf,
-            'SiDiff': psml
+        #    'SiDiff': psml
         },
         'metadata': {
             'options': {
@@ -142,6 +138,15 @@ def test_validators(aiida_profile, fixture_sandbox, generate_calc_job,
                }
         }
     }
+
+    # Test the structur validator
+    structure = generate_structure().clone()
+    structure.append_atom(symbols=["Si","Al"],position=(1.0,2.0,0.0),weights=[0.5,0.5],name="w")
+    inputs["structure"] = structure
+    with pytest.raises(ValueError):
+        calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
+    structure = generate_structure()
+    inputs["structure"] = structure
 
     # Test the parameters validator
     parameters.set_attribute('system-name',"whatever")
@@ -153,18 +158,22 @@ def test_validators(aiida_profile, fixture_sandbox, generate_calc_job,
     inputs["parameters"] = parameters.clone()
     with pytest.raises(ValueError):
         calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
+    parameters.delete_attribute('pao-sp')
+    inputs["parameters"] = parameters.clone()
 
     # Test the kpoints validator
     inputs["kpoints"] = kpoints
     with pytest.raises(ValueError):
         calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
+    inputs["kpoints"] = generate_kpoints_mesh(2)
 
-    # Test the bandskpoints validator
-    inputs["bandskpoints"] = kpoints
+    # Test missing pseudo
     with pytest.raises(ValueError):
         calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
 
-    # The basis validator is checked in the test of floating_sites. Same for the ions.
+    # The basis validator is checked in the test of test_floating_orbs. 
+    # The bandskpoints validator is tested in test_bandslines
+    # Test on ions is in the test_ions.
 
 
 def test_bandslines(aiida_profile, fixture_sandbox, generate_calc_job,
@@ -188,12 +197,12 @@ def test_bandslines(aiida_profile, fixture_sandbox, generate_calc_job,
     result = get_explicit_kpoints_path(s, **seekpath_parameters.get_dict())
     structure = result['primitive_structure']
 
-    bandskpoints = orm.KpointsData()
-    bandskpoints = result['explicit_kpoints']
+    #bandskpoints = orm.KpointsData()
+    #bandskpoints = result['explicit_kpoints']
     
     
     inputs = {
-        'bandskpoints': bandskpoints,
+        #'bandskpoints': bandskpoints,
         'code': fixture_code(entry_point_name),
         'structure': structure,
         'kpoints': generate_kpoints_mesh(2),
@@ -211,6 +220,14 @@ def test_bandslines(aiida_profile, fixture_sandbox, generate_calc_job,
                }
         }
     }
+
+    # Checks the bandkpoints validator
+    bandskpoints = orm.KpointsData()
+    inputs["bandskpoints"] = bandskpoints
+    with pytest.raises(ValueError):
+        generate_calc_job(fixture_sandbox, entry_point_name, inputs)
+
+    inputs["bandskpoints"] = result['explicit_kpoints']
 
     calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
 

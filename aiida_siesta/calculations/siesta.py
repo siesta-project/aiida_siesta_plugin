@@ -42,6 +42,18 @@ def internal_structure(structure, basis_dict=None):
     return tweaked
 
 
+def validate_structure(value, _):
+    """
+    Validate the entire input namespace. It takes care to ckeck the consistency
+    and compatibility of the inputed basis, pseudos, and ions.
+    Also calls the `bandskpoints_warnings` tha
+    """
+    if value:
+        for kind in value.kinds:
+            if len(kind.symbols) > 1:
+                return "alchemical atoms not supported; structure must have one single symbol per kind."
+
+
 def validate_basis(value, _):
     """
     Validate basis input port.
@@ -50,7 +62,7 @@ def validate_basis(value, _):
     #set to empty tuple if not passed. This is the reason of the first "if" statement.
     if value:
         if 'floating_sites' in value.get_dict():
-            message = ": wrong specification of floating_sites, "
+            message = "wrong specification of floating_sites, "
             if not isinstance(value.get_dict()['floating_sites'], list):
                 return message + "it must be a list of dictionaries"
             for item in value.get_dict()['floating_sites']:
@@ -69,10 +81,10 @@ def validate_parameters(value, _):
         # Look for blocked keywords and add the proper values to the dictionary
         for key in input_params:
             if "pao" in key:
-                return ": you can't have PAO options in the parameters input port, they belong to the basis input port."
+                return "you can't have PAO options in the parameters input port, they belong to the basis input port."
             if key in SiestaCalculation._aiida_blocked_keywords:
                 message = (
-                    f": you can't specify explicitly the '{input_params.get_last_untranslated_key(key)}' flag " +
+                    f"you can't specify explicitly the '{input_params.get_last_untranslated_key(key)}' flag " +
                     "in the input parameters."
                 )
                 return message
@@ -85,7 +97,7 @@ def validate_kpoints(value, _):
     if value:
         mesh = value.get_attribute("mesh", None)
         if mesh is None:
-            return ": kpoints sampling for scf must be given in mesh form, use `set_kpoints_mesh`"
+            return "kpoints sampling for scf must be given in mesh form, use `set_kpoints_mesh`"
 
 
 def validate_bandskpoints(value, _):
@@ -96,7 +108,7 @@ def validate_bandskpoints(value, _):
         try:
             value.get_kpoints()
         except AttributeError:
-            return ": bandskpoints requires a list of kpoints, use `set_kpoints`"
+            return "bandskpoints requires a list of kpoints, use `set_kpoints`"
 
 
 def bandskpoints_warnings(value):
@@ -215,7 +227,7 @@ class SiestaCalculation(CalcJob):
 
         # Input nodes
         spec.input('code', valid_type=orm.Code, help='Input code')
-        spec.input('structure', valid_type=orm.StructureData, help='Input structure')
+        spec.input('structure', valid_type=orm.StructureData, help='Input structure', validator=validate_structure)
         spec.input(
             'kpoints', valid_type=orm.KpointsData, help='Input kpoints', required=False, validator=validate_kpoints
         )
