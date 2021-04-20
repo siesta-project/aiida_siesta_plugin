@@ -21,7 +21,10 @@ from aiida_siesta.data.ion import IonData
 def internal_structure(structure, basis_dict=None):
     """
     Add the floating sites to the structure if necessary.
-    Return:
+    Params:
+    * structure. StructureData passed in input.
+    * basis_dict. Python dictionary with the basis info passed in innput (no Dict!!)
+    Return three possible scenarios:
     1) a structure with added floating sites if they are specified in the basis dict
     2) a clone of the original structure if no floating sites are specified in the basis dict
     3) None if a floating site with the same name of a site in the original struture is present
@@ -42,43 +45,45 @@ def internal_structure(structure, basis_dict=None):
     return tweaked
 
 
+def validate_basis(value, _):
+    """
+    Validate basis input port. Only validates that `floating_sites`, if present,
+    has the correct format.
+    """
+    # Before plumpy 0.17.0, the port was checked even if not required and the value
+    # set to empty tuple if not passed. This is the reason of the first "if" statement.
+    if value:
+        if 'floating_sites' in value.get_dict():
+            message = "wrong specification of floating_sites, "
+            if not isinstance(value.get_dict()['floating_sites'], list):
+                return message + "it must be a list of dictionaries."
+            for item in value.get_dict()['floating_sites']:
+                if not isinstance(item, dict):
+                    return message + "it must be a list of dictionaries."
+                if not all(x in item.keys() for x in ['name', 'symbols', 'position']):
+                    return message + "'name', 'symbols' and 'position' must be specified."
+
+
 def validate_structure(value, _):
     """
-    Validate the entire input namespace. It takes care to ckeck the consistency
-    and compatibility of the inputed basis, pseudos, and ions.
-    Also calls the `bandskpoints_warnings` tha
+    Validate structure input port. It takes care to check that no alchemical atoms
+    are passed, since they are not supported.
     """
+    # Even though structure is mandatory here, other workchain might change this requirement
+    # (see iterator) and therefore the "if" is still needed.
     if value:
         for kind in value.kinds:
             if len(kind.symbols) > 1:
                 return "alchemical atoms not supported; structure must have one single symbol per kind."
 
 
-def validate_basis(value, _):
-    """
-    Validate basis input port.
-    """
-    #Before plumpy 0.17.0, the port was checked even if not required and the value
-    #set to empty tuple if not passed. This is the reason of the first "if" statement.
-    if value:
-        if 'floating_sites' in value.get_dict():
-            message = "wrong specification of floating_sites, "
-            if not isinstance(value.get_dict()['floating_sites'], list):
-                return message + "it must be a list of dictionaries"
-            for item in value.get_dict()['floating_sites']:
-                if not isinstance(item, dict):
-                    return message + "it must be a list of dictionaries"
-                if not all(x in item.keys() for x in ['name', 'symbols', 'position']):
-                    return message + "'name', 'symbols' and 'position' must be specified"
-
-
 def validate_parameters(value, _):
     """
-    Validate parameters input port
+    Validate parameters input port. Looks for blocked keywords (defined as attribute of SiestaCalculation)
+    and that pao infos are not here (they belong to the basis Dict).
     """
     if value:
         input_params = FDFDict(value.get_dict())
-        # Look for blocked keywords and add the proper values to the dictionary
         for key in input_params:
             if "pao" in key:
                 return "you can't have PAO options in the parameters input port, they belong to the basis input port."
@@ -92,23 +97,23 @@ def validate_parameters(value, _):
 
 def validate_kpoints(value, _):
     """
-    Validate kpoints input port
+    Validate kpoints input port. Checks the mesh is set.
     """
     if value:
         mesh = value.get_attribute("mesh", None)
         if mesh is None:
-            return "kpoints sampling for scf must be given in mesh form, use `set_kpoints_mesh`"
+            return "kpoints sampling for scf must be given in mesh form, use `set_kpoints_mesh`."
 
 
 def validate_bandskpoints(value, _):
     """
-    Validate bandskpoints input port.
+    Validate bandskpoints input port. Checks the kpoints list is set.
     """
     if value:
         try:
             value.get_kpoints()
         except AttributeError:
-            return "bandskpoints requires a list of kpoints, use `set_kpoints`"
+            return "bandskpoints requires a list of kpoints, use `set_kpoints`."
 
 
 def bandskpoints_warnings(value):
@@ -291,8 +296,8 @@ class SiestaCalculation(CalcJob):
         """
         Some initialization (called at the beginning of `prepare_for_submission`:
         1) Create an internal structure where possible `floating_sites` are added.
-        2) Create a list containing floating_species_names
-        3) Remove the `floating_sites` to the basis dictionary
+        2) Create a list containing floating_species_names.
+        3) Remove the `floating_sites` to the basis dictionary.
         4) Checks whether info on basis and pseudos are passed directly as ion files,
            in that case, cancel any info passed in the basis input.
         """
@@ -555,21 +560,16 @@ class SiestaCalculation(CalcJob):
         # input_filename = self.inputs.metadata.options.input_filename
         input_filename = folder.get_abs_path(metadataoption.input_filename)
 
+        # Print to file
         with open(input_filename, 'w') as infile:
-            # here print keys and values tp file
-
+            # Parameters
             for k, v in sorted(input_params.get_filtered_items()):
                 infile.write("%s %s\n" % (k, v))
-
-            # Basis set info is processed just like the general
-            # parameters section. Some discipline is needed to
-            # put any basis-related parameters (including blocks)
-            # in the basis dictionary in the input script.
+            # Basis set info is processed just like the general parameters section.
             if basis_dict:  #It migh also be empty dict. In such case we do not write.
                 infile.write("#\n# -- Basis Set Info follows\n#\n")
                 for k, v in basis_dict.items():
                     infile.write("%s %s\n" % (k, v))
-
             # Write previously generated cards now
             infile.write("#\n# -- Structural Info follows\n#\n")
             infile.write(atomic_species_card)
@@ -581,10 +581,9 @@ class SiestaCalculation(CalcJob):
             if bandskpoints is not None:
                 infile.write("#\n# -- Bandlines/Bandpoints Info follows\n#\n")
                 infile.write(fbkpoints_card)
-
             # Write max wall-clock time
             infile.write("#\n# -- Max wall-clock time block\n#\n")
-            infile.write("max.walltime {}\n".format(metadataoption.max_wallclock_seconds))
+            infile.write(f"max.walltime {metadataoption.max_wallclock_seconds}\n")
 
         # ================================== Lua parameters file ===================================
 
@@ -621,14 +620,12 @@ class SiestaCalculation(CalcJob):
         calcinfo.stdin_name = metadataoption.input_filename
         calcinfo.stdout_name = metadataoption.output_filename
         calcinfo.codes_info = [codeinfo]
-        # Retrieve by default: the output file, the xml file, the
-        # messages file, and the json timing file.
+        # Retrieve by default: the output file, the xml file, the messages file, and the json timing file.
         # If bandskpoints, also the bands file is added to the retrieve list.
         calcinfo.retrieve_list = []
         xml_file = str(metadataoption.prefix) + ".xml"
         bands_file = str(metadataoption.prefix) + ".bands"
         calcinfo.retrieve_list.append(metadataoption.output_filename)
-        #calcinfo.retrieve_list.append(metadataoption.input_filename)
         calcinfo.retrieve_list.append(xml_file)
         calcinfo.retrieve_list.append(self._JSON_FILE)
         calcinfo.retrieve_list.append(self._MESSAGES_FILE)
@@ -643,7 +640,6 @@ class SiestaCalculation(CalcJob):
 
         # If we ever want to avoid having the config.lua file in the repository,
         # since the information is already in the lua_parameters dictionary:
-        #
         # if lua_parameters is not None:
         #    calcinfo.provenance_exclude_list = ['config.lua']
 
