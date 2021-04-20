@@ -119,21 +119,24 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
             }
         }
 
+        # THIS PART IS USELESS SINCE max-walltime IS IMPOSED IN THE SiestaCalculation.
+        # HOWEVER I WOULD ARGUE IT IS BETTER TO HAVE IT HERE!!!!!!!
         # Check if the max-walltime should be added in the list of parameters.
         # This should prevent SiestaCalculation from being terminated by scheduler, however the
         # strategy is not 100% effective since SIESTA checks the simulation time versus max-walltime
         # only at the end of each SCF steps. The scheduler might kill the process durind a SCF step.
-        max_wallclock_seconds = self.inputs.options['max_wallclock_seconds']
-        params_dict = FDFDict(self.inputs.parameters.get_dict())
-        if FDFDict.translate_key('max-walltime') in params_dict:
-            if params_dict[FDFDict.translate_key('max-walltime')] < max_wallclock_seconds:
-                self.ctx.inputs['parameters'] = self.inputs.parameters
-            else:
-                params_dict[FDFDict.translate_key('max-walltime')] = max_wallclock_seconds
-                self.ctx.inputs['parameters'] = orm.Dict(dict=params_dict)
-        else:
-            params_dict[FDFDict.translate_key('max-walltime')] = max_wallclock_seconds
-            self.ctx.inputs['parameters'] = orm.Dict(dict=params_dict)
+        #max_wallclock_seconds = self.inputs.options['max_wallclock_seconds']
+        #params_dict = FDFDict(self.inputs.parameters.get_dict())
+        #if FDFDict.translate_key('max-walltime') in params_dict:
+        #    if params_dict[FDFDict.translate_key('max-walltime')] < max_wallclock_seconds:
+        #        self.ctx.inputs['parameters'] = self.inputs.parameters
+        #    else:
+        #        params_dict[FDFDict.translate_key('max-walltime')] = max_wallclock_seconds
+        #        self.ctx.inputs['parameters'] = orm.Dict(dict=params_dict)
+        #else:
+        #    params_dict[FDFDict.translate_key('max-walltime')] = max_wallclock_seconds
+        #    self.ctx.inputs['parameters'] = orm.Dict(dict=params_dict)
+        self.ctx.inputs['parameters'] = self.inputs.parameters
 
         # Ions or pseudos
         if 'ions' in self.inputs:

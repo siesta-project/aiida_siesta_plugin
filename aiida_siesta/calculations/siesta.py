@@ -582,6 +582,9 @@ class SiestaCalculation(CalcJob):
                 infile.write("#\n# -- Bandlines/Bandpoints Info follows\n#\n")
                 infile.write(fbkpoints_card)
             # Write max wall-clock time
+            # This should prevent SiestaCalculation from being terminated by scheduler, however the
+            # strategy is not 100% effective since SIESTA checks the simulation time versus max-walltime
+            # only at the end of each SCF steps. The scheduler might kill the process durind a SCF step.
             infile.write("#\n# -- Max wall-clock time block\n#\n")
             infile.write(f"max.walltime {metadataoption.max_wallclock_seconds}\n")
 
