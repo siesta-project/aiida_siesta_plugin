@@ -115,7 +115,7 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
             'code': self.inputs.code,
             'structure': structure,
             'metadata': {
-                'options': self.inputs.options,
+                'options': self.inputs.options.get_dict(),
             }
         }
 
