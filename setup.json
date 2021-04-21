@@ -56,7 +56,10 @@
             "siesta.stm = aiida_siesta.workflows.stm:SiestaSTMWorkChain",
 	    "siesta.iterator = aiida_siesta.workflows.iterate:SiestaIterator",
 	    "siesta.converger = aiida_siesta.workflows.converge:SiestaConverger",
-	    "siesta.sequential_converger = aiida_siesta.workflows.converge:SiestaSequentialConverger"
+	    "siesta.sequential_converger = aiida_siesta.workflows.converge:SiestaSequentialConverger",
+	    "siesta.forbasisopt = aiida_siesta.workflows._for_optimization:ForBasisOptWorkChain",
+	    "siesta.simplex_basis = aiida_siesta.workflows.simplex_basis:SimplexBasisOptimization",
+            "siesta.two_step_basis_opt = aiida_siesta.workflows.two_steps_optimization:TwoStepsBasisOpt"
         ],
         "aiida.data": [
             "siesta.psf = aiida_siesta.data.psf:PsfData",
