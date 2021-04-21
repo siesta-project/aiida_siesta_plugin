@@ -44,10 +44,10 @@ class SimplexBasisOptimization(WorkChain):
             init_var_list = simplex_inps.initial_variables.get_list()
             ranges = np.array(simplex_inps.upper_boundaries) - np.array(simplex_inps.lower_boundaries)
             simplex.append(init_var_list)
-            for i in range(len(init_var_list)):
-                val = init_var_list[i] + ranges[i] * simplex_inps.initial_step_fraction.value
+            for index, num in enumerate(init_var_list):
+                val = num + ranges[index] * simplex_inps.initial_step_fraction.value
                 new_point = init_var_list.copy()
-                new_point[i] = val
+                new_point[index] = val
                 simplex.append(new_point)
             self.ctx.simplex = simplex
 
