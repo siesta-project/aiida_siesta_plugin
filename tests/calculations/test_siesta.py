@@ -53,7 +53,7 @@ def test_base(aiida_profile, fixture_sandbox, generate_calc_job,
     
     # Check the attributes of the returned `CalcInfo`
     assert isinstance(calc_info, datastructures.CalcInfo)
-    assert sorted(calc_info.cmdline_params) == sorted(cmdline_params) 
+    assert sorted(calc_info.codes_info[0].cmdline_params) == sorted(cmdline_params) 
     assert sorted(calc_info.local_copy_list) == sorted(local_copy_list)
     assert sorted(calc_info.retrieve_list) == sorted(retrieve_list)
 

@@ -91,7 +91,13 @@ Some examples are referenced in the following list. They are located in the fold
   will be automatically set by Aiida. Moreover, the keyword ``dm-use-save-dm`` is
   not allowed (the restart options are explained :ref:`here <siesta-restart>`)
   together with the keyword ``geometry-must-converge`` (set to True by default for each
-  calculation with variable geometry). Finally,  all the ``pao`` options must be avoided here, 
+  calculation with variable geometry). Also the ``max-walltime`` is blocked since it is
+  set by the plugin to be equal to the ``max_wallclock_seconds`` passed in the 
+  :ref:`computational resources <submission-siesta-calc>`. This should prevent
+  the calculation to be terminated by the scheduler. In case a siesta max time
+  smaller than the ``max_wallclock_seconds`` is required, it is suggested to increase
+  the ``max-walltime-slack`` value.
+  Finally,  all the ``pao`` options must be avoided here, 
   because they belong to the **basis** input (next in this list). Any units are
   specified for now as part of the value string. Blocks are entered
   by using an appropriate key and Python's multiline string
