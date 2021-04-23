@@ -97,11 +97,13 @@ def test_analyze_process(aiida_profile, generate_workchain_converge,
     assert process.outputs["converged"].value == False
 
 @pytest.fixture
-def generate_workchain_seq_converger(generate_workchain):
+def generate_workchain_seq_converger(generate_workchain, generate_structure, generate_psml_data):
 
+    psml=generate_psml_data("Si")
     def _generate_workchain_seq_converge():
         entry_point_wc = 'siesta.sequential_converger'
         inputs = {
+            'converger_inputs' : {'structure': generate_structure(), 'pseudos': {'Si': psml, 'SiDiff': psml}},
             'iterate_over' : [{"pao":[1,2]},{"mesh":[2,3]}]
         }
         process = generate_workchain(entry_point_wc, inputs)

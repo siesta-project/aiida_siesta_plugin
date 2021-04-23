@@ -2,6 +2,8 @@ from aiida import orm
 from aiida.engine import WorkChain, calcfunction, ToContext
 from aiida.common import AttributeDict
 from aiida.tools import get_explicit_kpoints_path
+from aiida_siesta.data.common import get_pseudos_from_structure
+from aiida_siesta.calculations.siesta import internal_structure
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
 from aiida_siesta.calculations.tkdict import FDFDict
 
@@ -36,6 +38,50 @@ def get_bandgap(e_fermi, band):
     return orm.Dict(dict=output)
 
 
+def validate_inputs(value, _):
+    """
+    Validate the entire input namespace. It takes care to ckeck the consistency
+    and compatibility of the inputed basis, pseudos, pseudofamilies and ions.
+    It is the same validator of the SiestaBaseWorkChain but with no warnings on bandkpoints.
+    """
+    import warnings
+
+    if 'basis' in value:
+        structure = internal_structure(value["structure"], value["basis"].get_dict())
+        if structure is None:
+            return "Not possibe to specify `floating_sites` (ghosts) with the same name of a structure kind."
+    else:
+        structure = value["structure"]
+
+    #Check each kind in the structure (including freshly added ghosts) have a corresponding pseudo or ion
+    kinds = [kind.name for kind in structure.kinds]
+    if 'ions' in value:
+        quantity = 'ions'
+        if 'pseudos' in value or 'pseudo_family' in value:
+            warnings.warn("At least one ion file in input, all the pseudos or pseudo_family will be ignored")
+    else:
+        quantity = 'pseudos'
+        if 'pseudos' not in value and 'pseudo_family' not in value:
+            return "No `pseudos`, nor `ions`, nor `pseudo_family` specified in input"
+        if 'pseudos' in value and 'pseudo_family' in value:
+            return "You cannot specify both `pseudos` and `pseudo_family`"
+
+    if 'pseudo_family' in value:
+        from aiida.common.exceptions import NotExistent
+        try:
+            get_pseudos_from_structure(structure, value['pseudo_family'].value)
+        except NotExistent:
+            return "The pseudo family do not incude all the required pseudos"
+    else:
+        if set(kinds) != set(value[quantity].keys()):
+            string_out = (
+                'mismatch between the defined pseudos/ions and the list of kinds of the structure\n' +
+                'pseudos/ions: {} \n'.format(', '.join(list(value[quantity].keys()))) +
+                'kinds(including ghosts): {}'.format(', '.join(list(kinds)))
+            )
+            return string_out
+
+
 class BandgapWorkChain(WorkChain):
     """
     Workchain to obtain the bands and bandgap of a structure through Siesta.
@@ -67,6 +113,7 @@ class BandgapWorkChain(WorkChain):
             cls.run_last,
             cls.run_results,
         )
+        spec.inputs.validator = validate_inputs
         spec.exit_code(200, 'ERROR_MAIN_WC', message='The main SiestaBaseWorkChain failed')
         spec.exit_code(201, 'ERROR_FINAL_WC', message='The SiestaBaseWorkChain to obtain the bands failed')
 
@@ -123,7 +170,7 @@ class BandgapWorkChain(WorkChain):
             self.report("Added bandskpoints to the calculation using seekpath")
 
         running = self.submit(SiestaBaseWorkChain, **inputs)
-        self.report('Launched SiestaBaseWorkChain<{}> to perform the siesta calculation.'.format(running.pk))
+        self.report(f'Launched SiestaBaseWorkChain<{running.pk}> to perform the siesta calculation.')
 
         return ToContext(workchain_base=running)
 
@@ -144,7 +191,7 @@ class BandgapWorkChain(WorkChain):
             new_param = drop_md_keys(new_calc.parameters.get_dict())
             new_calc.parameters = orm.Dict(dict=new_param)
             running = self.submit(new_calc)
-            self.report('Launched SiestaBaseWorkChain<{}> to calculate bands.'.format(running.pk))
+            self.report(f'Launched SiestaBaseWorkChain<{running.pk}> to calculate bands.')
             return ToContext(final_run=running)
 
     def run_results(self):

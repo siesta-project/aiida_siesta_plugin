@@ -47,4 +47,4 @@ xmlwrite T
 #
 # -- Max wall-clock time block
 #
-max.walltime 1800
+maxwalltime 1800

@@ -43,12 +43,12 @@ class SiestaSTMWorkChain(WorkChain):
     in a .LDOS file) and post-process it in order to produce simulated STM images.
     """
 
-    def __init__(self, *args, **kwargs):
-        super(SiestaSTMWorkChain, self).__init__(*args, **kwargs)
+    #def __init__(self, *args, **kwargs):
+    #    super(SiestaSTMWorkChain, self).__init__(*args, **kwargs)
 
     @classmethod
     def define(cls, spec):
-        super(SiestaSTMWorkChain, cls).define(spec)
+        super().define(spec)
         spec.expose_inputs(SiestaBaseWorkChain, exclude=('metadata',))
         #Temporary fix to issue #135 plumpy
         #spec.inputs._ports['pseudos'].dynamic = True  #pylint: disable=protected-access
@@ -92,7 +92,7 @@ class SiestaSTMWorkChain(WorkChain):
 
         allowedmodes = ["constant-height", "constant-current"]
         if mode not in allowedmodes:
-            raise ValueError("The allowed options for the port 'stm_mode' are {}".format(allowedmodes))
+            raise ValueError(f"The allowed options for the port 'stm_mode' are {allowedmodes}")
 
         #Some logic regarding the spin. Example: the user can request in input
         #of the workchain a stm_spin "non-collinear", but the underline
@@ -102,7 +102,7 @@ class SiestaSTMWorkChain(WorkChain):
         #calculations. Sintax of both Siesta4.0 and Siesta>4.1 is supported.
         allowedspins = ["none", "collinear", "non-collinear"]
         if spinstm not in allowedspins:
-            raise ValueError("The allowed options for the port 'stm_spin' are {}".format(allowedspins))
+            raise ValueError(f"The allowed options for the port 'stm_spin' are {allowedspins}")
 
         spinsiesta = "none"
         newversintax = False
@@ -193,15 +193,13 @@ class SiestaSTMWorkChain(WorkChain):
 
         if "output_structure" in outwc:
             self.report(
-                'First Siesta calculation concluded succesfully. In case a restart of the WorkChain is needed, '
-                'set node {} as parent_calc_folder and node {} as structure'.format(
-                    outwc.remote_folder.pk, outwc.output_structure.pk
-                )
+                'First SIESTA calculation concluded succesfully. In cas restart needed, set node '
+                f'{outwc.remote_folder.pk} as parent_calc_folder and node {outwc.output_structure.pk} as structure.'
             )
         else:
             self.report(
-                'First Siesta calculation concluded succesfully. In case a restart of the '
-                'WorkChain is needed, set node {} as parent_calc_folder'.format(outwc.remote_folder.pk)
+                'First Siesta calculation concluded succesfully. In case restart needed '
+                f'set node {outwc.remote_folder.pk} as parent_calc_folder.'
             )
 
         efermi = outwc.output_parameters["E_Fermi"]
@@ -210,7 +208,7 @@ class SiestaSTMWorkChain(WorkChain):
         restart = self.ctx.workchain_base.get_builder_restart()
         if "output_structure" in outwc:
             restart.structure = outwc.output_structure
-        ldos_e = "\n{0:.5f} {1:.5f} eV \n%endblock local-density-of-states".format(okemin, okemax)
+        ldos_e = f"\n{okemin:.5f} {okemax:.5f} eV \n%endblock local-density-of-states"
         param_dict = restart.parameters.get_dict()
         param_dict["%block local-density-of-states"] = ldos_e
         #pop the relax keys??
@@ -220,7 +218,7 @@ class SiestaSTMWorkChain(WorkChain):
         restart.settings = Dict(dict=settings_dict)
 
         running = self.submit(restart)
-        self.report('Launched SiestaBaseWorkChain<{}> to obtain the .LDOS file.'.format(running.pk))
+        self.report(f'Launched SiestaBaseWorkChain<{running.pk}> to obtain the .LDOS file.')
 
         return ToContext(siesta_ldos=running)
 
@@ -237,7 +235,7 @@ class SiestaSTMWorkChain(WorkChain):
 
         self.report(
             'Finished siesta run to obtain .LDOS file. The remote folder hosting the file '
-            'is in the node {}'.format(remote_folder.pk)
+            f'is in the node {remote_folder.pk}'
         )
 
         if 'stm_options' in self.inputs:
@@ -263,18 +261,18 @@ class SiestaSTMWorkChain(WorkChain):
             for spinmod in ("q", "x", "y", "z"):
                 stm_inputs['spin_option'] = Str(spinmod)
                 future = self.submit(STMCalculation, **stm_inputs)
-                self.report('launching STMCalculation<{0}> in {1} spin mode'.format(future.pk, spinmod))
+                self.report(f'Launching STMCalculation<{future.pk}> in {spinmod} spin mode')
                 calcs[spinmod] = future
             return ToContext(**calcs)
         if self.ctx.spinstm == "collinear":  #pylint: disable=no-else-return
             stm_inputs['spin_option'] = Str("s")
             running = self.submit(STMCalculation, **stm_inputs)
-            self.report('launching STMCalculation<{}> in s spin mode'.format(running.pk))
+            self.report(f'Launching STMCalculation<{running.pk}> in s spin mode')
             return ToContext(stm_calc=running)
         else:
             stm_inputs['spin_option'] = Str("q")
             running = self.submit(STMCalculation, **stm_inputs)
-            self.report('launching STMCalculation<{}> in q spin mode'.format(running.pk))
+            self.report(f'Launching STMCalculation<{running.pk}> in q spin mode')
             return ToContext(stm_calc=running)
 
     def run_results(self):
