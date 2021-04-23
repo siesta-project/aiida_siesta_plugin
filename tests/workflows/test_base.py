@@ -23,7 +23,7 @@ def generate_workchain_base(generate_psml_data, fixture_code, fixture_localhost,
        or the name of a defined port.
     3) add_pseudo_fam. Triggers the addition of a pseudo_family in inputs. The name of this
        pseudo family must be passed.
-    Note that remove_inp="one_pseudo" and add_pseudo_fam != None has a special meaning.
+    Note that `remove_inp = "one_pseudo" and add_pseudo_fam != None` has a special meaning.
     """
 
     def _generate_workchain_base(exit_code=None, remove_inp=None, add_pseudo_fam=None):
@@ -87,15 +87,22 @@ def generate_workchain_base(generate_psml_data, fixture_code, fixture_localhost,
 
     return _generate_workchain_base
 
-def test_setup(aiida_profile, generate_workchain_base):
+def test_prepare_inputs(aiida_profile, generate_workchain_base):
     """
-    Test `SiestaBaseWorkChain.setup`.
+    Test `SiestaBaseWorkChain.prepare_inputs`. The logic inside the
+    method is different whether there is a pseudo_family specified. 
     """
     process = generate_workchain_base()
     process.setup()
     process.prepare_inputs()
 
     assert isinstance(process.ctx.inputs, dict)
+
+    process2 = generate_workchain_base(remove_inp="pseudos", add_pseudo_fam="tes")
+    process2.setup()
+    process2.prepare_inputs()
+
+    assert isinstance(process2.ctx.inputs, dict)
 
 
 def test_validators(aiida_profile, generate_workchain_base):

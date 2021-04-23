@@ -12,7 +12,7 @@ try:
 except IndexError:
     codename = 'SiestaHere@localhost'
 try:
-    stmcodename = sys.argv[1]
+    stmcodename = sys.argv[2]
 except IndexError:
     stmcodename = 'STMhere@localhost'
 

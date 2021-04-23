@@ -128,7 +128,7 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
             if "pseudo_family" in self.inputs:
                 fam_name = self.inputs.pseudo_family.value
                 if 'basis' in self.inputs:
-                    temp_structure = internal_structure(structure, self.inputs_basis.get_dict())
+                    temp_structure = internal_structure(structure, self.inputs.basis.get_dict())
                     self.ctx.inputs['pseudos'] = get_pseudos_from_structure(temp_structure, fam_name)
                 else:
                     self.ctx.inputs['pseudos'] = get_pseudos_from_structure(structure, fam_name)

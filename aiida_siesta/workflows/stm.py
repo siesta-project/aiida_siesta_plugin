@@ -272,7 +272,7 @@ class SiestaSTMWorkChain(WorkChain):
         else:
             stm_inputs['spin_option'] = Str("q")
             running = self.submit(STMCalculation, **stm_inputs)
-            self.report('Launching STMCalculation<{running.pk}> in q spin mode')
+            self.report(f'Launching STMCalculation<{running.pk}> in q spin mode')
             return ToContext(stm_calc=running)
 
     def run_results(self):
