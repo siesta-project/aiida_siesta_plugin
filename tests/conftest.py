@@ -76,7 +76,7 @@ def generate_calc_job_node():
         """Flatten inputs recursively like :meth:`aiida.engine.processes.process::Process._flatten_inputs`."""
         flat_inputs = []
         for key, value in six.iteritems(inputs):
-            if isinstance(value, collections.Mapping):
+            if isinstance(value, collections.abc.Mapping):
                 flat_inputs.extend(flatten_inputs(value, prefix=prefix + key + '__'))
             else:
                 flat_inputs.append((prefix + key, value))
@@ -409,7 +409,7 @@ def generate_wc_job_node():
         """Flatten inputs recursively like :meth:`aiida.engine.processes.process::Process._flatten_inputs`."""
         flat_inputs = []
         for key, value in six.iteritems(inputs):
-            if isinstance(value, collections.Mapping):
+            if isinstance(value, collections.abc.Mapping):
                 flat_inputs.extend(flatten_inputs(value, prefix=prefix + key + '__'))
             else:
                 flat_inputs.append((prefix + key, value))
