@@ -5,7 +5,7 @@ from aiida.tools import get_explicit_kpoints_path
 from aiida_siesta.data.common import get_pseudos_from_structure
 from aiida_siesta.calculations.siesta import internal_structure
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
-from aiida_siesta.calculations.tkdict import FDFDict
+from aiida_siesta.utils.tkdict import FDFDict
 
 
 def drop_md_keys(param):

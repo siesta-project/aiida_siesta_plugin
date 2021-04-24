@@ -1,7 +1,7 @@
 from aiida.plugins import DataFactory
 from aiida.engine import calcfunction
 from aiida.orm import Float
-from aiida_siesta.calculations.tkdict import FDFDict
+from aiida_siesta.utils.tkdict import FDFDict
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
 
 from ..utils.iterate_absclass import BaseIterator

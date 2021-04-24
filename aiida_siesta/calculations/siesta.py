@@ -4,7 +4,7 @@ from aiida.common import CalcInfo, CodeInfo
 from aiida.common.constants import elements
 from aiida.engine import CalcJob
 from aiida.orm import Dict, StructureData, BandsData, ArrayData
-from aiida_siesta.calculations.tkdict import FDFDict
+from aiida_siesta.utils.tkdict import FDFDict
 from aiida_siesta.data.psf import PsfData
 from aiida_siesta.data.psml import PsmlData
 from aiida_siesta.data.ion import IonData
