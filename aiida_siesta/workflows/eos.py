@@ -61,12 +61,9 @@ def delta_project_BM_fit(volumes, energies):  #pylint: disable=invalid-name
             break
 
     #Here something checking if the fit is good!
-    #The choice of residuals0 > 0.01 it is not supported
-    #by a real scientific reason, just from experience.
-    #Values ~ 0.1 are when fit random numbers, ~ 10^-5
-    #appears for good fits. The check on the presence of
-    #a minmum covers the situations when an almost
-    #linear dependence is fitted (very far from minimum)
+    #The choice of residuals0 > 0.01 it is not supported by a real scientific reason, just from experience.
+    #Values ~ 0.1 are when fit random numbers, ~ 10^-5 appears for good fits. The check on the presence of
+    #a minmum covers the situations when an almost linear dependence is fitted (very far from minimum)
     if volume0 == 0 or residuals0 > 0.01:
         return residuals0, volume0
     derivV2 = 4. / 9. * x**5. * deriv2(x)  #pylint: disable=invalid-name

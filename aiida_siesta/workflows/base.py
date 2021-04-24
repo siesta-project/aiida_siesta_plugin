@@ -54,10 +54,11 @@ def validate_inputs(value, _):
             return "The pseudo family do not incude all the required pseudos"
     else:
         if set(kinds) != set(value[quantity].keys()):
+            ps_io = ', '.join(list(value[quantity].keys()))
+            kin = ', '.join(list(kinds))
             string_out = (
-                'mismatch between the defined pseudos/ions and the list of kinds of the structure\n' +
-                'pseudos/ions: {} \n'.format(', '.join(list(value[quantity].keys()))) +
-                'kinds(including ghosts): {}'.format(', '.join(list(kinds)))
+                'mismatch between defined pseudos/ions and the list of kinds of the structure\n' +
+                f' pseudos/ions: {ps_io} \n kinds(including ghosts): {kin}'
             )
             return string_out
 
@@ -113,30 +114,12 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
 
         self.ctx.inputs = {
             'code': self.inputs.code,
+            'parameters': self.inputs.parameters,
             'structure': structure,
             'metadata': {
                 'options': self.inputs.options.get_dict(),
             }
         }
-
-        # THIS PART IS USELESS SINCE max-walltime IS IMPOSED IN THE SiestaCalculation.
-        # HOWEVER I WOULD ARGUE IT IS BETTER TO HAVE IT HERE!!!!!!!
-        # Check if the max-walltime should be added in the list of parameters.
-        # This should prevent SiestaCalculation from being terminated by scheduler, however the
-        # strategy is not 100% effective since SIESTA checks the simulation time versus max-walltime
-        # only at the end of each SCF steps. The scheduler might kill the process durind a SCF step.
-        #max_wallclock_seconds = self.inputs.options['max_wallclock_seconds']
-        #params_dict = FDFDict(self.inputs.parameters.get_dict())
-        #if FDFDict.translate_key('max-walltime') in params_dict:
-        #    if params_dict[FDFDict.translate_key('max-walltime')] < max_wallclock_seconds:
-        #        self.ctx.inputs['parameters'] = self.inputs.parameters
-        #    else:
-        #        params_dict[FDFDict.translate_key('max-walltime')] = max_wallclock_seconds
-        #        self.ctx.inputs['parameters'] = orm.Dict(dict=params_dict)
-        #else:
-        #    params_dict[FDFDict.translate_key('max-walltime')] = max_wallclock_seconds
-        #    self.ctx.inputs['parameters'] = orm.Dict(dict=params_dict)
-        self.ctx.inputs['parameters'] = self.inputs.parameters
 
         # Ions or pseudos
         if 'ions' in self.inputs:
@@ -145,7 +128,7 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
             if "pseudo_family" in self.inputs:
                 fam_name = self.inputs.pseudo_family.value
                 if 'basis' in self.inputs:
-                    temp_structure = internal_structure(structure, self.inputs_basis.get_dict())
+                    temp_structure = internal_structure(structure, self.inputs.basis.get_dict())
                     self.ctx.inputs['pseudos'] = get_pseudos_from_structure(temp_structure, fam_name)
                 else:
                     self.ctx.inputs['pseudos'] = get_pseudos_from_structure(structure, fam_name)

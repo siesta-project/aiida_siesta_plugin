@@ -170,7 +170,7 @@ class BandgapWorkChain(WorkChain):
             self.report("Added bandskpoints to the calculation using seekpath")
 
         running = self.submit(SiestaBaseWorkChain, **inputs)
-        self.report('Launched SiestaBaseWorkChain<{}> to perform the siesta calculation.'.format(running.pk))
+        self.report(f'Launched SiestaBaseWorkChain<{running.pk}> to perform the siesta calculation.')
 
         return ToContext(workchain_base=running)
 
@@ -191,7 +191,7 @@ class BandgapWorkChain(WorkChain):
             new_param = drop_md_keys(new_calc.parameters.get_dict())
             new_calc.parameters = orm.Dict(dict=new_param)
             running = self.submit(new_calc)
-            self.report('Launched SiestaBaseWorkChain<{}> to calculate bands.'.format(running.pk))
+            self.report(f'Launched SiestaBaseWorkChain<{running.pk}> to calculate bands.')
             return ToContext(final_run=running)
 
     def run_results(self):

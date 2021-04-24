@@ -180,10 +180,11 @@ def validate_inputs(value, _):
     #Check each kind in the structure (including freshly added ghosts) have a corresponding pseudo or ion
     kinds = [kind.name for kind in structure.kinds]
     if set(kinds) != set(value[quantity].keys()):
+        ps_io = ', '.join(list(value[quantity].keys()))
+        kin = ', '.join(list(kinds))
         string_out = (
-            'mismatch between the defined pseudos/ions and the list of kinds of the structure\n' +
-            'pseudos/ions: {} \n'.format(', '.join(list(value[quantity].keys()))) +
-            'kinds(including ghosts): {}'.format(', '.join(list(kinds)))
+            'mismatch between defined pseudos/ions and the list of kinds of the structure\n' +
+            f' pseudos/ions: {ps_io} \n kinds(including ghosts): {kin}'
         )
         return string_out
 
@@ -223,6 +224,7 @@ class SiestaCalculation(CalcJob):
         'geometry-must-converge',
         'user-basis',
         'lua-script',
+        'max-walltime',
     ]
     _aiida_blocked_keywords = [FDFDict.translate_key(key) for key in _readable_blocked]
 
@@ -326,7 +328,6 @@ class SiestaCalculation(CalcJob):
     def prepare_for_submission(self, folder):  # noqa: MC0001  - is mccabe too complex funct -
         """
         Create the input files from the input nodes passed to this instance of the `CalcJob`.
-
         :param folder: an `aiida.common.folders.Folder` to temporarily write files on disk
         :return: `aiida.common.datastructures.CalcInfo` instance
         """
@@ -584,9 +585,9 @@ class SiestaCalculation(CalcJob):
             # Write max wall-clock time
             # This should prevent SiestaCalculation from being terminated by scheduler, however the
             # strategy is not 100% effective since SIESTA checks the simulation time versus max-walltime
-            # only at the end of each SCF steps. The scheduler might kill the process durind a SCF step.
+            # only at the end of each SCF and geometry step. The scheduler might kill the process in between.
             infile.write("#\n# -- Max wall-clock time block\n#\n")
-            infile.write(f"max.walltime {metadataoption.max_wallclock_seconds}\n")
+            infile.write(f"maxwalltime {metadataoption.max_wallclock_seconds}\n")
 
         # ================================== Lua parameters file ===================================
 
@@ -616,12 +617,8 @@ class SiestaCalculation(CalcJob):
 
         calcinfo = CalcInfo()
         calcinfo.uuid = str(self.uuid)
-        if cmdline_params:
-            calcinfo.cmdline_params = list(cmdline_params)
         calcinfo.local_copy_list = local_copy_list
         calcinfo.remote_copy_list = remote_copy_list
-        calcinfo.stdin_name = metadataoption.input_filename
-        calcinfo.stdout_name = metadataoption.output_filename
         calcinfo.codes_info = [codeinfo]
         # Retrieve by default: the output file, the xml file, the messages file, and the json timing file.
         # If bandskpoints, also the bands file is added to the retrieve list.
