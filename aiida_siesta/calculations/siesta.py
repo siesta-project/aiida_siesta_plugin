@@ -651,5 +651,5 @@ class SiestaCalculation(CalcJob):
 
     @classmethod
     def inputs_generator(cls):  # pylint: disable=no-self-argument,no-self-use
-        from aiida_siesta.utils.inputs_generators import SiestaCalculationInputsGenerator
-        return SiestaCalculationInputsGenerator(cls)
+        from aiida_siesta.utils.protocols_system.input_generators import SiestaCalculationInputGenerator
+        return SiestaCalculationInputGenerator(cls)
