@@ -3,7 +3,7 @@ from aiida.common import AttributeDict
 from aiida.engine import WorkChain, calcfunction, ToContext
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
 from aiida_siesta.calculations.stm import STMCalculation
-from aiida_siesta.calculations.tkdict import FDFDict
+from aiida_siesta.utils.tkdict import FDFDict
 
 
 #This is one of the situations where there is no obbligation to
@@ -308,5 +308,5 @@ class SiestaSTMWorkChain(WorkChain):
 
     @classmethod
     def inputs_generator(cls):  # pylint: disable=no-self-argument,no-self-use
-        from aiida_siesta.utils.inputs_generators import StmWorkChainInputsGenerator
-        return StmWorkChainInputsGenerator(cls)
+        from aiida_siesta.utils.protocols_system.input_generators import StmWorkChainInputGenerator
+        return StmWorkChainInputGenerator(cls)

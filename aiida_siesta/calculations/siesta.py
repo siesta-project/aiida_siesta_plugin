@@ -4,7 +4,7 @@ from aiida.common import CalcInfo, CodeInfo
 from aiida.common.constants import elements
 from aiida.engine import CalcJob
 from aiida.orm import Dict, StructureData, BandsData, ArrayData
-from aiida_siesta.calculations.tkdict import FDFDict
+from aiida_siesta.utils.tkdict import FDFDict
 from aiida_siesta.data.psf import PsfData
 from aiida_siesta.data.psml import PsmlData
 from aiida_siesta.data.ion import IonData
@@ -651,5 +651,5 @@ class SiestaCalculation(CalcJob):
 
     @classmethod
     def inputs_generator(cls):  # pylint: disable=no-self-argument,no-self-use
-        from aiida_siesta.utils.inputs_generators import SiestaCalculationInputsGenerator
-        return SiestaCalculationInputsGenerator(cls)
+        from aiida_siesta.utils.protocols_system.input_generators import SiestaCalculationInputGenerator
+        return SiestaCalculationInputGenerator(cls)

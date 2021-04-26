@@ -1,0 +1,74 @@
+standard_psml:
+  description: 'A standard list of inputs for Siesta. Performaces tested on crystal elements giving an average Delta of 7.1 meV. No support for Spin-Orbit. Use of PSML pseudos, not supported by Siesta 4.0.*/4.1.* versions'
+  parameters:
+    xc-functional: "GGA"
+    xc-authors: "PBE"
+    max-scf-iterations: 50
+    scf-mixer-history: 5
+    scf-mixer-weight: 0.1
+    scf-dm-tolerance: 1.e-4  #1.e-5
+    solution-method: 'diagon'
+    electronic-temperature: '25 meV'
+    write-forces: True
+    mesh-cutoff: '200 Ry'
+  spin_additions:
+    write-mulliken-pop: 1
+  relax_additions:
+    scf-dm-tolerance: 1.e-4
+    md-max-force-tol: '0.04 eV/ang'
+    md-max-stress-tol: '0.1 GPa'
+  basis:
+    pao-energy-shift: '50 meV'
+    pao-basis-size: 'DZP'
+  pseudo_family: 'nc-sr-04_pbe_standard_psml'
+  kpoints:
+    distance: 0.1 #0.062
+    offset: [0., 0., 0.]
+  atomic_heuristics:
+    Li:
+      parameters:
+        mesh-cutoff: '250 Ry'
+      basis:
+        polarization: 'non-perturbative'
+    Be:
+      parameters:
+        mesh-cutoff: '250 Ry'
+      basis:
+        polarization: 'non-perturbative'
+    Na:
+      parameters:
+        mesh-cutoff: '250 Ry'
+      basis:
+        polarization: 'non-perturbative'
+    Mg:
+      parameters:
+        mesh-cutoff: '250 Ry'
+      basis:
+        polarization: 'non-perturbative'
+    Mn:
+      parameters:
+        mesh-cutoff: '400 Ry'
+    Fe:
+      parameters:
+        mesh-cutoff: '400 Ry'
+    Ag:
+      parameters:
+        mesh-cutoff: '300 Ry'
+    Ca:
+      basis:
+        pao-block: "Ca 3 \n  n=3   0   1 \n  3.505 \n n=4   0   2  \n 7.028      0.000 \n n=3   1   1 \n 4.072"
+        split-tail-norm: True
+    Sr:
+      basis:
+        pao-block: "Sr 3 \n  n=4   0   1 \n  3.809 \n n=5   0   2  \n  7.599      0.000  \n n=4   1   1 \n 4.538"
+        split-tail-norm: True
+    Ba:
+      basis:
+        pao-block: "Ba 3 \n  n=5   0   1 \n  4.369 \n n=6   0   2  \n 7.602      0.000 \n n=5   1   1 \n 5.205"
+        split-tail-norm: True
+    Sb:
+      parameters:
+        mesh-cutoff: '400 Ry'
+    Hg:
+      basis:
+        pao-block: "Hg 4 \n  n=5   0   1 \n  3.568 \n n=6   0   2  \n 6.573  0.0 \n n=5   1   2 \n 4.059  0.0 \n n=5   2  1 \n 5.918"

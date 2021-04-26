@@ -1,7 +1,7 @@
 #!/usr/bin/env runaiida
 # -*- coding: utf-8 -*-
 import os
-from aiida_siesta.utils.protocols import ProtocolManager
+from aiida_siesta.utils.protocols_system.protocols import ProtocolManager
 from aiida_siesta.groups.pseudos import PsmlFamily
 
 def test_registries(aiida_profile):

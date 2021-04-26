@@ -1,7 +1,7 @@
 from aiida.plugins import DataFactory
 from aiida.engine import calcfunction
 from aiida.orm import Float
-from aiida_siesta.calculations.tkdict import FDFDict
+from aiida_siesta.utils.tkdict import FDFDict
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
 
 from ..utils.iterate_absclass import BaseIterator
@@ -305,5 +305,5 @@ class EqOfStateFixedCellShape(BaseIterator):
 
     @classmethod
     def inputs_generator(cls):  # pylint: disable=no-self-argument,no-self-use
-        from aiida_siesta.utils.inputs_generators import EosWorkChainInputsGenerator
-        return EosWorkChainInputsGenerator(cls)
+        from aiida_siesta.utils.protocols_system.input_generators import EosWorkChainInputGenerator
+        return EosWorkChainInputGenerator(cls)

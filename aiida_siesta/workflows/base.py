@@ -2,7 +2,7 @@ from aiida import orm
 from aiida.engine import BaseRestartWorkChain, ProcessHandlerReport, process_handler, while_
 from aiida_siesta.data.common import get_pseudos_from_structure
 from aiida_siesta.calculations.siesta import SiestaCalculation, bandskpoints_warnings, internal_structure
-from aiida_siesta.calculations.tkdict import FDFDict
+from aiida_siesta.utils.tkdict import FDFDict
 
 
 def validate_options(value, _):
@@ -220,13 +220,11 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
                 mylog = log.message.split()
         new_split_norm = float(mylog[-1]) + 0.001
 
-        #We want to understand the presence of "pao-split-norm" in input and:
-        #1) if present, we change its value to the minimum allowed
-        #2) if not present, we activate pao-SplitTailNorm
-        #As we don't know in which sintax the user passed "pao-split-norm (remember
-        #that every fdf variant is allowed), we translate the original dict in
-        #a FDFDict that is aware of the equivalent keyword.
-        #A FDFDict is not accepted in the context, but it is accepted in orm.Dict.
+        # We want to understand the presence of "pao-split-norm" in input and:
+        # 1) if present, we change its value to the minimum allowed
+        # 2) if not present, we activate pao-SplitTailNorm
+        # As we don't know in which sintax the user passed "pao-split-norm (remember that every fdf variant
+        # is allowed), we translate the original dict to a FDFDict that is aware of equivalent keyword.
         transl_basis = FDFDict(self.ctx.inputs["basis"].get_dict())
         glob_split_norm = False
         for key in transl_basis:
@@ -272,5 +270,5 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
 
     @classmethod
     def inputs_generator(cls):  # pylint: disable=no-self-argument,no-self-use
-        from aiida_siesta.utils.inputs_generators import BaseWorkChainInputsGenerator
-        return BaseWorkChainInputsGenerator(cls)
+        from aiida_siesta.utils.protocols_system.input_generators import BaseWorkChainInputGenerator
+        return BaseWorkChainInputGenerator(cls)
