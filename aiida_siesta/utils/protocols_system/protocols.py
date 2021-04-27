@@ -316,8 +316,14 @@ class ProtocolManager:
 
     def _get_pseudos(self, key, structure):
 
-        from aiida_siesta.data.common import get_pseudos_from_structure
-
         family = self._protocols[key]["pseudo_family"]
-        pseudos = get_pseudos_from_structure(structure, family)
+        group = Group.get(label=family)
+
+        # To be removed in v2.0
+        if "data" in group.type_string:
+            from aiida_siesta.data.common import get_pseudos_from_structure
+            pseudos = get_pseudos_from_structure(structure, family)
+            return pseudos
+
+        pseudos = group.get_pseudos(structure=structure)
         return pseudos

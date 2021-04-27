@@ -1,6 +1,5 @@
 #!/usr/bin/env runaiida
 # -*- coding: utf-8 -*-
-from aiida_siesta.groups.pseudos import PsmlFamily
 from aiida.plugins import WorkflowFactory, CalculationFactory
 
 
