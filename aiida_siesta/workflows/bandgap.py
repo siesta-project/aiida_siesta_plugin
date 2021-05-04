@@ -1,4 +1,5 @@
 from aiida import orm
+from aiida.common.exceptions import NotExistent
 from aiida.engine import WorkChain, calcfunction, ToContext
 from aiida.common import AttributeDict
 from aiida.tools import get_explicit_kpoints_path
