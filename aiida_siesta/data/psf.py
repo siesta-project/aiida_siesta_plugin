@@ -9,13 +9,6 @@ from aiida.common.files import md5_file
 from aiida.orm.nodes import SinglefileData
 from aiida_siesta.utils.warn import AiidaSiestaDeprecationWarning
 
-message = (  #pylint: disable=invalid-name
-    'This module has been deprecated and will be removed in `v2.0.0`. ' +
-    'Support on psf pseudos and corresponding families is moved to the aiida_pseudo package.'
-)
-
-warnings.warn(message, AiidaSiestaDeprecationWarning)
-
 
 def get_pseudos_from_structure(structure, family_name):
     """
@@ -240,8 +233,8 @@ class PsfData(SinglefileData):
     def __init__(self, file, filename=None, **kwargs):
         message = (  #pylint: disable=invalid-name
             'This module has been deprecated and will be removed in `v2.0.0`. Support on psf pseudos and ' +
-            'corresponding families is moved to the aiida_pseudo package. The `PsfData` class of ' +
-            'aiida_pseudo.data.pseudo.psml requires file stream to be instanciated, not the file name.'
+            'corresponding families is moved to the `aiida_pseudo` package. Use the `PsfData` class of ' +
+            'aiida_pseudo.data.pseudo.psf. Instanciating the new class requires a file stream, not the file name.'
         )
         warnings.warn(message, AiidaSiestaDeprecationWarning)
 

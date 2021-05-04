@@ -17,7 +17,7 @@ def test_registries(aiida_profile):
     #PsmlFamily.objects.get_or_create("nc-sr-04_pbe_standard-psf")
     #PsmlFamily.objects.get_or_create("nc-sr-04_pbe_stringent-psf")
     #PsmlFamily.objects.get_or_create("nc-sr-04_pbe_standard_psml")
-    PseudoPotentialFamily.objects.get_or_create("nc-sr-04_pbe_standard_psml")
+    PseudoPotentialFamily.objects.get_or_create("PseudoDojo/0.4/PBE/SR/standard/psml")
 
     basepath = os.path.dirname(os.path.abspath(__file__))
     filepath = os.path.join(basepath, 'fixtures/protocols/registries/custom_prot.yaml')
@@ -48,7 +48,7 @@ def test_methods(aiida_profile):
     #PsmlFamily.objects.get_or_create("nc-sr-04_pbe_standard_psml")
     #PsmlFamily.objects.get_or_create("nc-sr-04_pbe_standard-psf")
     #PsmlFamily.objects.get_or_create("nc-sr-04_pbe_stringent-psf")
-    PseudoPotentialFamily.objects.get_or_create("nc-sr-04_pbe_standard_psml")
+    PseudoPotentialFamily.objects.get_or_create("PseudoDojo/0.4/PBE/SR/standard/psml")
 
     pmanager=ProtocolManager()
         

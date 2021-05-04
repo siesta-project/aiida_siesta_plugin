@@ -10,7 +10,7 @@ def test_validation(aiida_profile):
     #PsmlFamily.objects.get_or_create("nc-sr-04_pbe_standard-psf")
     #PsmlFamily.objects.get_or_create("nc-sr-04_pbe_stringent-psf")
     #PsmlFamily.objects.get_or_create("nc-sr-04_pbe_standard_psml")
-    PseudoPotentialFamily.objects.get_or_create("nc-sr-04_pbe_standard_psml")
+    PseudoPotentialFamily.objects.get_or_create("PseudoDojo/0.4/PBE/SR/standard/psml")
 
     class SubInputsGenerator(InputGenerator):
 

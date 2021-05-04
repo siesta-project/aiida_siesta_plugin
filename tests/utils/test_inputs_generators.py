@@ -6,7 +6,7 @@ from aiida.plugins import WorkflowFactory, CalculationFactory
 def test_siestacalc_inpgen(aiida_profile, fixture_code, generate_structure, generate_psml_fam):
     """Test the validation of subclasses of `InputsGenerator`."""
 
-    generate_psml_fam("nc-sr-04_pbe_standard_psml","Si") #This will stay for the entire session!
+    generate_psml_fam("PseudoDojo/0.4/PBE/SR/standard/psml","Si") #This will stay for the entire session!
 
     from aiida_siesta.utils.protocols_system.input_generators import SiestaCalculationInputGenerator
 

@@ -8,13 +8,6 @@ from aiida.common.files import md5_file
 from aiida.orm.nodes import SinglefileData
 from aiida_siesta.utils.warn import AiidaSiestaDeprecationWarning
 
-message = (  #pylint: disable=invalid-name
-    'This module has been deprecated and will be removed in `v2.0.0`. ' +
-    'Support on psml pseudos and corresponding families is moved to the aiida_pseudo package.'
-)
-
-warnings.warn(message, AiidaSiestaDeprecationWarning)
-
 # See LICENSE.txt and AUTHORS.txt
 
 #PSMLGROUP_TYPE = 'data.psml.family'
@@ -246,8 +239,8 @@ class PsmlData(SinglefileData):
     def __init__(self, file, filename=None, **kwargs):
         message = (  #pylint: disable=invalid-name
             'This module has been deprecated and will be removed in `v2.0.0`. Support on psml pseudos and ' +
-            'corresponding families is moved to the aiida_pseudo package. The `PsmlData` class of ' +
-            'aiida_pseudo.data.pseudo.psml requires file stream to be instanciated, not the file name.'
+            'corresponding families is moved to the `aiida_pseudo` package. Use the `PsmlData` class of ' +
+            'aiida_pseudo.data.pseudo.psml. Instanciating the new class requires a file stream, not the file name.'
         )
         warnings.warn(message, AiidaSiestaDeprecationWarning)
 
