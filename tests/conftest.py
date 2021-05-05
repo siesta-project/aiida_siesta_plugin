@@ -147,7 +147,7 @@ def generate_psf_data():
         #from aiida_siesta.data.psf import PsfData
         from aiida_pseudo.data.pseudo.psf import PsfData 
 
-        filename = os.path.join('tests', 'pseudos', '{}.psf'.format(element))
+        filename = os.path.join('tests', 'fixtures',  'pseudos', '{}.psf'.format(element))
         filepath = os.path.abspath(filename)
 
         with io.open(filepath, 'rb') as handle:
@@ -167,7 +167,7 @@ def generate_psml_data():
         """Return `PsmlData` node."""
         from aiida_pseudo.data.pseudo.psml import PsmlData
 
-        filename = os.path.join('tests', 'pseudos', '{}.psml'.format(element))
+        filename = os.path.join('tests', 'fixtures', 'pseudos', '{}.psml'.format(element))
         filepath = os.path.abspath(filename)
 
         with io.open(filepath, 'rb') as handle:
@@ -186,7 +186,7 @@ def generate_ion_data():
         """Return `IonData` node."""
         from aiida_siesta.data.ion import IonData
 
-        filename = os.path.join('tests', 'ions', '{}.ion.xml'.format(element))
+        filename = os.path.join('tests', 'fixtures', 'ions', '{}.ion.xml'.format(element))
         filepath = os.path.abspath(filename)
 
         with io.open(filepath, 'r') as handle:
@@ -205,7 +205,7 @@ def generate_lua_file():
         """Return `SingleData` node."""
         from aiida.orm import SinglefileData
 
-        filename = os.path.join('tests', 'lua_scripts', 'relax_geometry_lbfgs.lua')
+        filename = os.path.join('tests', 'fixtures', 'lua_scripts', 'relax_geometry_lbfgs.lua')
         filepath = os.path.abspath(filename)
 
         lua_file = SinglefileData(filepath)
@@ -223,7 +223,7 @@ def generate_lua_folder():
         """Return `FolderData` node."""
         from aiida.orm import FolderData
 
-        foldername = os.path.join('tests', 'lua_scripts', 'neb-data')
+        foldername = os.path.join('tests', 'fixtures', 'lua_scripts', 'neb-data')
         folderpath = os.path.abspath(foldername)
 
         lua_folder = FolderData(tree=folderpath)
