@@ -53,12 +53,11 @@ def psml_uploadfamily(folder, group_label, group_description, stop_if_existing):
 @options.WITH_ELEMENTS()
 @decorators.with_dbenv()
 @decorators.deprecated_command(
-    "This command has been deprecated and will be removed in v2.0. Its substitute command is `aiida-pseudo list`. "
-    "Since the pseudo management is now based on an entire new system, the families listed here will not appear "
-    "directly running the new command. It is suggested to export the families into a folder (verdi data psml "
-    "folder_name family_label), delete the group corresponding to the family (verdi group delete family_label), "
-    "create an archive (tar -cf archive.tar folder_name/*) and install the family again with aiida-pseudo install "
-    "(aiida-pseudo install family archive.tar family_label)."
+    "This command is deprecated and will be removed in aiida_siesta v2.0. Its substitute command is `aiida-pseudo "
+    "list`. Since the pseudo management is now based on a new system, the families listed here will not appear "
+    "running the new command. It is suggested to export the families into a folder (`verdi data psml exportfamily "
+    "folder_name family_label`), delete the group corresponding to the family (`verdi group delete family_label`), "
+    "and install the family again (`aiida-pseudo install family folder_name family_label -P pseudo.psml`)."
 )
 def psml_listfamilies(elements, with_description):
     """
