@@ -5,6 +5,26 @@ from aiida_optimize import OptimizationWorkChain
 from aiida_siesta.workflows._for_optimization import ForBasisOptWorkChain
 
 
+def validate_variables_dict(value, _):
+    """
+    Check that each key in vriables_dict respect the format.
+    """
+    if value:
+        dime = len(value.get_dict().keys())
+        for k, v in value.get_dict().items():
+            if not isinstance(v, (tuple, list)):
+                return "the values for each key must be list or tuple."
+            if len(v) not in [2, 3, dime + 1 + 2]:
+                messag = (
+                    f"for `{k}` of the `variables_dict` input. The list/tuple must have lenght 2, 3 or {dime+1+2}. " +
+                    f"First number is the minimum for `{k}`, the second number the maximum, the third (optional) " +
+                    "the initial value, the others (optional) the numbers to create the initial simplex."
+                )
+                return messag
+            if not all([isinstance(el, (float, int)) for el in v]):
+                return f"the values for each key {k} must be list/tuple of floats or integers."
+
+
 class SimplexBasisOptimization(WorkChain):
     """
     Workchain running a simple NelderMead optimization (simplex) varing variables
@@ -14,12 +34,15 @@ class SimplexBasisOptimization(WorkChain):
     @classmethod
     def define(cls, spec):
         super().define(spec)
-        spec.expose_inputs(ForBasisOptWorkChain, exclude=('metadata', 'list_of_values'))
-        spec.input('simplex.initial_variables', valid_type=orm.List)
+        spec.expose_inputs(
+            ForBasisOptWorkChain, exclude=('metadata', 'the_values', 'the_names', 'upper_bounds', 'lower_bounds')
+        )
+        spec.input_namespace("simplex")
+        spec.input('simplex.variables_dict', valid_type=orm.Dict, validator=validate_variables_dict)
         spec.input('simplex.max_iters', valid_type=orm.Int, default=lambda: orm.Int(40))
         spec.input('simplex.tolerance_function', valid_type=orm.Float, default=lambda: orm.Float(0.01))
         spec.input('simplex.initial_step_fraction', valid_type=orm.Float, default=lambda: orm.Float(0.4))
-        spec.input('simplex.full_simplex', valid_type=orm.List, required=False)
+        #spec.input('simplex.full_simplex', valid_type=orm.List, required=False)
         spec.output('last_simplex', valid_type=orm.List, required=True)
         spec.expose_outputs(OptimizationWorkChain)
         spec.outline(
@@ -32,21 +55,44 @@ class SimplexBasisOptimization(WorkChain):
 
     def preprocess(self):
         """
-        In the preprocess, we create the initaial simplex.
+        In the preprocess, we transform the `variables_dict` info into lists. This
+        is necessary to exploit the OptimizationWorkChain features. It accepts the variables
+        values as list in a separate input. Also the initaial simplex is created since it is
+        explicitly needed by OptimizationWorkChain.
         """
         import numpy as np
+        import random
 
         simplex_inps = self.inputs.simplex
-        if "full_simplex" in simplex_inps:
-            self.ctx.simplex = simplex_inps["full_simplex"]
+        dime = len(simplex_inps.variables_dict.get_dict().keys())
+        self.ctx.names = []
+        self.ctx.lower = []
+        self.ctx.upper = []
+        init = []
+        others = []
+        for ind in range(dime):
+            others.append([])
+        for k, v in simplex_inps.variables_dict.get_dict().items():
+            self.ctx.names.append(k)
+            self.ctx.lower.append(v[0])
+            self.ctx.upper.append(v[1])
+            if len(v) > 2:
+                init.append(v[2])
+            else:
+                init.append(round(random.uniform(v[0], v[1]), 5))
+            if len(v) > 3:
+                for ind in range(dime):
+                    others[ind].append(v[ind + 2])
+        if all([len(others[ind]) == dime for ind in range(dime)]):
+            #Means comlete simplex is passed
+            self.ctx.simplex = others.insert(0, init)
         else:
             simplex = []
-            init_var_list = simplex_inps.initial_variables.get_list()
-            ranges = np.array(simplex_inps.upper_boundaries) - np.array(simplex_inps.lower_boundaries)
-            simplex.append(init_var_list)
-            for index, num in enumerate(init_var_list):
+            ranges = np.array(self.ctx.upper) - np.array(self.ctx.lower)
+            simplex.append(init)
+            for index, num in enumerate(init):
                 val = num + ranges[index] * simplex_inps.initial_step_fraction.value
-                new_point = init_var_list.copy()
+                new_point = init.copy()
                 new_point[index] = val
                 simplex.append(new_point)
             self.ctx.simplex = simplex
@@ -61,7 +107,6 @@ class SimplexBasisOptimization(WorkChain):
         inputs = self.exposed_inputs(ForBasisOptWorkChain)
 
         siesta_base = inputs.siesta_base
-        simpl = inputs.simplex
 
         result_opt = self.submit(
             OptimizationWorkChain,
@@ -69,7 +114,7 @@ class SimplexBasisOptimization(WorkChain):
             engine_kwargs=orm.Dict(
                 dict=dict(
                     simplex=self.ctx.simplex,
-                    input_key="list_of_values",
+                    input_key="the_values",
                     result_key='ene',
                     xtol=10000,
                     ftol=self.inputs.simplex.tolerance_function.value,
@@ -78,10 +123,9 @@ class SimplexBasisOptimization(WorkChain):
             ),
             evaluate_process=ForBasisOptWorkChain,
             evaluate={
-                "simplex": {
-                    "upper_boundaries": simpl.upper_boundaries,
-                    "lower_boundaries": simpl.lower_boundaries
-                },
+                "upper_bounds": orm.List(list=self.ctx.upper),
+                "lower_bounds": orm.List(list=self.ctx.lower),
+                "the_names": orm.List(list=self.ctx.names),
                 "siesta_base": {
                     **siesta_base
                 }

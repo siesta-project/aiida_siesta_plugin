@@ -32,7 +32,7 @@ def test_validator_and_get_pao_block():
 
     pao_man._pol_dict = {}
 
-    assert pao_man.get_pao_block() == "Si 1\n  n=3  0  1 \n 7.6533504667600045"
+    assert pao_man.get_pao_block() == "Si 1\n  n=3  0  1 \n 7.65335"
 
     pao_man._gen_dict = {}
 

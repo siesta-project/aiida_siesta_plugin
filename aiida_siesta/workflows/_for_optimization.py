@@ -18,10 +18,10 @@ def validator_basis_opt(value, _):
             return orig_out
         has_label = False
         for key in value.get_dict():
-            if "$0" in str(value.get_dict()[key]):
+            if "$" in str(value.get_dict()[key]):
                 has_label = True
         if not has_label:
-            return "the basis dictionary must contain the variable for optimizaton; they are '$'+int."
+            return "the basis dictionary must contain the variable for optimizaton; they are '$'+str."
 
 
 @calcfunction
@@ -48,11 +48,10 @@ class ForBasisOptWorkChain(WorkChain):
     def define(cls, spec):
         super().define(spec)
         spec.expose_inputs(SiestaBaseWorkChain, namespace="siesta_base", exclude=('metadata',))
-        #Do something to impose basis dict is present and the conyains the $
-        spec.input('list_of_values', valid_type=orm.List)
-        spec.input_namespace("simplex")
-        spec.input('simplex.upper_boundaries', valid_type=orm.List)
-        spec.input('simplex.lower_boundaries', valid_type=orm.List)
+        spec.input('the_values', valid_type=orm.List)
+        spec.input('the_names', valid_type=orm.List)
+        spec.input('upper_bounds', valid_type=orm.List)
+        spec.input('lower_bounds', valid_type=orm.List)
         spec.output("ene", valid_type=orm.Float)
 
         spec.inputs["siesta_base"]["basis"].validator = validator_basis_opt
@@ -69,14 +68,13 @@ class ForBasisOptWorkChain(WorkChain):
         variables are outside a range defined in input (see `simplex.upper/lower_boundaries`) we do
         not run siesta but return a high energy.
         """
-        the_list = self.inputs.list_of_values.get_list()
-        uppers = self.inputs.simplex.upper_boundaries.get_list()
-        lowers = self.inputs.simplex.lower_boundaries.get_list()
-        self.ctx.should_out = True
+        self.ctx.vals = self.inputs.the_values.get_list()
+        self.ctx.names = self.inputs.the_names.get_list()
+        uppers = self.inputs.upper_bounds.get_list()
+        lowers = self.inputs.lower_bounds.get_list()
 
-        for index, num in enumerate(the_list):
+        for index, num in enumerate(self.ctx.vals):
             if num > uppers[index] or num < lowers[index]:
-                self.ctx.should_out = False
                 return False
 
         return True
@@ -90,8 +88,8 @@ class ForBasisOptWorkChain(WorkChain):
 
         basis_dict = inputs["basis"].get_dict()
         for key in basis_dict.keys():
-            for index, num in enumerate(self.inputs.list_of_values.get_list()):
-                basis_dict[key] = basis_dict[key].replace("$" + str(index), str(num))
+            for index, num in enumerate(self.ctx.vals):
+                basis_dict[key] = basis_dict[key].replace("$" + str(self.ctx.names[index]), str(num))
 
         self.ctx.inputs = inputs
         self.ctx.inputs['basis'] = orm.Dict(dict=basis_dict)
@@ -101,7 +99,7 @@ class ForBasisOptWorkChain(WorkChain):
         Run the SiestaBaseWorkChain.
         """
 
-        self.report('Variables to optimiza correctly introduced in the basis dict.')
+        self.report('Variables to optimise correctly introduced in the basis dict.')
 
         running = self.submit(SiestaBaseWorkChain, **self.ctx.inputs)
         self.report(f'Launched SiestaBaseWorkChain<{running.pk}> to perform the siesta calculation.')
@@ -112,7 +110,7 @@ class ForBasisOptWorkChain(WorkChain):
         """
         Return the basis enthalpy in a single output node.
         """
-        if self.ctx.should_out:
+        if self.should_run_wc():
             if not self.ctx.workchain_base.is_finished_ok:
                 extract_ene = extract(orm.Str("none"))
                 self.out("ene", extract_ene)

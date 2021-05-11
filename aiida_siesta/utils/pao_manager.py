@@ -42,7 +42,7 @@ class PaoManager:
         Checks that the attributes are set, used in any methods of the class, except setters.
         Note that "not-set attributes" carry value "None". Empty dictionaty are instead
         valid values for the attributes.
-        The self._pol_dict = {} signas basis with no polarized orbital. The self._gen_dict = {}
+        The self._pol_dict = {} signals basis with no polarized orbital. The self._gen_dict = {}
         might appen during the construction, but it is not allowed when the results
         should be returned. Therefore the `raise_if_empty` argument signals to check
         also if self._gen_dict is empty and it is called in the getters methods.
@@ -332,32 +332,47 @@ class PaoManager:
         return: a string card containing the block.
 
         Conversion into Bohr is performed.
+        Generally the radii values are floats. However we allow a hack in the
+        BasisOptimizer to use stings for values. For this reason the conversion
+        into Bohr is in an if statement.
         """
+        import copy
 
         self._validate_attrs(raise_if_empty=True)
 
         number_of_l = 0
-        dictl = self._gen_dict
-        pol = self._pol_dict
+        dictl = copy.deepcopy(self._gen_dict)
+        pol = copy.deepcopy(self._pol_dict)
         for i in dictl:
             number_of_l = number_of_l + len(dictl[i])
+
+        #Conversion in bohr. Polarization is not necessary, but do for consistency
+        for i in dictl:
+            for j in dictl[i]:
+                for l in dictl[i][j]:
+                    if isinstance(dictl[i][j][l], (float, int)):
+                        dictl[i][j][l] = round(dictl[i][j][l] * ANG_TO_BOHR, 6)
+        for i in pol:
+            for j in pol[i]:
+                for l in pol[i][j]:
+                    if isinstance(pol[i][j][l], (float, int)):
+                        pol[i][j][l] = round(pol[i][j][l] * ANG_TO_BOHR, 6)
 
         atomic_paobasis_card = str(self.name) + " " + str(number_of_l) + "\n"
         for i in dictl:
             for j in dictl[i]:
                 if i in pol:
                     if j in pol[i]:
-                        atomic_paobasis_card += "  n={}  {}  {}  P {} \n".format(i, j, len(dictl[i][j]), len(pol[i][j]))
-                        listi = [dictl[i][j][l] * ANG_TO_BOHR for l in dictl[i][j]]
+                        atomic_paobasis_card += f"  n={i}  {j}  {len(dictl[i][j])}  P {len(pol[i][j])} \n"
+                        listi = [dictl[i][j][l] for l in dictl[i][j]]
                         atomic_paobasis_card += '\t'.join([f' {val}' for val in listi]) + "\n"
                     else:
-                        atomic_paobasis_card += "  n={}  {}  {} \n".format(i, j, len(dictl[i][j]))
-                        #print("  n={}  {}  {}".format(i, j, len(dictl[i][j])))
-                        listi = [dictl[i][j][l] * ANG_TO_BOHR for l in dictl[i][j]]
+                        atomic_paobasis_card += f"  n={i}  {j}  {len(dictl[i][j])} \n"
+                        listi = [dictl[i][j][l] for l in dictl[i][j]]
                         atomic_paobasis_card += '\t'.join([f' {val}' for val in listi]) + "\n"
                 else:
-                    atomic_paobasis_card += "  n={}  {}  {} \n".format(i, j, len(dictl[i][j]))
-                    listi = [dictl[i][j][l] * ANG_TO_BOHR for l in dictl[i][j]]
+                    atomic_paobasis_card += f"  n={i}  {j}  {len(dictl[i][j])} \n"
+                    listi = [dictl[i][j][l] for l in dictl[i][j]]
                     atomic_paobasis_card += '\t'.join([f' {val}' for val in listi]) + "\n"
 
         return atomic_paobasis_card[:-1]

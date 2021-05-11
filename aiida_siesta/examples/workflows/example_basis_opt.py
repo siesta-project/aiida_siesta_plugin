@@ -10,7 +10,7 @@ from aiida.orm import load_code, load_node
 from aiida.orm import (List, Dict, StructureData, KpointsData, Int, Float)
 from aiida_siesta.data.psf import PsfData
 from aiida_siesta.workflows.simplex_basis import SimplexBasisOptimization
-from aiida_siesta.workflows.two_steps_optimization import TwoStepsBasisOpt
+from aiida_siesta.workflows.basis_optimization import BasisOptimizationWorkChain
 
 try:
     codename = sys.argv[1]
@@ -37,11 +37,6 @@ parameters = Dict(
         'write-forces': True,
     })
 
-#The basis set 'pao-split-tail-norm':"T",
-basis = Dict(
-    dict={
-        '%block pao-basis': "\nC   2\n n=2   0   2\n 4.99376      $sz2 \n n=2   1   2 P 2\n 6.2538      $pz2 \n%endblock pao-basis"
-    })
 
 #The kpoints
 kpoints = KpointsData()
@@ -63,22 +58,15 @@ inputs = {
         'structure': structure,
         'parameters': parameters,
         'code': code,
-        'basis': basis,
         'kpoints': kpoints,
         'pseudos': {"C":load_node(23147)},
         'options': options
         },
-    'simplex': {
-     #   'max_iters': Int(4),
-        'variables_dict': Dict(dict={
-            "sz2":[2.0,3.9,3.0],
-            "pz2":[2.0,3.9,3.0]
-            }),
-        },
-    #'macrostep':{'lambda_scaling_factor': Float(0.2)},
+    #'simplex': {
+    #    },
     }
 
-process = submit(SimplexBasisOptimization, **inputs)
+process = submit(BasisOptimizationWorkChain, **inputs)
 #process = submit(TwoStepsBasisOpt, **inputs)
 print(f"Submitted workchain; ID={process.pk}")
 print(f"For information about this workchain type: verdi process show {process.pk}")
