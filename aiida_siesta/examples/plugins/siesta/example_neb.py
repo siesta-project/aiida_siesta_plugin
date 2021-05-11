@@ -1,5 +1,7 @@
 #!/usr/bin/env runaiida
 
+#LUA PATH MUST BE PASSED AS THIRD OPTION!!!!!!
+
 #Not required by AiiDA
 import os.path as op
 import sys
@@ -31,6 +33,12 @@ try:
     codename = sys.argv[2]
 except IndexError:
     codename = 'Siesta4.0.1@kelvin'
+
+try:
+    lua_elements_path = sys.argv[3]
+except IndexError:
+    lua_elements_path = "/home/ebosoni/flos/?.lua;/home/ebosoni/flos/?/init.lua;"
+
 
 #The code
 code = load_code(codename)
@@ -123,12 +131,6 @@ for fname, kinds in raw_pseudos:
     for j in kinds:
         pseudos_dict[j]=pseudo
 
-
-
-
-#####!!!!!!!!!!!!! THIS VARIABLE MUST BE CHANGED !!!!!!!!!!!###########
-#The lua elements from flos library. The path must be an explicit path!
-lua_elements_path = "/home/ebosoni/flos/?.lua;/home/ebosoni/flos/?/init.lua;/home/ebosoni/flos/examples/neb_simple.lua;"
 
 
 #Resources

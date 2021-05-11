@@ -264,8 +264,8 @@ class PsmlData(SinglefileData):
         """
         message = (  #pylint: disable=invalid-name
             'This method has been deprecated and will be removed in `v2.0.0`. Support on psml pseudos and ' +
-            'corresponding families is moved to the aiida_pseudo package. The `get_or_create` method of ' +
-            'aiida_pseudo.data.pseudo.psml.Psml requires file stream as argument, not the file name.'
+            'corresponding families is moved to the aiida_pseudo package. Note also that the  `get_or_create` ' +
+            'method of aiida_pseudo.data.pseudo.psml.PsmlData requires file stream as argument, not the file name.'
         )
         warnings.warn(message, AiidaSiestaDeprecationWarning)
 
@@ -341,22 +341,21 @@ class PsmlData(SinglefileData):
         qb.append(cls, filters={'attributes.md5': {'==': md5}})
         return [_ for [_] in qb.all()]
 
-    def set_file(self, filename):  # pylint: disable=arguments-differ
+    def set_file(self, file, filename=None):
         """
         I pre-parse the file to store the attributes.
         """
         from aiida.common.exceptions import ParsingError
 
-        # print("Called set_file","type of filename:",type(filename))
-        parsed_data = parse_psml(filename)
-        md5sum = md5_file(filename)
+        parsed_data = parse_psml(file)
+        md5sum = md5_file(file)
 
         try:
             element = parsed_data['element']
         except KeyError:
-            raise ParsingError("No 'element' parsed in the PSML file {};" " unable to store".format(self.filename))
+            raise ParsingError("No 'element' parsed in the PSML file: unable to store")
 
-        super(PsmlData, self).set_file(filename)
+        super(PsmlData, self).set_file(file)
 
         self.set_attribute('element', str(element))
         self.set_attribute('md5', md5sum)

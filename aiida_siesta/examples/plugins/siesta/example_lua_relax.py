@@ -1,4 +1,7 @@
 #!/usr/bin/env runaiida
+
+#LUA PATH MUST BE PASSED AS THIRD OPTION!!!!!!
+
 import sys
 
 from aiida.engine import submit
@@ -6,8 +9,6 @@ from aiida.orm import load_code, SinglefileData, Group
 from aiida_siesta.calculations.siesta import SiestaCalculation
 from aiida.plugins import DataFactory
 import os.path as op
-
-#  Siesta calculation on Water molecule -- to fail in geom relaxation
 
 Dict = DataFactory('dict')
 KpointsData = DataFactory('array.kpoints')
@@ -32,14 +33,17 @@ try:
 except IndexError:
     codename = 'Siesta4.0.1@kelvin'
 
+try:
+    lua_elements_path = sys.argv[3]
+except IndexError:
+    lua_elements_path = "/home/ebosoni/flos/?.lua;/home/ebosoni/flos/?/init.lua;"
+
+
 #
 #------------------Code and computer options ---------------------------
 #
 code = load_code(codename)
 
-#####!!!!!!!!!!!!! THIS VARIABLE MUST BE CHANGED !!!!!!!!!!!###########
-#The lua elements from flos library. The path must be an explicit path!
-lua_elements_path = "/home/ebosoni/flos/?.lua;/home/ebosoni/flos/?/init.lua;"
 
 options = {
 #    "queue_name": "debug",

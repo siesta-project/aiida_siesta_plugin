@@ -260,8 +260,8 @@ class PsfData(SinglefileData):
 
         message = (  #pylint: disable=invalid-name
             'This method has been deprecated and will be removed in `v2.0.0`. Support on psf pseudos and ' +
-            'corresponding families is moved to the aiida_pseudo package. The `get_or_create` method of ' +
-            'aiida_pseudo.data.pseudo.psml.Psf requires file stream as argument, not the file name.'
+            'corresponding families is moved to the aiida_pseudo package. Note also that the `get_or_create` '+
+            'method of aiida_pseudo.data.pseudo.psf.PsfData requires file stream as argument, not the file name.'
         )
         warnings.warn(message, AiidaSiestaDeprecationWarning)
 
@@ -330,21 +330,21 @@ class PsfData(SinglefileData):
         qb.append(cls, filters={'attributes.md5': {'==': md5}})
         return [_ for [_] in qb.all()]
 
-    def set_file(self, filename):  # pylint: disable=arguments-differ
+    def set_file(self, file, filename=None):
         """
         I pre-parse the file to store the attributes.
         """
         from aiida.common.exceptions import ParsingError
 
-        parsed_data = parse_psf(filename)
-        md5sum = md5_file(filename)
+        parsed_data = parse_psf(file)
+        md5sum = md5_file(file)
 
         try:
             element = parsed_data['element']
         except KeyError:
-            raise ParsingError("No 'element' parsed in the PSF file {};" " unable to store".format(self.filename))
+            raise ParsingError("No 'element' parsed in the PSF file: unable to store")
 
-        super(PsfData, self).set_file(filename)
+        super(PsfData, self).set_file(file)
 
         # self._set_attr('element', str(element))
         # self._set_attr('md5', md5sum)

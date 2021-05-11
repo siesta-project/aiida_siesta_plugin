@@ -11,7 +11,12 @@ from aiida.cmdline.utils import decorators, echo
 
 @verdi_data.group('psml')
 def psml():
-    """Manipulate PsmlData objects (PSML-format pseudopotentials)."""
+    """
+    **************************************************************************
+    THIS COMMAND HAS BEEN DEPRECATED AND WILL BE REMOVED IN aiida-siesta v2.0.
+    PLEASE USE `aiida-pseudo install` INSTEAD.
+    **************************************************************************
+    """
 
 
 @psml.command('uploadfamily')
@@ -32,9 +37,12 @@ def psml_uploadfamily(folder, group_label, group_description, stop_if_existing):
     """
     Create a new PSML family from a folder of PSML files.
 
-    Returns the numbers of files found and the number of nodes uploaded.
+    THIS COMMAND IS DEPRECATED AND WILL BE REMOVED IN aiida-siesta v2.0.
+    Please use `aiida-pseudo install` instead.
 
+    Returns the numbers of files found and the number of nodes uploaded.
     Call without parameters to get some help.
+
     """
     from aiida_siesta.data.psml import upload_psml_family
     files_found, files_uploaded = upload_psml_family(folder, group_label, group_description, stop_if_existing)
@@ -62,6 +70,12 @@ def psml_uploadfamily(folder, group_label, group_description, stop_if_existing):
 def psml_listfamilies(elements, with_description):
     """
     List all PSML families that exist in the database.
+
+    THIS COMMAND IS DEPRECATED AND WILL BE REMOVED IN aiida-siesta v2.0. Its substitute command is `aiida-pseudo
+    list`. Since the pseudo management is now based on a new system, the families listed here will not appear
+    running the new command. It is suggested to export the families into a folder (`verdi data psml exportfamily
+    folder_name family_label`), delete the group corresponding to the family (`verdi group delete family_label`),
+    and install the family again (`aiida-pseudo install family folder_name family_label -P pseudo.psml`).
     """
     from aiida import orm
     from aiida.plugins import DataFactory
@@ -102,6 +116,9 @@ def psml_listfamilies(elements, with_description):
 def psml_exportfamily(folder, group):
     """
     Export a pseudopotential family into a folder.
+
+    THIS COMMAND IS DEPRECATED AND WILL BE REMOVED IN aiida-siesta v2.0.
+
     Call without parameters to get some help.
     """
     if group.is_empty:
@@ -123,6 +140,8 @@ def psml_exportfamily(folder, group):
 def psml_import(filename):
     """
     Import a PSML pseudopotential from a file.
+
+    THIS COMMAND IS DEPRECATED AND WILL BE REMOVED IN aiida-siesta v2.0.
     """
     from aiida_siesta.data.psml import PsmlData
 
