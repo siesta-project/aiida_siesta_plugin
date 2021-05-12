@@ -99,13 +99,3 @@ Tutorials
    :maxdepth: 4
 
    tutorials/index
-
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
-
