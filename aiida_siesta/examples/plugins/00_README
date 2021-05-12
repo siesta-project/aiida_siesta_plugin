@@ -13,3 +13,9 @@ Therefore the line:
 should almost always be able to run the example without errors, unless your "computer" requires
 to pass the name of the account or the queue where to run the calculation. In that case,
 this information must be provoded inside the script, in the "resources" dictionary.
+
+The siesta/example_lua_relax.py and siesta/example_neb.py examples requires the passing of
+the lua_elements_path as third option, after {--send, --dont-send} {computer}. Follow
+the documentation for a better understanding.
+
+Read ../00_README for info about pseudo families.

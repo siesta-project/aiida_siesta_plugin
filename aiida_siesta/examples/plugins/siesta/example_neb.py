@@ -1,8 +1,11 @@
 #!/usr/bin/env runaiida
 
+#LUA PATH MUST BE PASSED AS THIRD OPTION!!!!!!
+
 #Not required by AiiDA
 import os.path as op
 import sys
+import io
 
 #AiiDA classes and functions
 from aiida.engine import submit
@@ -10,7 +13,7 @@ from aiida.orm import load_code
 from aiida.orm import (Dict, List, StructureData, KpointsData)
 from aiida.orm import SinglefileData, FolderData
 from aiida_siesta.calculations.siesta import SiestaCalculation
-from aiida_siesta.data.psf import PsfData
+from aiida_pseudo.data.pseudo.psf import PsfData
 
 try:
     dontsend = sys.argv[1]
@@ -31,6 +34,12 @@ try:
 except IndexError:
     codename = 'Siesta4.0.1@kelvin'
 
+try:
+    lua_elements_path = sys.argv[3]
+except IndexError:
+    lua_elements_path = "/home/ebosoni/flos/?.lua;/home/ebosoni/flos/?/init.lua;"
+
+
 #The code
 code = load_code(codename)
 
@@ -48,11 +57,11 @@ s.append_atom(position=(-0.757,  2.914,  0.000 ),symbols=['H']) #6
 
 #--------------------  Lua block
 # lua script
-absname = op.abspath(op.join(op.dirname(__file__), "lua_scripts/neb.lua"))
+absname = op.abspath(op.join(op.dirname(__file__), "../../fixtures/lua_scripts/neb.lua"))
 lua_script = SinglefileData(absname)
 
 # Lua input files
-xyz_folder = op.abspath(op.join(op.dirname(__file__), "data/neb-data"))
+xyz_folder = op.abspath(op.join(op.dirname(__file__), "../../fixtures/neb_data"))
 lua_input_files = FolderData(tree=xyz_folder)
 
 # Lua parameters
@@ -112,21 +121,16 @@ H                     1                    # Species label, number of l-shells
 pseudos_dict = {}
 raw_pseudos = [ ("H.psf", ['H']),("O.psf", ['O'])]
 for fname, kinds in raw_pseudos:
-    absname = op.realpath(
-        op.join(op.dirname(__file__), "data/sample-psf-family", fname))
-    pseudo, created = PsfData.get_or_create(absname, use_first=True)
-    if created:
+    absname = op.realpath(op.join(op.dirname(__file__), "../../fixtures/sample_psf", fname))
+    with io.open(absname, 'rb') as handle:
+        pseudo = PsfData.get_or_create(handle)
+    if not pseudo.is_stored:
         print("\nCreated the pseudo for {}".format(kinds))
     else:
         print("\nUsing the pseudo for {} from DB: {}".format(kinds, pseudo.pk))
     for j in kinds:
         pseudos_dict[j]=pseudo
 
-
-
-#####!!!!!!!!!!!!! THIS VARIABLE MUST BE CHANGED !!!!!!!!!!!###########
-#The lua elements from flos library. The path must be an explicit path!
-lua_elements_path = "/home/ebosoni/flos/?.lua;/home/ebosoni/flos/?/init.lua;/home/ebosoni/flos/examples/neb_simple.lua;"
 
 
 #Resources
