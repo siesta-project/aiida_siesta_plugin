@@ -289,7 +289,7 @@ class PsfData(SinglefileData):
 
         return (pseudos[0], False)
 
-    def store(self, *args, **kwargs):  # pylint: disable=arguments-differ
+    def store(self, **kwargs):  #pylint: disable=arguments-differ
         """
         Store the node, reparsing the file so that the md5 and the element
         are correctly reset.
@@ -315,7 +315,7 @@ class PsfData(SinglefileData):
         self.set_attribute('element', str(element))
         self.set_attribute('md5', md5sum)
 
-        return super(PsfData, self).store(*args, **kwargs)
+        return super().store(**kwargs)
 
     @classmethod
     def from_md5(cls, md5):

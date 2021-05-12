@@ -68,7 +68,7 @@ class IonData(SinglefileData):
             self.set_attribute('mass', parsed_data["mass"])
         self.set_attribute('md5', md5)
 
-    def store(self, *args, **kwargs):  # pylint: disable=arguments-differ
+    def store(self, **kwargs):  # pylint: disable=arguments-differ
         """
         Store the node. It requires a previous check on the assigned attributes.
         In fact, the attributes of this particular class must just reflect the info
@@ -91,7 +91,7 @@ class IonData(SinglefileData):
         except ValueError as exception:
             raise StoringNotAllowed(exception) from exception
 
-        return super().store(*args, **kwargs)
+        return super().store(**kwargs)
 
     def validate_others_atts(self, elem, name, atm_n):
         """

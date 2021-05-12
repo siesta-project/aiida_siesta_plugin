@@ -299,7 +299,7 @@ class PsmlData(SinglefileData):
     #def psmlfamily_type_string(cls):  # pylint: disable=no-self-argument,no-self-use
     #    return PSMLGROUP_TYPE
 
-    def store(self, *args, **kwargs):  # pylint: disable=arguments-differ
+    def store(self, **kwargs):  #pylint: disable=arguments-differ
         """
         Store the node, reparsing the file so that the md5 and the element
         are correctly reset.  (**why?)
@@ -326,7 +326,7 @@ class PsmlData(SinglefileData):
         self.set_attribute('element', str(element))
         self.set_attribute('md5', md5sum)
 
-        return super(PsmlData, self).store(*args, **kwargs)
+        return super().store(**kwargs)
 
     @classmethod
     def from_md5(cls, md5):
