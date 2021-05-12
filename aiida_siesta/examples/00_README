@@ -6,7 +6,5 @@ Before they can be run, the family must be created with the command:
 
   aiida-pseudo install family /path-to-examples/fixtures/sample_psf psf_family -P pseudo.psf
 
-The lua examples require the set of the `lua_elements_path` variable inside the script.
-
 To run the examples, follow the instructions in the 00_READMEs of the plugins and workflows
 folders.
