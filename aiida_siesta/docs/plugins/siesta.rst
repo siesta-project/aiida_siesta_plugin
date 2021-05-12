@@ -664,7 +664,7 @@ accessed with the ``calculation.outputs`` method.
   One **ions** for each species is created and they will be output with the name ``ions_El`` where
   ``El`` is the label of the species. 
 
-  .. |br| raw:: html
+.. |br| raw:: html
 
     <br />
 

@@ -44,7 +44,7 @@ FIS2012-37549-C05-05, FIS2015-64886-C5-4-P and PGC2018-096955-B-C44) and  by the
 European Centre of Excellence <http://www.max-centre.eu/>`_ funded by the Horizon 2020 
 INFRAEDI-2018-1 program, Grant No. 824143.
 
-We thank the AiiDA team, who are also supported by the [MARVEL National Centre for Competency in Research](<http://nccr-marvel.ch>)
+We thank the AiiDA team, who are also supported by the `MARVEL National Centre for Competency in Research <http://nccr-marvel.ch>`_
 funded by the `Swiss National Science Foundation <http://www.snf.ch/en>`_
 
 .. figure:: miscellaneous/logos/MINECO-AEI.png

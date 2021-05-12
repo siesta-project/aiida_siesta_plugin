@@ -98,7 +98,7 @@ to control additional features.
 
   The maximum number of iterations allowed in the restart cycle for
   calculations. The **SiestaBaseWorkChain** tries to deal with some 
-  common siesta errors (see `here <basewc-error>`) and restart the calculation with appropriate
+  common siesta errors (see :ref:`here <basewc-error>`) and restart the calculation with appropriate
   modifications. The integer **max_iterations** is the maximum number
   of times the restart is performed no matter what error is recorded.
   The input is optional, if not specified, the default `Int(5)` is used.
