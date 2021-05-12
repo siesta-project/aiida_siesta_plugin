@@ -176,7 +176,8 @@ def fit_and_final_dicts(**calcs):
     volumes = np.array(volu)
     energies = np.array(ener)
     try:
-        E0, volume0, bulk_modulus0, bulk_deriv0 = delta_project_BM_fit(volumes, energies)  #pylint: disable=invalid-name
+        #pylint: disable=invalid-name,unbalanced-tuple-unpacking
+        E0, volume0, bulk_modulus0, bulk_deriv0 = delta_project_BM_fit(volumes, energies)
         #E0, volume0, bulk_modulus0, bulk_deriv0 = standard_BM_fit(volumes,energies)
         fit_res = {}
         fit_res["Eo(eV/atom)"] = E0
