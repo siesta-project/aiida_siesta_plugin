@@ -1,10 +1,8 @@
-from __future__ import absolute_import
-
-
-# -*- coding: utf-8 -*-
 # pylint: disable=redefined-outer-name
-"""Initialise a text database and profile for pytest."""
-"""Courtesy of Sebastian Huber, aiida-quantumespresso"""
+"""
+Initialise a text database and profile for pytest.
+Courtesy of Sebastiaan Huber, aiida-quantumespresso
+"""
 import io
 import os
 import collections
@@ -182,15 +180,18 @@ def generate_psml_data():
 def generate_ion_data():
     """Return a `PsmlData` instance for the given element a file for which should exist in `tests/ions`."""
 
-    def _generate_ion_data(element):
+    def _generate_ion_data(element, stream=False):
         """Return `IonData` node."""
         from aiida_siesta.data.ion import IonData
 
-        filename = os.path.join('tests', 'fixtures', 'ions', '{}.ion.xml'.format(element))
+        filename = os.path.join('tests', 'fixtures', 'ions', f'{element}.ion.xml')
         filepath = os.path.abspath(filename)
 
-        with io.open(filepath, 'r') as handle:
-            ion = IonData(file=handle.name)
+        if stream:
+            with io.open(filepath, 'rb') as handle:
+                ion = IonData(file=handle)
+        else:
+            ion = IonData(filepath)
 
         return ion
 
