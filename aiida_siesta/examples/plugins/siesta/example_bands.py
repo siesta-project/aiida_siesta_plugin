@@ -9,7 +9,6 @@ import sys
 
 ################################################################
 
-import io
 from aiida.engine import submit
 from aiida.orm import load_code
 from aiida.orm import (Dict, StructureData, KpointsData)

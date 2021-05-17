@@ -2,7 +2,6 @@
 
 import os.path as op
 import sys
-import io
 
 from aiida.engine import submit
 from aiida.orm import load_code

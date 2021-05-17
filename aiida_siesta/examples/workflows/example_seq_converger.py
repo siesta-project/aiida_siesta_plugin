@@ -12,7 +12,6 @@ process the inputs for you to perform more complex input modifications. E.g: "kp
 # Not required by AiiDA
 import os.path as op
 import sys
-import io
 
 # AiiDA classes and functions
 from aiida.engine import submit, run

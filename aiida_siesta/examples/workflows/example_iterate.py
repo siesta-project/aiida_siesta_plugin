@@ -8,7 +8,6 @@ over one or more parameters using the aiida_siesta plugin.
 #Not required by AiiDA
 import os.path as op
 import sys
-import io
 
 #AiiDA classes and functions
 from aiida.engine import submit

@@ -1,6 +1,5 @@
 import sys
 import os.path as op
-import io
 from aiida.engine import submit
 from aiida.orm import load_code
 from aiida_siesta.calculations.siesta import SiestaCalculation

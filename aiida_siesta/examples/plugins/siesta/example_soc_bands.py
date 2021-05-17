@@ -3,7 +3,6 @@
 import os.path as op
 import sys
 from aiida.tools import get_explicit_kpoints_path
-import io
 
 #In this example we will calculate the band structure of Ge with SOC.
 #Thanks to SeeK-path we can automatically generate the
