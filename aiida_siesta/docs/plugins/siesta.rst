@@ -217,15 +217,13 @@ Some examples are referenced in the following list. They are located in the fold
   above::
 
     import os
-    import io
     from aiida_pseudo.data.pseudo.psf import PsfData
 
     pseudo_file_to_species_map = [ ("C.psf", ['C', 'Cred']),("H.psf", ['H'])]
     pseudos_dict = {}
     for fname, kinds, in pseudo_file_to_species_map:
           absname = os.path.realpath(os.path.join("path/to/file",fname))
-          with io.open(absname, 'rb') as handle:
-                pseudo = PsfData.get_or_create(absname, use_first=True)
+          pseudo = PsfData.get_or_create(absname)
           for j in kinds:
                 pseudos_dict[j]=pseudo
 
@@ -278,9 +276,9 @@ Some examples are referenced in the following list. They are located in the fold
     ions_dict = {}
     for fname, kinds, in ion_file_to_species_map:
           absname = os.path.realpath(os.path.join("path/to/file",fname))
-          pseudo, created = IonData.get_or_create(absname, use_first=True)
+          ion = IonData.get_or_create(absname)
           for j in kinds:
-                  ions_dict[j]=pseudo
+                  ions_dict[j]=ion
 
   The `example_ion.py` can be analyzed to better understand the use of **ions** inputs.
 

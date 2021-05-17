@@ -3,7 +3,6 @@
 import os.path as op
 import sys
 from aiida.tools import get_explicit_kpoints_path
-import io
 
 #In this example we will calculate the band structure of Ge with SOC.
 #Thanks to SeeK-path we can automatically generate the
@@ -118,8 +117,7 @@ pseudos_dict = {}
 raw_pseudos = [("Ge.psf", ['Ge'])]
 for fname, kinds in raw_pseudos:
     absname = op.realpath(op.join(op.dirname(__file__), "../../fixtures/sample_psf", fname))
-    with io.open(absname, 'rb') as handle:
-        pseudo = PsfData.get_or_create(handle)
+    pseudo = PsfData.get_or_create(absname)
     if not pseudo.is_stored:
         print("\nCreated the pseudo for {}".format(kinds))
     else:
