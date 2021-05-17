@@ -10,8 +10,8 @@ Support for python 3.6 has been dropped.
   over siesta calculations.
 - Access to the [sisl](https://github.com/zerothi/sisl) functionalities, since sisl is now
   dependency of this package.
-- Introduction of the `IonData` data type that host the entity that in siesta terminology is called “ion”. 
-  An "ion" packages the set of basis orbitals and KB projectors for a given species and therefore 
+- Introduction of the `IonData` data type that host the entity that in siesta terminology is called “ion”.
+  An "ion" packages the set of basis orbitals and KB projectors for a given species and therefore
   can be use in substitution of the pseudo and basis inputs.
   An `IonData` node is also returned in output for each species of the calculation so to help
   the improve the tracking of used orbitals and KB projectors.
@@ -21,7 +21,7 @@ Support for python 3.6 has been dropped.
   management of pseudo data types and families. The development on the the support for pseudopotentials
   types has been centralized in an external package. The use of aiida-siesta custom classes `PsmlData`
   and `PsfData` has been deprecated and will be remove in version 2.0.0.
-  
+
 ### Bug fixes
 - Fixed the atom heuristic selection of basis in the protocol system
 
