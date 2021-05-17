@@ -1,5 +1,36 @@
 # Changelog
 
+## v1.2.0
+
+Version compatible with aiida-core>=1.3.0,<2.0.0.
+Support for python 3.6 has been dropped.
+
+### Improvements
+- Enable LUA interface to SIESTA. New inputs have been introduce to activate LUA control
+  over siesta calculations.
+- Access to the [sisl](https://github.com/zerothi/sisl) functionalities, since sisl is now
+  dependency of this package.
+- Introduction of the `IonData` data type that host the entity that in siesta terminology is called “ion”. 
+  An "ion" packages the set of basis orbitals and KB projectors for a given species and therefore 
+  can be use in substitution of the pseudo and basis inputs.
+  An `IonData` node is also returned in output for each species of the calculation so to help
+  the improve the tracking of used orbitals and KB projectors.
+  From an `IonData` instance, the list of orbitals of the calculation can be easily accessed in the form
+  of `SislAtomicOrbitals`.
+- Migration to the use of the [aiida-pseudo](https://github.com/aiidateam/aiida-pseudo) package for the
+  management of pseudo data types and families. The development on the the support for pseudopotentials
+  types has been centralized in an external package. The use of aiida-siesta custom classes `PsmlData`
+  and `PsfData` has been deprecated and will be remove in version 2.0.0.
+  
+### Bug fixes
+- Fixed the atom heuristic selection of basis in the protocol system
+
+### For developers
+- Heavy refactoring to take advantage of the aiida-core validators system.
+- Start reorganization of folders. Especially moved the location of the protocols
+  system and of tkdict features.
+- Updated dependencies of tests and pre-commits.
+
 ## v1.1.1
 
 Version compatible with aiida-core>=1.3.0,<2.0.0.
