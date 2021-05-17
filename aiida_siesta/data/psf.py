@@ -234,7 +234,7 @@ class PsfData(SinglefileData):
         message = (  #pylint: disable=invalid-name
             'This module has been deprecated and will be removed in `v2.0.0`. Support on psf pseudos and ' +
             'corresponding families is moved to the `aiida_pseudo` package. Use the `PsfData` class of ' +
-            'aiida_pseudo.data.pseudo.psf. Instanciating the new class requires a file stream, not the file name.'
+            '`aiida_pseudo.data.pseudo.psf`.'
         )
         warnings.warn(message, AiidaSiestaDeprecationWarning)
 
@@ -260,8 +260,8 @@ class PsfData(SinglefileData):
 
         message = (  #pylint: disable=invalid-name
             'This method has been deprecated and will be removed in `v2.0.0`. Support on psf pseudos and ' +
-            'corresponding families is moved to the aiida_pseudo package. Note also that the `get_or_create` '+
-            'method of aiida_pseudo.data.pseudo.psf.PsfData requires file stream as argument, not the file name.'
+            'corresponding families is moved to the aiida_pseudo package. Use the `get_or_create` '+
+            'method of `aiida_pseudo.data.pseudo.psf.PsfData`.'
         )
         warnings.warn(message, AiidaSiestaDeprecationWarning)
 
