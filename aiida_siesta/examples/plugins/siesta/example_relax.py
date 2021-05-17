@@ -2,7 +2,6 @@
 
 import os.path as op
 import sys
-import io
 
 from aiida.engine import submit
 from aiida.orm import load_code
@@ -94,8 +93,7 @@ pseudos_dict = {}
 raw_pseudos = [("Si.psf", ['Si'])]
 for fname, kinds in raw_pseudos:
     absname = op.realpath(op.join(op.dirname(__file__), "../../fixtures/sample_psf", fname))
-    with io.open(absname, 'rb') as handle:
-        pseudo = PsfData.get_or_create(handle)
+    pseudo = PsfData.get_or_create(absname)
     if not pseudo.is_stored:
         print("\nCreated the pseudo for {}".format(kinds))
     else:

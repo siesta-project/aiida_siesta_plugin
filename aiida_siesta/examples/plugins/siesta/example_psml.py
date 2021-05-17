@@ -12,7 +12,7 @@ from aiida.plugins import DataFactory
 # this example
 ##########################################################
 
-PsmlData = DataFactory('siesta.psml')
+PsmlData = DataFactory('pseudo.psml')
 Dict = DataFactory('dict')
 KpointsData = DataFactory('array.kpoints')
 StructureData = DataFactory('structure')
@@ -142,16 +142,18 @@ basis = Dict(dict=basis_dict)
 pseudos_dict = {}
 raw_pseudos = [("Si.psml", ['Si'])]
 for fname, kinds in raw_pseudos:
-    absname = op.realpath(
-        op.join(op.dirname(__file__), "data/sample-psml-family", fname))
-    pseudo, created = PsmlData.get_or_create(absname, use_first=True)
-    if created:
-        print("\nCreated the pseudo for {}".format(kinds))
+    absname = op.realpath(op.join(op.dirname(__file__), "../../fixtures/sample_psml", fname))
+    pseudo = PsmlData.get_or_create(absname)
+    if not pseudo.is_stored:
+        print(f"\nCreated the pseudo for {kinds}")
     else:
-        print("\nUsing the pseudo for {} from DB: {}".format(kinds, pseudo.pk))
+        print(f"\nUsing the pseudo for {kinds} from DB: {pseudo.pk}")
     for j in kinds:
         pseudos_dict[j]=pseudo
 
+#The kpoints
+kpoints = KpointsData()
+kpoints.set_kpoints_mesh([4, 4, 4])
 
 #-----------------------------------------------------------------------
 
@@ -163,6 +165,7 @@ inputs = {
     'parameters': parameters,
     'code': code,
     'basis': basis,
+    'kpoints': kpoints,
     'pseudos': pseudos_dict,
     'metadata': {
         'options': options,

@@ -17,7 +17,7 @@ from aiida_siesta.data.ion import IonData
 #from aiida.plugins import CalculationFactory
 #
 #SiestaCalculation = CalculationFactory('siesta.siesta')
-#PsfData = DataFactory('siesta.psf')
+#PsfData = DataFactory('siesta.ion')
 #StructureData = DataFactory('structure')
 #...
 
@@ -94,11 +94,14 @@ ions_dict = {}
 raw_ions = [("Si.ion.xml", ['Si'])]
 for fname, kinds in raw_ions:
     absname = op.realpath(op.join(op.dirname(__file__), "../../fixtures", fname))
-    ion, created = IonData.get_or_create(absname, use_first=True)
-    if created:
-        print("\nCreated the ion for {}".format(kinds))
+    #import io
+    #with io.open(absname, 'rb') as handle:
+    #    ion=IonData.get_or_create(handle)
+    ion = IonData.get_or_create(absname)
+    if not ion.is_stored:
+        print(f"\nCreated the ion for {kinds}")
     else:
-        print("\nUsing the ion for {} from DB: {}".format(kinds, ion.pk))
+        print(f"\nUsing the ion for {kinds} from DB: {ion.pk}")
     for j in kinds:
         ions_dict[j]=ion
 

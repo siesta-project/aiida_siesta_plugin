@@ -1,5 +1,4 @@
 #!/usr/bin/env runaiida
-import io
 import sys
 import pymatgen as mg
 import ase.io
