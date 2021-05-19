@@ -107,6 +107,23 @@ def test_prepare_inputs(aiida_profile, generate_workchain_base):
     assert isinstance(process2.ctx.inputs, dict)
 
 
+def test_postprocess(aiida_profile, generate_workchain_base, generate_ion_data):
+    """
+    Test `SiestaBaseWorkChain.postprocess`.
+    """
+    from aiida.engine import ExitCode
+    process = generate_workchain_base(exit_code=ExitCode(0))
+    calculation = process.ctx.children[-1]
+
+    out_ions = generate_ion_data("Si")
+    out_ions.add_incoming(calculation, link_type=LinkType.CREATE, link_label="ion_files__Si")
+    out_ions.store()
+
+    process.postprocess()
+
+    assert "ion_files" in process.outputs
+
+
 def test_validators(aiida_profile, generate_workchain_base):
     """
     Test `SiestaBaseWorkChain` validators.
