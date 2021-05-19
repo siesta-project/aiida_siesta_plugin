@@ -204,19 +204,25 @@ class BandgapWorkChain(WorkChain):
             return ToContext(final_run=running)
 
     def run_results(self):
+
+        from aiida.common import LinkType
+
         if self.ctx.need_fin_step:
             if not self.ctx.final_run.is_finished_ok:
                 return self.exit_codes.ERROR_FINAL_WC
-            outps = self.ctx.final_run.outputs
+            outps = self.ctx.final_run.get_outgoing(link_type=LinkType.RETURN).nested()
             self.out('output_structure', self.ctx.final_run.inputs.structure)
         else:
-            outps = self.ctx.workchain_base.outputs
+            outps = self.ctx.workchain_base.get_outgoing(link_type=LinkType.RETURN).nested()
 
         if 'forces_and_stress' in outps:
             self.out('forces_and_stress', outps['forces_and_stress'])
         self.out('bands', outps['bands'])
         self.out('output_parameters', outps['output_parameters'])
         self.out('remote_folder', outps['remote_folder'])
+        self.out('retrieved', outps['retrieved'])
+        if 'ion_files' in outps:
+            self.out('ion_files', outps['ion_files'])
 
         self.report("Obtaining the band gap")
         out_par = outps['output_parameters']

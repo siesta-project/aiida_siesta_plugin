@@ -142,6 +142,9 @@ def test_final_run(aiida_profile, fixture_localhost, generate_workchain_bandgap,
     out_bands = bands
     out_bands.store()
     out_bands.add_incoming(fin_basewc, link_type=LinkType.RETURN, link_label='bands')
+
+    retrieved = orm.FolderData().store()
+    retrieved.add_incoming(fin_basewc, link_type=LinkType.RETURN, link_label='retrieved')
    
     process.ctx.workchain_base = fin_basewc
     process.run_results()
