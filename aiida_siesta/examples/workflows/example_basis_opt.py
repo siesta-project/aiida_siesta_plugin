@@ -50,25 +50,25 @@ structure.append_atom(position=(0.250 * alat, 0.250 * alat, 0.250 * alat),
 #The parameters
 parameters = Dict(
     dict={
-        'xc-functional': "GGA"
-        'xc-authors': "PBE"
-        'max-scf-iterations': 200
-        'scf-mixer-history': 5
-        'scf-mixer-weight': 0.1
-        'scf-dm-tolerance': 1.e-5
-        'md-max-force-tol': '0.005 eV/Ang'
-        'md-max-stress-tol': '0.7 GPa'
-        'solution-method': 'diagon'
-        'electronic-temperature': '25 meV'
-        'write-forces': True
-        'mesh-cutoff': '500 Ry'
+        'xc-functional': "GGA",
+        'xc-authors': "PBE",
+        'max-scf-iterations': 200,
+        'scf-mixer-history': 5,
+        'scf-mixer-weight': 0.1,
+        'scf-dm-tolerance': 1.e-5,
+        'md-max-force-tol': '0.005 eV/Ang',
+        'md-max-stress-tol': '0.7 GPa',
+        'solution-method': 'diagon',
+        'electronic-temperature': '25 meV',
+        'write-forces': True,
+        'mesh-cutoff': '100 Ry',
         #'scf-dm-tolerance': 0.0001,
     })
 
 
 #The kpoints
 kpoints = KpointsData()
-kpoints.set_kpoints_mesh([30, 30, 8])
+kpoints.set_kpoints_mesh([8, 8, 8])
 
 #Resources
 options = Dict(
