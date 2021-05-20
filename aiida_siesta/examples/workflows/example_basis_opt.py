@@ -20,21 +20,49 @@ except IndexError:
 #The code
 code = load_code(codename)
 
-structure = load_node(62685)
+#Structure
+alat = 5.430  # angstrom
+cell = [
+    [
+        0.5 * alat,
+        0.5 * alat,
+        0.,
+    ],
+    [
+        0.,
+        0.5 * alat,
+        0.5 * alat,
+    ],
+    [
+        0.5 * alat,
+        0.,
+        0.5 * alat,
+    ],
+]
+#The atom positions were originally given in the "ScaledCartesian" format
+#but standard for aiida structures is Cartesian in Angstrom
+structure = StructureData(cell=cell)
+structure.append_atom(position=(0.000 * alat, 0.000 * alat, 0.000 * alat),
+                      symbols=['Si'])
+structure.append_atom(position=(0.250 * alat, 0.250 * alat, 0.250 * alat),
+                      symbols=['Si'])
 
 #The parameters
 parameters = Dict(
     dict={
-        'meshcutoff': '500 Ry',
-        'xc-functional': 'GGA',
-        'xc-authors': 'PBE',
-        'max-scfiterations': 4000,
-        'scf-mixerhistory': 5,
-        'scf-mixerweight': 0.1,
-        'scf-dm-tolerance': 0.0001,
-        'Solution-method': 'diagon',
-        'electronic-temperature': '25 meV',
-        'write-forces': True,
+        'xc-functional': "GGA"
+        'xc-authors': "PBE"
+        'max-scf-iterations': 200
+        'scf-mixer-history': 5
+        'scf-mixer-weight': 0.1
+        'scf-dm-tolerance': 1.e-5
+        'md-max-force-tol': '0.005 eV/Ang'
+        'md-max-stress-tol': '0.7 GPa'
+        'solution-method': 'diagon'
+        'electronic-temperature': '25 meV'
+        'write-forces': True
+        'mesh-cutoff': '500 Ry'
+        #'scf-dm-tolerance': 0.0001,
     })
 
 
@@ -52,6 +80,22 @@ options = Dict(
         }
     })
 
+#Pseudos
+pseudos_dict = {}
+raw_pseudos = [("Si.psf", ['Si'])]
+for fname, kinds in raw_pseudos:
+    absname = op.realpath(
+        op.join(op.dirname(__file__),
+                "../plugins/siesta/data/sample-psf-family", fname))
+    pseudo, created = PsfData.get_or_create(absname, use_first=True)
+    if created:
+        print("\nCreated the pseudo for {}".format(kinds))
+    else:
+        print("\nUsing the pseudo for {} from DB: {}".format(kinds, pseudo.pk))
+    for j in kinds:
+        pseudos_dict[j] = pseudo
+
+
 #The submission
 inputs = {
     'siesta_base': {
@@ -59,7 +103,7 @@ inputs = {
         'parameters': parameters,
         'code': code,
         'kpoints': kpoints,
-        'pseudos': {"C":load_node(23147)},
+        'pseudos': pseudos_dict,
         'options': options
         },
     #'simplex': {
