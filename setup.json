@@ -1,5 +1,5 @@
 {
-    "version": "1.2.0",
+    "version": "1.2.dev1",
     "name": "aiida-siesta",
     "url": "https://github.com/siesta-project/aiida_siesta_plugin",
     "keywords": ["aiida", "siesta", "dft"],
