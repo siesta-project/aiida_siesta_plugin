@@ -240,7 +240,7 @@ class PsmlData(SinglefileData):
         message = (  #pylint: disable=invalid-name
             'This module has been deprecated and will be removed in `v2.0.0`. Support on psml pseudos and ' +
             'corresponding families is moved to the `aiida_pseudo` package. Use the `PsmlData` class of ' +
-            'aiida_pseudo.data.pseudo.psml. Instanciating the new class requires a file stream, not the file name.'
+            '`aiida_pseudo.data.pseudo.psml`.'
         )
         warnings.warn(message, AiidaSiestaDeprecationWarning)
 
@@ -264,8 +264,8 @@ class PsmlData(SinglefileData):
         """
         message = (  #pylint: disable=invalid-name
             'This method has been deprecated and will be removed in `v2.0.0`. Support on psml pseudos and ' +
-            'corresponding families is moved to the aiida_pseudo package. Note also that the  `get_or_create` ' +
-            'method of aiida_pseudo.data.pseudo.psml.PsmlData requires file stream as argument, not the file name.'
+            'corresponding families is moved to the aiida_pseudo package. Use `get_or_create` ' +
+            'method of `aiida_pseudo.data.pseudo.psml.PsmlData`.'
         )
         warnings.warn(message, AiidaSiestaDeprecationWarning)
 
