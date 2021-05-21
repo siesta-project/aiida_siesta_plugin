@@ -13,4 +13,5 @@ others are for the benefit of any user (the protocol system).
 
    protocols_system
    fdfdict
+   pao_manager
 

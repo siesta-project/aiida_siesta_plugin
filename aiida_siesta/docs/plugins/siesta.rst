@@ -203,13 +203,13 @@ Some examples are referenced in the following list. They are located in the fold
     <br />
 
 
-* **pseudos**, input namespace of class :py:class:`PsfData  <aiida_siesta.data.psf.PsfData>`
-  OR class :py:class:`PsmlData  <aiida_siesta.data.psml.PsmlData>`, *Optional*
+* **pseudos**, input namespace of class :py:class:`PsfData  <aiida_pseudo.data.pseudo.psf.PsfData>`
+  OR class :py:class:`PsmlData  <aiida_pseudo.data.pseudo.psml.PsmlData>`, *Optional*
 
   This input is mandatory except if the **ions** input is set (see below).
 
-  The `PsfData  <aiida_siesta.data.psf.PsfData>` and `PsmlData  <aiida_siesta.data.psml.PsmlData>`
-  classes have been implemented along the lines of the Upf class of aiida-core.
+  This inputs exploits the functionalities of the `PsfData <aiida_pseudo.data.pseudo.psf.PsfData>`
+  and `PsmlData  <aiida_pseudo.data.pseudo.psml.PsmlData>` of the `aiida-pseudo package`_.
 
   One pseudopotential file per atomic element is required. Several species (in the
   Siesta sense, which allows the same element to be treated differently
@@ -217,28 +217,36 @@ Some examples are referenced in the following list. They are located in the fold
   above::
 
     import os
-    from aiida_siesta.data.psf import PsfData
+    from aiida_pseudo.data.pseudo.psf import PsfData
 
     pseudo_file_to_species_map = [ ("C.psf", ['C', 'Cred']),("H.psf", ['H'])]
     pseudos_dict = {}
     for fname, kinds, in pseudo_file_to_species_map:
           absname = os.path.realpath(os.path.join("path/to/file",fname))
-          pseudo, created = PsfData.get_or_create(absname, use_first=True)
+          pseudo = PsfData.get_or_create(absname)
           for j in kinds:
-                  pseudos_dict[j]=pseudo
+                pseudos_dict[j]=pseudo
 
-  Alternatively, a pseudo for every atomic species can be set with the
-  ``use_pseudos_from_family``  method, if a family of pseudopotentials
-  has been installed. For an example see `example_psf_family.py`
+  Alternatively, a pseudo for every atomic species can be set from a family of pseudopotentials::
 
-  .. note:: The verdi command-line interface now supports entry points
-     defined by external packages. We have implemented  `verdi data
-     psf` and `verdi data psml` suites of commands: `uploadfamily`, `exportfamily`, and
-     `listfamilies`.
+    from aiida.orm import Group
+    family = Group.get(label=FAM_NAME)
+    pseudos = family.get_pseudos(structure=s)
 
-  It can be argued that a single "SiestaPseudo" class, with psf and psml
-  subclasses, might have been implemented. But the `PsmlData  <aiida_siesta.data.psml.PsmlData>`
-  class aims to transcend Siesta and to be used by other codes.
+  where ``s`` is a `StructureData <aiida.orm.StructureData>` object and ``FAM_NAME`` is the name
+  of the pseudopotentials family, that must be installed in the database.
+
+  The simplest way to install a pseudo family is through the command::
+
+     aiida-pseudo install family /PATH/TO/FOLDER/ FAM_NAME -P pseudo.psf  #or pseudo.psml 
+
+  where ``/PATH/TO/FOLDER/`` is a folder containing the pseudos.
+  The `aiida-pseudo package`_ allows more sophisticated ways of creating pseudo family,
+  for instance downloading the pseudos directly from a url or online repository
+  (PseudoDojo for instance).
+  Please refer to the corresponding documentation for more details.
+
+  For a practical example, look at `example_psf_family.py`.
 
 .. |br| raw:: html
 
@@ -268,9 +276,9 @@ Some examples are referenced in the following list. They are located in the fold
     ions_dict = {}
     for fname, kinds, in ion_file_to_species_map:
           absname = os.path.realpath(os.path.join("path/to/file",fname))
-          pseudo, created = IonData.get_or_create(absname, use_first=True)
+          ion = IonData.get_or_create(absname)
           for j in kinds:
-                  ions_dict[j]=pseudo
+                  ions_dict[j]=ion
 
   The `example_ion.py` can be analyzed to better understand the use of **ions** inputs.
 
@@ -543,6 +551,7 @@ The second argument contains the name of the code (``code@computer``) to use
 in the calculation. It must be a previously set up code, corresponding to
 a siesta executable.
 
+.. _outputs-siesta-calc:
 
 Outputs
 -------
@@ -653,7 +662,7 @@ accessed with the ``calculation.outputs`` method.
   One **ions** for each species is created and they will be output with the name ``ions_El`` where
   ``El`` is the label of the species. 
 
-  .. |br| raw:: html
+.. |br| raw:: html
 
     <br />
 
@@ -749,3 +758,4 @@ its methods ``get_object`` and ``get_object_content``.
 .. _aiida guidelines: https://aiida.readthedocs.io/projects/aiida-core/en/latest/howto/run_codes.html
 .. _HPKOT paper: http://dx.doi.org/10.1016/j.commatsci.2016.10.015
 .. _flos documentation: https://github.com/siesta-project/flos
+.. _aiida-pseudo package: https://github.com/aiidateam/aiida-pseudo

@@ -1,8 +1,9 @@
 """
 This module manages the .ion.xml files in the local repository.
 """
-
-from aiida.common.files import md5_file, md5_from_filelike
+import io
+import pathlib
+from aiida.common.files import md5_from_filelike
 from aiida.orm.nodes import SinglefileData
 from aiida.common.exceptions import StoringNotAllowed
 from aiida_siesta.utils.pao_manager import PaoManager
@@ -15,7 +16,7 @@ def xml_element_to_string(element, tail=True):
     return string
 
 
-def parse_ion(fname):
+def parse_ion(stream):
     """
     Try to get relevant information from the .ion. For the moment, only the
     element symbol, name, mass and atomic number.
@@ -29,15 +30,15 @@ def parse_ion(fname):
 
     parsed_data = {}
 
-    el_tr = ElementTree(None, fname)
+    el_tr = ElementTree(None, stream)
     root = el_tr.getroot()
 
     if root.find('symbol') is None or root.find('z') is None or root.find('label') is None:
-        raise ParsingError(f"Currupted ion file {fname}: element symbol or atomic number missing")
+        raise ParsingError(f"Currupted ion file {stream.name}: element symbol or atomic number missing")
 
     parsed_data["element"] = str(root.find('symbol').text.strip())
     if parsed_data["element"] not in _valid_symbols:
-        raise ParsingError(f"Unknown element symbol {parsed_data['element']} in file {fname}")
+        raise ParsingError(f"Unknown element symbol {parsed_data['element']} in file {stream.name}")
 
     parsed_data["name"] = str(root.find('label').text.strip())
     parsed_data["atomic_number"] = int(root.find('z').text)
@@ -51,24 +52,46 @@ class IonData(SinglefileData):
     Handler for ion files
     """
 
-    def set_file(self, file_abs_path, filename=None):  #pylint: disable=arguments-differ
+    @staticmethod
+    def _prepare_source(source):
         """
-        This is called in the __init__ of SingleFileData
+        if the ``source`` is a valid file on disk, its content is read and returned as a stream of bytes.
         """
-        # print("Called set_file","type of filename:",type(filename))
-        parsed_data = parse_ion(file_abs_path)
-        md5 = md5_file(file_abs_path)
+        if isinstance(source, (str, pathlib.Path)):
+            save_name = source
+            with open(source, 'rb') as handle:
+                source = io.BytesIO(handle.read())
+                source.name = save_name
 
-        super().set_file(file_abs_path, filename)
+        return source
 
+    def set_file(self, source, filename=None):  #pylint: disable=arguments-differ
+        """
+        This is called in the __init__ of SingleFileData. It supports both absolute path and file streams.
+        It is convenient to convert possible absolute paths in the corresponding file streams so we then
+        support for other methods called here only the file streams.
+        Please note that this approach have problems if we create subclasses with `IonData` as a parent.
+        This is because the call to super does not return anything.
+        Therefore we can not have source = super().set_file(source, filename, **kwargs)
+        """
+        # Check we have a valid input and set the file and filename as attributes
+        super().set_file(source, filename)
+        # Transorm abs_paths in streams
+        source = self._prepare_source(source)
+        source.seek(0)
+        # Set the md5 attribute
+        self.set_attribute('md5', md5_from_filelike(source))
+        source.seek(0)
+        # Set other attributes extracted reading the source
+        parsed_data = parse_ion(source)
+        source.seek(0)
         self.set_attribute('element', parsed_data["element"])
         self.set_attribute('name', parsed_data["name"])
         self.set_attribute('atomic_number', parsed_data["atomic_number"])
         if parsed_data["mass"] is not None:
             self.set_attribute('mass', parsed_data["mass"])
-        self.set_attribute('md5', md5)
 
-    def store(self, *args, **kwargs):  # pylint: disable=arguments-differ
+    def store(self, **kwargs):  # pylint: disable=arguments-differ
         """
         Store the node. It requires a previous check on the assigned attributes.
         In fact, the attributes of this particular class must just reflect the info
@@ -91,7 +114,7 @@ class IonData(SinglefileData):
         except ValueError as exception:
             raise StoringNotAllowed(exception) from exception
 
-        return super().store(*args, **kwargs)
+        return super().store(**kwargs)
 
     def validate_others_atts(self, elem, name, atm_n):
         """
@@ -102,8 +125,8 @@ class IonData(SinglefileData):
                atm_n: the atomic number of the atom/site.
         :raises ValueError: if the element symbol is invalid.
         """
-        with self.open(mode='r') as handle:
-            parsed_data = parse_ion(handle.name)
+        with self.open(mode='rb') as handle:
+            parsed_data = parse_ion(handle)
         if elem != parsed_data["element"] or name != parsed_data["name"] or atm_n != parsed_data["atomic_number"]:
             raise ValueError(
                 'element, name or atomic_number do not correspond to the the one in the ion file. '
@@ -125,60 +148,44 @@ class IonData(SinglefileData):
                 )
 
     @classmethod
-    def get_or_create(cls, file_abs_path, filename=None, use_first=False, store_ion=False):
+    def get_or_create(cls, source, filename=None):
         """
         Pass the same parameter of the __init__; if a file with the same md5
         is found, that IonData is returned, otherwise a new IonFile instance is
-        created. Optionally, the new instance can be directly stored.
+        created.
 
-        :param file_abs_path: an absolute path file on disk.
+        :param source: an absolute path file on disk or a filelike object.
         :param filename: optional explicit filename to give to the file stored in the repository.
                          Ignored if a file with the same md5 has been found.
-        :param use_first: if False (default), raise an exception if more than one ion with same
-                          md5 is found. If it is True, instead, use the first available ion.
-        :param bool store_ion: if False (default), the IonData object is not stored in the database.
-                               If True, the `store()` method is called and the returned IonData is stored.
-        :return (ion, created): where ion is the IonData object, and create is either True if the
-                                object was created, or False if the object was retrieved from the DB.
+        :return ion: the IonData object.
         """
-        import os
+        from aiida import orm
 
-        if not os.path.abspath(file_abs_path):
-            raise ValueError("filename must be an absolute path")
+        if isinstance(source, (str, pathlib.Path)):
+            if not pathlib.Path(source).is_file():
+                raise TypeError(f'`source` should be a str or pathlib.Path of a filepath on disk, got: {source}')
+            source = cls._prepare_source(source)
+            source.seek(0)
 
-        md5 = md5_file(file_abs_path)
-
-        ions = cls.from_md5(md5)
-        if not ions:
-            instance = cls(file=file_abs_path, filename=filename)
-            if store_ion:
-                instance.store()
-            return (instance, True)
-
-        if len(ions) > 1:
-            if use_first:
-                return (ions[0], False)
-
-            all_in_string = ",".join([str(i.pk) for i in ions])
-            raise ValueError(
-                f"More than one copy of a ion file with the same MD5 has been found in the DB. pks={all_in_string}. "
-                "Set argument `use_first` to True to return a random one betweeen them."
+        readable_bytes = (hasattr(source, 'read') and hasattr(source, 'mode') and 'b' in source.mode)
+        bol = isinstance(source, io.BytesIO) or readable_bytes
+        if not bol:
+            raise TypeError(
+                f'`source` should be a str or `pathlib.Path` of a filepath on disk or a stream of bytes, got: {source}'
             )
 
-        return (ions[0], False)
+        query = orm.QueryBuilder()
+        query.append(cls, subclassing=False, filters={'attributes.md5': md5_from_filelike(source)})
 
-    @classmethod
-    def from_md5(cls, md5):
-        """
-        Return a list of all ions files that match a given MD5 hash.
+        existing = query.first()
 
-        Note that the hash has to be stored in a _md5 attribute, otherwise
-        the pseudo will not be found.
-        """
-        from aiida.orm import QueryBuilder
-        qb = QueryBuilder()
-        qb.append(cls, filters={'attributes.md5': {'==': md5}})
-        return [_ for [_] in qb.all()]
+        if existing:
+            ion = existing[0]
+        else:
+            source.seek(0)
+            ion = cls(source, filename)
+
+        return ion
 
     @property
     def element(self):

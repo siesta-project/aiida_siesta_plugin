@@ -1,8 +1,8 @@
 from aiida import orm
+from aiida.common.exceptions import NotExistent
 from aiida.engine import BaseRestartWorkChain, ProcessHandlerReport, process_handler, while_
-from aiida_siesta.data.common import get_pseudos_from_structure
 from aiida_siesta.calculations.siesta import SiestaCalculation, bandskpoints_warnings, internal_structure
-from aiida_siesta.calculations.tkdict import FDFDict
+from aiida_siesta.utils.tkdict import FDFDict
 
 
 def validate_options(value, _):
@@ -12,6 +12,27 @@ def validate_options(value, _):
     if value:
         if "max_wallclock_seconds" not in value.get_dict():
             return "the `max_wallclock_seconds` key is required in the options dict."
+
+
+def validate_ps_fam(value, _):
+    """
+    Validate pseudo_family input port.
+    """
+    if value:
+        try:
+            group = orm.Group.get(label=value.value)
+            # To be removed in v2.0
+            if "data" in group.type_string:
+                import warnings
+                from aiida_siesta.utils.warn import AiidaSiestaDeprecationWarning
+                message = (
+                    f'You are using a pseudo family associatd to the entry point {group.type_string}. ' +
+                    'This has been deprecated and will be removed in `v2.0.0`. It is suggested ' +
+                    'to create new families using the functionality of the `aiida_pseudo` package.'
+                )
+                warnings.warn(message, AiidaSiestaDeprecationWarning)
+        except NotExistent:
+            return f"{value.value} does not correspond to any known pseudo family."
 
 
 def validate_inputs(value, _):
@@ -47,11 +68,19 @@ def validate_inputs(value, _):
             return "You cannot specify both `pseudos` and `pseudo_family`"
 
     if 'pseudo_family' in value:
-        from aiida.common.exceptions import NotExistent
-        try:
-            get_pseudos_from_structure(structure, value['pseudo_family'].value)
-        except NotExistent:
-            return "The pseudo family do not incude all the required pseudos"
+        group = orm.Group.get(label=value['pseudo_family'].value)
+        # To be removed in v2.0
+        if "data" in group.type_string:
+            from aiida_siesta.data.common import get_pseudos_from_structure
+            try:
+                get_pseudos_from_structure(structure, value['pseudo_family'].value)
+            except NotExistent:
+                return "The pseudo family does not incude all the required pseudos"
+        else:
+            try:
+                group.get_pseudos(structure=structure)
+            except ValueError:
+                return "The pseudo family does not incude all the required pseudos"
     else:
         if set(kinds) != set(value[quantity].keys()):
             ps_io = ', '.join(list(value[quantity].keys()))
@@ -74,7 +103,7 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
     def define(cls, spec):
         super().define(spec)
         spec.expose_inputs(SiestaCalculation, exclude=('metadata',))
-        spec.input('pseudo_family', valid_type=orm.Str, required=False)
+        spec.input('pseudo_family', valid_type=orm.Str, required=False, validator=validate_ps_fam)
         spec.input('options', valid_type=orm.Dict, validator=validate_options)
 
         spec.outline(
@@ -127,11 +156,22 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
         else:
             if "pseudo_family" in self.inputs:
                 fam_name = self.inputs.pseudo_family.value
+                group = orm.Group.get(label=fam_name)
                 if 'basis' in self.inputs:
                     temp_structure = internal_structure(structure, self.inputs.basis.get_dict())
-                    self.ctx.inputs['pseudos'] = get_pseudos_from_structure(temp_structure, fam_name)
+                    # To be removed in v2.0
+                    if "data" in group.type_string:
+                        from aiida_siesta.data.common import get_pseudos_from_structure
+                        self.ctx.inputs['pseudos'] = get_pseudos_from_structure(temp_structure, fam_name)
+                    else:
+                        self.ctx.inputs['pseudos'] = group.get_pseudos(structure=temp_structure)
                 else:
-                    self.ctx.inputs['pseudos'] = get_pseudos_from_structure(structure, fam_name)
+                    # To be removed in v2.0
+                    if "data" in group.type_string:
+                        from aiida_siesta.data.common import get_pseudos_from_structure
+                        self.ctx.inputs['pseudos'] = get_pseudos_from_structure(structure, fam_name)
+                    else:
+                        self.ctx.inputs['pseudos'] = group.get_pseudos(structure=structure)
             else:
                 self.ctx.inputs['pseudos'] = self.inputs.pseudos
 
@@ -156,13 +196,9 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
         For this reason I do the procedure to attach the `output_namespaces` here.
         """
         if "ion_files" in self.spec().outputs:
-            ions = {}
             node = self.ctx.children[self.ctx.iteration - 1]
-            for name in node.outputs:
-                if "ion_files" in name:
-                    output = node.get_outgoing(link_label_filter=name).one().node
-                    ions[name.replace("ion_files__", "")] = output
-            self.out("ion_files", ions)
+            if "ion_files" in node.get_outgoing().nested():
+                self.out("ion_files", node.get_outgoing().nested()["ion_files"])
 
     @process_handler(priority=70, exit_codes=_proc_exit_cod.GEOM_NOT_CONV)  #pylint: disable = no-member
     def handle_error_geom_not_conv(self, node):
@@ -220,13 +256,11 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
                 mylog = log.message.split()
         new_split_norm = float(mylog[-1]) + 0.001
 
-        #We want to understand the presence of "pao-split-norm" in input and:
-        #1) if present, we change its value to the minimum allowed
-        #2) if not present, we activate pao-SplitTailNorm
-        #As we don't know in which sintax the user passed "pao-split-norm (remember
-        #that every fdf variant is allowed), we translate the original dict in
-        #a FDFDict that is aware of the equivalent keyword.
-        #A FDFDict is not accepted in the context, but it is accepted in orm.Dict.
+        # We want to understand the presence of "pao-split-norm" in input and:
+        # 1) if present, we change its value to the minimum allowed
+        # 2) if not present, we activate pao-SplitTailNorm
+        # As we don't know in which sintax the user passed "pao-split-norm (remember that every fdf variant
+        # is allowed), we translate the original dict to a FDFDict that is aware of equivalent keyword.
         transl_basis = FDFDict(self.ctx.inputs["basis"].get_dict())
         glob_split_norm = False
         for key in transl_basis:
@@ -272,5 +306,5 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
 
     @classmethod
     def inputs_generator(cls):  # pylint: disable=no-self-argument,no-self-use
-        from aiida_siesta.utils.inputs_generators import BaseWorkChainInputsGenerator
-        return BaseWorkChainInputsGenerator(cls)
+        from aiida_siesta.utils.protocols_system.input_generators import BaseWorkChainInputGenerator
+        return BaseWorkChainInputGenerator(cls)

@@ -5,9 +5,11 @@ from aiida import orm
 from aiida.common import LinkType
 from aiida.common import AttributeDict
 from aiida.engine import ProcessHandlerReport
+from aiida_pseudo.groups.family.pseudo import PseudoPotentialFamily
 from aiida_siesta.calculations.siesta import SiestaCalculation
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
-from aiida_siesta.groups.pseudos import PsmlFamily
+#from aiida_siesta.groups.pseudos import PsmlFamily
+
 
 @pytest.fixture
 def generate_workchain_base(generate_psml_data, fixture_code, fixture_localhost, generate_workchain, 
@@ -60,7 +62,7 @@ def generate_workchain_base(generate_psml_data, fixture_code, fixture_localhost,
             elif remove_inp == "one_pseudo":
                 # I override the pseudo fam with an empty one
                 if add_pseudo_fam:
-                    PsmlFamily.objects.get_or_create("pp")
+                    PseudoPotentialFamily.objects.get_or_create("pp")
                     inputs['pseudo_family'] = orm.Str("pp")
                     inputs.pop("pseudos")
                 else:
@@ -103,6 +105,23 @@ def test_prepare_inputs(aiida_profile, generate_workchain_base):
     process2.prepare_inputs()
 
     assert isinstance(process2.ctx.inputs, dict)
+
+
+def test_postprocess(aiida_profile, generate_workchain_base, generate_ion_data):
+    """
+    Test `SiestaBaseWorkChain.postprocess`.
+    """
+    from aiida.engine import ExitCode
+    process = generate_workchain_base(exit_code=ExitCode(0))
+    calculation = process.ctx.children[-1]
+
+    out_ions = generate_ion_data("Si")
+    out_ions.add_incoming(calculation, link_type=LinkType.CREATE, link_label="ion_files__Si")
+    out_ions.store()
+
+    process.postprocess()
+
+    assert "ion_files" in process.outputs
 
 
 def test_validators(aiida_profile, generate_workchain_base):

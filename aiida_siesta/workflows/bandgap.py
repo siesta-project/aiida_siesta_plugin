@@ -1,11 +1,11 @@
 from aiida import orm
+from aiida.common.exceptions import NotExistent
 from aiida.engine import WorkChain, calcfunction, ToContext
 from aiida.common import AttributeDict
 from aiida.tools import get_explicit_kpoints_path
-from aiida_siesta.data.common import get_pseudos_from_structure
 from aiida_siesta.calculations.siesta import internal_structure
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
-from aiida_siesta.calculations.tkdict import FDFDict
+from aiida_siesta.utils.tkdict import FDFDict
 
 
 def drop_md_keys(param):
@@ -67,17 +67,26 @@ def validate_inputs(value, _):
             return "You cannot specify both `pseudos` and `pseudo_family`"
 
     if 'pseudo_family' in value:
-        from aiida.common.exceptions import NotExistent
-        try:
-            get_pseudos_from_structure(structure, value['pseudo_family'].value)
-        except NotExistent:
-            return "The pseudo family do not incude all the required pseudos"
+        group = orm.Group.get(label=value['pseudo_family'].value)
+        # To be removed in v2.0
+        if "data" in group.type_string:
+            from aiida_siesta.data.common import get_pseudos_from_structure
+            try:
+                get_pseudos_from_structure(structure, value['pseudo_family'].value)
+            except NotExistent:
+                return "The pseudo family does not incude all the required pseudos"
+        else:
+            try:
+                group.get_pseudos(structure=structure)
+            except ValueError:
+                return "The pseudo family does not incude all the required pseudos"
     else:
         if set(kinds) != set(value[quantity].keys()):
+            ps_io = ', '.join(list(value[quantity].keys()))
+            kin = ', '.join(list(kinds))
             string_out = (
-                'mismatch between the defined pseudos/ions and the list of kinds of the structure\n' +
-                'pseudos/ions: {} \n'.format(', '.join(list(value[quantity].keys()))) +
-                'kinds(including ghosts): {}'.format(', '.join(list(kinds)))
+                'mismatch between defined pseudos/ions and the list of kinds of the structure\n' +
+                f' pseudos/ions: {ps_io} \n kinds(including ghosts): {kin}'
             )
             return string_out
 
@@ -195,19 +204,25 @@ class BandgapWorkChain(WorkChain):
             return ToContext(final_run=running)
 
     def run_results(self):
+
+        from aiida.common import LinkType
+
         if self.ctx.need_fin_step:
             if not self.ctx.final_run.is_finished_ok:
                 return self.exit_codes.ERROR_FINAL_WC
-            outps = self.ctx.final_run.outputs
+            outps = self.ctx.final_run.get_outgoing(link_type=LinkType.RETURN).nested()
             self.out('output_structure', self.ctx.final_run.inputs.structure)
         else:
-            outps = self.ctx.workchain_base.outputs
+            outps = self.ctx.workchain_base.get_outgoing(link_type=LinkType.RETURN).nested()
 
         if 'forces_and_stress' in outps:
             self.out('forces_and_stress', outps['forces_and_stress'])
         self.out('bands', outps['bands'])
         self.out('output_parameters', outps['output_parameters'])
         self.out('remote_folder', outps['remote_folder'])
+        self.out('retrieved', outps['retrieved'])
+        if 'ion_files' in outps:
+            self.out('ion_files', outps['ion_files'])
 
         self.report("Obtaining the band gap")
         out_par = outps['output_parameters']
@@ -217,5 +232,5 @@ class BandgapWorkChain(WorkChain):
 
     @classmethod
     def inputs_generator(cls):  # pylint: disable=no-self-argument,no-self-use
-        from aiida_siesta.utils.inputs_generators import BaseWorkChainInputsGenerator
-        return BaseWorkChainInputsGenerator(cls)
+        from aiida_siesta.utils.protocols_system.input_generators import BaseWorkChainInputGenerator
+        return BaseWorkChainInputGenerator(cls)

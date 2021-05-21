@@ -1,7 +1,7 @@
 from aiida.plugins import DataFactory
 from aiida.orm import KpointsData
 
-from ..calculations.tkdict import FDFDict
+from ..utils.tkdict import FDFDict
 from .base import SiestaBaseWorkChain
 from ..utils.iterate_absclass import BaseIterator
 

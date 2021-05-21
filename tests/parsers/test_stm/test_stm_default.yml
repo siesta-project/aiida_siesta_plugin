@@ -1,6 +1,6 @@
 output_parameters:
   output_data_filename: aiida.LDOS.q.CH.STM
-  parser_info: AiiDA STM(Siesta) Parser V. Dev-post1.1.1
+  parser_info: AiiDA STM(Siesta) Parser V. 1.2.dev1
   parser_warnings: []
 stm_array:
   array|STM:

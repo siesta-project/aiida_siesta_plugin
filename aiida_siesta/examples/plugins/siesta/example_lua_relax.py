@@ -1,16 +1,15 @@
 #!/usr/bin/env runaiida
+
+#LUA PATH MUST BE PASSED AS THIRD OPTION!!!!!!
+
 import sys
 
 from aiida.engine import submit
-from aiida.orm import load_code, SinglefileData
+from aiida.orm import load_code, SinglefileData, Group
 from aiida_siesta.calculations.siesta import SiestaCalculation
-from aiida_siesta.data.psf import get_pseudos_from_structure
 from aiida.plugins import DataFactory
 import os.path as op
 
-#  Siesta calculation on Water molecule -- to fail in geom relaxation
-
-PsfData = DataFactory('siesta.psf')
 Dict = DataFactory('dict')
 KpointsData = DataFactory('array.kpoints')
 StructureData = DataFactory('structure')
@@ -34,14 +33,17 @@ try:
 except IndexError:
     codename = 'Siesta4.0.1@kelvin'
 
+try:
+    lua_elements_path = sys.argv[3]
+except IndexError:
+    lua_elements_path = "/home/ebosoni/flos/?.lua;/home/ebosoni/flos/?/init.lua;"
+
+
 #
 #------------------Code and computer options ---------------------------
 #
 code = load_code(codename)
 
-#####!!!!!!!!!!!!! THIS VARIABLE MUST BE CHANGED !!!!!!!!!!!###########
-#The lua elements from flos library. The path must be an explicit path!
-lua_elements_path = "/home/ebosoni/flos/?.lua;/home/ebosoni/flos/?/init.lua;"
 
 options = {
 #    "queue_name": "debug",
@@ -110,12 +112,12 @@ parameters = Dict(dict=params_dict)
 #
 # FIXME: The family name is hardwired
 #
-pseudos_dict = get_pseudos_from_structure(s, 'sample_psf_family')
+family = Group.get(label='psf_family')
+pseudos_dict = family.get_pseudos(structure=s)
 #-----------------------------------------------------------------------
 # Lua script for relaxation
 #
-absname = op.abspath(op.join(
-    op.dirname(__file__), "lua_scripts/relax_geometry_lbfgs.lua"))
+absname = op.abspath(op.join(op.dirname(__file__), "../../fixtures/lua_scripts/relax_geometry_lbfgs.lua"))
 lua_script = SinglefileData(absname)
 #
 #

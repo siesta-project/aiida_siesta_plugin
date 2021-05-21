@@ -15,7 +15,7 @@ def extract_pao_block(**ions):
     for ion_name, ion in ions.items():
         pao_mod = ion.get_pao_modifier()
         for n in pao_mod._gen_dict:  #pylint: disable=invalid-name
-            for l in pao_mod._gen_dict[n]:
+            for l in pao_mod._gen_dict[n]:  # noqa
                 save_z1 = pao_mod._gen_dict[n][l][1]
                 for z in pao_mod._gen_dict[n][l]:
                     string = ion_name + str(n) + str(l) + str(z)

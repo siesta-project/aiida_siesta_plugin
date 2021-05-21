@@ -13,7 +13,7 @@ import sys
 from aiida.engine import submit
 from aiida.orm import load_code
 from aiida.orm import Float, Dict, StructureData, KpointsData
-from aiida_siesta.data.psf import PsfData
+from aiida_pseudo.data.pseudo.psf import PsfData
 from aiida_siesta.workflows.iterate import SiestaIterator
 
 '''
@@ -84,16 +84,15 @@ kpoints.set_kpoints_mesh([14, 14, 14])
 pseudos_dict = {}
 raw_pseudos = [("Si.psf", ['Si'])]
 for fname, kinds in raw_pseudos:
-    absname = op.realpath(
-        op.join(op.dirname(__file__),
-                "../plugins/siesta/data/sample-psf-family", fname))
-    pseudo, created = PsfData.get_or_create(absname, use_first=True)
-    if created:
+    absname = op.realpath(op.join(op.dirname(__file__), "../fixtures/sample_psf", fname))
+    pseudo = PsfData.get_or_create(absname)
+    if not pseudo.is_stored:
         print("\nCreated the pseudo for {}".format(kinds))
     else:
         print("\nUsing the pseudo for {} from DB: {}".format(kinds, pseudo.pk))
     for j in kinds:
-        pseudos_dict[j] = pseudo
+        pseudos_dict[j]=pseudo
+
 
 # Options that are related to how the job is technically submitted and
 # run. Some of this options define flags for the job manager (e.g. SLURM)

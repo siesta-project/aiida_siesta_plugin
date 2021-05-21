@@ -55,7 +55,7 @@ class PaoManager:
                 raise RuntimeError("No orbitals set, nothing to return")
 
     @staticmethod
-    def _validate_nlz(n, l, Z):  #pylint: disable=invalid-name
+    def _validate_nlz(n, l, Z):  # noqa
         """
         Checks that the passed n, l, Z conform with what it expected.
 
@@ -138,7 +138,7 @@ class PaoManager:
         dictl = self._gen_dict.copy()
         for i in dictl:
             for j in dictl[i]:
-                for l in dictl[i][j]:
+                for l in dictl[i][j]:  # noqa
                     dictl[i][j][l] = dictl[i][j][l] + percentage / 100 * dictl[i][j][l]
         self._gen_dict = dictl
 
@@ -148,11 +148,11 @@ class PaoManager:
             pol = self._pol_dict.copy()
             for i in pol:
                 for j in pol[i]:
-                    for l in pol[i][j]:
+                    for l in pol[i][j]:  # noqa
                         pol[i][j][l] = pol[i][j][l] + percentage / 100 * pol[i][j][l]
             self._pol_dict = pol
 
-    def reset_radius(self, radius_units, new_radius, n, l, Z=1):  #pylint: disable=invalid-name
+    def reset_radius(self, radius_units, new_radius, n, l, Z=1):  # noqa
         """
         Reset the radius of an orbital with n, l, Z quantum numbers.
 
@@ -192,7 +192,7 @@ class PaoManager:
             except KeyError:
                 pass
 
-    def add_polarization(self, n, l):  #pylint: disable=invalid-name
+    def add_polarization(self, n, l):  # noqa
         """
         Add polarization to the orbital with quantum numbers n, l.
 
@@ -220,7 +220,7 @@ class PaoManager:
         else:
             self._pol_dict[n][l] = {"1": self._gen_dict[n][l][1]}
 
-    def remove_polarization(self, n, l):  #pylint: disable=invalid-name
+    def remove_polarization(self, n, l):  # noqa
         """
         Add polarization to the orbital with quantum numbers n, l.
 
@@ -246,7 +246,7 @@ class PaoManager:
         if not self._pol_dict[n]:
             self._pol_dict.pop(n)
 
-    def add_orbital(self, radius_units, radius, n, l, Z=1):  #pylint: disable=invalid-name
+    def add_orbital(self, radius_units, radius, n, l, Z=1):  # noqa
         """
         Add an orbital with n, l, Z quantum numbers.
 
@@ -286,7 +286,7 @@ class PaoManager:
             except KeyError:
                 self._gen_dict[n] = {l: {Z: radius}}
 
-    def remove_orbital(self, n, l, Z):  #pylint: disable=invalid-name
+    def remove_orbital(self, n, l, Z):  # noqa
         """
         Add an orbital with n, l, Z quantum numbers.
 
@@ -349,12 +349,12 @@ class PaoManager:
         #Conversion in bohr. Polarization is not necessary, but do for consistency
         for i in dictl:
             for j in dictl[i]:
-                for l in dictl[i][j]:
+                for l in dictl[i][j]:  # noqa
                     if isinstance(dictl[i][j][l], (float, int)):
                         dictl[i][j][l] = round(dictl[i][j][l] * ANG_TO_BOHR, 6)
         for i in pol:
             for j in pol[i]:
-                for l in pol[i][j]:
+                for l in pol[i][j]:  # noqa
                     if isinstance(pol[i][j][l], (float, int)):
                         pol[i][j][l] = round(pol[i][j][l] * ANG_TO_BOHR, 6)
 
@@ -364,15 +364,15 @@ class PaoManager:
                 if i in pol:
                     if j in pol[i]:
                         atomic_paobasis_card += f"  n={i}  {j}  {len(dictl[i][j])}  P {len(pol[i][j])} \n"
-                        listi = [dictl[i][j][l] for l in dictl[i][j]]
+                        listi = [dictl[i][j][l] for l in dictl[i][j]]  # noqa
                         atomic_paobasis_card += '\t'.join([f' {val}' for val in listi]) + "\n"
                     else:
                         atomic_paobasis_card += f"  n={i}  {j}  {len(dictl[i][j])} \n"
-                        listi = [dictl[i][j][l] for l in dictl[i][j]]
+                        listi = [dictl[i][j][l] for l in dictl[i][j]]  # noqa
                         atomic_paobasis_card += '\t'.join([f' {val}' for val in listi]) + "\n"
                 else:
                     atomic_paobasis_card += f"  n={i}  {j}  {len(dictl[i][j])} \n"
-                    listi = [dictl[i][j][l] for l in dictl[i][j]]
+                    listi = [dictl[i][j][l] for l in dictl[i][j]]  # noqa
                     atomic_paobasis_card += '\t'.join([f' {val}' for val in listi]) + "\n"
 
         return atomic_paobasis_card[:-1]
