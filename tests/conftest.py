@@ -1,10 +1,8 @@
-from __future__ import absolute_import
-
-
-# -*- coding: utf-8 -*-
 # pylint: disable=redefined-outer-name
-"""Initialise a text database and profile for pytest."""
-"""Courtesy of Sebastian Huber, aiida-quantumespresso"""
+"""
+Initialise a text database and profile for pytest.
+Courtesy of Sebastiaan Huber, aiida-quantumespresso
+"""
 import io
 import os
 import collections
@@ -76,7 +74,7 @@ def generate_calc_job_node():
         """Flatten inputs recursively like :meth:`aiida.engine.processes.process::Process._flatten_inputs`."""
         flat_inputs = []
         for key, value in six.iteritems(inputs):
-            if isinstance(value, collections.Mapping):
+            if isinstance(value, collections.abc.Mapping):
                 flat_inputs.extend(flatten_inputs(value, prefix=prefix + key + '__'))
             else:
                 flat_inputs.append((prefix + key, value))
@@ -144,13 +142,15 @@ def generate_psf_data():
 
     def _generate_psf_data(element):
         """Return `PsfData` node."""
-        from aiida_siesta.data.psf import PsfData
+        #from aiida_siesta.data.psf import PsfData
+        from aiida_pseudo.data.pseudo.psf import PsfData 
 
-        filename = os.path.join('tests', 'pseudos', '{}.psf'.format(element))
+        filename = os.path.join('tests', 'fixtures',  'pseudos', '{}.psf'.format(element))
         filepath = os.path.abspath(filename)
 
-        with io.open(filepath, 'r') as handle:
-            psf = PsfData(file=handle.name)
+        with io.open(filepath, 'rb') as handle:
+            #psf = PsfData(file=handle.name)
+            psf = PsfData(handle)
 
         return psf
 
@@ -163,13 +163,13 @@ def generate_psml_data():
 
     def _generate_psml_data(element):
         """Return `PsmlData` node."""
-        from aiida_siesta.data.psml import PsmlData
+        from aiida_pseudo.data.pseudo.psml import PsmlData
 
-        filename = os.path.join('tests', 'pseudos', '{}.psml'.format(element))
+        filename = os.path.join('tests', 'fixtures', 'pseudos', '{}.psml'.format(element))
         filepath = os.path.abspath(filename)
 
-        with io.open(filepath, 'r') as handle:
-            psml = PsmlData(file=handle.name)
+        with io.open(filepath, 'rb') as handle:
+            psml = PsmlData(handle)
 
         return psml
 
@@ -180,19 +180,58 @@ def generate_psml_data():
 def generate_ion_data():
     """Return a `IonData` instance for the given element a file for which should exist in `tests/ions`."""
 
-    def _generate_ion_data(element):
+    def _generate_ion_data(element, stream=False):
         """Return `IonData` node."""
         from aiida_siesta.data.ion import IonData
 
-        filename = os.path.join('tests', 'ions', '{}.ion.xml'.format(element))
+        filename = os.path.join('tests', 'fixtures', 'ions', f'{element}.ion.xml')
         filepath = os.path.abspath(filename)
 
-        with io.open(filepath, 'r') as handle:
-            ion = IonData(file=handle.name)
+        if stream:
+            with io.open(filepath, 'rb') as handle:
+                ion = IonData(file=handle)
+        else:
+            ion = IonData(filepath)
 
         return ion
 
     return _generate_ion_data
+
+
+@pytest.fixture(scope='session')
+def generate_lua_file():
+    """Return a `SingleData` instance containing the lua file `lua_scripts/relax_geometry_lbfgs.lua`."""
+
+    def _generate_lua_file():
+        """Return `SingleData` node."""
+        from aiida.orm import SinglefileData
+
+        filename = os.path.join('tests', 'fixtures', 'lua_scripts', 'relax_geometry_lbfgs.lua')
+        filepath = os.path.abspath(filename)
+
+        lua_file = SinglefileData(filepath)
+
+        return lua_file
+
+    return _generate_lua_file
+
+
+@pytest.fixture(scope='session')
+def generate_lua_folder():
+    """Return a `FolderData` instance containing extra lua files `lua_scripts/neb-data`."""
+
+    def _generate_lua_folder():
+        """Return `FolderData` node."""
+        from aiida.orm import FolderData
+
+        foldername = os.path.join('tests', 'fixtures', 'lua_scripts', 'neb-data')
+        folderpath = os.path.abspath(foldername)
+
+        lua_folder = FolderData(tree=folderpath)
+
+        return lua_folder
+
+    return _generate_lua_folder
 
 
 @pytest.fixture(scope='session')
@@ -201,10 +240,11 @@ def generate_psml_fam(generate_psml_data):
 
     def _generate_psml_fam(fam_name, element):
         """Return `PsmlData` node."""
-        
-        from aiida_siesta.groups.pseudos import PsmlFamily
+       
+        from aiida_pseudo.groups.family.pseudo import PseudoPotentialFamily
+        #from aiida_siesta.groups.pseudos import PsmlFamily
 
-        group, created = PsmlFamily.objects.get_or_create(fam_name)
+        group, created = PseudoPotentialFamily.objects.get_or_create(fam_name)
         psml = generate_psml_data(element)
         psml.store()
         group.add_nodes([psml])
@@ -373,7 +413,7 @@ def generate_wc_job_node():
         """Flatten inputs recursively like :meth:`aiida.engine.processes.process::Process._flatten_inputs`."""
         flat_inputs = []
         for key, value in six.iteritems(inputs):
-            if isinstance(value, collections.Mapping):
+            if isinstance(value, collections.abc.Mapping):
                 flat_inputs.extend(flatten_inputs(value, prefix=prefix + key + '__'))
             else:
                 flat_inputs.append((prefix + key, value))

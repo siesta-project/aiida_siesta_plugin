@@ -1,4 +1,3 @@
-from __future__ import absolute_import
 def test_siesta_calculation_entry_point():
     from aiida.plugins import CalculationFactory
     siesta_calculation = CalculationFactory('siesta.siesta')

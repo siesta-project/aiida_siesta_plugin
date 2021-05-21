@@ -417,5 +417,5 @@ class DosPdosWorkChain(WorkChain):
 
     @classmethod
     def inputs_generator(cls):  # pylint: disable=no-self-argument,no-self-use
-        from aiida_siesta.utils.inputs_generators import DosPdosWorkChainInputsGenerator
-        return DosPdosWorkChainInputsGenerator(cls)
+        from aiida_siesta.utils.protocols_system.input_generators import DosPdosWorkChainInputGenerator
+        return DosPdosWorkChainInputGenerator(cls)

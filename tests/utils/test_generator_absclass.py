@@ -1,17 +1,7 @@
-from aiida_siesta.utils.generator_absclass import InputsGenerator
+from aiida_siesta.utils.protocols_system.generator_absclass import InputGenerator
 from aiida.plugins import WorkflowFactory
-from aiida_siesta.groups.pseudos import PsmlFamily
-
-#@pytest.fixture
-#def protocol_registry():
-#
-#    class SubInputsGenerator(InputsGenerator):
-#
-#        _protocols = {'efficiency': {'description': 'description'}, 'precision': {'description': 'description'}}
-#        _default_protocol = 'efficiency'
-#
-#    return SubProtocolRegistry()
-
+#from aiida_siesta.groups.pseudos import PsmlFamily
+from aiida_pseudo.groups.family.pseudo import PseudoPotentialFamily
 
 def test_validation(aiida_profile):
     """Test the validation of subclasses of `InputsGenerator`."""
@@ -19,9 +9,10 @@ def test_validation(aiida_profile):
     #Here I fake the pseudofamilies
     #PsmlFamily.objects.get_or_create("nc-sr-04_pbe_standard-psf")
     #PsmlFamily.objects.get_or_create("nc-sr-04_pbe_stringent-psf")
-    PsmlFamily.objects.get_or_create("nc-sr-04_pbe_standard_psml")
+    #PsmlFamily.objects.get_or_create("nc-sr-04_pbe_standard_psml")
+    PseudoPotentialFamily.objects.get_or_create("PseudoDojo/0.4/PBE/SR/standard/psml")
 
-    class SubInputsGenerator(InputsGenerator):
+    class SubInputsGenerator(InputGenerator):
 
         _calc_types = None
 
@@ -37,7 +28,7 @@ def test_validation(aiida_profile):
     with pytest.raises(RuntimeError):
         SubInputsGenerator(WorkflowFactory("siesta.base"))
 
-    class SubInputsGenerator(InputsGenerator):
+    class SubInputsGenerator(InputGenerator):
 
         _calc_types = {"si":{"code": "pp", "resources": "tt"}}
 
@@ -54,7 +45,7 @@ def test_validation(aiida_profile):
         SubInputsGenerator()
 
 
-    class SubInputsGenerator(InputsGenerator):
+    class SubInputsGenerator(InputGenerator):
 
         _calc_types = {"si":{"code": "pp", "resources": "tt"}}
 
@@ -62,7 +53,7 @@ def test_validation(aiida_profile):
     with pytest.raises(TypeError):
         SubInputsGenerator(WorkflowFactory("siesta.base"))
 
-    class SubInputsGenerator(InputsGenerator):
+    class SubInputsGenerator(InputGenerator):
 
         _calc_types = {"si":{"code": "pp", "resources": "tt"}}
 

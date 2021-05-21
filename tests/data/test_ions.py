@@ -2,9 +2,24 @@ import pytest
 from aiida.common.exceptions import StoringNotAllowed
 
 def test_ions(generate_ion_data):
+    """
+    Test the `set_file`, `_prepare_source` and `parse_ion` methods of IonData. They are called
+    during instanciation of the class. Instanciation can be done through the passing of a stream of 
+    a filepath. The parent class already allows that but, it is important to test the parsing 
+    of the info on the file (element, name, atomic_number, mass) in both cases since if filepath 
+    is passed, it is immediately converted to a stream.
+    """
 
     ion = generate_ion_data('Si')
+    assert ion.element == "Si"
+    assert ion.name == "Si"
+    assert ion.atomic_number == 14
+    assert ion.mass == 28.09
+    assert ion.is_stored == False
+    ion.store()
+    assert ion.is_stored == True
 
+    ion = generate_ion_data('Si', stream=True)
     assert ion.element == "Si"
     assert ion.name == "Si"
     assert ion.atomic_number == 14
@@ -15,6 +30,9 @@ def test_ions(generate_ion_data):
 
 
 def test_ions_validators(generate_ion_data):
+    """
+    Test the validators called before the storing of the IonData
+    """
 
     ion = generate_ion_data('Si')
 
@@ -50,40 +68,60 @@ def test_ions_validators(generate_ion_data):
 
 
 def test_get_or_create(generate_ion_data):
+    """
+    The `get_or_create` method is tested. It is very important to test
+    because it also needs to replicate the checks the instantiation does
+    and it can not rely on the parent class
+    """
 
     from aiida_siesta.data.ion import IonData
-    import os
-    filename = os.path.join('tests', 'ions', 'SiDiff.ion.xml')
+    import os,io
+    filename = os.path.join('tests', 'fixtures', 'ions', 'SiDiff.ion.xml')
     filepath = os.path.abspath(filename)
 
-    ion, created = IonData.get_or_create(filepath)
-    assert created == True
+    # Test that strings must be abs paths
+    with pytest.raises(TypeError):
+        IonData.get_or_create("ss")
+
+    # Test that other apart from sting or stream is not allowed
+    with pytest.raises(TypeError):
+        IonData.get_or_create(1)
+
+    # Test that strims of bytes only are accepted.
+    with pytest.raises(TypeError):
+        with io.open(filepath, 'r') as handle:
+            IonData.get_or_create(handle)
+
+    # Good stream
+    with io.open(filepath, 'rb') as handle:
+        test_i = IonData.get_or_create(handle)
+    assert test_i.is_stored == False
+
+    ion = IonData.get_or_create(filepath)
     assert ion.is_stored == False
     ion.store()
     assert ion.is_stored == True
 
-    #Now it is stored! Therefore a new call will say that is not created
-    ion, created = IonData.get_or_create(filepath)
-    assert created == False
+    #Now it is stored! Therefore a new call will say that is stored already
+    ion = IonData.get_or_create(filepath)
     assert ion.is_stored == True
 
-    #Now we created a second ion with same md5. Raise error unless `use_first`
-    new = IonData(filepath)
-    new.store()
-    with pytest.raises(ValueError):
-        ion, created = IonData.get_or_create(filepath)
-    ion, created = IonData.get_or_create(filepath, use_first = True)
+    with io.open(filepath, 'rb') as handle:
+        test_i = IonData.get_or_create(handle)
+    assert test_i.is_stored == True
 
-    #Finally test store_ion True
-    filename = os.path.join('tests', 'ions', 'SiTris.ion.xml')
-    filepath = os.path.abspath(filename)
-    ion, created = IonData.get_or_create(filepath, store_ion=True)
-    assert ion.is_stored == True
+
 
 def test_get_orbitals(generate_ion_data):
+    """
+    Test the get_orbitals method
+    """
 
     from aiida_siesta.data.atomic_orbitals import SislAtomicOrbital
     ion = generate_ion_data('Si')
     orbit_list = ion.get_orbitals()
     assert len(orbit_list) == 18
     assert isinstance(orbit_list[0],SislAtomicOrbital)
+
+# The `get_content_ascii_format` is tested is the calculations/test_siesta.py
+# the rest of methods in utils/test_pao_manager.py

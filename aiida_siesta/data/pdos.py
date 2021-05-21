@@ -56,7 +56,7 @@ class PdosData(SinglefileData):
         self.set_attribute('max_energy', parsed_data["max_energy"])
         self.set_attribute('bins', parsed_data["bins"])
 
-    def store(self, *args, **kwargs):  # pylint: disable=arguments-differ
+    def store(self, **kwargs):  # pylint: disable=arguments-differ
         """
         Store the node. It requires a previous check on the assigned attributes.
         In fact, the attributes of this particular class must just reflect the info
@@ -76,7 +76,7 @@ class PdosData(SinglefileData):
         except ValueError as exception:
             raise StoringNotAllowed(exception) from exception
 
-        return super().store(*args, **kwargs)
+        return super().store(**kwargs)
 
     def validate_atts(self, nspin, norbs, ef, min_e, max_e, bins):  #pylint: disable=invalid-name
         """

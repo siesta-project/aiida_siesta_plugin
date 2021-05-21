@@ -137,10 +137,11 @@ class PdosManager:
                     if orb[0].l not in list_of:
                         list_of.append(orb[0].l)
             if len(list_of) != len(passed_vals):
-                logging.warning(
-                    f" One or more {quantity_name} could not be selected. "
+                messag = (
+                    f" One or more {quantity_name} could not be selected. " +
                     "Use the method `self.get_selected_orbitals_list` to check the selected orbitals."
                 )
+                logging.warning(messag)
 
     def select(self, species=None, n=None, l=None, orbital_indexes=None):  # noqa
         """
