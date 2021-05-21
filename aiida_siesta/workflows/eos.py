@@ -1,7 +1,7 @@
 from aiida.plugins import DataFactory
 from aiida.engine import calcfunction
 from aiida.orm import Float
-from aiida_siesta.calculations.tkdict import FDFDict
+from aiida_siesta.utils.tkdict import FDFDict
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
 
 from ..utils.iterate_absclass import BaseIterator
@@ -61,12 +61,9 @@ def delta_project_BM_fit(volumes, energies):  #pylint: disable=invalid-name
             break
 
     #Here something checking if the fit is good!
-    #The choice of residuals0 > 0.01 it is not supported
-    #by a real scientific reason, just from experience.
-    #Values ~ 0.1 are when fit random numbers, ~ 10^-5
-    #appears for good fits. The check on the presence of
-    #a minmum covers the situations when an almost
-    #linear dependence is fitted (very far from minimum)
+    #The choice of residuals0 > 0.01 it is not supported by a real scientific reason, just from experience.
+    #Values ~ 0.1 are when fit random numbers, ~ 10^-5 appears for good fits. The check on the presence of
+    #a minmum covers the situations when an almost linear dependence is fitted (very far from minimum)
     if volume0 == 0 or residuals0 > 0.01:
         return residuals0, volume0
     derivV2 = 4. / 9. * x**5. * deriv2(x)  #pylint: disable=invalid-name
@@ -179,7 +176,8 @@ def fit_and_final_dicts(**calcs):
     volumes = np.array(volu)
     energies = np.array(ener)
     try:
-        E0, volume0, bulk_modulus0, bulk_deriv0 = delta_project_BM_fit(volumes, energies)  #pylint: disable=invalid-name
+        #pylint: disable=invalid-name,unbalanced-tuple-unpacking
+        E0, volume0, bulk_modulus0, bulk_deriv0 = delta_project_BM_fit(volumes, energies)
         #E0, volume0, bulk_modulus0, bulk_deriv0 = standard_BM_fit(volumes,energies)
         fit_res = {}
         fit_res["Eo(eV/atom)"] = E0
@@ -308,5 +306,5 @@ class EqOfStateFixedCellShape(BaseIterator):
 
     @classmethod
     def inputs_generator(cls):  # pylint: disable=no-self-argument,no-self-use
-        from aiida_siesta.utils.inputs_generators import EosWorkChainInputsGenerator
-        return EosWorkChainInputsGenerator(cls)
+        from aiida_siesta.utils.protocols_system.input_generators import EosWorkChainInputGenerator
+        return EosWorkChainInputGenerator(cls)

@@ -14,7 +14,7 @@ Supported Siesta versions
 At least 4.0.1 of the 4.0 series, 4.1-b3 of the 4.1 series and the MaX-1.0 release, which
 can be found in the development platform (https://gitlab.com/siesta-project/siesta).
 For more up to date info on compatibility, please check the 
-`wiki <https://github.com/albgar/aiida_siesta_plugin/wiki/Supported-siesta-versions>`_.
+`wiki <https://github.com/siesta-project/aiida_siesta_plugin/wiki/Supported-siesta-versions>`_.
 
 .. _siesta-plugin-inputs:
 
@@ -40,6 +40,7 @@ Some examples are referenced in the following list. They are located in the fold
   conditions (such as basis set characteristics) for specific atoms
   (e.g., surface atoms might have a richer basis set). This is
   implemented through the ``name`` attribute of the Site objects. For example::
+
       from aiida.orm import StructureData
 
       alat = 15. # angstrom
@@ -70,6 +71,12 @@ Some examples are referenced in the following list. They are located in the fold
   ase structures or pymatgen structures. These two tools can be used to load
   structure from files. See example `example_cif_bands.py`.
 
+  .. note:: Siesta can handle *ghost atoms*, carrying only extra
+	    orbitals, to increase the variational freedom. In the AiiDA
+	    plugin, these ghost atoms are specified in the **basis**
+	    dictionary (see below), and they should **not** be part of
+	    the input StructureData object.
+
 .. |br| raw:: html
 
     <br />
@@ -84,9 +91,14 @@ Some examples are referenced in the following list. They are located in the fold
   will be automatically set by Aiida. Moreover, the keyword ``dm-use-save-dm`` is
   not allowed (the restart options are explained :ref:`here <siesta-restart>`)
   together with the keyword ``geometry-must-converge`` (set to True by default for each
-  calculation with variable geometry). Finally,  all the ``pao`` options must be avoided here, 
-  because they belong to the **basis** input 
-  (next to next in this list). Any units are
+  calculation with variable geometry). Also the ``max-walltime`` is blocked since it is
+  set by the plugin to be equal to the ``max_wallclock_seconds`` passed in the 
+  :ref:`computational resources <submission-siesta-calc>`. This should prevent
+  the calculation to be terminated by the scheduler. In case a siesta max time
+  smaller than the ``max_wallclock_seconds`` is required, it is suggested to increase
+  the ``max-walltime-slack`` value.
+  Finally,  all the ``pao`` options must be avoided here, 
+  because they belong to the **basis** input (next in this list). Any units are
   specified for now as part of the value string. Blocks are entered
   by using an appropriate key and Python's multiline string
   constructor. For example::
@@ -134,44 +146,6 @@ Some examples are referenced in the following list. They are located in the fold
 
     <br />
 
-* **pseudos**, input namespace of class :py:class:`PsfData  <aiida_siesta.data.psf.PsfData>`
-  OR class :py:class:`PsmlData  <aiida_siesta.data.psml.PsmlData>`, *Mandatory*
-
-  The `PsfData  <aiida_siesta.data.psf.PsfData>` and `PsmlData  <aiida_siesta.data.psml.PsmlData>`
-  classes have been implemented along the lines of the Upf class of aiida-core.
-
-  One pseudopotential file per atomic element is required. Several species (in the
-  Siesta sense, which allows the same element to be treated differently
-  according to its environment) can share the same pseudopotential. For the example
-  above::
-
-    import os
-    from aiida_siesta.data.psf import PsfData
-
-    pseudo_file_to_species_map = [ ("C.psf", ['C', 'Cred']),("H.psf", ['H'])]
-    pseudos_dict = {}
-    for fname, kinds, in pseudo_file_to_species_map:
-          absname = os.path.realpath(os.path.join("path/to/file",fname))
-          pseudo, created = PsfData.get_or_create(absname, use_first=True)
-          for j in kinds:
-                  pseudos_dict[j]=pseudo
-
-  Alternatively, a pseudo for every atomic species can be set with the
-  ``use_pseudos_from_family``  method, if a family of pseudopotentials
-  has been installed. For an example see `example_psf_family.py`
-
-  .. note:: The verdi command-line interface now supports entry points
-     defined by external packages. We have implemented  `verdi data
-     psf` and `verdi data psml` suites of commands: `uploadfamily`, `exportfamily`, and
-     `listfamilies`.
-
-  It can be argued that a single "SiestaPseudo" class, with psf and psml
-  subclasses, might have been implemented. But the `PsmlData  <aiida_siesta.data.psml.PsmlData>`
-  class aims to transcend Siesta and to be used by other codes.
-
-.. |br| raw:: html
-
-    <br />
 
 * **basis**, class :py:class:`Dict  <aiida.orm.Dict>`, *Optional*
 
@@ -199,19 +173,127 @@ Some examples are referenced in the following list. They are located in the fold
 
         basis = Dict(dict=basis_dict)
 
-  In case no basis is set, the Siesta calculation will not include
-  any basis specification and it will run with the default basis: DZP 
-  plus (many) other defaults.
+  In case no basis is set (and no **ions** is passed in input), the Siesta calculation will not include
+  any basis specification and it will run with the default basis: DZP plus (many) other defaults.
+
+  The **basis** dictionary also accepts a special key called ``floating_sites`` that
+  can be used to specify the location and kind of *ghost atoms*, or
+  sites carrying only floating orbitals. The associated value must be a list of dictionaries
+  and each dictionary must include as keys at least the ``name``, ``symbols`` and ``position`` of the
+  floating site.
+  An example is::
+
+        basis = Dict(dict={
+                'floating_sites': [{"name":'Si_bond', "symbols":'Si', "position":(0.125, 0.125, 0.125)}],
+                '%block pao-basis-sizes': 
+                """
+                Si_bond SZ
+                %endblock pao-basis-sizes""",
+        })
+
+
+  The "position" must be specified in Angstrom. A "name" that corresponds to an existing atomic site
+  is forbidden.
+  As shown in the example, in case a basis specification has to be added for one or more ``floating_sites``, it must
+  be included in the basis dictionary in the same way as those for any other atomic kinds.
+  Please look at the examples `example_ghost.py` and `example_ghost_relax.py` for a practical example.
 
 .. |br| raw:: html
 
     <br />
+
+
+* **pseudos**, input namespace of class :py:class:`PsfData  <aiida_pseudo.data.pseudo.psf.PsfData>`
+  OR class :py:class:`PsmlData  <aiida_pseudo.data.pseudo.psml.PsmlData>`, *Optional*
+
+  This input is mandatory except if the **ions** input is set (see below).
+
+  This inputs exploits the functionalities of the `PsfData <aiida_pseudo.data.pseudo.psf.PsfData>`
+  and `PsmlData  <aiida_pseudo.data.pseudo.psml.PsmlData>` of the `aiida-pseudo package`_.
+
+  One pseudopotential file per atomic element is required. Several species (in the
+  Siesta sense, which allows the same element to be treated differently
+  according to its environment) can share the same pseudopotential. For the example
+  above::
+
+    import os
+    from aiida_pseudo.data.pseudo.psf import PsfData
+
+    pseudo_file_to_species_map = [ ("C.psf", ['C', 'Cred']),("H.psf", ['H'])]
+    pseudos_dict = {}
+    for fname, kinds, in pseudo_file_to_species_map:
+          absname = os.path.realpath(os.path.join("path/to/file",fname))
+          pseudo = PsfData.get_or_create(absname)
+          for j in kinds:
+                pseudos_dict[j]=pseudo
+
+  Alternatively, a pseudo for every atomic species can be set from a family of pseudopotentials::
+
+    from aiida.orm import Group
+    family = Group.get(label=FAM_NAME)
+    pseudos = family.get_pseudos(structure=s)
+
+  where ``s`` is a `StructureData <aiida.orm.StructureData>` object and ``FAM_NAME`` is the name
+  of the pseudopotentials family, that must be installed in the database.
+
+  The simplest way to install a pseudo family is through the command::
+
+     aiida-pseudo install family /PATH/TO/FOLDER/ FAM_NAME -P pseudo.psf  #or pseudo.psml 
+
+  where ``/PATH/TO/FOLDER/`` is a folder containing the pseudos.
+  The `aiida-pseudo package`_ allows more sophisticated ways of creating pseudo family,
+  for instance downloading the pseudos directly from a url or online repository
+  (PseudoDojo for instance).
+  Please refer to the corresponding documentation for more details.
+
+  For a practical example, look at `example_psf_family.py`.
+
+.. |br| raw:: html
+
+    <br />
+
+
+* **ions**, input namespace of class :py:class:`IonData  <aiida_siesta.data.ion.IonfData>`, *Optional*
+
+  The class `IonData <aiida_siesta.data.ion.IonData>` has been implemented along the lines of the 
+  `PsfData` class to carry information on the entity that in siesta terminology is called
+  "ion", and that packages the set of basis orbitals and KB projectors for a given species. 
+  It contains also some extra metadata. The class `IonData` stores ".ion.xml" files and it also 
+  provides a method `get_content_ascii_format` that translates the content of an
+  ".ion.xml" into an ".ion" file format, which is the only one currently accepted by Siesta.
+
+  When this input is present, the plugin takes care of coping in the running folder the ".ion"
+  files and set the "user_basis" siesta keyword to True. Moreover, when this input is present,
+  **pseudos** and **basis** inputs are ignored (except possible `floating_orbitals` defined in the basis).
+
+  One ion file per atomic element is required and must be passed to the calculation in a way
+  similar to the pseudos. For instance::
+
+    import os
+    from aiida_siesta.data.ion import IonData
+
+    ion_file_to_species_map = [ ("C.ion", ['C']),("H.ion", ['H'])]
+    ions_dict = {}
+    for fname, kinds, in ion_file_to_species_map:
+          absname = os.path.realpath(os.path.join("path/to/file",fname))
+          ion = IonData.get_or_create(absname)
+          for j in kinds:
+                  ions_dict[j]=ion
+
+  The `example_ion.py` can be analyzed to better understand the use of **ions** inputs.
+
+
+.. |br| raw:: html
+
+    <br />
+
 
 * **kpoints**, class :py:class:`KpointsData <aiida.orm.KpointsData>`, *Optional*
 
   Reciprocal space points for the full sampling of the BZ during the
   self-consistent-field iteration. It must be given in mesh form. There is no support
   yet for Siesta's "kgrid-cutoff" keyword::
+
           from aiida.orm import KpointsData
           kpoints=KpointsData()
           kp_mesh = 5
@@ -240,22 +322,26 @@ Some examples are referenced in the following list. They are located in the fold
   Some examples on how to pass the kpoints are the following.
 
   One can manually listing a set of isolated kpoints::
+
           from aiida.orm import KpointsData
           bandskpoints=KpointsData()
           kpp = [(0.1,  0.1, 0.1), (0.5,  0.5, 0.5), (0., 0., 0.)]
           bandskpoints.set_kpoints(kpp)
+
   In this case the Siesta input will use the "BandPoints" block.
   
   Alternatively (recommended) the high-symmetry path associated to the
   structure under investigation can be
   automatically generated through the aiida tool ``get_explicit_kpoints_path``.
   Here how to use it::
+
           from aiida.orm import KpointsData
           bandskpoints=KpointsData()
           from aiida.tools import get_explicit_kpoints_path
           symmpath_parameters = Dict(dict={'reference_distance': 0.02})
           kpresult = get_explicit_kpoints_path(s, **symmpath_parameters.get_dict())
           bandskpoints = kpresult['explicit_kpoints']
+
   Where 's' in the input structure and ``reference_distance`` is
   the distance between two subsequent kpoints.
   In this case the block "BandLines" is set in the Siesta
@@ -268,7 +354,8 @@ Some examples are referenced in the following list. They are located in the fold
      on the input structure that was provided. The correct
      way to use this tool is to use the generated 'primitive_structure' also for the
      Siesta calculation::
-          structure = kpresult['primitive_structure']
+
+       structure = kpresult['primitive_structure']
 
   .. warning:: As we use the initial structure cell in order to obtain
      the kpoints path, it is very risky to apply this method when also a relaxation
@@ -295,6 +382,7 @@ Some examples are referenced in the following list. They are located in the fold
   This is essential for the correct set up of the "BandLines" in Siesta.
   External tolls can be used to create equidistant points, whithin aiida
   the following (very involved) option is available::
+
         from aiida.orm import KpointsData
         bandskpoints=KpointsData()
         from aiida.tools.data.array.kpoints.legacy import get_explicit_kpoints_path as legacy_path
@@ -303,6 +391,7 @@ Some examples are referenced in the following list. They are located in the fold
         tmp=legacy_path(kpp)
         bandskpoints.set_kpoints(tmp[3])
         bandskpoints.labels=tmp[4]
+
   The legacy ``get_explicit_kpoints_path`` shares only the name with the function in
   ``aiida.tools``, but it is very different in scope.
 
@@ -315,6 +404,47 @@ Some examples are referenced in the following list. They are located in the fold
      might result in an incorrect parsing of the bands.
 
   If the keyword node **bandskpoints** is not present, no band structure is computed.
+
+.. |br| raw:: html
+
+    <br />
+
+* **lua**, input namespace, *Optional*
+
+  This input namespace allows control on the LUA interface to SIESTA.
+  The user should remember that to enable the LUA interface,
+  it is suggested to compile SIESTA with ``flook`` and to use the ``flos`` library 
+  (`flos documentation`_). Follow the SIESTA manual for complete
+  instructions.
+  Since this option also requires the definition of the ``LUA_PATH``, an
+  :ref:`additional step <submission-siesta-calc>` must be done before submission.
+
+  This input namespace accepts the following elements::
+
+        spec.input('lua.script', valid_type=orm.SinglefileData, required=False)
+        spec.input('lua.parameters', valid_type=orm.Dict, required=False)
+        spec.input('lua.input_files', valid_type=orm.FolderData, required=False)
+        spec.input('lua.retrieve_list', valid_type=orm.List, required=False)
+
+* **lua.script** is a Lua script implementing a specific
+  functionality, and possibly being able to set its own
+  operational parameters. For example, the LBFGS geometry relaxation
+  algorithm, or the NEB path-optimization scheme, can be implemented
+  in Lua. See the examples provided.
+  
+* **lua.parameters** is a dictionary containing the
+  operational parameters for the script. For example, it can set the
+  tolerance to be used in the script, or the value of the 'spring
+  constant' in NEB simulations.
+
+* **lua.input_files** is a set of auxiliary files packaged
+  in a FolderData object. For example, the initial set of
+  images for a NEB calculation.
+
+* **lua.retrieve_list** contains a list of the files
+  produced by the operation of the Lua script that need to be
+  retrieved. They should be parsed by functionality-specific
+  modules in client workchains.
 
 .. |br| raw:: html
 
@@ -333,6 +463,7 @@ Some examples are referenced in the following list. They are located in the fold
 
   Optional port used to activate the :ref:`restart features <siesta-restart>`.
 
+.. _submission-siesta-calc:
 
 Submitting the calculation
 --------------------------
@@ -350,7 +481,7 @@ The inputs (defined as in the previous section) are passed to the builder::
         builder.code = code
         builder.structure = structure
         builder.parameters = parameters
-        builder.pseudos = pseudos_dict
+        builder.pseudos = pseudos_dict   #or builder.ions = ...
         builder.basis = basis
         builder.kpoints = kpoints
         builder.bandskpoints = bandskpoints
@@ -359,6 +490,17 @@ Finally the resources for the calculation must be set, for instance::
 
         builder.metadata.options.resources = {'num_machines': 1}
         builder.metadata.options.max_wallclock_seconds = 1800
+
+In case of LUA calculations, the ``LUA_PATH`` must be defined. To do so::
+
+        builder.metadata.options.environment_variables = {"LUA_PATH":"/flos_path/?.lua;/flos_path/?/init.lua;;;"}
+
+where ``flos_path`` is the path to the flos library repository (in the computer where SIESTA will run). 
+Please note that the explicit path must be used due to a problem of aiida 
+(https://github.com/aiidateam/aiida-core/issues/4836). This means that, for instance, the command
+``export LUA_PATH="$HOME/flos/?.lua;$HOME/flos/?/init.lua;$LUA_PATH;;"`` suggested in the `flos documentation`_ 
+must be substitute with explicit
+path of ``$HOME``.
 
 Optionally, label and description::
 
@@ -369,6 +511,7 @@ To run the calculation in an interactive way::
 
         from aiida.engine import run
         results = run(builder)
+
 Here the results variable will contain a dictionary 
 containing all the nodes that were produced as output.
 
@@ -376,22 +519,28 @@ Another option is to submit it to the daemon::
 
         from aiida.engine import submit
         calc = submit(builder)
+
 In this case, calc is the calculation node and not the results dictionary.
 
 .. note:: In order to inspect the inputs created by AiiDA without 
    actually running the calculation, we can perform a dry run of the submission process::
+
         builder.metadata.dry_run = True
         builder.metadata.store_provenance = False
+
    This will create the input files, that are available for inspection.
 
 .. note:: The use of the builder makes the process more intuitive, but it
    is not mandatory. The inputs can be provided as keywords argument when you 
    launch the calculation, passing the calculation class as the first argument::
+
         run(SiestaCalculation, structure=s, pseudos=pseudos, kpoints = kpoints, ...)
+
    same syntax for the command ``submit``.
 
 A large set of examples covering some standard cases are in the folder 
 `aiida_siesta/examples/plugins/siesta`. They can be run with::
+
         runaiida example_name.py {--send, --dont-send} code@computer
 
 The parameter ``--dont-send`` will activate the "dry run" option. In that case a test
@@ -402,6 +551,7 @@ The second argument contains the name of the code (``code@computer``) to use
 in the calculation. It must be a previously set up code, corresponding to
 a siesta executable.
 
+.. _outputs-siesta-calc:
 
 Outputs
 -------
@@ -417,6 +567,7 @@ accessed with the ``calculation.outputs`` method.
   list, and possibly a timing section.
   Units are specified by means of an extra item with '_units'
   appended to the key::
+
     {
       "siesta:Version": "siesta-4.0.2",
       "E_Fermi": -3.24,
@@ -465,6 +616,7 @@ accessed with the ``calculation.outputs`` method.
 
   Contains the final forces (`eV/Angstrom`) and stresses (`GPa`) in array form.
   To access their values::
+
         forces_and_stress.get_array("forces")
         forces_and_stress.get_array("stress")
   
@@ -492,6 +644,23 @@ accessed with the ``calculation.outputs`` method.
   SystLabel.bands is possible only after the conversion of `Angstrom` to `Bohr`.
   The bands are not rescaled by the Fermi energy. Tools for the generation
   of files that can be easly plot are available through ``bands.export``.
+
+.. |br| raw:: html
+
+    <br />
+
+* **ions**, :py:class:`IonData  <aiida.orm.IonData>`
+
+  Instances of `IonData` can be used as inputs of a ``SiestaCalculation``, meaning ``aiida_siesta``
+  supports the use of pre-packaged information in ".ion" files. However,
+  most of the time, pseudos and basis specifications are given separately for a siesta run, and the basis generation makes use
+  of internal siesta algorithms that translate high-level definitions (basis-sizes, split-norm, ...) into the
+  actual basis orbitals. In these cases siesta produces an ".ion.xml" file
+  for each species in the structure.
+  These files are parsed and stored into `IonData` instances that can be then easily reused in
+  subsequent calculations. From `IonData` instances also the explicit orbitals of the basis can be obtained.
+  One **ions** for each species is created and they will be output with the name ``ions_El`` where
+  ``El`` is the label of the species. 
 
 .. |br| raw:: html
 
@@ -588,3 +757,5 @@ its methods ``get_object`` and ``get_object_content``.
 .. _SeeK-path documentation: https://seekpath.readthedocs.io/en/latest/
 .. _aiida guidelines: https://aiida.readthedocs.io/projects/aiida-core/en/latest/howto/run_codes.html
 .. _HPKOT paper: http://dx.doi.org/10.1016/j.commatsci.2016.10.015
+.. _flos documentation: https://github.com/siesta-project/flos
+.. _aiida-pseudo package: https://github.com/aiidateam/aiida-pseudo

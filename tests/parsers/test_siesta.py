@@ -3,12 +3,12 @@ from aiida import orm
 from aiida.common import AttributeDict
 
 def test_siesta_default(aiida_profile, fixture_localhost, generate_calc_job_node, 
-    generate_parser, generate_structure, data_regression):
+    generate_parser, generate_structure, generate_basis, data_regression):
     """
     Test a parser of a siesta calculation.
     The output is created by running a dead simple SCF calculation for a silicon structure. 
     We test the standard parsing of the XML file stored in the standard results node.
-    No other file (time.json or MESSAGES) is present. Therefore no error check is done,
+    No other file (time.json, MESSAGES, BASIS_ENTHALPY) is present. Therefore no error check is done,
     but the appropriate warnings are issued.
     """
 
@@ -17,9 +17,12 @@ def test_siesta_default(aiida_profile, fixture_localhost, generate_calc_job_node
     entry_point_parser = 'siesta.parser'
 
     structure=generate_structure()
+    basis=generate_basis().get_dict()
+    basis["floating_sites"] = [{"name":'Si_bond',"symbols":'Si',"position": ( 0.125, 0.125, 0.125)}]
 
     inputs = AttributeDict({
-        'structure': structure
+        'structure': structure,
+        'basis' : orm.Dict(dict=basis)
     })
 
     attributes=AttributeDict({'input_filename':'aiida.fdf', 'output_filename':'aiida.out', 'prefix':'aiida'})
@@ -36,11 +39,59 @@ def test_siesta_default(aiida_profile, fixture_localhost, generate_calc_job_node
     assert 'forces_and_stress' in results
     assert 'output_parameters' in results
     assert 'output_structure' in results
+    assert 'ion_files' in results
+    assert 'Si' in results['ion_files']
+    assert 'Si_bond' in results['ion_files']
 
     data_regression.check({
         'forces_and_stress': results['forces_and_stress'].attributes,
         'output_parameters': results['output_parameters'].get_dict()
     })
+
+
+
+def test_siesta_no_ion(aiida_profile, fixture_localhost, generate_calc_job_node, 
+    generate_parser, generate_basis, generate_structure, generate_ion_data, data_regression):
+    """
+    Test a parser of a siesta calculation, but the .ion.xml are not found
+    """
+
+    name = 'no_ion'
+    entry_point_calc_job = 'siesta.siesta'
+    entry_point_parser = 'siesta.parser'
+
+    structure=generate_structure()
+    basis=generate_basis().get_dict()
+    basis["floating_sites"] = [{"name":'Si_bond',"symbols":'Si',"position": ( 0.125, 0.125, 0.125)}]
+
+    inputs = AttributeDict({
+        'structure': structure,
+        'basis' : orm.Dict(dict=basis)
+    })
+
+    attributes=AttributeDict({'input_filename':'aiida.fdf', 'output_filename':'aiida.out', 'prefix':'aiida'})
+
+    node = generate_calc_job_node(entry_point_calc_job, fixture_localhost, name, inputs, attributes)
+    parser = generate_parser(entry_point_parser)
+    results, calcfunction = parser.parse_from_node(node, store_provenance=False)
+
+    assert calcfunction.is_finished
+    assert calcfunction.exception is None
+    assert calcfunction.is_finished_ok
+    assert calcfunction.exit_message is None
+    log = orm.Log.objects.get_logs_for(node)
+    assert len(log) == 3
+    sum_strings = log[0].message + log[1].message + log[2].message
+    assert "no ion file retrieved for Si_bond" in sum_strings
+    assert "no ion file retrieved for Si" in sum_strings
+
+    #However the warning should not be present if ions are in input
+    inputs["ions"] =  {"Si_bond":generate_ion_data("Si")}
+    node = generate_calc_job_node(entry_point_calc_job, fixture_localhost, name, inputs, attributes)
+    parser = generate_parser(entry_point_parser)
+    results, calcfunction = parser.parse_from_node(node, store_provenance=False)
+    log = orm.Log.objects.get_logs_for(node)
+    assert len(log) == 0
 
 
 # As it is implemented now, there is no point to test also the case bandslines as
@@ -49,7 +100,7 @@ def test_siesta_bandspoints(aiida_profile, fixture_localhost, generate_calc_job_
     generate_parser, generate_structure, data_regression):
     """
     Test parsing of bands in a siesta calculation when the bandspoints option is set in the submission file.
-    Also the time.json and MESSAGES file are added, therefore their parsing is tested as well. The MESSAGES
+    Also the time.json, MESSAGES and BASIS_ENTHALPY files are added, therefore their parsing is tested as well. The MESSAGES
     file is the standard containing only "INFO: Job completed". 
     """
 
@@ -211,7 +262,10 @@ def test_siesta_no_geom_conv(aiida_profile, fixture_localhost, generate_calc_job
     assert 'output_parameters' in results
     assert 'output_structure' in results
 
-    data_regression.check({'output_parameters': results['output_parameters'].get_dict()})
+    data_regression.check({
+        'output_structure': results['output_structure'].attributes,
+        'output_parameters': results['output_parameters'].get_dict()
+        })
 
 
 def test_siesta_bands_error(aiida_profile, fixture_localhost, generate_calc_job_node,

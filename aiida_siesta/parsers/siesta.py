@@ -1,7 +1,7 @@
+import os
 import numpy as np
 from aiida.parsers import Parser
 from aiida.orm import Dict
-#from six.moves import range
 from aiida.common import OutputParsingError
 from aiida.common import exceptions
 
@@ -24,6 +24,8 @@ def is_polarization_problem(output_path):
     for line in lines:
         if "POLARIZATION: Iteration to find the polarization" in line:
             return True
+
+    thefile.close()
 
     return False
 
@@ -136,7 +138,11 @@ def is_variable_geometry(xmldoc):
     for item in itemlist:
         # Check there is a step which is a "geometry optimization" one
         if 'dictRef' in list(item.attributes.keys()):
-            if item.attributes['dictRef'].value == "Geom. Optim":
+            ref = item.attributes['dictRef'].value
+            # This is a very simple-minded approach, since
+            # there might be Lua runs which are not properly
+            # geometry optimizations.
+            if ref in ("Geom. Optim", "LUA"):
                 return True
 
     return False
@@ -189,12 +195,20 @@ def get_last_structure(xmldoc, input_structure):
     if finalmodule is None:
         return False, input_structure
 
+    # When using floating sites, Siesta associates 'atomic positions' to them, and
+    # the structure (and forces) in the XML file include these fake atoms.
+    # In order to return physical structures and forces, we need to remove them.
+    # Recall that the input structure is the physical one, as the floating sites
+    # are specified in the 'basis' input
+
+    number_of_real_atoms = len(input_structure.sites)
+
     atoms = finalmodule.getElementsByTagName('atom')
     cellvectors = finalmodule.getElementsByTagName('latticeVector')
 
     atomlist = []
 
-    for atm in atoms:
+    for atm in atoms[0:number_of_real_atoms]:
         kind = atm.attributes['elementType'].value
         x = atm.attributes['x3'].value
         y = atm.attributes['y3'].value
@@ -206,14 +220,26 @@ def get_last_structure(xmldoc, input_structure):
         data = latt.childNodes[0].data.split()
         cell.append([float(s) for s in data])
 
-    # Generally it is better to pass the input structure and reset the data, since site
+    # Generally it is better to clone the input structure and reset the data, since site
     # 'names' are not handled by the CML file (at least not in Siesta versions <= 4.0)
-    stru = input_structure.clone()
-    stru.reset_cell(cell)
-    new_pos = [atom[1] for atom in atomlist]
-    stru.reset_sites_positions(new_pos)
 
-    return True, stru
+    import copy
+    from aiida.orm.nodes.data.structure import Site
+    new_structure = input_structure.clone()
+    new_structure.reset_cell(cell)
+    new_structure.clear_sites()
+    for i in range(number_of_real_atoms):
+        new_site = Site(site=input_structure.sites[i])
+        new_site.position = copy.deepcopy(atomlist[i][1])
+        new_structure.append_site(new_site)
+
+    # The most obvious alternative does not work, as the reset method below does not
+    # work if the numbers do not match.
+    #
+    ## new_pos = [atom[1] for atom in atomlist]
+    ## new_structure.reset_sites_positions(new_pos)
+
+    return True, new_structure
 
 
 def get_final_forces_and_stress(xmldoc):
@@ -274,7 +300,7 @@ class SiestaParser(Parser):
     Parser for the output of Siesta.
     """
 
-    _version = '1.1.1'
+    _version = '1.2.0'
 
     def parse(self, **kwargs):  # noqa: MC0001  - is mccabe too complex funct -
         """
@@ -290,7 +316,7 @@ class SiestaParser(Parser):
         except exceptions.NotExistent:
             raise OutputParsingError("Folder not retrieved")
 
-        output_path, messages_path, xml_path, json_path, bands_path = \
+        output_path, messages_path, xml_path, json_path, bands_path, basis_enthalpy_path = \
             self._fetch_output_files(output_folder)
 
         if xml_path is None:
@@ -314,6 +340,15 @@ class SiestaParser(Parser):
                 output_dict["global_time"] = global_time
                 output_dict["timing_decomposition"] = timing_decomp
 
+        if basis_enthalpy_path is not None:
+            the_file = open(basis_enthalpy_path)
+            bas_enthalpy = float(the_file.read().split()[0])
+            the_file.close()
+            output_dict["basis_enthalpy"] = bas_enthalpy
+            output_dict["basis_enthalpy_units"] = "eV"
+        else:
+            warnings_list.append(["BASIS_ENTHALPY file not retrieved"])
+
         have_errors_to_analyse = False
         if messages_path is None:
             # Perhaps using an old version of Siesta
@@ -329,16 +364,30 @@ class SiestaParser(Parser):
         output_data = Dict(dict=output_dict)
         self.out('output_parameters', output_data)
 
+        #
+        # When using floating sites, Siesta associates 'atomic positions' to them, and
+        # the structure and forces in the XML file include these fake atoms.
+        # In order to return physical structures and forces, we need to remove them.
+        # Recall that the input structure is the physical one, and the floating sites
+        # are specified in the 'basis' input
+        #
+        physical_structure = self.node.inputs.structure
+        number_of_real_atoms = len(physical_structure.sites)
+
         # If the structure has changed, save it
+        #
         if output_dict['variable_geometry']:
             in_struc = self.node.inputs.structure
             # The next function never fails. If problems arise, the initial structure is
             # returned. The input structure is also necessary because the CML file
             # traditionally contains only the atomic symbols and not the site names.
-            success, struc = get_last_structure(xmldoc, in_struc)
+            # The returned structure does not have any floating atoms, they are removed
+            # in the `get_last_structure` call.
+            success, out_struc = get_last_structure(xmldoc, in_struc)
             if not success:
                 self.logger.warning("Problem in parsing final structure, returning inp structure in output_structure")
-            self.out('output_structure', struc)
+
+            self.out('output_structure', out_struc)
 
         # Attempt to parse forces and stresses. In case of failure "None" is returned.
         # Therefore the function never crashes
@@ -346,9 +395,44 @@ class SiestaParser(Parser):
         if forces is not None and stress is not None:
             from aiida.orm import ArrayData
             arraydata = ArrayData()
-            arraydata.set_array('forces', np.array(forces))
+            arraydata.set_array('forces', np.array(forces[0:number_of_real_atoms]))
             arraydata.set_array('stress', np.array(stress))
             self.out('forces_and_stress', arraydata)
+
+        #Attempt to parse the ion files. Files ".ion.xml" are not produced by siesta if ions file are used
+        #in input (`user-basis = T`). This explains the first "if" statement. The SiestaCal input is called
+        #`ions__El` (El is the element label) therefore we look for the str "ions" in any of the inputs name.
+        if not any(["ions" in inp for inp in self.node.inputs]):  #pylint: disable=too-many-nested-blocks
+            from aiida_siesta.data.ion import IonData
+            ions = {}
+            #Ions from the structure
+            in_struc = self.node.inputs.structure
+            for kind in in_struc.get_kind_names():
+                ion_file_name = kind + ".ion.xml"
+                if ion_file_name in output_folder._repository.list_object_names():
+                    ion_file_path = os.path.join(output_folder._repository._get_base_folder().abspath, ion_file_name)
+                    ions[kind] = IonData(ion_file_path)
+                else:
+                    self.logger.warning(f"no ion file retrieved for {kind}")
+            #Ions from floating_sites
+            if "basis" in self.node.inputs:
+                basis_dict = self.node.inputs.basis.get_dict()
+                if "floating_sites" in basis_dict:
+                    floating_kinds = []
+                    for orb in basis_dict["floating_sites"]:
+                        if orb["name"] not in floating_kinds:
+                            floating_kinds.append(orb["name"])
+                            ion_file_name = orb["name"] + ".ion.xml"
+                            if ion_file_name in output_folder._repository.list_object_names():
+                                ion_file_path = os.path.join(
+                                    output_folder._repository._get_base_folder().abspath, ion_file_name
+                                )
+                                ions[orb["name"]] = IonData(ion_file_path)
+                            else:
+                                self.logger.warning(f"no ion file retrieved for {orb['name']}")
+            #Return the outputs
+            if ions:
+                self.out('ion_files', ions)
 
         # Error analysis
         if have_errors_to_analyse:
@@ -388,7 +472,7 @@ class SiestaParser(Parser):
             #for bandskpoints without cell and if structure changed
             bkp = self.node.inputs.bandskpoints.clone()
             if output_dict['variable_geometry']:
-                bkp.set_cell_from_structure(struc)
+                bkp.set_cell_from_structure(out_struc)
             else:
                 bkp.set_cell_from_structure(self.node.inputs.structure)
             arraybands.set_kpointsdata(bkp)
@@ -414,7 +498,6 @@ class SiestaParser(Parser):
         Checks the output folder for standard output and standard error files, returns their absolute paths
         or "None" in case the file is not found in the remote folder.
         """
-        import os
 
         list_of_files = out_folder._repository.list_object_names()
 
@@ -423,6 +506,7 @@ class SiestaParser(Parser):
         xml_path = None
         json_path = None
         bands_path = None
+        basis_enthalpy_path = None
 
         if self.node.get_option('output_filename') in list_of_files:
             oufil = self.node.get_option('output_filename')
@@ -442,11 +526,16 @@ class SiestaParser(Parser):
                 out_folder._repository._get_base_folder().abspath, self.node.process_class._MESSAGES_FILE
             )
 
+        if self.node.process_class._BASIS_ENTHALPY_FILE in list_of_files:
+            basis_enthalpy_path = os.path.join(
+                out_folder._repository._get_base_folder().abspath, self.node.process_class._BASIS_ENTHALPY_FILE
+            )
+
         namebandsfile = str(self.node.get_option('prefix')) + ".bands"
         if namebandsfile in list_of_files:
             bands_path = os.path.join(out_folder._repository._get_base_folder().abspath, namebandsfile)
 
-        return output_path, messages_path, xml_path, json_path, bands_path
+        return output_path, messages_path, xml_path, json_path, bands_path, basis_enthalpy_path
 
     def _get_warnings_from_file(self, messages_path):
         """

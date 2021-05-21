@@ -51,7 +51,7 @@ with support for psml pseudopotential. At least **the MaX-1.0 release of Siesta*
 can be found in the development platform
 (https://gitlab.com/siesta-project/siesta), meets this requirement.
 For more up to date info on compatibility, please check the
-`wiki <https://github.com/albgar/aiida_siesta_plugin/wiki/Supported-siesta-versions>`_.
+`wiki <https://github.com/siesta-project/aiida_siesta_plugin/wiki/Supported-siesta-versions>`_.
 
 
 
@@ -119,7 +119,7 @@ peculiarities of particular elements.
   We are working on a more accurate (and expensive) protocol that will provide much better
   values of delta.
   New tests and checks on the *standard_psml* protocol will be added in the aiida-siesta 
-  `wiki <https://github.com/albgar/aiida_siesta_plugin/wiki/Protocols-validations>`_.
+  `wiki <https://github.com/siesta-project/aiida_siesta_plugin/wiki/Protocols-validations>`_.
 
 
   
@@ -162,15 +162,12 @@ How to use protocols
 In this section we explain how to obtain a pre-filled builder according to a protocol
 and an input structure, that is ready to be submitted (or modified and then submitted).
 
-First of all, the 'nc-sr-04_pbe_standard_psml' set of
-pseudopotentials must be downloaded from `PseudoDojo`_ and stored in the database in a family
-with the same name. From command line::
-     
-      wget http://www.pseudo-dojo.org/pseudos/nc-sr-04_pbe_standard_psml.tgz
-      mkdir nc-sr-04_pbe_standard_psml
-      tar -xf nc-sr-04_pbe_standard_psml.tgz -C nc-sr-04_pbe_standard_psml
-      verdi data psml uploadfamily nc-sr-04_pbe_standard_psml nc-sr-04_pbe_standard_psml "Scalar-relativistic psf standard"
-        
+First of all, the scalar relativistic "standard" pseudo set from `PseudoDojo`_ must be installed
+as aiida family pseudo family::
+       
+        aiida-pseudo install pseudo-dojo -v 0.4 -x PBE -r SR -p standard -f psml
+
+
 ..      wget https://icmab.es/leem/SIESTA_MATERIAL/tmp_PseudoDojo/nc-sr-04_pbe_standard-psf.tgz
         tar -xf nc-sr-04_pbe_standard-psf.tgz
         verdi data psf uploadfamily nc-sr-04_pbe_standard-psf nc-sr-04_pbe_stringent-psf "Scalar-relativistic psf stringent"

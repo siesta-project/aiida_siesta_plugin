@@ -1,7 +1,7 @@
 {
-    "version": "1.1.1",
+    "version": "1.2.0",
     "name": "aiida-siesta",
-    "url": "https://github.com/albgar/aiida_siesta_plugin",
+    "url": "https://github.com/siesta-project/aiida_siesta_plugin",
     "keywords": ["aiida", "siesta", "dft"],
     "license": "MIT License",
     "author": "Alberto Garcia, Victor M. Garcia-Suarez, Emanuele Bosoni, Vladimir Dikan, Pol Febrer",
@@ -9,26 +9,29 @@
     "description": "A plugin for Siesta's basic functionality within the AiiDA framework.",
     "classifiers": [
         "License :: OSI Approved :: MIT License",
-	"Programming Language :: Python :: 3.6",
 	"Programming Language :: Python :: 3.7",
 	"Programming Language :: Python :: 3.8",
+	"Programming Language :: Python :: 3.9",
 	"Development Status :: 5 - Production/Stable",
 	"Framework :: AiiDA"
     ],
     "install_requires": [
+	"plumpy>=0.15.0",
 	"aiida_core>=1.3.0,<2.0.0",
+	"aiida-pseudo>=0.6.2",
 	"ase~=3.18",
-	"seekpath~=1.9,>=1.9.3"
+	"seekpath~=1.9,>=1.9.3",
+	"sisl",
+	"sqlalchemy<1.4"
     ],
     "extras_require": {
 	"dev": [
-            "pre-commit==2.3.0",
-            "prospector==1.2.0",
-	    "yapf==0.28.0",
-            "pylint==2.4.4",
-            "pgtest==1.3.1",
-            "pytest==5.4.1",
-            "pytest-regressions==1.0.6"
+            "pre-commit~=2.3",
+            "prospector~=1.3",
+            "pylint~=2.5",
+            "pgtest~=1.3,>=1.3.1",
+            "pytest~=6.0",
+            "pytest-regressions~=1.0"
         ],
         "docs": [
             "Sphinx",
@@ -57,7 +60,8 @@
         ],
         "aiida.data": [
             "siesta.psf = aiida_siesta.data.psf:PsfData",
-            "siesta.psml = aiida_siesta.data.psml:PsmlData"
+            "siesta.psml = aiida_siesta.data.psml:PsmlData",
+	    "siesta.ion = aiida_siesta.data.ion:IonData"
         ],
         "aiida.cmdline.data": [
             "psf = aiida_siesta.commands.data_psf:psfdata",
@@ -66,6 +70,9 @@
 	"aiida.groups": [
       	    "data.psf.family = aiida_siesta.groups.pseudos:PsfFamily",
             "data.psml.family = aiida_siesta.groups.pseudos:PsmlFamily"
-    	]
+    	],
+	"aiida.tools.data.orbitals": [
+	    "siesta.atomic_orbital = aiida_siesta.data.atomic_orbitals:SislAtomicOrbital"
+	]
     }
 }
