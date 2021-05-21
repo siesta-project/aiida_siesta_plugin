@@ -29,7 +29,14 @@ def extract_pao_block(**ions):
         card += pao_mod.get_pao_block() + "\n"
 
     card += "%endblock pao-basis"
-    basis = orm.Dict(dict={"%block pao-basis": card})
+    basis = orm.Dict(
+        dict={
+            "%block pao-basis": card,
+            "reparametrize-pseudos": True,
+            "restricted-radial-grid": False,
+            "pao-split-tail-norm": True
+        }
+    )
 
     simpl = orm.Dict(dict=variables)
 
@@ -87,11 +94,8 @@ class BasisOptimizationWorkChain(WorkChain):
                 basis_enthalpy = calc.outputs.output_parameters["basis_enthalpy"]
                 good_calc = calc
 
-        ions = {}
-        for name in good_calc.outputs:
-            if "ion_files" in name:
-                output = good_calc.get_outgoing(link_label_filter=name).one().node
-                ions[name.replace("ion_files__", "")] = output
+        if "ion_files" in good_calc.get_outgoing().nested():
+            ions = good_calc.get_outgoing().nested()["ion_files"]
 
         pao_opt_all = extract_pao_block(**ions)
 

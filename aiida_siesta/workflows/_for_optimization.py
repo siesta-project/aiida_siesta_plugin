@@ -89,7 +89,8 @@ class ForBasisOptWorkChain(WorkChain):
         basis_dict = inputs["basis"].get_dict()
         for key in basis_dict.keys():
             for index, num in enumerate(self.ctx.vals):
-                basis_dict[key] = basis_dict[key].replace("$" + str(self.ctx.names[index]), str(num))
+                if isinstance(basis_dict[key], str):  #Otherwise fail if number or bool
+                    basis_dict[key] = basis_dict[key].replace("$" + str(self.ctx.names[index]), str(num))
 
         self.ctx.inputs = inputs
         self.ctx.inputs['basis'] = orm.Dict(dict=basis_dict)
