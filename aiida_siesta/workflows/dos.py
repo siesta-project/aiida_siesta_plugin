@@ -2,7 +2,7 @@ from aiida import orm
 from aiida.engine import WorkChain, calcfunction, ToContext, if_
 from aiida.common import AttributeDict
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
-from aiida_siesta.calculations.tkdict import FDFDict
+from aiida_siesta.utils.tkdict import FDFDict
 from aiida_siesta.data.eig import EigData
 from aiida_siesta.data.pdos import PdosData
 
