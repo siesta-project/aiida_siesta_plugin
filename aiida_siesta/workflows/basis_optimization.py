@@ -12,7 +12,7 @@ def extract_pao_block(**ions):
     ang_to_bohr = 1.8897161646321
     variables = {}
     card = "\n"
-    for ion_name, ion in ions.items():
+    for ion_name, ion in ions.items():  #pylint: disable=too-many-nested-blocks
         pao_mod = ion.get_pao_modifier()
         for n in pao_mod._gen_dict:  #pylint: disable=invalid-name
             for l in pao_mod._gen_dict[n]:  # noqa
@@ -20,10 +20,12 @@ def extract_pao_block(**ions):
                 for z in pao_mod._gen_dict[n][l]:
                     string = ion_name + str(n) + str(l) + str(z)
                     if z == 1:
-                        variables[string] = [1.5, 10, round(pao_mod._gen_dict[n][l][z] * ang_to_bohr, 6)]
+                        variables[string] = [1.5, 12, round(pao_mod._gen_dict[n][l][z] * ang_to_bohr, 6)]
                         pao_mod._gen_dict[n][l][z] = "$" + string
                     else:
                         init_fac = round(pao_mod._gen_dict[n][l][z] / save_z1, 6)
+                        if init_fac >= 0.95:
+                            init_fac = 0.94
                         variables[string] = [0.1, 0.95, init_fac]
                         pao_mod._gen_dict[n][l][z] = "-$" + string
         card += pao_mod.get_pao_block() + "\n"
@@ -55,6 +57,7 @@ class BasisOptimizationWorkChain(WorkChain):
             SimplexBasisOptimization, exclude=('metadata', 'simplex.variables_dict', 'siesta_base.basis')
         )
         spec.input('basis_sizes', valid_type=orm.List, default=lambda: orm.List(list=["DZ", "DZP", "TZ"]))
+        spec.input('non_perturbative_pol', valid_type=orm.Bool, default=lambda: orm.Bool(False))
         spec.output('optimal_basis_block', valid_type=orm.Dict)
         spec.outline(
             cls.run_sizes,
@@ -62,13 +65,15 @@ class BasisOptimizationWorkChain(WorkChain):
             cls.run_results,
         )
         spec.exit_code(200, 'ERROR_SIZES_RUN', message='The SiestaIterator running pao sizes failed')
-        spec.exit_code(201, 'ERROR_FINAL_WC', message='The SiestaBaseWorkChain to obtain the bands failed')
+        spec.exit_code(201, 'ERROR_OPT', message='The basis optimization failed, probably not sufficient steps')
 
     def run_sizes(self):
         """
         Run the iterator trying different basis sizes
         """
         siesta_inputs = self.exposed_inputs(SimplexBasisOptimization).siesta_base
+        if self.inputs.non_perturbative_pol.value:
+            siesta_inputs["basis"] = orm.Dict(dict={"pao-non-perturbative-polarization-orbitals": True})
         sizes_list = self.inputs.basis_sizes.get_list()
         run_sizes = self.submit(
             SiestaIterator,
@@ -116,7 +121,7 @@ class BasisOptimizationWorkChain(WorkChain):
         Extract outputs
         """
         if not self.ctx.simplex_run.is_finished_ok:
-            return self.exit_codes.ERROR_FINAL_WC
+            return self.exit_codes.ERROR_OPT
 
         self.report("Concluded SimplexBasisOptimization succesfully, returning outputs.")
 

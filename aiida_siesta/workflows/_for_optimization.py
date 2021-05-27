@@ -60,7 +60,6 @@ class ForBasisOptWorkChain(WorkChain):
             cls.prepare_inputs,
             cls.run_siesta_wc,
         ), cls.run_results)
-        spec.exit_code(200, 'ERROR_WC', message='The SiestaBaseWorkChain failed')
 
     def should_run_wc(self):
         """
@@ -115,11 +114,8 @@ class ForBasisOptWorkChain(WorkChain):
             if not self.ctx.workchain_base.is_finished_ok:
                 extract_ene = extract(orm.Str("none"))
                 self.out("ene", extract_ene)
-                return self.exit_codes.ERROR_WC
             extract_ene = extract(self.ctx.workchain_base.outputs["output_parameters"])
         else:
             extract_ene = extract(orm.Str("none"))
 
         self.out("ene", extract_ene)
-
-        return None
