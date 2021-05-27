@@ -8,7 +8,7 @@ import sys
 from aiida.engine import submit
 from aiida.orm import load_code, load_node
 from aiida.orm import (List, Dict, StructureData, KpointsData, Int, Float)
-from aiida_siesta.data.psf import PsfData
+from aiida_pseudo.data.pseudo.psf import PsfData
 from aiida_siesta.workflows.simplex_basis import SimplexBasisOptimization
 from aiida_siesta.workflows.basis_optimization import BasisOptimizationWorkChain
 
@@ -56,8 +56,6 @@ parameters = Dict(
         'scf-mixer-history': 5,
         'scf-mixer-weight': 0.1,
         'scf-dm-tolerance': 1.e-5,
-        'md-max-force-tol': '0.005 eV/Ang',
-        'md-max-stress-tol': '0.7 GPa',
         'solution-method': 'diagon',
         'electronic-temperature': '25 meV',
         'write-forces': True,
@@ -84,16 +82,14 @@ options = Dict(
 pseudos_dict = {}
 raw_pseudos = [("Si.psf", ['Si'])]
 for fname, kinds in raw_pseudos:
-    absname = op.realpath(
-        op.join(op.dirname(__file__),
-                "../plugins/siesta/data/sample-psf-family", fname))
-    pseudo, created = PsfData.get_or_create(absname, use_first=True)
-    if created:
+    absname = op.realpath(op.join(op.dirname(__file__), "../fixtures/sample_psf", fname))
+    pseudo = PsfData.get_or_create(absname)
+    if not pseudo.is_stored:
         print("\nCreated the pseudo for {}".format(kinds))
     else:
         print("\nUsing the pseudo for {} from DB: {}".format(kinds, pseudo.pk))
     for j in kinds:
-        pseudos_dict[j] = pseudo
+        pseudos_dict[j]=pseudo
 
 
 #The submission
@@ -106,8 +102,8 @@ inputs = {
         'pseudos': pseudos_dict,
         'options': options
         },
-    #'simplex': {
-    #    },
+    'simplex': {"max_iters" : Int(41), "tolerance_function": Float(0.1)},
+    'non_perturbative_pol': Bool(True)
     }
 
 process = submit(BasisOptimizationWorkChain, **inputs)
