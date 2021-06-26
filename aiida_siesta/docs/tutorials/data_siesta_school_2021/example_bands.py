@@ -12,7 +12,7 @@ from aiida.orm import load_code
 from aiida.orm import (Dict, StructureData, KpointsData)
 from aiida_siesta.calculations.siesta import SiestaCalculation
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
-from aiida_siesta.data.psf import get_pseudos_from_structure
+from aiida.orm import Group
 from aiida.tools import get_explicit_kpoints_path
 
 try:
@@ -31,7 +31,7 @@ except IndexError:
 
 
 #The code
-codename = 'siesta-school--Max-1.3.0-1@localhost'
+codename = 'siesta-school--MaX-1.3.0-1@localhost'
 code = load_code(codename)
 
 #Structure
@@ -82,7 +82,8 @@ bandskpoints = KpointsData()
 bandskpoints = result['explicit_kpoints']
 
 #The pseudopotentials
-pseudos_dict = get_pseudos_from_structure(structure, 'nc-sr-04_pbe_standard-psf')
+family = Group.get(label='PseudoDojo/0.4/PBE/SR/standard/psml')
+pseudos_dict = family.get_pseudos(structure=structure)
 
 #Resources
 options = {
