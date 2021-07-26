@@ -44,7 +44,7 @@ class SimplexBasisOptimization(WorkChain):
         spec.input('simplex.initial_step_fraction', valid_type=orm.Float, default=lambda: orm.Float(0.4))
         #spec.input('simplex.full_simplex', valid_type=orm.List, required=False)
         spec.output('last_simplex', valid_type=orm.List, required=True)
-        spec.expose_outputs(OptimizationWorkChain)
+        spec.expose_outputs(OptimizationWorkChain, exclude="engine_outputs")
         spec.outline(
             cls.preprocess,
             cls.run_optimizer,
