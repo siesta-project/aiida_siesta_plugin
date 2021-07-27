@@ -13,7 +13,7 @@ from aiida.plugins import DataFactory
 
 ################################################################
 
-PsfData = DataFactory('siesta.psf')
+PsfData = DataFactory('pseudo.psf')
 KpointsData = DataFactory('array.kpoints')
 StructureData = DataFactory('structure')
 Dict = DataFactory('dict')
@@ -131,10 +131,9 @@ kpoints.set_kpoints_mesh([kpoints_mesh, kpoints_mesh, kpoints_mesh])
 pseudos_dict = {}
 raw_pseudos = [("Si.psf", ['Si'])]
 for fname, kinds in raw_pseudos:
-    absname = op.realpath(
-        op.join(op.dirname(__file__), "data/sample-psf-family", fname))
-    pseudo, created = PsfData.get_or_create(absname, use_first=True)
-    if created:
+    absname = op.realpath(op.join(op.dirname(__file__), "../../fixtures/sample_psf", fname))
+    pseudo = PsfData.get_or_create(absname)
+    if not pseudo.is_stored:
         print("\nCreated the pseudo for {}".format(kinds))
     else:
         print("\nUsing the pseudo for {} from DB: {}".format(kinds, pseudo.pk))

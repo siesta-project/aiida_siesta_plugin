@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from aiida_siesta.calculations.tkdict import FDFDict
+from aiida_siesta.utils.tkdict import FDFDict
 
 
 def test_fdfdict_wrong_argument():

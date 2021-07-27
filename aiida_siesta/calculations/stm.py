@@ -1,30 +1,49 @@
 import os
 from aiida import orm
-from aiida.common import CalcInfo, CodeInfo, InputValidationError
+from aiida.common import CalcInfo, CodeInfo
 from aiida.engine import CalcJob
 from aiida.orm import Dict, ArrayData
 
 # See the LICENSE.txt and AUTHORS.txt files.
 
 
+def validate_mode(value, _):
+    """
+    Validate mode input port.
+    """
+    if value:
+        allowedmodes = ["constant-height", "constant-current"]
+        if value.value not in allowedmodes:
+            return f"The allowed options for the port 'mode' are {allowedmodes}."
+
+
+def validate_spin(value, _):
+    """
+    Validate spin_option input port.
+    """
+    if value:
+        allowedspins = ["q", "s", "x", "y", "z"]
+        if value.value not in allowedspins:
+            return f"The allowed options for the port 'spin_option' are {allowedspins}."
+
+
 class STMCalculation(CalcJob):
     """
-    Plugin for the "plstm" program in the Siesta distribution, which
-    takes and .LDOS or .RHO file and generates a plot file to simulate
-    an STM image.
+    Plugin for the "plstm" program in the Siesta distribution, which takes the .LDOS file and
+    generates a plot file to simulate an STM image.
+    It supports both the old "plstm" versions (inputs in a files) and the new ones (inputs in the command
+    line). Spin options are supported only in recent "plstm" versions, therefore ignored otherwise.
     """
-
-    _OUTPUT_SUBFOLDER = './'
 
     # Default input and output files
     _DEFAULT_INPUT_FILE = 'stm.in'
     _DEFAULT_OUTPUT_FILE = 'stm.out'
 
     # in restarts, it will copy from the parent the following
-    _restart_copy_from = os.path.join(_OUTPUT_SUBFOLDER, '*.LDOS')
+    _restart_copy_from = os.path.join('./', '*.LDOS')
 
     # in restarts, it will copy the previous folder in the following one
-    _restart_copy_to = _OUTPUT_SUBFOLDER
+    _restart_copy_to = './'
 
     @classmethod
     def define(cls, spec):
@@ -36,11 +55,15 @@ class STMCalculation(CalcJob):
             'spin_option',
             valid_type=orm.Str,
             default=lambda: orm.Str("q"),
-            help='Spin option, follows plstm sintax: '
-            '"q" no spin, "s" total spin, "x","y","z" the three '
-            'spin components (only available in non-collinear case)'
+            help='Spin option follows plstm sintax: "q" no spin, "s" total spin, "x","y","z" the three spin components',
+            validator=validate_spin
         )
-        spec.input('mode', valid_type=orm.Str, help='Allowed values are "constant-height" or "constant-current"')
+        spec.input(
+            'mode',
+            valid_type=orm.Str,
+            help='Allowed values are "constant-height" or "constant-current"',
+            validator=validate_mode
+        )
         spec.input('value', valid_type=orm.Float, help='Value of height in Ang or value of current in e/bohr**3')
         spec.input('ldos_folder', valid_type=orm.RemoteData, required=True, help='Parent folder')
 
@@ -55,7 +78,7 @@ class STMCalculation(CalcJob):
             'output_parameters',
             valid_type=Dict,
             required=True,
-            help='Other outputs, for the moment only parser version and name of .STM file'
+            help='For the moment only parser version and name of .STM file'
         )
 
         # exit codes
@@ -76,31 +99,23 @@ class STMCalculation(CalcJob):
 
         code = self.inputs.code
         ldos_folder = self.inputs.ldos_folder
-
-        allowedmodes = ["constant-height", "constant-current"]
-        mode = self.inputs.mode
-        if mode.value not in allowedmodes:
-            raise ValueError("The allowed options for the port 'mode' are {}".format(allowedmodes))
-
         value = self.inputs.value
         spin_option = self.inputs.spin_option
+        mode = self.inputs.mode
 
+        # As internal convention, the keys of the settings dict are uppercase
         if 'settings' in self.inputs:
             settings = self.inputs.settings.get_dict()
-            settings_dict = _uppercase_dict(settings, dict_name='settings')
+            settings_dict = {str(k).upper(): v for (k, v) in settings.items()}
         else:
             settings_dict = {}
-
-        # List of the files to copy in the folder where the calculation
-        # runs, for instance pseudo files
-        local_copy_list = []
 
         # List of files for restart
         remote_copy_list = []
 
-        # ============== Creation of input file =========================
-        #Input file is only necessary for the old versions of plstm
-        #For the new versions, all is done through command line (next section)
+        # ======================== Creation of input file =========================
+        # Input file is only necessary for the old versions of plstm.
+        # For the new versions, all is done through command line (next section).
 
         # To have easy access to inputs metadata options
         metadataoption = self.inputs.metadata.options
@@ -122,19 +137,18 @@ class STMCalculation(CalcJob):
         else:
             vvalue = value.value
         with open(input_filename, 'w') as infile:
-            infile.write("{}\n".format(prefix))
+            infile.write(f"{prefix}\n")
             infile.write("ldos\n")
-            infile.write("{}\n".format(mode.value))
-            infile.write("{0:.5f}\n".format(vvalue))
+            infile.write(f"{mode.value}\n")
+            infile.write(f"{vvalue:.5f}\n")
             infile.write("unformatted\n")
 
-        # ====================== Code and Calc info ========================
-        # Code information object and Calc information object are now
-        # only used to set up the CMDLINE (the bash line that launches siesta)
-        # and to set up the list of files to retrieve.
-        # The presence of a 'ldos_folder' is mandatory, to get the LDOS file
-        # as indicated in the self._restart_copy_from attribute.
-        # (this is not technically a restart, though)
+        # ============================== Code and Calc info ===============================
+        # Code information object is used to set up the the bash line that launches siesta
+        # (CMDLINE and input output files).
+        # Calc information object is to set up thee list of files to retrieve.
+        # The presence of a 'ldos_folder' is mandatory, to get the LDOS file as indicated in
+        # the self._restart_copy_from attribute. (this is not technically a restart, though)
 
         # It will be copied to the current calculation's working folder.
         remote_copy_list.append((
@@ -163,18 +177,11 @@ class STMCalculation(CalcJob):
         # Calc information object. Important for files to copy, retrieve, etc
         calcinfo = CalcInfo()
         calcinfo.uuid = str(self.uuid)
-        calcinfo.local_copy_list = local_copy_list
+        calcinfo.local_copy_list = []  #No local files to copy (no pseudo for instance)
         calcinfo.remote_copy_list = remote_copy_list
         calcinfo.codes_info = [codeinfo]
-        #Next three are useless in my opinion, as they can be access
-        #through calcinfo.codes_info and not used interally by AiiDA
-        if cmdline_params:
-            calcinfo.cmdline_params = list(cmdline_params)
-        calcinfo.stdin_name = metadataoption.input_filename
-        calcinfo.stdout_name = metadataoption.output_filename
-        # Retrieve by default: the output file and the plot file,
-        # Some logic to understand which is the plot file will be in
-        # parser, here we put to retrieve every file ending in *CH.STM
+        # Retrieve by default: the output file and the plot file. Some logic to understand which
+        # is the plot file will be in parser, here we put to retrieve every file ending in *.STM
         calcinfo.retrieve_list = []
         calcinfo.retrieve_list.append(metadataoption.output_filename)
         calcinfo.retrieve_list.append("*.STM")
@@ -183,24 +190,3 @@ class STMCalculation(CalcJob):
         calcinfo.retrieve_list += settings_retrieve_list
 
         return calcinfo
-
-
-def _uppercase_dict(indic, dict_name):
-    from collections import Counter
-
-    if not isinstance(indic, dict):
-        raise TypeError("_uppercase_dict accepts only dictionaries as argument")
-
-    new_dict = dict((str(k).upper(), v) for k, v in indic.items())
-
-    if len(new_dict) != len(indic):
-        num_items = Counter(str(k).upper() for k in indic.keys())
-        double_keys = ",".join([k for k, v in num_items if v > 1])
-        raise InputValidationError(
-            "Inside the dictionary '{}' there are the following keys that "
-            "are repeated more than once when compared case-insensitively: "
-            "{}."
-            "This is not allowed.".format(dict_name, double_keys)
-        )
-
-    return new_dict

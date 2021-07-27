@@ -14,7 +14,7 @@ output_parameters:
   - 36
   nnz: 19594
   no_u: 26
-  parser_info: AiiDA Siesta Parser V. Dev-post1.1.1
+  parser_info: AiiDA Siesta Parser V. 1.2.dev1
   siesta:Arch: qmobile
   siesta:Flags: mpif90 -O2 -g
   siesta:Mode: Parallel
@@ -38,5 +38,44 @@ output_parameters:
     state_init: 0.267
   variable_geometry: true
   warnings:
+  - - BASIS_ENTHALPY file not retrieved
   - - 'FATAL: GEOM_NOT_CONV: Geometry relaxation not converged'
     - 'FATAL: ABNORMAL_TERMINATION'
+output_structure:
+  cell:
+  - - 2.719
+    - 2.716
+    - 0.0
+  - - 0.0
+    - 2.715
+    - 2.715
+  - - 2.715
+    - 0.0
+    - 2.715
+  kinds:
+  - mass: 28.0855
+    name: Si
+    symbols:
+    - Si
+    weights:
+    - 1.0
+  - mass: 28.0855
+    name: SiDiff
+    symbols:
+    - Si
+    weights:
+    - 1.0
+  pbc1: true
+  pbc2: true
+  pbc3: true
+  sites:
+  - kind_name: Si
+    position:
+    - -0.00022938
+    - -4.44e-05
+    - -7.861e-05
+  - kind_name: SiDiff
+    position:
+    - 1.3589545
+    - 1.35794619
+    - 1.3573289
