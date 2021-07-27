@@ -7,7 +7,7 @@ import sys
 #AiiDA classes and functions
 from aiida.engine import submit
 from aiida.orm import load_code, load_node
-from aiida.orm import (List, Dict, StructureData, KpointsData, Int, Float)
+from aiida.orm import (Str, List, Dict, StructureData, KpointsData, Int, Float)
 from aiida_pseudo.data.pseudo.psf import PsfData
 from aiida_siesta.workflows.simplex_basis import SimplexBasisOptimization
 from aiida_siesta.workflows.two_steps_optimization import TwoStepsBasisOpt
@@ -109,6 +109,7 @@ inputs = {
         },
     'simplex': {
      #   'max_iters': Int(4),
+        'output_name': Str("basis_enthalpy"),
         'variables_dict': Dict(dict={
             "sz2":[2.0,4.8,3.0],
             "pz2":[2.0,6.0,3.0]

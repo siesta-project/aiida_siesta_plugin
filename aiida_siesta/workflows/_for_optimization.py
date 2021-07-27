@@ -25,7 +25,7 @@ def validator_basis_opt(value, _):
 
 
 @calcfunction
-def extract(out_par):
+def extract(out_par, out_name):
     """
     Extract the basis_enthalpy from the output of a SiestaBaseWorkChain if
     a Dict is passes. If a Str is passed instead, this means that the
@@ -34,7 +34,7 @@ def extract(out_par):
     """
     if isinstance(out_par, orm.Str):
         return orm.Float(0.0)
-    return orm.Float(out_par["basis_enthalpy"])
+    return orm.Float(out_par[out_name.value])
 
 
 class ForBasisOptWorkChain(WorkChain):
@@ -52,6 +52,7 @@ class ForBasisOptWorkChain(WorkChain):
         spec.input('the_names', valid_type=orm.List)
         spec.input('upper_bounds', valid_type=orm.List)
         spec.input('lower_bounds', valid_type=orm.List)
+        spec.input('out_name', valid_type=orm.Str)
         spec.output("ene", valid_type=orm.Float)
 
         spec.inputs["siesta_base"]["basis"].validator = validator_basis_opt
@@ -112,10 +113,10 @@ class ForBasisOptWorkChain(WorkChain):
         """
         if self.should_run_wc():
             if not self.ctx.workchain_base.is_finished_ok:
-                extract_ene = extract(orm.Str("none"))
+                extract_ene = extract(orm.Str("none"), self.inputs.out_name)
                 self.out("ene", extract_ene)
-            extract_ene = extract(self.ctx.workchain_base.outputs["output_parameters"])
+            extract_ene = extract(self.ctx.workchain_base.outputs["output_parameters"], self.inputs.out_name)
         else:
-            extract_ene = extract(orm.Str("none"))
+            extract_ene = extract(orm.Str("none"), self.inputs.out_name)
 
         self.out("ene", extract_ene)

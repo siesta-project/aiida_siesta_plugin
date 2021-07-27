@@ -35,13 +35,15 @@ class SimplexBasisOptimization(WorkChain):
     def define(cls, spec):
         super().define(spec)
         spec.expose_inputs(
-            ForBasisOptWorkChain, exclude=('metadata', 'the_values', 'the_names', 'upper_bounds', 'lower_bounds')
+            ForBasisOptWorkChain,
+            exclude=('metadata', 'the_values', 'the_names', 'upper_bounds', 'lower_bounds', 'out_name')
         )
         spec.input_namespace("simplex")
         spec.input('simplex.variables_dict', valid_type=orm.Dict, validator=validate_variables_dict)
         spec.input('simplex.max_iters', valid_type=orm.Int, default=lambda: orm.Int(40))
         spec.input('simplex.tolerance_function', valid_type=orm.Float, default=lambda: orm.Float(0.01))
         spec.input('simplex.initial_step_fraction', valid_type=orm.Float, default=lambda: orm.Float(0.4))
+        spec.input('simplex.output_name', valid_type=orm.Str, default=lambda: orm.Str("basis_enthalpy"))
         #spec.input('simplex.full_simplex', valid_type=orm.List, required=False)
         spec.output('last_simplex', valid_type=orm.List, required=True)
         spec.expose_outputs(OptimizationWorkChain, exclude="engine_outputs")
@@ -126,6 +128,7 @@ class SimplexBasisOptimization(WorkChain):
                 "upper_bounds": orm.List(list=self.ctx.upper),
                 "lower_bounds": orm.List(list=self.ctx.lower),
                 "the_names": orm.List(list=self.ctx.names),
+                "out_name": self.inputs.simplex.output_name,
                 "siesta_base": {
                     **siesta_base
                 }

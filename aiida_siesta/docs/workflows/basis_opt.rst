@@ -7,7 +7,7 @@ Description
 The AiiDA-siesta package offers three workchains to help users in selecting the optimal
 basis set for a given system:
 
-1) The **SimplexBasisOptimization** that finds the minimum basis enthalpy varying a set of input variables (typically 
+1) The **SimplexBasisOptimization** that finds the minimum of a quantity (typically the basis enthalpy)  varying a set of input variables (typically 
 cutoff radii of orbitals) using the Nelder–Mead (simplex / amoeba) method.
 2) The **TwoStepsBasisOpt** that performs a two level optimization, running simplex iterations followed by periodic 
 restarts with new simplex hyper-tetrahedra of progressively smaller sizes. This replicates more closely the
@@ -40,13 +40,16 @@ A simplex is a special polytope of N+1 vertices in N dimensions
 Nelder–Mead methods in N dimensions starts from a set of N+1 test points arranged as a simplex. 
 The value of the function is calculated at each test point and these values are then used
 in order to find a new test point and 
-to replace one of the old test points with the new one. Repeating the procedure, the technique progresses
-until all the N+1 test points produce a value within a threshold. When this happens the minimum has been reached.
-In the context of the basis optimization the function is the basis enthalpy and the variable
-are the parameters defining the basis (typically cutoff radii of the basis orbitals).
+to replace one of the old test points with the new one in case it returns a smaller value
+for the function under investigation. Repeating the procedure, the technique progresses
+until all the N+1 test points produce values that are all within a threshold. When this happens the minimum has been reached.
+In the context of the basis optimization the function is usually the basis enthalpy (but also other quantities are supported) 
+and the variable are the parameters defining the basis (typically cutoff radii of the basis orbitals).
 
 The simplex optimization is performed taking advantage of the ``aiida-optimize`` package (link), in particular the
 Nelder–Mead method implemented in that package.
+
+An example of the use of **SimplexBasisOptimization** is in `/aiida_siesta/examples/workflows/example_simplex.py`
 
 Inputs
 ******
@@ -133,6 +136,16 @@ Inputs are organized in two namespaces and are described in the following:
   threshold convergence has not been reached.
   Default is ``Int(40)``.
 
+.. |br| raw:: html
+
+    <br />
+
+* **simplex.output_name** class :py:class:`Str <aiida.orm.Str>`, *Optional*
+  
+  The name of the output that needs to be minimized. In principle all the numerical values returned
+  in the "output_parameters" of a **SiestaBaseWorkChain** are accepted, but typically the "basis_entalpy"
+  or the "harris_energy" are of interest. Defalut is ``Str("basis_entalpy")``
+     
 .. |br| raw:: html
 
     <br />
