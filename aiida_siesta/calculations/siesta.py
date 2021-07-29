@@ -47,6 +47,20 @@ def internal_structure(structure, basis_dict=None):
     return tweaked
 
 
+def validate_optical(value, _):
+    """
+    Validate the optical input.
+    """
+    if value:
+        input_params = FDFDict(value.get_dict())
+        if "opticalpolarizationtype" in input_params:
+            if input_params["opticalpolarizationtype"] in ["polarized", "unpolarized"]:
+                if "%block opticalvector" not in input_params:
+                    return "An optical vector must be specified for `polarized` and `unpolarized` polarization types"
+        if "%block opticalmesh" not in input_params:
+            return "An optical-mesh block must always be defined. For molecules set to [1 1 1]"
+
+
 def validate_pseudos(value, _):
     """
     Only used to throw deprecation warnings. Can be deleted in v2.0.0
@@ -107,7 +121,13 @@ def validate_parameters(value, _):
         input_params = FDFDict(value.get_dict())
         for key in input_params:
             if "pao" in key:
-                return "you can't have PAO options in the parameters input port, they belong to the basis input port."
+                return "you can't have PAO options in the parameters input port, they belong to the `basis` input port."
+            if "optical" in key:
+                message = (
+                    "you can't have optical options in the parameters input port, " +
+                    "they belong to the `optical` input port."
+                )
+                return message
             if key in SiestaCalculation._aiida_blocked_keywords:
                 message = (
                     f"you can't specify explicitly the '{input_params.get_last_untranslated_key(key)}' flag " +
@@ -246,7 +266,6 @@ class SiestaCalculation(CalcJob):
         'user-basis',
         'lua-script',
         'max-walltime',
-        'optical-calculation',
     ]
     _aiida_blocked_keywords = [FDFDict.translate_key(key) for key in _readable_blocked]
 
@@ -256,7 +275,13 @@ class SiestaCalculation(CalcJob):
 
         # Input nodes
         spec.input('code', valid_type=orm.Code, help='Input code')
-        spec.input('optical', valid_type=orm.Dict, help='Specifications for optical properties', required=False)
+        spec.input(
+            'optical',
+            valid_type=orm.Dict,
+            help='Specifications for optical properties',
+            required=False,
+            validator=validate_optical
+        )
         spec.input('structure', valid_type=orm.StructureData, help='Input structure', validator=validate_structure)
         spec.input(
             'kpoints', valid_type=orm.KpointsData, help='Input kpoints', required=False, validator=validate_kpoints
@@ -573,6 +598,20 @@ class SiestaCalculation(CalcJob):
                 fbkpoints_card += "%endblock BandLines\n"
             del bandskpoints_card_list
 
+        # ------------------------------------ OPTICAL-KEYS ----------------------------------
+        # Optical properties info. Again, this is just given in a standard dictionary,
+        # but we make sure that the option is turned on.
+        if optical is not None:
+            optical_dict = FDFDict(optical.get_dict())
+            optical_dict.update({'opticalcalculation': True})
+            #if '%block opticalmesh' not in optical_dict:
+            #    if kpoints is not None:
+            #        mesh, offset = kpoints.get_kpoints_mesh()
+            #        optical_dic["%block optical-mesh"] =
+            #    "{0:6} {1:6} {2:6}\n %endblock optical-mesh".format(mesh[0], mesh[1], mesh[2]))
+            #    else:
+            #       optical_dic["%block optical-mesh"] = "1 1 1\n %endblock optical-mesh"
+
         # ================================= Operations for restart =================================
         # The presence of a 'parent_calc_folder' input node signals that we want to
         # get something from there, as indicated in the self._restart_copy_from attribute.
@@ -605,34 +644,11 @@ class SiestaCalculation(CalcJob):
                 infile.write("#\n# -- Basis Set Info follows\n#\n")
                 for k, v in basis_dict.items():
                     infile.write("%s %s\n" % (k, v))
-            # Optical properties info. Again, this is just given in a standard
-            # dictionary, but we make sure that the option is turned on, and
-            # that we have a direction vector.
-            # For now, only 'polarized' calculations are allowed
-            # The k-point sampling is modeled after the scf one if absent.
-            # Since we are making "default" choices here, how do we record
-            # the actual values used? (direction, mesh, etc)?
-            # (This is in addition to the other 'defaults' elsewhere, for
-            # optical properties and the whole program.
+            # Optical properties info.
             if optical is not None:
-                optical_dict = FDFDict(optical.get_dict())
-                optical_dict.update({'optical-calculation': True})
-                optical_dict.update({'optical-polarization-type': 'polarized'})
                 infile.write("#\n# -- Optical properties Info follows\n#\n")
                 for k, v in optical_dict.items():
                     infile.write("%s %s\n" % (k, v))
-                if '%block optical-vector' not in optical_dict:
-                    infile.write("# (default vector direction)\n")
-                    infile.write("%block optical-vector\n")
-                    infile.write("1.0 0.0 0.0\n")
-                    infile.write("%endblock optical-vector\n")
-                if '%block optical-mesh' not in optical_dict:
-                    if kpoints is not None:
-                        mesh, offset = kpoints.get_kpoints_mesh()
-                        infile.write("# (mesh generated by default from scf sampling info)\n")
-                        infile.write("%block optical-mesh\n")
-                        infile.write("{0:6} {1:6} {2:6}\n".format(mesh[0], mesh[1], mesh[2]))
-                        infile.write("%endblock optical-mesh\n")
             # Write previously generated cards now
             infile.write("#\n# -- Structural Info follows\n#\n")
             infile.write(atomic_species_card)
