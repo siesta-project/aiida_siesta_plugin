@@ -117,15 +117,13 @@ options = {
 }
 
 inputs = {
-    'scf_and_relax': {
-        'structure': structure,
-        'parameters': parameters,
-        'code': code,
-        'basis': basis,
-        'kpoints': kpoints,
-        'pseudos': pseudos_dict,
-        'options': Dict(dict=options)
-        },
+    'structure': structure,
+    'parameters': parameters,
+    'code': code,
+    'basis': basis,
+    'kpoints': kpoints,
+    'pseudos': pseudos_dict,
+    'options': Dict(dict=options),
     'optical': optical,
 }
 
