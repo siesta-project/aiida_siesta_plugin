@@ -335,7 +335,7 @@ class SiestaParser(Parser):
         except exceptions.NotExistent:
             raise OutputParsingError("Folder not retrieved")
 
-        output_path, messages_path, xml_path, json_path, bands_path, basis_enthalpy_path = \
+        output_path, messages_path, xml_path, json_path, bands_path, basis_enthalpy_path, eps2_path = \
             self._fetch_output_files(output_folder)
 
         if xml_path is None:
@@ -453,15 +453,6 @@ class SiestaParser(Parser):
             if ions:
                 self.out('ion_files', ions)
 
-        # Parse eps2 file produced by optical-properties analysis
-        eps2_file = str(self.node.get_option('prefix')) + ".EPSIMG"
-        if eps2_file in output_folder._repository.list_object_names():
-            eps2_file_path = os.path.join(output_folder._repository._get_base_folder().abspath, eps2_file)
-            eps2_list = get_eps2(eps2_file_path)
-            optical_eps2 = ArrayData()
-            optical_eps2.set_array('e_eps2', np.array(eps2_list))
-            self.out('optical_eps2', optical_eps2)
-
         # Error analysis
         if have_errors_to_analyse:
             # No metter if "INFO: Job completed" is present (succesfull) or not, we check for known
@@ -509,6 +500,16 @@ class SiestaParser(Parser):
             #bandsparameters = Dict(dict={"kp_coordinates": coords})
             #self.out('bands_parameters', bandsparameters)
 
+        #Because no known error has been found, attempt to parse EPSIMG file if requested
+        if eps2_path is None:
+            if "optical" in self.node.inputs:
+                return self.exit_codes.EPS2_FILE_NOT_PRODUCED
+        else:
+            eps2_list = get_eps2(eps2_path)
+            optical_eps2 = ArrayData()
+            optical_eps2.set_array('e_eps2', np.array(eps2_list))
+            self.out('optical_eps2', optical_eps2)
+
         #At the very end, return a particular exit code if "INFO: Job completed"
         #was not present in the MESSAGES file, but no known error is detected.
         if have_errors_to_analyse:
@@ -535,6 +536,7 @@ class SiestaParser(Parser):
         json_path = None
         bands_path = None
         basis_enthalpy_path = None
+        eps2_path = None
 
         if self.node.get_option('output_filename') in list_of_files:
             oufil = self.node.get_option('output_filename')
@@ -563,7 +565,11 @@ class SiestaParser(Parser):
         if namebandsfile in list_of_files:
             bands_path = os.path.join(out_folder._repository._get_base_folder().abspath, namebandsfile)
 
-        return output_path, messages_path, xml_path, json_path, bands_path, basis_enthalpy_path
+        nameeps2file = str(self.node.get_option('prefix')) + ".EPSIMG"
+        if nameeps2file in list_of_files:
+            eps2_path = os.path.join(out_folder._repository._get_base_folder().abspath, nameeps2file)
+
+        return output_path, messages_path, xml_path, json_path, bands_path, basis_enthalpy_path, eps2_path
 
     def _get_warnings_from_file(self, messages_path):
         """
