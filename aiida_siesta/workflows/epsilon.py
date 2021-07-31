@@ -45,8 +45,7 @@ class EpsilonWorkChain(SiestaBaseWorkChain):
         self.out('epsilon', epsilon)
         self.report(f'EpsilonWorkChain completed. epsilon={epsilon.value}')
 
-
-#    @classmethod
-#    def inputs_generator(cls):  # pylint: disable=no-self-argument,no-self-use
-#        from aiida_siesta.utils.inputs_generators import BaseWorkChainInputsGenerator
-#        return BaseWorkChainInputsGenerator(cls)
+    @classmethod
+    def inputs_generator(cls):  # pylint: disable=no-self-argument,no-self-use
+        from aiida_siesta.utils.protocols_system.input_generators import EpsilonWorkChainInputGenerator
+        return EpsilonWorkChainInputGenerator(cls)
