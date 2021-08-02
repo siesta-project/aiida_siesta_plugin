@@ -17,4 +17,5 @@ calculations plugin described in the section "Calculations".
    iterator
    converger
    seq_converger
+   epsilon
 
