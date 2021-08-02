@@ -122,12 +122,14 @@ def validate_parameters(value, _):
         for key in input_params:
             if "pao" in key:
                 return "you can't have PAO options in the parameters input port, they belong to the `basis` input port."
+            #This will return error in v2.0. Now only warning for back compatibility.
             if "optical" in key:
+                import warnings
                 message = (
-                    "you can't have optical options in the parameters input port, " +
+                    "you shouldn't have optical options in the parameters input port, " +
                     "they belong to the `optical` input port."
                 )
-                return message
+                warnings.warn(message)  #return message
             if key in SiestaCalculation._aiida_blocked_keywords:
                 message = (
                     f"you can't specify explicitly the '{input_params.get_last_untranslated_key(key)}' flag " +
