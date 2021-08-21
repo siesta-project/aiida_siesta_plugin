@@ -316,7 +316,7 @@ class SiestaParser(Parser):
         except exceptions.NotExistent:
             raise OutputParsingError("Folder not retrieved")
 
-        output_path, messages_path, xml_path, json_path, bands_path, basis_enthalpy_path = \
+        output_path, messages_path, xml_path, json_path, bands_path, basis_enthalpy_path, harris_enthalpy_path = \
             self._fetch_output_files(output_folder)
 
         if xml_path is None:
@@ -348,6 +348,15 @@ class SiestaParser(Parser):
             output_dict["basis_enthalpy_units"] = "eV"
         else:
             warnings_list.append(["BASIS_ENTHALPY file not retrieved"])
+
+        if harris_enthalpy_path is not None:
+            the_file = open(harris_enthalpy_path)
+            harr_enthalpy = float(the_file.read().split()[0])
+            the_file.close()
+            output_dict["harris_basis_enthalpy"] = harr_enthalpy
+            output_dict["harris_basis_enthalpy_units"] = "eV"
+        else:
+            warnings_list.append(["HARRIS_BASIS_ENTHALPY file not retrieved"])
 
         have_errors_to_analyse = False
         if messages_path is None:
@@ -507,6 +516,7 @@ class SiestaParser(Parser):
         json_path = None
         bands_path = None
         basis_enthalpy_path = None
+        harris_enthalpy_path = None
 
         if self.node.get_option('output_filename') in list_of_files:
             oufil = self.node.get_option('output_filename')
@@ -531,11 +541,16 @@ class SiestaParser(Parser):
                 out_folder._repository._get_base_folder().abspath, self.node.process_class._BASIS_ENTHALPY_FILE
             )
 
+        if self.node.process_class._HARRIS_ENTHALPY_FILE in list_of_files:
+            harris_enthalpy_path = os.path.join(
+                out_folder._repository._get_base_folder().abspath, self.node.process_class._HARRIS_ENTHALPY_FILE
+            )
+
         namebandsfile = str(self.node.get_option('prefix')) + ".bands"
         if namebandsfile in list_of_files:
             bands_path = os.path.join(out_folder._repository._get_base_folder().abspath, namebandsfile)
 
-        return output_path, messages_path, xml_path, json_path, bands_path, basis_enthalpy_path
+        return output_path, messages_path, xml_path, json_path, bands_path, basis_enthalpy_path, harris_enthalpy_path
 
     def _get_warnings_from_file(self, messages_path):
         """

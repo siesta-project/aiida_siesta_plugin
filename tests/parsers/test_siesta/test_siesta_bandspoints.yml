@@ -71,4 +71,5 @@ output_parameters:
     state_init: 0.261
   variable_geometry: true
   warnings:
+  - - HARRIS_BASIS_ENTHALPY file not retrieved
   - - 'INFO: Job completed'

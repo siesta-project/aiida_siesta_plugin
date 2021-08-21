@@ -14,7 +14,11 @@ output_parameters:
   Ebs_units: eV
   FreeE: -212.765618
   FreeE_units: eV
+  basis_enthalpy: -214.0372814354993
+  basis_enthalpy_units: eV
   dc:contributor: Siesta-CML
+  harris_basis_enthalpy: -214.03728573158955
+  harris_basis_enthalpy_units: eV
   mesh:
   - 36
   - 36
@@ -35,6 +39,4 @@ output_parameters:
   siesta:run_UUID: 9f80c280-314d-11ea-55fa-c1b1f37f0f6a
   variable_geometry: true
   warnings:
-  - - BASIS_ENTHALPY file not retrieved
-  - - HARRIS_BASIS_ENTHALPY file not retrieved
-  - - 'WARNING: No MESSAGES file, could not check if calculation terminated correctly'
+  - []
