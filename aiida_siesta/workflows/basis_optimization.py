@@ -20,13 +20,13 @@ def extract_pao_block(**ions):
                 for z in pao_mod._gen_dict[n][l]:
                     string = ion_name + str(n) + str(l) + str(z)
                     if z == 1:
-                        variables[string] = [1.5, 12, round(pao_mod._gen_dict[n][l][z] * ang_to_bohr, 6)]
+                        variables[string] = [1.5, 13.5, round(pao_mod._gen_dict[n][l][z] * ang_to_bohr, 6)]
                         pao_mod._gen_dict[n][l][z] = "$" + string
                     else:
                         init_fac = round(pao_mod._gen_dict[n][l][z] / save_z1, 6)
                         if init_fac >= 0.95:
                             init_fac = 0.94
-                        variables[string] = [0.1, 0.95, init_fac]
+                        variables[string] = [0.15, 0.95, init_fac]
                         pao_mod._gen_dict[n][l][z] = "-$" + string
         card += pao_mod.get_pao_block() + "\n"
 
@@ -57,6 +57,7 @@ class BasisOptimizationWorkChain(WorkChain):
             SimplexBasisOptimization, exclude=('metadata', 'simplex.variables_dict', 'siesta_base.basis')
         )
         spec.input('basis_sizes', valid_type=orm.List, default=lambda: orm.List(list=["DZ", "DZP", "TZ"]))
+        spec.input('sizes_monitored_quantity', valid_type=orm.Str, default=lambda: orm.Str("as_simplex"))
         spec.input('non_perturbative_pol', valid_type=orm.Bool, default=lambda: orm.Bool(False))
         spec.output('optimal_basis_block', valid_type=orm.Dict)
         spec.outline(
@@ -86,18 +87,30 @@ class BasisOptimizationWorkChain(WorkChain):
 
     def run_optimizer(self):
         """
-        Extract basis size with lowest basis enthalpy. Create a pao block and
+        Extract basis size with lowest "sizes_monitored_quantity", create a starting pao block and
         run the simplex optimizer varying all the cutoff radius.
+        The "sizes_monitored_quantity" is the quantity used to discriminate which is the best
+        basis size. A check is than on what basis size gives the smallest "sizes_monitored_quantity".
+        This quantity can be defined in input. By default it is the one used for the simplex and
+        specified in the input "simplex.output_name".
         """
         if not self.ctx.sizes_run.is_finished_ok:
             return self.exit_codes.ERROR_SIZES_RUN
 
-        basis_enthalpy = 100
+        self.report('Concluded calculations to test basis sizes. Analyzing results.')
+
+        if self.inputs.sizes_monitored_quantity.value == "as_simplex":
+            monitoring_quantity = self.exposed_inputs(SimplexBasisOptimization).simplex.output_name.value
+        else:
+            monitoring_quantity = self.inputs.sizes_monitored_quantity.value
+        monitoring_quantity_value = 10000000
         good_calc = None
         for calc in self.ctx.sizes_run.called:
-            if calc.outputs.output_parameters["basis_enthalpy"] <= basis_enthalpy:
-                basis_enthalpy = calc.outputs.output_parameters["basis_enthalpy"]
+            if calc.outputs.output_parameters[monitoring_quantity] <= monitoring_quantity_value:
+                monitoring_quantity_value = calc.outputs.output_parameters[monitoring_quantity]
                 good_calc = calc
+
+        self.report(f'Looking at {monitoring_quantity}, {good_calc.inputs.basis["paobasissize"]} is favourable')
 
         if "ion_files" in good_calc.get_outgoing().nested():
             ions = good_calc.get_outgoing().nested()["ion_files"]
