@@ -55,7 +55,7 @@ migration_direction = [ 0.0, 0.0, 1.0 ]    # Z direction
 
 # Lua script
 absname = op.abspath(
-        op.join(op.dirname(__file__), "../plugins/siesta/data/neb-data/neb_with_restart-new.lua"))
+        op.join(op.dirname(__file__), "../plugins/siesta/lua_scripts/neb.lua"))
 n_images_in_script=5
 lua_script = SinglefileData(absname)
 

@@ -323,6 +323,16 @@ function siesta_move(siesta)
 	   "MD.Relaxed"}
 end
 
+function file_exists(name)
+   local f = io.open(name, "r")
+   if f ~= nil then
+      io.close(f)
+      return true
+   else
+      return false
+   end
+end
+
 -- Function for retaining the DM files for the images so that we
 -- can easily restart etc.
 function siesta_update_DM(old, current)
@@ -346,16 +356,16 @@ function siesta_update_DM(old, current)
      os.execute("rm " .. DM)
    end 
   
-   if 0 <= old and old <= NEB.n_images+1 and NEB:file_exists(DM) then
+   if 0 <= old and old <= NEB.n_images+1 and file_exists(DM) then
       -- store the current DM for restart purposes
       IOprint("Saving " .. DM .. " to " .. old_DM)
       os.execute("mv " .. DM .. " " .. old_DM)
-   elseif NEB:file_exists(DM) then
+   elseif file_exists(DM) then
       IOprint("Deleting " .. DM .. " for a clean restart...")
       os.execute("rm " .. DM)
    end
 
-   if NEB:file_exists(current_DM) then
+   if file_exists(current_DM) then
       IOprint("Deleting " .. DM .. " for a clean restart...")
       os.execute("rm " .. DM)
       IOprint("Restoring " .. current_DM .. " to " .. DM)
