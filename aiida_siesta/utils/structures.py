@@ -12,6 +12,31 @@ def clone_aiida_structure (s):
 
     return t
 
+def add_ghost_sites_to_structure(original_structure, basis):
+    """
+    Returns a structure object, and a list of ghost species names,
+    appending the relevant sites to the original structure, as
+    directed by the floating_sites element of the basis dictionary
+    """
+    structure = clone_structure(original_structure)
+    floating_species_names = []
+    #Add ghosts to the structure
+    if basis is not None:
+        basis_dict = basis.get_dict()
+        floating = basis_dict.pop('floating_sites', None)
+        if floating is not None:
+            original_kind_names = [kind.name for kind in structure.kinds]
+            for item in floating:
+                if item["name"] in original_kind_names:
+                    raise ValueError(
+                        "It is not possibe to specify `floating_sites` "
+                        "(ghosts states) with the same name of a structure kind."
+                        )
+                structure.append_atom(position=item["position"], symbols=item["symbols"], name=item["name"])
+                floating_species_names.append(item["name"])
+
+    return structure, floating_species_names
+
 def aiida_struct_to_ase (s):
     """
     This is a custom version to bypass the inappropriate implementation

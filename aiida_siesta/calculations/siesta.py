@@ -8,6 +8,7 @@ from aiida_siesta.calculations.tkdict import FDFDict
 from aiida_siesta.data.psf import PsfData
 from aiida_siesta.data.psml import PsmlData
 from aiida_siesta.data.ion import IonData
+from aiida_siesta.utils.structures import add_ghost_sites_to_structure
 
 # See the LICENSE.txt and AUTHORS.txt files.
 
@@ -16,18 +17,6 @@ from aiida_siesta.data.ion import IonData
 ## A calculation is now a process and it is treated as a Process class similar   ##
 ## to the WorkChains. Use of class variables & the input spec is necessary.      ##
 ###################################################################################
-
-
-def clone_structure(structure):
-    """
-    A cloned structure is not quite ready to store more atoms.
-    This function fixes it
-    """
-
-    tweaked = structure.clone()
-    tweaked._internal_kind_tags = {}
-
-    return tweaked
 
 
 class SiestaCalculation(CalcJob):
@@ -220,22 +209,9 @@ class SiestaCalculation(CalcJob):
         #We make use of a cloned structure to add the ghost sites. In case there aren't ghosts,
         #the cloned structure will be exactly like the original and can be used later on.
         #The list `floating_species_names` is used later and must be empty list if there aren't floating_orbs.
-        structure = clone_structure(original_structure)
-        floating_species_names = []
-        #Add ghosts to the structure
-        if basis is not None:
-            basis_dict = basis.get_dict()
-            floating = basis_dict.pop('floating_sites', None)
-            if floating is not None:
-                original_kind_names = [kind.name for kind in structure.kinds]
-                for item in floating:
-                    if item["name"] in original_kind_names:
-                        raise ValueError(
-                            "It is not possibe to specify `floating_sites` "
-                            "(ghosts states) with the same name of a structure kind."
-                        )
-                    structure.append_atom(position=item["position"], symbols=item["symbols"], name=item["name"])
-                    floating_species_names.append(item["name"])
+
+        structure, floating_species_names = add_ghost_sites_to_structure(original_structure, basis)
+        
         #Check each kind in the structure (including freshly added ghosts) have a corresponding pseudo.
         kinds = [kind.name for kind in structure.kinds]
         if set(kinds) != set(pseudos.keys()):
