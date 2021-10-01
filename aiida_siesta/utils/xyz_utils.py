@@ -25,11 +25,16 @@ def get_structure_list_from_folder(folder,ref_struct):
     xyz_list = glob.glob("{}/*.xyz".format(folder))
     xyz_list.sort()
 
+    # Compute number of expected (physical) sites
+    # and use it below to discard ghost sites (which are
+    # always trailing the rest)
+    nsites = len(ref_struct.sites)
+    
     structure_list = []
     for file in xyz_list:
         positions = get_positions_from_xyz_file(file)
         s = ref_struct.clone()
-        s.reset_sites_positions(positions)
+        s.reset_sites_positions(positions[0:nsites])
         structure_list.append(s)
 
     return structure_list

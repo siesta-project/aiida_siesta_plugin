@@ -156,6 +156,9 @@ class VacancyExchangeBarrierWorkChain(WorkChain):
         s_initial = initial_wk.outputs.output_structure
         s_final = final_wk.outputs.output_structure
 
+        # Find relaxed position of moving atom in initial structure
+        # and in the final structure. These will be the positions of
+        # the ghosts in the NEB run.
 
         n_images = self.inputs.n_images.value
 

@@ -120,6 +120,7 @@ class SiestaBaseNEBWorkChain(WorkChain):
 
         neb_path = self.inputs.starting_path
         kinds = self.ctx.reference_structure.kinds
+        ghost_dict = self.inputs.basis
         neb_image_prefix = 'image-'
             
         from aiida.orm import FolderData
@@ -131,7 +132,8 @@ class SiestaBaseNEBWorkChain(WorkChain):
 
             # loop over structures and create xyz files
             for i in range(neb_path.numsteps):
-                s_image = neb_path.get_step_structure(i,custom_kinds=kinds)
+                s_image_tmp = neb_path.get_step_structure(i,custom_kinds=kinds)
+                s_image, dummy = add_ghost_sites_to_structure(s_image_tmp, ghost_dict)
                 filename= folder.get_abs_path("{}{}.xyz".format(neb_image_prefix,i))
                 write_xyz_file_from_structure(s_image,filename)
 
