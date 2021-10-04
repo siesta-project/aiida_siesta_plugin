@@ -3,8 +3,9 @@ from aiida.engine import WorkChain, ToContext
 from aiida_siesta.workflows.neb_base import SiestaBaseNEBWorkChain
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
 
+from aiida.orm import Dict
 from aiida.orm.nodes.data.structure import Site
-from aiida_siesta.utils.structures import find_mid_path_position
+from aiida_siesta.utils.structures import compute_mid_path_position
 from aiida_siesta.utils.structures import find_intermediate_structure
 from aiida_siesta.utils.interpol import interpolate_two_structures_ase
 
@@ -84,7 +85,8 @@ class VacancyExchangeBarrierWorkChain(WorkChain):
         vacancy_position = vacancy_site.position
         
         [ s_initial.append_site(s) for s in new_sites ]
-        new_ia = new_sites.index(atom_site)  # Atom index might have changed with removal of vacancy
+        # Atom index might have changed with removal of vacancy
+        new_ia = new_sites.index(atom_site)
 
         # Insert site with final position of atom in place of the original.
         new_atom_site = Site(kind_name=atom_site.kind_name, position=vacancy_position)
@@ -98,7 +100,9 @@ class VacancyExchangeBarrierWorkChain(WorkChain):
         self.ctx.s_final = s_final
         self.ctx.vacancy_position = vacancy_position
         self.ctx.atom_site_index = new_ia
-
+        self.ctx.original_atom_site = atom_site
+        self.ctx.original_vacancy_site = vacancy_site
+        
         self.report(f'Created initial and final structures')
 
     def relax_initial(self):
@@ -113,10 +117,28 @@ class VacancyExchangeBarrierWorkChain(WorkChain):
         #
         # Update basis dict with floating orbitals at vacancy site
         # (and at 'atom' site, for symmetry)
-        ###        original_basis_dict = inputs['basis'].get_dict()
+        
+        basis_dict = inputs['basis'].get_dict()
+        orig_atom_name = self.ctx.original_atom_site.kind_name
+        orig_atom_position = self.ctx.original_atom_site.position
+        ghost_atom_name = orig_atom_name+"_ghost"
+        orig_vac_name = self.ctx.original_vacancy_site.kind_name
+        orig_vac_position = self.ctx.original_vacancy_site.position
+        ghost_vac_name = orig_vac_name+"_ghost"
+        floating = { 'floating_sites':
+                     [ { "symbols": orig_atom_name,
+                       "name": ghost_atom_name,
+                       "position": orig_atom_position },
+                     { "symbols": orig_vac_name,
+                       "name": ghost_vac_name,
+                       "position": orig_vac_position } ] }
+                     
 
+        basis_dict.update(floating)
+        inputs['basis'] = Dict(dict=basis_dict)
+                     
         # Update params dict with constraints for floating orbitals
-        ###   original_params = inputs['parameters'].get_dict()
+        # Must be done in driver for now
 
 
         running = self.submit(SiestaBaseWorkChain, **inputs)
@@ -132,6 +154,30 @@ class VacancyExchangeBarrierWorkChain(WorkChain):
         inputs = self.exposed_inputs(SiestaBaseWorkChain,
                                      namespace='final')
         inputs['structure'] = self.ctx.s_final
+
+        # Update basis dict with floating orbitals at vacancy site
+        # (and at 'atom' site, for symmetry)
+        
+        basis_dict = inputs['basis'].get_dict()
+        orig_atom_name = self.ctx.original_atom_site.kind_name
+        orig_atom_position = self.ctx.original_atom_site.position
+        ghost_atom_name = orig_atom_name+"_ghost"
+        orig_vac_name = self.ctx.original_vacancy_site.kind_name
+        orig_vac_position = self.ctx.original_vacancy_site.position
+        ghost_vac_name = orig_vac_name+"_ghost"
+
+        # Note reversed positions
+        floating = { 'floating_sites':
+                     [ { "symbols": orig_atom_name,
+                       "name": ghost_atom_name,
+                       "position": orig_vac_position },
+                     { "symbols": orig_vac_name,
+                       "name": ghost_vac_name,
+                       "position": orig_atom_position } ] }
+                     
+
+        basis_dict.update(floating)
+        inputs['basis'] = Dict(dict=basis_dict)
 
         running = self.submit(SiestaBaseWorkChain, **inputs)
         self.report(f'Launched SiestaBaseWorkChain<{running.pk}> to relax the final structure.')
@@ -171,8 +217,13 @@ class VacancyExchangeBarrierWorkChain(WorkChain):
             migration_direction = self.inputs.migration_direction.get_list()
 
             pos1 = s_initial.sites[self.ctx.atom_site_index].position
-            pos2 = self.ctx.vacancy_position
-            atom_mid_path_position = find_mid_path_position(s_initial,
+            pos2 = s_final.sites[self.ctx.atom_site_index].position
+
+            self.ctx.relaxed_initial_atom_position = pos1
+            self.ctx.relaxed_final_atom_position = pos2
+            
+            # ... this is unrelaxed:  pos2 = self.ctx.vacancy_position
+            atom_mid_path_position = compute_mid_path_position(s_initial,
                                                             pos1, pos2,
                                                             migration_direction)
             self.report(f"Using mid-path point {atom_mid_path_position}")
@@ -236,6 +287,28 @@ class VacancyExchangeBarrierWorkChain(WorkChain):
         print(inputs)
         
         inputs['starting_path'] = self.ctx.path
+
+        basis_dict = inputs['basis'].get_dict()
+
+        # Note positions
+        atom_name = self.ctx.original_atom_site.kind_name
+        atom_position = self.ctx.relaxed_initial_atom_position
+        ghost_atom_name = orig_atom_name+"_ghost"
+        vac_name = self.ctx.original_vacancy_site.kind_name
+        vac_position = self.ctx.relaxed_final_atom_position
+        ghost_vac_name = orig_vac_name+"_ghost"
+
+        floating = { 'floating_sites':
+                     [ { "symbols": atom_name,
+                       "name": ghost_atom_name,
+                       "position": atom_position },
+                     { "symbols": orig_vac_name,
+                       "name": ghost_vac_name,
+                       "position": vac_position } ] }
+                     
+
+        basis_dict.update(floating)
+        inputs['basis'] = Dict(dict=basis_dict)
 
         running = self.submit(SiestaBaseNEBWorkChain, **inputs)
 

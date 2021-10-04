@@ -65,21 +65,22 @@ lua_script = SinglefileData(absname)
 
 parameters = dict={
    "mesh-cutoff": "50 Ry",
-   "dm-tolerance": "0.001",
+   "dm-tolerance": "0.003",
    "DM-NumberPulay ":  "3",
-   "DM-History-Depth":  "0",
+   "DM-Histpory-Depth":  "0",
    "SCF-Mixer-weight":  "0.02",
    "SCF-Mix":   "density",
    "SCF-Mixer-kick":  "35",
    "MD-VariableCell":  "F",
    "MD-MaxCGDispl":  "0.3 Bohr",
-   "MD-MaxForceTol":  " 0.04000 eV/Ang"
+   "MD-MaxForceTol":  " 0.06000 eV/Ang"
     }
 
 constraints = dict={
     "%block Geometry-Constraints":
     """
     atom [ 1 -- 15 ]
+    atom [ 18 -- 19 ]
     %endblock Geometry-Constraints"""
     }
 
@@ -104,6 +105,7 @@ basis = Dict(dict={
 '%block pao-basis-sizes': """
 Mg SZ
 O SZ
+O_ghost SZ
 %endblock pao-basis-sizes""",
     })
 
@@ -117,7 +119,7 @@ kpoints_neb.set_kpoints_mesh([1,1,1])
 
 #The pseudopotentials
 pseudos_dict = {}
-raw_pseudos = [("Mg.psf", ['Mg']), ("O.psf", ['O'])]
+raw_pseudos = [("Mg.psf", ['Mg']), ("O.psf", ['O', 'O_ghost'])]
 for fname, kinds in raw_pseudos:
     absname = op.realpath(
         op.join(op.dirname(__file__), "../plugins/siesta/data/sample-psf-family", fname))
@@ -143,8 +145,6 @@ options = {
 # For finer-grained compatibility with script
 # but CHECK
 options_neb = {
-    'neb_results_file': 'NEB.results',
-    'neb_xyz_prefix': 'image_',
     "max_wallclock_seconds": 3600,
     'withmpi': True,
     "resources": {
