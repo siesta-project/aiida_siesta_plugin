@@ -210,6 +210,8 @@ class SiestaCalculation(CalcJob):
         #the cloned structure will be exactly like the original and can be used later on.
         #The list `floating_species_names` is used later and must be empty list if there aren't floating_orbs.
 
+        # Is the floating_sites element popped from basis in this call?
+        # See below for a sanity check
         structure, floating_species_names = add_ghost_sites_to_structure(original_structure, basis)
         
         #Check each kind in the structure (including freshly added ghosts) have a corresponding pseudo.
@@ -451,6 +453,8 @@ class SiestaCalculation(CalcJob):
             # put any basis-related parameters (including blocks)
             # in the basis dictionary in the input script.
             if basis is not None:
+                basis_dict = basis.get_dict()
+                floating = basis_dict.pop('floating_sites', None)
                 infile.write("#\n# -- Basis Set Info follows\n#\n")
                 for k, v in basis_dict.items():
                     infile.write("%s %s\n" % (k, v))

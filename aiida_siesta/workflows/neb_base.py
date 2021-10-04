@@ -120,20 +120,22 @@ class SiestaBaseNEBWorkChain(WorkChain):
 
         neb_path = self.inputs.starting_path
         kinds = self.ctx.reference_structure.kinds
+        # Where to find the ghost information
         ghost_dict = self.inputs.basis
         neb_image_prefix = 'image-'
             
         from aiida.orm import FolderData
         from aiida.common.folders import SandboxFolder
         from aiida_siesta.utils.xyz_utils import write_xyz_file_from_structure
+        from aiida_siesta.utils.structures import add_ghost_sites_to_structure
         # Temporary folder
         with SandboxFolder() as folder:
             folder_path= folder.abspath
 
             # loop over structures and create xyz files
             for i in range(neb_path.numsteps):
-                s_image_tmp = neb_path.get_step_structure(i,custom_kinds=kinds)
-                s_image, dummy = add_ghost_sites_to_structure(s_image_tmp, ghost_dict)
+                s_image_phys = neb_path.get_step_structure(i,custom_kinds=kinds)
+                s_image, dummy = add_ghost_sites_to_structure(s_image_phys, ghost_dict)
                 filename= folder.get_abs_path("{}{}.xyz".format(neb_image_prefix,i))
                 write_xyz_file_from_structure(s_image,filename)
 

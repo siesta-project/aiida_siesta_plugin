@@ -16,16 +16,18 @@ def add_ghost_sites_to_structure(original_structure, basis):
     """
     Returns a structure object, and a list of ghost species names,
     appending the relevant sites to the original structure, as
-    directed by the floating_sites element of the basis dictionary
+    directed by the floating_sites element of the basis dictionary.
+    It currently accepts a full basis dictionary, but it would be
+    more appropriate if it took only a list of ghost dictionaries.
     """
-    structure = clone_structure(original_structure)
+    structure = clone_aiida_structure(original_structure)
     floating_species_names = []
     #Add ghosts to the structure
     if basis is not None:
         basis_dict = basis.get_dict()
         floating = basis_dict.pop('floating_sites', None)
         if floating is not None:
-            original_kind_names = [kind.name for kind in structure.kinds]
+            original_kind_names = [kind.name for kind in original_structure.kinds]
             for item in floating:
                 if item["name"] in original_kind_names:
                     raise ValueError(
