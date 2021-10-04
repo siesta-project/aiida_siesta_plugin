@@ -38,6 +38,9 @@ class VacancyExchangeBarrierWorkChain(WorkChain):
                    help='Index of vacancy in structure')
         spec.input('atom_index', valid_type=orm.Int, 
                    help='Index of atom (to be exchanged) in structure')
+        spec.input('ghost_species', valid_type=orm.Dict, 
+                   help='Ghost species to provide extra basis orbitals')
+
         # not implemented yet
         spec.input('migration_direction', valid_type=orm.List, required=False,
                    help='Migration direction (in lattice coordinates)')
@@ -119,18 +122,23 @@ class VacancyExchangeBarrierWorkChain(WorkChain):
         # (and at 'atom' site, for symmetry)
         
         basis_dict = inputs['basis'].get_dict()
-        orig_atom_name = self.ctx.original_atom_site.kind_name
+
+        ghost = self.inputs.ghost_species.get_dict()
+        ghost_name = ghost['name']
+        ghost_symbol = ghost['symbol']
+        
+        # orig_atom_name = self.ctx.original_atom_site.kind_name
+        # ghost_atom_name = orig_atom_name+"_ghost"
         orig_atom_position = self.ctx.original_atom_site.position
-        ghost_atom_name = orig_atom_name+"_ghost"
-        orig_vac_name = self.ctx.original_vacancy_site.kind_name
+        #orig_vac_name = self.ctx.original_vacancy_site.kind_name
+        #ghost_vac_name = orig_vac_name+"_ghost"
         orig_vac_position = self.ctx.original_vacancy_site.position
-        ghost_vac_name = orig_vac_name+"_ghost"
         floating = { 'floating_sites':
                 #     [ { "symbols": orig_atom_name,
                 #       "name": ghost_atom_name,
                 #       "position": orig_atom_position },
-                [     { "symbols": orig_vac_name,
-                       "name": ghost_vac_name,
+                [     { "symbols": ghost_symbol,
+                       "name": ghost_name,
                        "position": orig_vac_position } ] }
                      
 
@@ -159,20 +167,25 @@ class VacancyExchangeBarrierWorkChain(WorkChain):
         # (and at 'atom' site, for symmetry)
         
         basis_dict = inputs['basis'].get_dict()
-        orig_atom_name = self.ctx.original_atom_site.kind_name
+
+        ghost = self.inputs.ghost_species.get_dict()
+        ghost_name = ghost['name']
+        ghost_symbol = ghost['symbol']
+        
+        # orig_atom_name = self.ctx.original_atom_site.kind_name
+        # ghost_atom_name = orig_atom_name+"_ghost"
         orig_atom_position = self.ctx.original_atom_site.position
-        ghost_atom_name = orig_atom_name+"_ghost"
-        orig_vac_name = self.ctx.original_vacancy_site.kind_name
+        #orig_vac_name = self.ctx.original_vacancy_site.kind_name
+        #ghost_vac_name = orig_vac_name+"_ghost"
         orig_vac_position = self.ctx.original_vacancy_site.position
-        ghost_vac_name = orig_vac_name+"_ghost"
 
         # Note reversed positions
         floating = { 'floating_sites': 
                 #     [ { "symbols": orig_atom_name,
                 #      "name": ghost_atom_name,
                 #      "position": orig_vac_position },
-                      [ { "symbols": orig_vac_name,
-                         "name": ghost_vac_name,
+                      [ { "symbols": ghost_symbol,
+                         "name": ghost_name,
                          "position": orig_atom_position } ] }
                      
 
@@ -205,7 +218,9 @@ class VacancyExchangeBarrierWorkChain(WorkChain):
         # Find relaxed position of moving atom in initial structure
         # and in the final structure. These will be the positions of
         # the ghosts in the NEB run.
-
+        self.ctx.relaxed_initial_atom_position = s_initial.sites[self.ctx.atom_site_index].position
+        self.ctx.relaxed_final_atom_position = s_final.sites[self.ctx.atom_site_index].position
+ 
         n_images = self.inputs.n_images.value
 
         #
@@ -216,11 +231,8 @@ class VacancyExchangeBarrierWorkChain(WorkChain):
 
             migration_direction = self.inputs.migration_direction.get_list()
 
-            pos1 = s_initial.sites[self.ctx.atom_site_index].position
-            pos2 = s_final.sites[self.ctx.atom_site_index].position
-
-            self.ctx.relaxed_initial_atom_position = pos1
-            self.ctx.relaxed_final_atom_position = pos2
+            pos1 = self.ctx.relaxed_initial_atom_position
+            pos2 = self.ctx.relaxed_final_atom_position 
             
             # ... this is unrelaxed:  pos2 = self.ctx.vacancy_position
             atom_mid_path_position = find_mid_path_position(s_initial,
@@ -290,20 +302,21 @@ class VacancyExchangeBarrierWorkChain(WorkChain):
 
         basis_dict = inputs['basis'].get_dict()
 
-        # Note positions
-        atom_name = self.ctx.original_atom_site.kind_name
+        ghost = self.inputs.ghost_species.get_dict()
+        ghost_name = ghost['name']
+        ghost_symbol = ghost['symbol']
+        
         atom_position = self.ctx.relaxed_initial_atom_position
-        ghost_atom_name = atom_name+"_ghost"
-        vac_name = self.ctx.original_vacancy_site.kind_name
         vac_position = self.ctx.relaxed_final_atom_position
-        ghost_vac_name = vac_name+"_ghost"
+
+        # Note positions
 
         floating = { 'floating_sites':
-                     [ { "symbols": atom_name,
-                       "name": ghost_atom_name,
+                     [ { "symbols": ghost_symbol,
+                       "name": ghost_name,
                        "position": atom_position },
-                     { "symbols": vac_name,
-                       "name": ghost_vac_name,
+                     { "symbols": ghost_symbol,
+                       "name": ghost_name,
                        "position": vac_position } ] }
                      
 

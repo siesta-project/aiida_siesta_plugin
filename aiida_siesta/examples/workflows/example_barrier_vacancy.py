@@ -51,7 +51,7 @@ structure = s
 # Watch out for python base-0 convention...
 iv = 15
 ia = 17  
-migration_direction = [ 0.0, 0.0, 1.0 ]    # Z direction
+#migration_direction = [ 0.0, 0.0, 1.0 ]    # Z direction
 
 # Lua script
 absname = op.abspath(
@@ -61,13 +61,12 @@ lua_script = SinglefileData(absname)
 
 
 # Parameters: very coarse for speed of test
-# Note the all the Si atoms are fixed...
 
 parameters = dict={
    "mesh-cutoff": "50 Ry",
    "dm-tolerance": "0.003",
    "DM-NumberPulay ":  "3",
-   "DM-Histpory-Depth":  "0",
+   "DM-History-Depth":  "0",
    "SCF-Mixer-weight":  "0.02",
    "SCF-Mix":   "density",
    "SCF-Mixer-kick":  "35",
@@ -76,16 +75,18 @@ parameters = dict={
    "MD-MaxForceTol":  " 0.06000 eV/Ang"
     }
 
+
+# Originally also:    atom [ 1 -- 15 ]
 constraints = dict={
     "%block Geometry-Constraints":
     """
-    atom [ 1 -- 15 ]
+     atom [ 1 -- 12 ]
     atom [ 18 -- 19 ]
     %endblock Geometry-Constraints"""
     }
 
 relaxation = dict={
-    'md-steps': 10
+    'md-steps': 20
     }
 
 #
@@ -105,7 +106,7 @@ basis = Dict(dict={
 '%block pao-basis-sizes': """
 Mg SZ
 O SZ
-O_ghost SZ
+H_ghost SZ
 %endblock pao-basis-sizes""",
     })
 
@@ -119,7 +120,8 @@ kpoints_neb.set_kpoints_mesh([1,1,1])
 
 #The pseudopotentials
 pseudos_dict = {}
-raw_pseudos = [("Mg.psf", ['Mg']), ("O.psf", ['O', 'O_ghost'])]
+raw_pseudos = [("Mg.psf", ['Mg']), ("O.psf", ['O']),
+               ("H.psf", ['H_ghost'])]
 for fname, kinds in raw_pseudos:
     absname = op.realpath(
         op.join(op.dirname(__file__), "../plugins/siesta/data/sample-psf-family", fname))
@@ -168,7 +170,8 @@ inputs = {
     'host_structure': structure,
     'vacancy_index':      Int(iv),
     'atom_index':     Int(ia),
-    'migration_direction': List(list=migration_direction),
+    'ghost_species':  Dict(dict={'symbol': 'H', 'name': 'H_ghost'}),
+    #  'migration_direction': List(list=migration_direction),
     'n_images': Int(n_images_in_script),
     
     'initial': endpoint_inputs,
