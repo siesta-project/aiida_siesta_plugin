@@ -144,8 +144,9 @@ class ExchangeBarrierWorkChain(WorkChain):
         
         #
         s_intermediate = find_intermediate_structure(s_initial,
-                                                     i1, i2,
-                                                     i1_mid_path_position)
+                                                     i1, 
+                                                     i1_mid_path_position,
+                                                     i2)
 
         #
         # The starting_path is now built from two sections

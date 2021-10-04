@@ -5,7 +5,7 @@ from aiida_siesta.workflows.base import SiestaBaseWorkChain
 
 from aiida.orm import Dict
 from aiida.orm.nodes.data.structure import Site
-from aiida_siesta.utils.structures import compute_mid_path_position
+from aiida_siesta.utils.structures import find_mid_path_position
 from aiida_siesta.utils.structures import find_intermediate_structure
 from aiida_siesta.utils.interpol import interpolate_two_structures_ase
 
@@ -126,10 +126,10 @@ class VacancyExchangeBarrierWorkChain(WorkChain):
         orig_vac_position = self.ctx.original_vacancy_site.position
         ghost_vac_name = orig_vac_name+"_ghost"
         floating = { 'floating_sites':
-                     [ { "symbols": orig_atom_name,
-                       "name": ghost_atom_name,
-                       "position": orig_atom_position },
-                     { "symbols": orig_vac_name,
+                #     [ { "symbols": orig_atom_name,
+                #       "name": ghost_atom_name,
+                #       "position": orig_atom_position },
+                [     { "symbols": orig_vac_name,
                        "name": ghost_vac_name,
                        "position": orig_vac_position } ] }
                      
@@ -167,13 +167,13 @@ class VacancyExchangeBarrierWorkChain(WorkChain):
         ghost_vac_name = orig_vac_name+"_ghost"
 
         # Note reversed positions
-        floating = { 'floating_sites':
-                     [ { "symbols": orig_atom_name,
-                       "name": ghost_atom_name,
-                       "position": orig_vac_position },
-                     { "symbols": orig_vac_name,
-                       "name": ghost_vac_name,
-                       "position": orig_atom_position } ] }
+        floating = { 'floating_sites': 
+                #     [ { "symbols": orig_atom_name,
+                #      "name": ghost_atom_name,
+                #      "position": orig_vac_position },
+                      [ { "symbols": orig_vac_name,
+                         "name": ghost_vac_name,
+                         "position": orig_atom_position } ] }
                      
 
         basis_dict.update(floating)
@@ -223,7 +223,7 @@ class VacancyExchangeBarrierWorkChain(WorkChain):
             self.ctx.relaxed_final_atom_position = pos2
             
             # ... this is unrelaxed:  pos2 = self.ctx.vacancy_position
-            atom_mid_path_position = compute_mid_path_position(s_initial,
+            atom_mid_path_position = find_mid_path_position(s_initial,
                                                             pos1, pos2,
                                                             migration_direction)
             self.report(f"Using mid-path point {atom_mid_path_position}")
@@ -293,16 +293,16 @@ class VacancyExchangeBarrierWorkChain(WorkChain):
         # Note positions
         atom_name = self.ctx.original_atom_site.kind_name
         atom_position = self.ctx.relaxed_initial_atom_position
-        ghost_atom_name = orig_atom_name+"_ghost"
+        ghost_atom_name = atom_name+"_ghost"
         vac_name = self.ctx.original_vacancy_site.kind_name
         vac_position = self.ctx.relaxed_final_atom_position
-        ghost_vac_name = orig_vac_name+"_ghost"
+        ghost_vac_name = vac_name+"_ghost"
 
         floating = { 'floating_sites':
                      [ { "symbols": atom_name,
                        "name": ghost_atom_name,
                        "position": atom_position },
-                     { "symbols": orig_vac_name,
+                     { "symbols": vac_name,
                        "name": ghost_vac_name,
                        "position": vac_position } ] }
                      
