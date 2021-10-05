@@ -42,7 +42,7 @@ host = s
 # Interstitial
 initial_position=[alat*0.000, alat*0.250, alat*0.250]
 final_position=[alat*0.250, alat*0.250, alat*0.000]
-interstitial_symbol='H'
+interstitial_species= Dict(dict={ 'symbol': 'H', 'name': 'H_int' })
 
 
 # Lua script
@@ -155,7 +155,7 @@ endpoint_inputs= {
 inputs = {
 
     'host_structure': host,
-    'interstitial_symbol': Str(interstitial_symbol),
+    'interstitial_species': interstitial_species,
     'initial_position': List(list=initial_position),
     'final_position':   List(list=final_position),
     'n_images': Int(5),
@@ -177,7 +177,5 @@ inputs = {
 
 process = submit(InterstitialBarrierWorkChain, **inputs)
 print("Submitted InterstitialBarrier workchain; ID={}".format(process.pk))
-print(
-    "For information about this workchain type: verdi process show {}".format(
-        process.pk))
+print("For information about this workchain type: verdi process show {}".format(process.pk))
 print("For a list of running processes type: verdi process list")

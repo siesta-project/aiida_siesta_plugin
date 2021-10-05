@@ -51,8 +51,8 @@ class InterstitialBarrierWorkChain(WorkChain):
 
         spec.input('host_structure', valid_type=orm.StructureData,
                    help='Host structure')
-        spec.input('interstitial_symbol', valid_type=orm.Str,
-                   help='Chemical symbol of interstitial species')
+        spec.input('interstitial_species', valid_type=orm.Dict, 
+                   help='Species in interstitials (symbol and name)')
         #
         # These should be lists of floats. Pending validations
         #
@@ -87,30 +87,34 @@ class InterstitialBarrierWorkChain(WorkChain):
         host = self.inputs.host_structure
         initial_position = self.inputs.initial_position.get_list()
         final_position = self.inputs.final_position.get_list()
-        atom_symbol = self.inputs.interstitial_symbol.value
+
+        int_atom = self.inputs.interstitial_species.get_dict()
+        int_atom_name = int_atom['name']
+        int_atom_symbol = int_atom['symbol']
 
         # With pseudo families and smart fallback to chemical symbol,
-        # the addition of '_int' to the interstitial atom is easily supported
+        # the addition of, e.g., '_int' for the interstitial atom's name
+        # is easily supported
         # If not, the pseudo must be manually included.
         #
         s_initial = clone_aiida_structure(host)
         s_final   = clone_aiida_structure(host)
 
         try:
-            s_initial.append_atom(symbols=atom_symbol,
+            s_initial.append_atom(symbols=int_atom_symbol,
                                   position=initial_position,
-                                  name=atom_symbol+ '_int')
+                                  name=int_atom_name)
 
-            s_final.append_atom(symbols=atom_symbol,
+            s_final.append_atom(symbols=int_atom_symbol,
                                 position=final_position,
-                                name=atom_symbol+ '_int')
+                                name=int_atom_name)
         except:
             self.report("Problem adding atom to end-points")
             return self.exit_codes.ERROR_CONFIG
 
         self.ctx.s_initial = s_initial
         self.ctx.s_final = s_final
-        self.ctx.atom_symbol = atom_symbol
+        self.ctx.atom_symbol = int_atom_symbol
 
         self.report(f'Created initial and final structures')
 
@@ -175,6 +179,9 @@ class InterstitialBarrierWorkChain(WorkChain):
         #
         # refined_path = refine_neb_path(starting_path)
 
+        # Here we simply interpolate with the ASE method
+        # (use a calcfunction to wrap)
+        
         self.ctx.path = get_path_from_ends(s_initial,
                                            s_final,
                                            orm.Int(n_images))

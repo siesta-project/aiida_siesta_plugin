@@ -38,10 +38,11 @@ class VacancyExchangeBarrierWorkChain(WorkChain):
                    help='Index of vacancy in structure')
         spec.input('atom_index', valid_type=orm.Int, 
                    help='Index of atom (to be exchanged) in structure')
+
+        # This is required in this version.
         spec.input('ghost_species', valid_type=orm.Dict, 
                    help='Ghost species to provide extra basis orbitals')
 
-        # not implemented yet
         spec.input('migration_direction', valid_type=orm.List, required=False,
                    help='Migration direction (in lattice coordinates)')
 
@@ -123,30 +124,36 @@ class VacancyExchangeBarrierWorkChain(WorkChain):
         
         basis_dict = inputs['basis'].get_dict()
 
-        ghost = self.inputs.ghost_species.get_dict()
-        ghost_name = ghost['name']
-        ghost_symbol = ghost['symbol']
+        # First attempt with the same species as ghosts does not quite work,
+        # so now an arbitrary species can be specified.
         
         # orig_atom_name = self.ctx.original_atom_site.kind_name
         # ghost_atom_name = orig_atom_name+"_ghost"
-        orig_atom_position = self.ctx.original_atom_site.position
         #orig_vac_name = self.ctx.original_vacancy_site.kind_name
         #ghost_vac_name = orig_vac_name+"_ghost"
+
+        ghost = self.inputs.ghost_species.get_dict()
+        ghost_name = ghost['name']
+        ghost_symbol = ghost['symbol']
+
+
+        orig_atom_position = self.ctx.original_atom_site.position
         orig_vac_position = self.ctx.original_vacancy_site.position
+
         floating = { 'floating_sites':
-                #     [ { "symbols": orig_atom_name,
-                #       "name": ghost_atom_name,
-                #       "position": orig_atom_position },
-                [     { "symbols": ghost_symbol,
-                       "name": ghost_name,
-                       "position": orig_vac_position } ] }
+                     [ { "symbols": ghost_symbol,
+                         "name": ghost_name,
+                         "position": orig_atom_position },
+                       { "symbols": ghost_symbol,
+                         "name": ghost_name,
+                         "position": orig_vac_position } ] }
                      
 
         basis_dict.update(floating)
         inputs['basis'] = Dict(dict=basis_dict)
                      
         # Update params dict with constraints for floating orbitals
-        # Must be done in driver for now
+        # (Must be done in driver for now)
 
 
         running = self.submit(SiestaBaseWorkChain, **inputs)
@@ -174,17 +181,17 @@ class VacancyExchangeBarrierWorkChain(WorkChain):
         
         # orig_atom_name = self.ctx.original_atom_site.kind_name
         # ghost_atom_name = orig_atom_name+"_ghost"
-        orig_atom_position = self.ctx.original_atom_site.position
         #orig_vac_name = self.ctx.original_vacancy_site.kind_name
         #ghost_vac_name = orig_vac_name+"_ghost"
         orig_vac_position = self.ctx.original_vacancy_site.position
+        orig_atom_position = self.ctx.original_atom_site.position
 
         # Note reversed positions
         floating = { 'floating_sites': 
-                #     [ { "symbols": orig_atom_name,
-                #      "name": ghost_atom_name,
-                #      "position": orig_vac_position },
-                      [ { "symbols": ghost_symbol,
+                     [ { "symbols": ghost_symbol,
+                         "name": ghost_name,
+                         "position": orig_vac_position },
+                       { "symbols": ghost_symbol,
                          "name": ghost_name,
                          "position": orig_atom_position } ] }
                      
@@ -201,7 +208,9 @@ class VacancyExchangeBarrierWorkChain(WorkChain):
     def prepare_initial_path(self):
         """
         Perhaps more heuristics are needed?
-        Here we just interpolate.
+        Here we either just interpolate or allow for a "migration direction"
+        specification. The latter is not as critical in this case, since there
+        can be no collisions with the "exchanged vacancy".
         """
         
         initial_wk =  self.ctx.initial_relaxation_wk 
@@ -218,13 +227,14 @@ class VacancyExchangeBarrierWorkChain(WorkChain):
         # Find relaxed position of moving atom in initial structure
         # and in the final structure. These will be the positions of
         # the ghosts in the NEB run.
+        
         self.ctx.relaxed_initial_atom_position = s_initial.sites[self.ctx.atom_site_index].position
         self.ctx.relaxed_final_atom_position = s_final.sites[self.ctx.atom_site_index].position
  
         n_images = self.inputs.n_images.value
 
         #
-        # Add here any heuristics, before handling the
+        # Add here any more heuristics, before handling the
         # path for further refinement
 
         if 'migration_direction' in self.inputs:
@@ -234,7 +244,7 @@ class VacancyExchangeBarrierWorkChain(WorkChain):
             pos1 = self.ctx.relaxed_initial_atom_position
             pos2 = self.ctx.relaxed_final_atom_position 
             
-            # ... this is unrelaxed:  pos2 = self.ctx.vacancy_position
+            # ... this would be unrelaxed:  pos2 = self.ctx.vacancy_position
             atom_mid_path_position = find_mid_path_position(s_initial,
                                                             pos1, pos2,
                                                             migration_direction)
@@ -276,7 +286,7 @@ class VacancyExchangeBarrierWorkChain(WorkChain):
         # We might need a more general refiner, starting
         # with the trial path
         #
-        # refined_path = refine_neb_path(starting_path)
+        # 
         
 
         path_object = orm.TrajectoryData(images_list)
@@ -309,7 +319,7 @@ class VacancyExchangeBarrierWorkChain(WorkChain):
         atom_position = self.ctx.relaxed_initial_atom_position
         vac_position = self.ctx.relaxed_final_atom_position
 
-        # Note positions
+        # Note: ghost positions are fixed at their locations in the end points
 
         floating = { 'floating_sites':
                      [ { "symbols": ghost_symbol,
@@ -332,7 +342,7 @@ class VacancyExchangeBarrierWorkChain(WorkChain):
     def check_results(self):
 
         """
-        All checks are done in the NEB workchain
+        All checks are done in the NEB base workchain
         """
 
         if not self.ctx.neb_wk.is_finished_ok:

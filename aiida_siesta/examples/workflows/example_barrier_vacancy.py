@@ -50,8 +50,12 @@ structure = s
 # Put a O vacancy in the site number 16, and exchange it with the atom number 18
 # Watch out for python base-0 convention...
 iv = 15
-ia = 17  
+ia = 17
+
+# Not used in this example
 #migration_direction = [ 0.0, 0.0, 1.0 ]    # Z direction
+
+ghost_species =  Dict(dict={'symbol': 'H', 'name': 'H_ghost'})
 
 # Lua script
 absname = op.abspath(
@@ -60,7 +64,8 @@ n_images_in_script=5
 lua_script = SinglefileData(absname)
 
 
-# Parameters: very coarse for speed of test
+# Parameters: very coarse for speed. Not physical, and might lead to
+# a NEB search that actually takes too long to converge.
 
 parameters = dict={
    "mesh-cutoff": "50 Ry",
@@ -76,17 +81,13 @@ parameters = dict={
     }
 
 
-# Originally also:    atom [ 1 -- 15 ]
+# Original maximal constraint for physical atoms:    atom [ 1 -- 15 ]
 constraints = dict={
     "%block Geometry-Constraints":
     """
-     atom [ 1 -- 12 ]
+    atom [ 1 -- 12 ]
     atom [ 18 -- 19 ]
     %endblock Geometry-Constraints"""
-    }
-
-relaxation = dict={
-    'md-steps': 20
     }
 
 #
@@ -96,11 +97,17 @@ parameters.update(constraints)
 #
 neb_parameters = Dict(dict=parameters)
 
+# Specific parameter for end-point relaxation
+relaxation = dict={
+    'md-steps': 20
+    }
+
 parameters.update(relaxation)
 endpoint_parameters = Dict(dict=parameters)
 
     
-#The basis set
+# The basis set dictionary can include info for the ghost species
+
 basis = Dict(dict={
 'pao-energy-shift': '300 meV',
 '%block pao-basis-sizes': """
@@ -111,14 +118,16 @@ H_ghost SZ
     })
 
 
-#The kpoints
+# k-point sampling can be different for end-points or neb runs
 kpoints_endpoints = KpointsData()
 kpoints_endpoints.set_kpoints_mesh([1,1,1])
 
 kpoints_neb = KpointsData()
 kpoints_neb.set_kpoints_mesh([1,1,1])
 
-#The pseudopotentials
+# The pseudopotentials for ghost species have to be added by hand if this
+# method of construction is used. It could be automated if using a pseudo family.
+#
 pseudos_dict = {}
 raw_pseudos = [("Mg.psf", ['Mg']), ("O.psf", ['O']),
                ("H.psf", ['H_ghost'])]
@@ -144,10 +153,10 @@ options = {
 }
 
 #
-# For finer-grained compatibility with script
-# but CHECK
+# For finer-grained compatibility with script. Give it more time
+# 
 options_neb = {
-    "max_wallclock_seconds": 3600,
+    "max_wallclock_seconds": 7200,
     'withmpi': True,
     "resources": {
         "num_machines": 1,
@@ -164,13 +173,14 @@ endpoint_inputs= {
     'options': Dict(dict=options)
 }
 
+# Final inputs for the workchain:
 
 inputs = {
 
     'host_structure': structure,
     'vacancy_index':      Int(iv),
     'atom_index':     Int(ia),
-    'ghost_species':  Dict(dict={'symbol': 'H', 'name': 'H_ghost'}),
+    'ghost_species':  ghost_species,
     #  'migration_direction': List(list=migration_direction),
     'n_images': Int(n_images_in_script),
     
@@ -190,8 +200,6 @@ inputs = {
 }
 
 process = submit(VacancyExchangeBarrierWorkChain, **inputs)
-print("Submitted ExchangeBarrier workchain; ID={}".format(process.pk))
-print(
-    "For information about this workchain type: verdi process show {}".format(
-        process.pk))
+print("Submitted VacancyExchangeBarrier workchain; ID={}".format(process.pk))
+print("For information about this workchain type: verdi process show {}".format(process.pk))
 print("For a list of running processes type: verdi process list")

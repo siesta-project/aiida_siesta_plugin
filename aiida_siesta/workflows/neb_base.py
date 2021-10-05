@@ -61,6 +61,9 @@ class SiestaBaseNEBWorkChain(WorkChain):
         spec.input('spring_constant', valid_type=orm.Float, required=False)
         # spec.input('climbing_image', valid_type=orm.Bool, required=False)
         # spec.input('max_number_of_neb_iterations', valid_type=orm.Int, required=False)
+
+        # These options could be passed together as a dictionary "neb_algorithm_parameters"
+        
         # ... tolerances, etc are encoded in the Siesta params dictionary.
         
         
@@ -149,7 +152,7 @@ class SiestaBaseNEBWorkChain(WorkChain):
         lua_parameters = { }
         lua_parameters['neb_spring_constant'] = spring_constant
         lua_parameters['number_of_internal_images_in_path'] = n_images
-        lua_parameters['neb_image_file_prefix'] = 'image-'
+        lua_parameters['neb_image_file_prefix'] = neb_image_prefix
         
         inputs['lua'] = {}
         inputs['lua']['script'] = self.inputs.neb_script

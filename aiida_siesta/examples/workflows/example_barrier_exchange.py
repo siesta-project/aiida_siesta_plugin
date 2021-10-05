@@ -47,7 +47,7 @@ s.append_atom(position=( 3.3226073300107264    , 1.918307998081692 ,17.5 ),symbo
 
 structure = s
 
-# Exchange
+# Exchange O_a and O_b above (note python base-0 convention for indexes)
 i1 = 15
 i2 = 17
 migration_direction = [ 0.0, 0.0, 1.0 ]    # Z direction
@@ -60,7 +60,6 @@ lua_script = SinglefileData(absname)
 
 
 # Parameters: very coarse for speed of test
-# Note the all the Si atoms are fixed...
 
 parameters = dict={
    "mesh-cutoff": "50 Ry",
@@ -75,15 +74,12 @@ parameters = dict={
    "MD-MaxForceTol":  " 0.04000 eV/Ang"
     }
 
+# All other atoms are fixed (...)
 constraints = dict={
     "%block Geometry-Constraints":
     """
     atom [ 1 -- 15 ]
     %endblock Geometry-Constraints"""
-    }
-
-relaxation = dict={
-    'md-steps': 10
     }
 
 #
@@ -93,11 +89,16 @@ parameters.update(constraints)
 #
 neb_parameters = Dict(dict=parameters)
 
+# Extra parameter for end-point relaxation
+relaxation = dict={
+    'md-steps': 10
+    }
+
 parameters.update(relaxation)
 endpoint_parameters = Dict(dict=parameters)
 
     
-#The basis set
+# The basis set
 basis = Dict(dict={
 'pao-energy-shift': '300 meV',
 '%block pao-basis-sizes': """
@@ -109,14 +110,14 @@ O_b SZ
     })
 
 
-#The kpoints
+# The kpoints
 kpoints_endpoints = KpointsData()
 kpoints_endpoints.set_kpoints_mesh([1,1,1])
 
 kpoints_neb = KpointsData()
 kpoints_neb.set_kpoints_mesh([1,1,1])
 
-#The pseudopotentials
+# The pseudopotentials
 pseudos_dict = {}
 raw_pseudos = [("Mg.psf", ['Mg']), ("O.psf", ['O','O_a','O_b'])]
 for fname, kinds in raw_pseudos:
@@ -130,7 +131,7 @@ for fname, kinds in raw_pseudos:
     for j in kinds:
         pseudos_dict[j]=pseudo
 
-#Resources
+# Resources
 options = {
     "max_wallclock_seconds": 3600,
     'withmpi': True,
@@ -142,9 +143,8 @@ options = {
 
 #
 # For finer-grained compatibility with script
-# but CHECK
 options_neb = {
-    "max_wallclock_seconds": 3600,
+    "max_wallclock_seconds": 7200,
     'withmpi': True,
     "resources": {
         "num_machines": 1,
@@ -187,7 +187,5 @@ inputs = {
 
 process = submit(ExchangeBarrierWorkChain, **inputs)
 print("Submitted ExchangeBarrier workchain; ID={}".format(process.pk))
-print(
-    "For information about this workchain type: verdi process show {}".format(
-        process.pk))
+print("For information about this workchain type: verdi process show {}".format(process.pk))
 print("For a list of running processes type: verdi process list")
