@@ -8,6 +8,16 @@ from aiida_siesta.workflows.iterate import SiestaIterator
 def extract_pao_block(**ions):
     """
     From the outputs ions, create a basis block with the variables for the optimization.
+    It also selects range of the variables and initial point. This choice is not so
+    trivial. The most natural decision would be to start from the radii suggested by
+    the basis size choice but not sure for simplex it is good to have an optimal
+    value as a starting point. The range as well is not trivial since the nature of
+    first orbital is different compared to others. After several attempts I decide to
+    go with:
+    * first zeta: start is suggested radius by sizes calculation (rs), min is 1.5, max is
+      2*rs (except when 2*rs < 12.5, then max is 12.5)
+    * second or more zetas: start is 1/z (so 0.5 for z=2, 0.333.. for z=3, ...), min is 0.15,
+      max is 0.95
     """
     ang_to_bohr = 1.8897161646321
     variables = {}
@@ -16,17 +26,22 @@ def extract_pao_block(**ions):
         pao_mod = ion.get_pao_modifier()
         for n in pao_mod._gen_dict:  #pylint: disable=invalid-name
             for l in pao_mod._gen_dict[n]:  # noqa
-                save_z1 = pao_mod._gen_dict[n][l][1]
+                #save_z1 = pao_mod._gen_dict[n][l][1]
                 for z in pao_mod._gen_dict[n][l]:
                     string = ion_name + str(n) + str(l) + str(z)
                     if z == 1:
-                        variables[string] = [1.5, 13.5, round(pao_mod._gen_dict[n][l][z] * ang_to_bohr, 6)]
+                        suggest_radius = round(pao_mod._gen_dict[n][l][z] * ang_to_bohr, 6)
+                        if suggest_radius * 2 < 12.5:
+                            variables[string] = [1.5, 12.5, suggest_radius]
+                        else:
+                            variables[string] = [1.5, suggest_radius * 2, suggest_radius]
                         pao_mod._gen_dict[n][l][z] = "$" + string
                     else:
-                        init_fac = round(pao_mod._gen_dict[n][l][z] / save_z1, 6)
-                        if init_fac >= 0.95:
-                            init_fac = 0.94
-                        variables[string] = [0.15, 0.95, init_fac]
+                        #init_fac = round(pao_mod._gen_dict[n][l][z] / save_z1, 6)
+                        #if init_fac >= 0.95:
+                        #    init_fac = 0.94
+                        value_start = round(float(1 / z), 2)
+                        variables[string] = [0.15, 0.95, value_start]
                         pao_mod._gen_dict[n][l][z] = "-$" + string
         card += pao_mod.get_pao_block() + "\n"
 
