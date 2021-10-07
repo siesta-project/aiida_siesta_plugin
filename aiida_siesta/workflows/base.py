@@ -185,6 +185,8 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
         if 'bandskpoints' in self.inputs:
             self.ctx.want_band_structure = True
             self.ctx.inputs['bandskpoints'] = self.inputs.bandskpoints
+        if 'optical' in self.inputs:
+            self.ctx.inputs['optical'] = self.inputs.optical
         if 'parent_calc_folder' in self.inputs:
             self.ctx.inputs['parent_calc_folder'] = self.inputs.parent_calc_folder
 

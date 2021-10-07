@@ -97,8 +97,9 @@ Some examples are referenced in the following list. They are located in the fold
   the calculation to be terminated by the scheduler. In case a siesta max time
   smaller than the ``max_wallclock_seconds`` is required, it is suggested to increase
   the ``max-walltime-slack`` value.
-  Finally,  all the ``pao`` options must be avoided here, 
-  because they belong to the **basis** input (next in this list). Any units are
+  Finally,  all the ``pao`` and ``optical`` options must be avoided here, 
+  because they belong to the **basis** and **optical** inputs respectively 
+  (see following of the list). Any units are
   specified for now as part of the value string. Blocks are entered
   by using an appropriate key and Python's multiline string
   constructor. For example::
@@ -141,11 +142,9 @@ Some examples are referenced in the following list. They are located in the fold
   will run a calculation with ``mesh-cutoff`` equal to `300 Ry`, whithout raising any
   error.
 
-
 .. |br| raw:: html
 
     <br />
-
 
 * **basis**, class :py:class:`Dict  <aiida.orm.Dict>`, *Optional*
 
@@ -202,7 +201,6 @@ Some examples are referenced in the following list. They are located in the fold
 
     <br />
 
-
 * **pseudos**, input namespace of class :py:class:`PsfData  <aiida_pseudo.data.pseudo.psf.PsfData>`
   OR class :py:class:`PsmlData  <aiida_pseudo.data.pseudo.psml.PsmlData>`, *Optional*
 
@@ -252,7 +250,6 @@ Some examples are referenced in the following list. They are located in the fold
 
     <br />
 
-
 * **ions**, input namespace of class :py:class:`IonData  <aiida_siesta.data.ion.IonfData>`, *Optional*
 
   The class `IonData <aiida_siesta.data.ion.IonData>` has been implemented along the lines of the 
@@ -282,11 +279,9 @@ Some examples are referenced in the following list. They are located in the fold
 
   The `example_ion.py` can be analyzed to better understand the use of **ions** inputs.
 
-
 .. |br| raw:: html
 
     <br />
-
 
 * **kpoints**, class :py:class:`KpointsData <aiida.orm.KpointsData>`, *Optional*
 
@@ -404,6 +399,20 @@ Some examples are referenced in the following list. They are located in the fold
      might result in an incorrect parsing of the bands.
 
   If the keyword node **bandskpoints** is not present, no band structure is computed.
+
+.. |br| raw:: html
+
+    <br />
+
+* **optical**, class :py:class:`Dict  <aiida.orm.Dict>`, *Optional*
+
+  This is the dedicated input to specify Siesta's keywords related to the calculation
+  of optical properties. It is a simple dictionary and
+  it follows the same concept of the **parameters** and **basis** inputs, including
+  the requirements for the use of fdf-block items.
+  It is mandatory to specify a "%block optical-mesh". All the other optical inputs are
+  optional. If not already specified by the user, the "optical-calculation" keyword will
+  automatically set to True by the plugin.
 
 .. |br| raw:: html
 
@@ -645,6 +654,18 @@ accessed with the ``calculation.outputs`` method.
   The bands are not rescaled by the Fermi energy. Tools for the generation
   of files that can be easly plot are available through ``bands.export``.
 
+.. |br| raw:: html
+
+    <br />
+
+* **optical_eps2** :py:class:`ArrayData <aiida.orm.ArrayData>`
+
+  Array containing the imaginary part of the dielectric function (epsilon_2) 
+  versus energy  (`eV`).
+  To access the values::
+
+        optical_eps2.get_array("e_eps2")
+  
 .. |br| raw:: html
 
     <br />
