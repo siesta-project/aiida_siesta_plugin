@@ -1,16 +1,14 @@
-#
-#
-#
-def clone_aiida_structure (s):
+def clone_aiida_structure(s):
     """
-    A cloned structure is not quite ready to store more atoms. 
+    A cloned structure is not quite ready to store more atoms.
     This function fixes it
     """
 
-    t=s.clone()
-    t._internal_kind_tags={}
+    t = s.clone()
+    t._internal_kind_tags = {}
 
     return t
+
 
 def add_ghost_sites_to_structure(original_structure, basis):
     """
@@ -33,13 +31,14 @@ def add_ghost_sites_to_structure(original_structure, basis):
                     raise ValueError(
                         "It is not possibe to specify `floating_sites` "
                         "(ghosts states) with the same name of a structure kind."
-                        )
+                    )
                 structure.append_atom(position=item["position"], symbols=item["symbols"], name=item["name"])
                 floating_species_names.append(item["name"])
 
     return structure, floating_species_names
 
-def aiida_struct_to_ase (s):
+
+def aiida_struct_to_ase(s):
     """
     This is a custom version to bypass the inappropriate implementation
     of the site.get_ase() routine (it does not set tags for sites whose
@@ -61,8 +60,9 @@ def aiida_struct_to_ase (s):
         ase_atom = site.get_ase(kinds=_kinds)
         ase_atom.tag = sp_index[site.kind_name]
         s_ase.append(ase_atom)
-        
+
     return s_ase
+
 
 #
 #
@@ -73,7 +73,7 @@ def ase_struct_to_aiida(s_ase, kinds):
     :param: s_ase: The ASE object
     :param: kinds: The kinds object of a reference AiiDA structure
     """
-    
+
     from aiida.orm import StructureData
     import ase
 
@@ -83,12 +83,12 @@ def ase_struct_to_aiida(s_ase, kinds):
     tags = s_ase.get_tags()
 
     for i in range(len(positions)):
-        kind = kinds[tags[i]-1]
-        s.append_atom(position=positions[i],symbols=kind.symbol, name=kind.name)
+        kind = kinds[tags[i] - 1]
+        s.append_atom(position=positions[i], symbols=kind.symbol, name=kind.name)
 
     return s
 
-    
+
 def exchange_sites_in_structure(s, i1, i2):
     """
     Given a structure s, return another structure with the coordinates of hte i1, i2 sites interchanged
@@ -116,6 +116,7 @@ def exchange_sites_in_structure(s, i1, i2):
 
     return t
 
+
 def find_intermediate_structure(s, i1, intermediate_position, i2=None):
     """
     Given a structure and the indexes of two sites, and an
@@ -124,17 +125,17 @@ def find_intermediate_structure(s, i1, intermediate_position, i2=None):
     index is input, the second atom is moved to an image point with an
     opposite relative displacement. This is useful to 'prime' a path
     to avoid head-on collissions, for example.
-    
+
     :param: s  a StructureData object
     :param: i1, i2,  indexes of atoms in the structure s
             If i2 is None (default), only the first atom is moved.
     :param: intermediate_position, a list of floats
 
     """
-    
+
     import numpy as np
     from aiida.orm.nodes.data.structure import Site
-    
+
     i1_path_position = np.array(intermediate_position)
 
     sites = s.sites
@@ -143,7 +144,6 @@ def find_intermediate_structure(s, i1, intermediate_position, i2=None):
     s1 = sites[i1]
     n1 = Site(kind_name=s1.kind_name, position=i1_path_position)
     sites[i1] = n1
-
 
     # The second atom's image position is obtained by
     # reversing the sign of the above relative position for i1
@@ -163,6 +163,7 @@ def find_intermediate_structure(s, i1, intermediate_position, i2=None):
 
     return intermediate_structure
 
+
 def compute_mid_path_position(s, i1, i2, migration_direction):
     """
     The basic heuristic here is to avoid head-on collissions
@@ -175,7 +176,7 @@ def compute_mid_path_position(s, i1, i2, migration_direction):
     :param: i1, i2,  indexes of the atoms
     :param: migration direction, in lattice coordinates
     """
-    
+
     import numpy as np
 
     AVOIDANCE_RADIUS = 1.00  # 1.0 angstrom
@@ -183,8 +184,8 @@ def compute_mid_path_position(s, i1, i2, migration_direction):
     cell = np.array(s.cell)
     cell_direction = np.array(migration_direction)
 
-    cart_direction = np.matmul(cell,cell_direction)
-    
+    cart_direction = np.matmul(cell, cell_direction)
+
     # Find positions of i1 and i2
     sites = s.sites
     p1 = np.array(sites[i1].position)
@@ -195,33 +196,34 @@ def compute_mid_path_position(s, i1, i2, migration_direction):
     #
     d = p2 - p1
     dmod = np.sqrt(d.dot(d))
-    u = d/dmod
+    u = d / dmod
 
     # Sanity check: migration direction should not be near-parallel
     # to the line joining the exchanged atoms...
-    
-    cross_product = np.cross(d,cart_direction)
-    mod_cross_product = np.sqrt(cross_product.dot(cross_product))
-    mod_cd = np.sqrt(np.dot(cart_direction,cart_direction))
 
-    if np.abs(mod_cross_product/(mod_cd*dmod)) < 1.0e-2:
+    cross_product = np.cross(d, cart_direction)
+    mod_cross_product = np.sqrt(cross_product.dot(cross_product))
+    mod_cd = np.sqrt(np.dot(cart_direction, cart_direction))
+
+    if np.abs(mod_cross_product / (mod_cd * dmod)) < 1.0e-2:
         print("Migration direction near parallel to line of sight")
         return None
 
     # Find component of cart_direction perpendicular to the i1-i2 line,
     # and unit vector
     #
-    c_perp = cart_direction - u.dot(cart_direction)*u
+    c_perp = cart_direction - u.dot(cart_direction) * u
     c_perp_mod = np.sqrt(c_perp.dot(c_perp))
-    u_perp = c_perp/c_perp_mod
-    
+    u_perp = c_perp / c_perp_mod
+
     #
     # The mid-point of the path is now determined by the vector sum
     # of half of d and u_perp times the radius of the avoidance cylinder
     #
-    path_mid_point = p1 + 0.5*dmod*u + AVOIDANCE_RADIUS * u_perp
+    path_mid_point = p1 + 0.5 * dmod * u + AVOIDANCE_RADIUS * u_perp
 
     return path_mid_point.tolist()
+
 
 def find_mid_path_position(s, pos1, pos2, migration_direction):
     """
@@ -235,7 +237,7 @@ def find_mid_path_position(s, pos1, pos2, migration_direction):
     :param: pos1, pos2,  initial and final positions
     :param: migration direction, in lattice coordinates
     """
-    
+
     import numpy as np
 
     AVOIDANCE_RADIUS = 1.00  # 1.0 angstrom
@@ -243,8 +245,8 @@ def find_mid_path_position(s, pos1, pos2, migration_direction):
     cell = np.array(s.cell)
     cell_direction = np.array(migration_direction)
 
-    cart_direction = np.matmul(cell,cell_direction)
-    
+    cart_direction = np.matmul(cell, cell_direction)
+
     # Find positions of i1 and i2
     sites = s.sites
     p1 = np.array(pos1)
@@ -255,31 +257,30 @@ def find_mid_path_position(s, pos1, pos2, migration_direction):
     #
     d = p2 - p1
     dmod = np.sqrt(d.dot(d))
-    u = d/dmod
+    u = d / dmod
 
     # Sanity check: migration direction should not be near-parallel
     # to the line joining the two sites
-    
-    cross_product = np.cross(d,cart_direction)
-    mod_cross_product = np.sqrt(cross_product.dot(cross_product))
-    mod_cd = np.sqrt(np.dot(cart_direction,cart_direction))
 
-    if np.abs(mod_cross_product/(mod_cd*dmod)) < 1.0e-2:
+    cross_product = np.cross(d, cart_direction)
+    mod_cross_product = np.sqrt(cross_product.dot(cross_product))
+    mod_cd = np.sqrt(np.dot(cart_direction, cart_direction))
+
+    if np.abs(mod_cross_product / (mod_cd * dmod)) < 1.0e-2:
         print("Migration direction near parallel to line of sight")
         return None
 
     # Find component of cart_direction perpendicular to the i1-i2 line,
     # and unit vector
     #
-    c_perp = cart_direction - u.dot(cart_direction)*u
+    c_perp = cart_direction - u.dot(cart_direction) * u
     c_perp_mod = np.sqrt(c_perp.dot(c_perp))
-    u_perp = c_perp/c_perp_mod
-    
+    u_perp = c_perp / c_perp_mod
+
     #
     # The mid-point of the path is now determined by the vector sum
     # of half of d and u_perp times the radius of the avoidance cylinder
     #
-    path_mid_point = p1 + 0.5*dmod*u + AVOIDANCE_RADIUS * u_perp
+    path_mid_point = p1 + 0.5 * dmod * u + AVOIDANCE_RADIUS * u_perp
 
     return path_mid_point.tolist()
-

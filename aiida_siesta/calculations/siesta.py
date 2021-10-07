@@ -10,7 +10,6 @@ from aiida_siesta.utils.tkdict import FDFDict
 from aiida_siesta.data.psf import PsfData as DeprecatedPsfData
 from aiida_siesta.data.psml import PsmlData as DeprecatedPsmlData
 from aiida_siesta.data.ion import IonData
-from aiida_siesta.utils.structures import add_ghost_sites_to_structure
 
 # See the LICENSE.txt and AUTHORS.txt files.
 
