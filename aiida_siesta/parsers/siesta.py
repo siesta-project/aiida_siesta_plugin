@@ -13,6 +13,25 @@ from aiida.common import exceptions
 #####################################################
 
 
+def get_eps2(eps2_path):
+    """
+    Reads the eps2_path files to extract an array energy vs eps2
+    """
+
+    eps2_list = []
+
+    with open(eps2_path, 'r') as file_h:
+        for line in file_h:
+            # check if the current line starts with "#"
+            if line.startswith("#"):
+                pass
+            else:
+                e_and_eps2 = [float(i) for i in line.split()]
+                eps2_list.append(e_and_eps2)
+
+    return eps2_list
+
+
 def is_polarization_problem(output_path):
     """
     Check the presence of polarization errors.
@@ -24,6 +43,8 @@ def is_polarization_problem(output_path):
     for line in lines:
         if "POLARIZATION: Iteration to find the polarization" in line:
             return True
+
+    thefile.close()
 
     return False
 
@@ -136,13 +157,13 @@ def is_variable_geometry(xmldoc):
     for item in itemlist:
         # Check there is a step which is a "geometry optimization" one
         if 'dictRef' in list(item.attributes.keys()):
-            ref= item.attributes['dictRef'].value
+            ref = item.attributes['dictRef'].value
             # This is a very simple-minded approach, since
             # there might be Lua runs which are not properly
             # geometry optimizations.
-            if (ref == "Geom. Optim") or (ref == "LUA"):
+            if ref in ("Geom. Optim", "LUA"):
                 return True
-    
+
     return False
 
 
@@ -298,7 +319,7 @@ class SiestaParser(Parser):
     Parser for the output of Siesta.
     """
 
-    _version = 'Dev-post1.1.1'
+    _version = '1.2.dev1'
 
     def parse(self, **kwargs):  # noqa: MC0001  - is mccabe too complex funct -
         """
@@ -314,7 +335,7 @@ class SiestaParser(Parser):
         except exceptions.NotExistent:
             raise OutputParsingError("Folder not retrieved")
 
-        output_path, messages_path, xml_path, json_path, bands_path = \
+        output_path, messages_path, xml_path, json_path, bands_path, basis_enthalpy_path, eps2_path = \
             self._fetch_output_files(output_folder)
 
         if xml_path is None:
@@ -337,6 +358,15 @@ class SiestaParser(Parser):
             else:
                 output_dict["global_time"] = global_time
                 output_dict["timing_decomposition"] = timing_decomp
+
+        if basis_enthalpy_path is not None:
+            the_file = open(basis_enthalpy_path)
+            bas_enthalpy = float(the_file.read().split()[0])
+            the_file.close()
+            output_dict["basis_enthalpy"] = bas_enthalpy
+            output_dict["basis_enthalpy_units"] = "eV"
+        else:
+            warnings_list.append(["BASIS_ENTHALPY file not retrieved"])
 
         have_errors_to_analyse = False
         if messages_path is None:
@@ -388,37 +418,40 @@ class SiestaParser(Parser):
             arraydata.set_array('stress', np.array(stress))
             self.out('forces_and_stress', arraydata)
 
-        #Attempt to parse the ion files.
-        from aiida_siesta.data.ion import IonData
-        ions = {}
-        #Ions from the structure
-        in_struc = self.node.inputs.structure
-        for kind in in_struc.get_kind_names():
-            ion_file_name = kind + ".ion.xml"
-            if ion_file_name in output_folder._repository.list_object_names():
-                ion_file_path = os.path.join(output_folder._repository._get_base_folder().abspath, ion_file_name)
-                ions[kind] = IonData(ion_file_path)
-            else:
-                self.logger.warning(f"no ion file retrieved for {kind}")
-        #Ions from floating_sites
-        if "basis" in self.node.inputs:
-            basis_dict = self.node.inputs.basis.get_dict()
-            if "floating_sites" in basis_dict:
-                floating_kinds = []
-                for orb in basis_dict["floating_sites"]:
-                    if orb["name"] not in floating_kinds:
-                        floating_kinds.append(orb["name"])
-                        ion_file_name = orb["name"] + ".ion.xml"
-                        if ion_file_name in output_folder._repository.list_object_names():
-                            ion_file_path = os.path.join(
-                                output_folder._repository._get_base_folder().abspath, ion_file_name
-                            )
-                            ions[orb["name"]] = IonData(ion_file_path)
-                        else:
-                            self.logger.warning(f"no ion file retrieved for {orb['name']}")
-        #Return the outputs
-        if ions:
-            self.out('ion_files', ions)
+        #Attempt to parse the ion files. Files ".ion.xml" are not produced by siesta if ions file are used
+        #in input (`user-basis = T`). This explains the first "if" statement. The SiestaCal input is called
+        #`ions__El` (El is the element label) therefore we look for the str "ions" in any of the inputs name.
+        if not any(["ions" in inp for inp in self.node.inputs]):  #pylint: disable=too-many-nested-blocks
+            from aiida_siesta.data.ion import IonData
+            ions = {}
+            #Ions from the structure
+            in_struc = self.node.inputs.structure
+            for kind in in_struc.get_kind_names():
+                ion_file_name = kind + ".ion.xml"
+                if ion_file_name in output_folder._repository.list_object_names():
+                    ion_file_path = os.path.join(output_folder._repository._get_base_folder().abspath, ion_file_name)
+                    ions[kind] = IonData(ion_file_path)
+                else:
+                    self.logger.warning(f"no ion file retrieved for {kind}")
+            #Ions from floating_sites
+            if "basis" in self.node.inputs:
+                basis_dict = self.node.inputs.basis.get_dict()
+                if "floating_sites" in basis_dict:
+                    floating_kinds = []
+                    for orb in basis_dict["floating_sites"]:
+                        if orb["name"] not in floating_kinds:
+                            floating_kinds.append(orb["name"])
+                            ion_file_name = orb["name"] + ".ion.xml"
+                            if ion_file_name in output_folder._repository.list_object_names():
+                                ion_file_path = os.path.join(
+                                    output_folder._repository._get_base_folder().abspath, ion_file_name
+                                )
+                                ions[orb["name"]] = IonData(ion_file_path)
+                            else:
+                                self.logger.warning(f"no ion file retrieved for {orb['name']}")
+            #Return the outputs
+            if ions:
+                self.out('ion_files', ions)
 
         # Error analysis
         if have_errors_to_analyse:
@@ -467,6 +500,16 @@ class SiestaParser(Parser):
             #bandsparameters = Dict(dict={"kp_coordinates": coords})
             #self.out('bands_parameters', bandsparameters)
 
+        #Because no known error has been found, attempt to parse EPSIMG file if requested
+        if eps2_path is None:
+            if "optical" in self.node.inputs:
+                return self.exit_codes.EPS2_FILE_NOT_PRODUCED
+        else:
+            eps2_list = get_eps2(eps2_path)
+            optical_eps2 = ArrayData()
+            optical_eps2.set_array('e_eps2', np.array(eps2_list))
+            self.out('optical_eps2', optical_eps2)
+
         #At the very end, return a particular exit code if "INFO: Job completed"
         #was not present in the MESSAGES file, but no known error is detected.
         if have_errors_to_analyse:
@@ -492,6 +535,8 @@ class SiestaParser(Parser):
         xml_path = None
         json_path = None
         bands_path = None
+        basis_enthalpy_path = None
+        eps2_path = None
 
         if self.node.get_option('output_filename') in list_of_files:
             oufil = self.node.get_option('output_filename')
@@ -511,11 +556,20 @@ class SiestaParser(Parser):
                 out_folder._repository._get_base_folder().abspath, self.node.process_class._MESSAGES_FILE
             )
 
+        if self.node.process_class._BASIS_ENTHALPY_FILE in list_of_files:
+            basis_enthalpy_path = os.path.join(
+                out_folder._repository._get_base_folder().abspath, self.node.process_class._BASIS_ENTHALPY_FILE
+            )
+
         namebandsfile = str(self.node.get_option('prefix')) + ".bands"
         if namebandsfile in list_of_files:
             bands_path = os.path.join(out_folder._repository._get_base_folder().abspath, namebandsfile)
 
-        return output_path, messages_path, xml_path, json_path, bands_path
+        nameeps2file = str(self.node.get_option('prefix')) + ".EPSIMG"
+        if nameeps2file in list_of_files:
+            eps2_path = os.path.join(out_folder._repository._get_base_folder().abspath, nameeps2file)
+
+        return output_path, messages_path, xml_path, json_path, bands_path, basis_enthalpy_path, eps2_path
 
     def _get_warnings_from_file(self, messages_path):
         """

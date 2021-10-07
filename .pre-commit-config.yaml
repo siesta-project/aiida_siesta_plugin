@@ -9,12 +9,13 @@
         ^tests/
       )
 
-- repo: local
+
+- repo: https://github.com/pre-commit/mirrors-yapf
+  rev: v0.30.0
   hooks:
   - id: yapf
     name: yapf
     entry: yapf
-    language: system
     types: [python]
     args: ['-d']
     exclude:
@@ -23,6 +24,9 @@
         ^aiida_siesta/docs/|
         ^tests/
      )
+
+- repo: local
+  hooks:
   - id: prospector
     language: system
     types: [file, python]

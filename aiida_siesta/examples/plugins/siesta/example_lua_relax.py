@@ -1,16 +1,15 @@
 #!/usr/bin/env runaiida
+
+#LUA PATH MUST BE PASSED AS THIRD OPTION!!!!!!
+
 import sys
 
 from aiida.engine import submit
-from aiida.orm import load_code, SinglefileData
+from aiida.orm import load_code, SinglefileData, Group
 from aiida_siesta.calculations.siesta import SiestaCalculation
-from aiida_siesta.data.psf import get_pseudos_from_structure
 from aiida.plugins import DataFactory
 import os.path as op
 
-#  Siesta calculation on Water molecule -- to fail in geom relaxation
-
-PsfData = DataFactory('siesta.psf')
 Dict = DataFactory('dict')
 KpointsData = DataFactory('array.kpoints')
 StructureData = DataFactory('structure')
@@ -24,20 +23,30 @@ try:
     else:
         raise IndexError
 except IndexError:
-    print(("The first parameter can only be either "
-           "--send or --dont-send"),
-          file=sys.stderr)
+    print(("The first parameter can only be either --send or --dont-send."),file=sys.stderr)
     sys.exit(1)
-#
+
 try:
     codename = sys.argv[2]
+    load_code(codename)
+except (IndexError, NotExistent):
+    print(("The second parameter must be the code to use. Hint: `verdi code list`."),file=sys.stderr)
+    sys.exit(1)
+
+try:
+    lua_elements_path = sys.argv[3]
 except IndexError:
-    codename = 'Siesta4.0.1@kelvin'
+    print(("The third parameter must be the path to the lua scripts in the flos library."),file=sys.stderr)
+    print(("Look at the docs for more info. Library can be found at https://github.com/siesta-project/flos"),file=sys.stderr)
+    sys.exit(1)
+    #lua_elements_path = "/home/ebosoni/flos/?.lua;/home/ebosoni/flos/?/init.lua;"
+
 
 #
 #------------------Code and computer options ---------------------------
 #
 code = load_code(codename)
+
 
 options = {
 #    "queue_name": "debug",
@@ -45,7 +54,8 @@ options = {
     "resources": {
         "num_machines": 1,
         "num_mpiprocs_per_machine": 1,
-    }
+    },
+    "environment_variables":{"LUA_PATH":lua_elements_path},
 }
 #
 #-------------------------- Settings ---------------------------------
@@ -105,12 +115,12 @@ parameters = Dict(dict=params_dict)
 #
 # FIXME: The family name is hardwired
 #
-pseudos_dict = get_pseudos_from_structure(s, 'sample_psf_family')
+family = Group.get(label='psf_family')
+pseudos_dict = family.get_pseudos(structure=s)
 #-----------------------------------------------------------------------
 # Lua script for relaxation
 #
-absname = op.abspath(op.join(
-    op.dirname(__file__), "lua_scripts/relax_geometry_lbfgs.lua"))
+absname = op.abspath(op.join(op.dirname(__file__), "../../fixtures/lua_scripts/relax_geometry_lbfgs.lua"))
 lua_script = SinglefileData(absname)
 #
 #

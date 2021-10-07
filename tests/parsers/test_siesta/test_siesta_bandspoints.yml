@@ -37,6 +37,8 @@ output_parameters:
   Ebs_units: eV
   FreeE: -212.765618
   FreeE_units: eV
+  basis_enthalpy: -214.0372814354993
+  basis_enthalpy_units: eV
   dc:contributor: Siesta-CML
   global_time: 6.396
   mesh:
@@ -45,7 +47,7 @@ output_parameters:
   - 36
   nnz: 19594
   no_u: 26
-  parser_info: AiiDA Siesta Parser V. Dev-post1.1.1
+  parser_info: AiiDA Siesta Parser V. 1.2.dev1
   siesta:Arch: gfortran-esl-bundle-0.4
   siesta:EndTime: 2020-01-07T14-53-55
   siesta:Flags: 'mpif90 -O2 -fbacktrace '

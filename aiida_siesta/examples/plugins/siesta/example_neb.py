@@ -1,5 +1,7 @@
 #!/usr/bin/env runaiida
 
+#LUA PATH MUST BE PASSED AS THIRD OPTION!!!!!!
+
 #Not required by AiiDA
 import os.path as op
 import sys
@@ -10,7 +12,8 @@ from aiida.orm import load_code
 from aiida.orm import (Dict, List, StructureData, KpointsData)
 from aiida.orm import SinglefileData, FolderData
 from aiida_siesta.calculations.siesta import SiestaCalculation
-from aiida_siesta.data.psf import PsfData
+from aiida_pseudo.data.pseudo.psf import PsfData
+from aiida.common.exceptions import NotExistent
 
 try:
     dontsend = sys.argv[1]
@@ -21,15 +24,24 @@ try:
     else:
         raise IndexError
 except IndexError:
-    print(("The first parameter can only be either "
-           "--send or --dont-send"),
-          file=sys.stderr)
+    print(("The first parameter can only be either --send or --dont-send."),file=sys.stderr)
     sys.exit(1)
 
 try:
     codename = sys.argv[2]
+    load_code(codename)
+except (IndexError, NotExistent):
+    print(("The second parameter must be the code to use. Hint: `verdi code list`."),file=sys.stderr)
+    sys.exit(1)
+
+try:
+    lua_elements_path = sys.argv[3]
 except IndexError:
-    codename = 'Siesta4.0.1@kelvin'
+    print(("The third parameter must be the path to the lua scripts in the flos library."),file=sys.stderr)
+    print(("Look at the docs for more info. Library can be found at https://github.com/siesta-project/flos"),file=sys.stderr)
+    sys.exit(1)
+    #lua_elements_path = "/home/ebosoni/flos/?.lua;/home/ebosoni/flos/?/init.lua;"
+
 
 #The code
 code = load_code(codename)
@@ -48,11 +60,11 @@ s.append_atom(position=(-0.757,  2.914,  0.000 ),symbols=['H']) #6
 
 #--------------------  Lua block
 # lua script
-absname = op.abspath(op.join(op.dirname(__file__), "lua_scripts/neb.lua"))
+absname = op.abspath(op.join(op.dirname(__file__), "../../fixtures/lua_scripts/neb.lua"))
 lua_script = SinglefileData(absname)
 
 # Lua input files
-xyz_folder = op.abspath(op.join(op.dirname(__file__), "data/neb-data"))
+xyz_folder = op.abspath(op.join(op.dirname(__file__), "../../fixtures/neb_data"))
 lua_input_files = FolderData(tree=xyz_folder)
 
 # Lua parameters
@@ -112,15 +124,16 @@ H                     1                    # Species label, number of l-shells
 pseudos_dict = {}
 raw_pseudos = [ ("H.psf", ['H']),("O.psf", ['O'])]
 for fname, kinds in raw_pseudos:
-    absname = op.realpath(
-        op.join(op.dirname(__file__), "data/sample-psf-family", fname))
-    pseudo, created = PsfData.get_or_create(absname, use_first=True)
-    if created:
+    absname = op.realpath(op.join(op.dirname(__file__), "../../fixtures/sample_psf", fname))
+    pseudo = PsfData.get_or_create(absname)
+    if not pseudo.is_stored:
         print("\nCreated the pseudo for {}".format(kinds))
     else:
         print("\nUsing the pseudo for {} from DB: {}".format(kinds, pseudo.pk))
     for j in kinds:
         pseudos_dict[j]=pseudo
+
+
 
 #Resources
 options = {
@@ -129,7 +142,8 @@ options = {
     "resources": {
         "num_machines": 1,
         "num_mpiprocs_per_machine": 2,
-    }
+    },
+    "environment_variables":{"LUA_PATH":lua_elements_path},
 }
 
 

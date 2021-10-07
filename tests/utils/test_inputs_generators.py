@@ -1,17 +1,16 @@
 #!/usr/bin/env runaiida
 # -*- coding: utf-8 -*-
-from aiida_siesta.groups.pseudos import PsmlFamily
 from aiida.plugins import WorkflowFactory, CalculationFactory
 
 
 def test_siestacalc_inpgen(aiida_profile, fixture_code, generate_structure, generate_psml_fam):
     """Test the validation of subclasses of `InputsGenerator`."""
 
-    generate_psml_fam("nc-sr-04_pbe_standard_psml","Si") #This will stay for the entire session!
+    generate_psml_fam("PseudoDojo/0.4/PBE/SR/standard/psml","Si") #This will stay for the entire session!
 
-    from aiida_siesta.utils.inputs_generators import SiestaCalculationInputsGenerator
+    from aiida_siesta.utils.protocols_system.input_generators import SiestaCalculationInputGenerator
 
-    inp_gen = SiestaCalculationInputsGenerator(CalculationFactory("siesta.siesta"))
+    inp_gen = SiestaCalculationInputGenerator(CalculationFactory("siesta.siesta"))
     structure = generate_structure()
     protocol = inp_gen.get_default_protocol_name()
     code = fixture_code("siesta.siesta")
@@ -26,9 +25,9 @@ def test_siestacalc_inpgen(aiida_profile, fixture_code, generate_structure, gene
 def test_baseworkchain_inpgen(aiida_profile, fixture_code, generate_structure):
     """Test the validation of subclasses of `InputsGenerator`."""
 
-    from aiida_siesta.utils.inputs_generators import BaseWorkChainInputsGenerator
+    from aiida_siesta.utils.protocols_system.input_generators import BaseWorkChainInputGenerator
 
-    inp_gen = BaseWorkChainInputsGenerator(WorkflowFactory("siesta.base"))
+    inp_gen = BaseWorkChainInputGenerator(WorkflowFactory("siesta.base"))
     structure = generate_structure()
     protocol = inp_gen.get_default_protocol_name()
     code = fixture_code("siesta.siesta")
@@ -39,28 +38,30 @@ def test_baseworkchain_inpgen(aiida_profile, fixture_code, generate_structure):
 
     assert "parameters" in build
 
-#def test_bandgapworkchain_inpgen(aiida_profile, fixture_code, generate_structure):
-#    """Test the validation of subclasses of `InputsGenerator`."""
 
-#    from aiida_siesta.utils.inputs_generators import BandgapWorkChainInputsGenerator
+def test_epsilonworkchain_inpgen(aiida_profile, fixture_code, generate_structure):
+    """Test the inputs generator of EpsilonWorkChain"""
 
-#    inp_gen = BandgapWorkChainInputsGenerator(WorkflowFactory("siesta.bandgap"))
-#    structure = generate_structure()
-#    protocol = inp_gen.get_default_protocol_name()
-#    code = fixture_code("siesta.siesta")
-#    code.store()
-#    calc_engines = {"siesta": {'code': code.uuid, 'options': {"resources": {"num_mpiprocs_per_machine": 1}, "max_wallclock_seconds": 360}}}
+    from aiida_siesta.utils.protocols_system.input_generators import EpsilonWorkChainInputGenerator
 
-#    build = inp_gen.get_filled_builder(structure, calc_engines, protocol, bands_path_generator="seekpath")
+    inp_gen = EpsilonWorkChainInputGenerator(WorkflowFactory("siesta.epsilon"))
+    structure = generate_structure()
+    protocol = inp_gen.get_default_protocol_name()
+    code = fixture_code("siesta.siesta")
+    code.store()
+    calc_engines = {"siesta": {'code': code.uuid, 'options': {"resources": {"num_mpiprocs_per_machine": 1}, "max_wallclock_seconds": 360}}}
 
-#    assert "parameters" in build
+    build = inp_gen.get_filled_builder(structure, calc_engines, protocol, spin="polarized")
+
+    assert "optical" in build
+
 
 def test_eosworkchain_inpgen(aiida_profile, fixture_code, generate_structure):
     """Test the validation of subclasses of `InputsGenerator`."""
 
-    from aiida_siesta.utils.inputs_generators import EosWorkChainInputsGenerator
+    from aiida_siesta.utils.protocols_system.input_generators import EosWorkChainInputGenerator
 
-    inp_gen = EosWorkChainInputsGenerator(WorkflowFactory("siesta.eos"))
+    inp_gen = EosWorkChainInputGenerator(WorkflowFactory("siesta.eos"))
     structure = generate_structure()
     protocol = inp_gen.get_default_protocol_name()
     code = fixture_code("siesta.siesta")
@@ -74,9 +75,9 @@ def test_eosworkchain_inpgen(aiida_profile, fixture_code, generate_structure):
 def test_stmworkchain_inpgen(aiida_profile, fixture_code, generate_structure):
     """Test the validation of subclasses of `InputsGenerator`."""
 
-    from aiida_siesta.utils.inputs_generators import StmWorkChainInputsGenerator
+    from aiida_siesta.utils.protocols_system.input_generators import StmWorkChainInputGenerator
 
-    inp_gen = StmWorkChainInputsGenerator(WorkflowFactory("siesta.stm"))
+    inp_gen = StmWorkChainInputGenerator(WorkflowFactory("siesta.stm"))
     structure = generate_structure()
     protocol = inp_gen.get_default_protocol_name()
     code = fixture_code("siesta.siesta")

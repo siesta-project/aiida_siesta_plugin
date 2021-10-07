@@ -21,7 +21,7 @@ output_parameters:
   - 36
   nnz: 19594
   no_u: 26
-  parser_info: AiiDA Siesta Parser V. Dev-post1.1.1
+  parser_info: AiiDA Siesta Parser V. 1.2.dev1
   siesta:Arch: gfortran-esl-bundle-0.4
   siesta:EndTime: 2020-01-07T11-59-44
   siesta:Flags: 'mpif90 -O2 -fbacktrace '
@@ -35,4 +35,5 @@ output_parameters:
   siesta:run_UUID: 9f80c280-314d-11ea-55fa-c1b1f37f0f6a
   variable_geometry: true
   warnings:
+  - - BASIS_ENTHALPY file not retrieved
   - - 'WARNING: No MESSAGES file, could not check if calculation terminated correctly'
