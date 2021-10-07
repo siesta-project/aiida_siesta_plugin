@@ -5,7 +5,7 @@ Description
 -----------
 
 The **EpsilonWorkChain** is a simple extension of the **SietaBaseWorkChain** 
-that introduces a post-processing step to obtain the low frequency dielectric
+that introduces a post-processing step to obtain the electronic contribution to the static dielectric
 constant from the epsilon_2(omega) data.
 For developers, this workchain can be taken as an example to understand how easy is to include simple
 post-processes on top of the **SietaBaseWorkChain**.
@@ -24,8 +24,8 @@ Inputs
 ------
 
 All the **SiestaBaseWorkChain** inputs are as well inputs of the **EpsilonWorkChain**,
-therefore the system and DFT specifications (structure, parameters, etc.) are
-inputted in the WorkChain using the same syntax explained in the **SiestaBaseWorkChain**
+therefore the system and DFT specifications (structure, parameters, etc.) can be defined as
+input in the WorkChain using the same syntax explained in the **SiestaBaseWorkChain**
 :ref:`documentation <siesta-base-wc-inputs>`.
 Here we only impose a mandatory definition of the **optical** input port.
 
@@ -41,8 +41,8 @@ Outputs
   
 * **epsilon** :py:class:`Float <aiida.orm.Float>`
   
-  The low frequency (static) dielectric constant computed from the eps2(omega) data
-  using Kramers-Kronig relations .
+  The low frequency (static) dielectric constant (electronic contribution) computed from the eps2(omega) data
+  using Kramers-Kronig relations.
 
 
 Protocol system

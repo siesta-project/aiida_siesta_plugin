@@ -13,6 +13,7 @@ from aiida.orm import (Dict, List, StructureData, KpointsData)
 from aiida.orm import SinglefileData, FolderData
 from aiida_siesta.calculations.siesta import SiestaCalculation
 from aiida_pseudo.data.pseudo.psf import PsfData
+from aiida.common.exceptions import NotExistent
 
 try:
     dontsend = sys.argv[1]
@@ -23,20 +24,23 @@ try:
     else:
         raise IndexError
 except IndexError:
-    print(("The first parameter can only be either "
-           "--send or --dont-send"),
-          file=sys.stderr)
+    print(("The first parameter can only be either --send or --dont-send."),file=sys.stderr)
     sys.exit(1)
 
 try:
     codename = sys.argv[2]
-except IndexError:
-    codename = 'Siesta4.0.1@kelvin'
+    load_code(codename)
+except (IndexError, NotExistent):
+    print(("The second parameter must be the code to use. Hint: `verdi code list`."),file=sys.stderr)
+    sys.exit(1)
 
 try:
     lua_elements_path = sys.argv[3]
 except IndexError:
-    lua_elements_path = "/home/ebosoni/flos/?.lua;/home/ebosoni/flos/?/init.lua;"
+    print(("The third parameter must be the path to the lua scripts in the flos library."),file=sys.stderr)
+    print(("Look at the docs for more info. Library can be found at https://github.com/siesta-project/flos"),file=sys.stderr)
+    sys.exit(1)
+    #lua_elements_path = "/home/ebosoni/flos/?.lua;/home/ebosoni/flos/?/init.lua;"
 
 
 #The code

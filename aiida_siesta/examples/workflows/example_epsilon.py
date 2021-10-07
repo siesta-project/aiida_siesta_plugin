@@ -96,8 +96,7 @@ kpoints.set_kpoints_mesh([4, 4, 4])
 pseudos_dict = {}
 raw_pseudos = [("Si.psf", ['Si'])]
 for fname, kinds in raw_pseudos:
-    absname = op.realpath(
-        op.join(op.dirname(__file__), "../plugins/siesta/data/sample-psf-family", fname))
+    absname = op.realpath(op.join(op.dirname(__file__), "../fixtures/sample_psf", fname))
     pseudo, created = PsfData.get_or_create(absname, use_first=True)
     if created:
         print("\nCreated the pseudo for {}".format(kinds))
