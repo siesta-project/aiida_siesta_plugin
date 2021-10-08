@@ -64,8 +64,6 @@ def aiida_struct_to_ase(aiida_struct):
     return s_ase
 
 
-#
-#
 def ase_struct_to_aiida(s_ase, kinds):
     """
     Converts an ASE structure object to an equivalent AiiDA object,

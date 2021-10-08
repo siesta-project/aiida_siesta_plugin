@@ -72,6 +72,11 @@ def parse_neb_results(file, traj_in):
 
 
 def plot_neb(traj):
+    """
+    Plot the neb energies and the value of the computed barrier
+    in a file NEB.png
+    :param traj: a TrajectoryData poduced by neb_base workchain
+    """
 
     import matplotlib.pyplot as plt
     import numpy as np

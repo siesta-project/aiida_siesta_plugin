@@ -1,7 +1,7 @@
-#
-# Simple parser for xyz file
-#
 def get_positions_from_xyz_file(file):
+    """
+    Simple parser for xyz file and return positions in a list
+    """
 
     positions = []
     with open(file, 'r') as fileh:
@@ -20,15 +20,21 @@ def get_positions_from_xyz_file(file):
 
 
 def get_structure_list_from_folder(folder, ref_struct):
+    """
+    Return a list of StructureData with coordinates taken from .xyz
+    files on a folder.
+    :param folder: an absolute path to a folder
+    :param ref_struct: a StructureData used as a reference, from it
+                       the kinds and cells are taken.
+    """
 
     import glob
 
     xyz_list = glob.glob("{}/*.xyz".format(folder))
     xyz_list.sort()
 
-    # Compute number of expected (physical) sites
-    # and use it below to discard ghost sites (which are
-    # always trailing the rest)
+    # Compute number of expected (physical) sites and use it
+    # below to discard ghost sites (which are always trailing the rest)
     nsites = len(ref_struct.sites)
 
     structure_list = []
@@ -42,6 +48,10 @@ def get_structure_list_from_folder(folder, ref_struct):
 
 
 def write_xyz_file_from_structure(struct, filename, labels=True):
+    """
+    From a StructureData, returns an xyz file located in `filename`
+    absolute path.
+    """
 
     xyz_tuple = struct._prepare_xyz()
 

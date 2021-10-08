@@ -1,19 +1,20 @@
 #!/usr/bin/env runaiida
 
-#LUA PATH MUST BE PASSED AS SECOND OPTION!!!!!!
+# LUA PATH MUST BE PASSED AS SECOND OPTION!!!!!!
 
 # An example driver for the Siesta NEB Base workchain, using
 # also the feature to include ghost sites (floating orbitals)
-# in a transparent manner:
-#
+# in a transparent manner.
 # The ghost information is specified in a special entry
-#   'floating_sites' in the basis dictionary.
-#
+# 'floating_sites' in the basis dictionary.
 # The image data in the ../fixtures/neb-data concerns
 # only the physical atoms, but the workchain takes care to add
 # the floating sites when it generates the NEB folder-data for the
 # Siesta calculation. (Note that this feature is not available when
 # a NEB calculation is setup directly in a Siesta calculation).
+
+# In output a node `neb_output_package` is produced. Use the
+# function plot_neb in aiida_siesta.utils.neb to plot the results.
 
 #Not required by AiiDA
 import os.path as op
