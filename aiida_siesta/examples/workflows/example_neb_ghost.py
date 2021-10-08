@@ -1,5 +1,7 @@
 #!/usr/bin/env runaiida
-#
+
+#LUA PATH MUST BE PASSED AS SECOND OPTION!!!!!!
+
 # An example driver for the Siesta NEB Base workchain, using
 # also the feature to include ghost sites (floating orbitals)
 # in a transparent manner:
@@ -7,12 +9,12 @@
 # The ghost information is specified in a special entry
 #   'floating_sites' in the basis dictionary.
 #
-# The image data in the ../plugins/siesta/data/neb-data concerns
+# The image data in the ../fixtures/neb-data concerns
 # only the physical atoms, but the workchain takes care to add
 # the floating sites when it generates the NEB folder-data for the
 # Siesta calculation. (Note that this feature is not available when
 # a NEB calculation is setup directly in a Siesta calculation).
-#
+
 #Not required by AiiDA
 import os.path as op
 import sys
@@ -22,14 +24,25 @@ from aiida.engine import submit
 from aiida.orm import load_code
 from aiida.orm import (Dict, StructureData, KpointsData)
 from aiida.orm import TrajectoryData, SinglefileData
+from aiida_pseudo.data.pseudo.psf import PsfData
 from aiida_siesta.utils.xyz_utils import get_structure_list_from_folder
-from aiida_siesta.data.psf import PsfData
 from aiida_siesta.workflows.neb_base import SiestaBaseNEBWorkChain
+
 
 try:
     codename = sys.argv[1]
+    load_code(codename)
+except (IndexError, NotExistent):
+    print(("The second parameter must be the code to use. Hint: `verdi code list`."),file=sys.stderr)
+    sys.exit(1)
+
+try:
+    lua_elements_path = sys.argv[2]
 except IndexError:
-    codename = 'SiestaCode@some_computer'
+    print(("The third parameter must be the path to the lua scripts in the flos library."),file=sys.stderr)
+    print(("Look at the docs for more info. Library can be found at https://github.com/siesta-project/flos"),file=sys.stderr)
+    sys.exit(1)
+
 
 #The code
 code = load_code(codename)
@@ -46,15 +59,15 @@ s.append_atom(position=( 0.000,  3.500,  0.000 ),symbols=['O']) #4
 s.append_atom(position=( 0.757,  2.914,  0.000 ),symbols=['H']) #5
 s.append_atom(position=(-0.757,  2.914,  0.000 ),symbols=['H']) #6
 
-image_structure_list = get_structure_list_from_folder("../plugins/siesta/data/neb-data", s)
+image_structure_list = get_structure_list_from_folder("../fixtures/neb_data", s)
+print(image_structure_list)
 _kinds_raw = [ k.get_raw() for k in image_structure_list[0].kinds ]
 
 path_object = TrajectoryData(image_structure_list)
 path_object.set_attribute('kinds', _kinds_raw)
 
 # Lua script
-absname = op.abspath(
-   op.join(op.dirname(__file__), "../plugins/siesta/lua_scripts/neb.lua"))
+absname = op.abspath(op.join(op.dirname(__file__), "../fixtures/lua_scripts/neb.lua"))
 lua_script = SinglefileData(absname)
 
 
@@ -122,10 +135,9 @@ H                     1                    # Species label, number of l-shells
 pseudos_dict = {}
 raw_pseudos = [ ("H.psf", ['H']),("O.psf", ['O', 'O_top'])]
 for fname, kinds in raw_pseudos:
-    absname = op.realpath(
-        op.join(op.dirname(__file__), "../plugins/siesta/data/sample-psf-family", fname))
-    pseudo, created = PsfData.get_or_create(absname, use_first=True)
-    if created:
+    absname = op.realpath(op.join(op.dirname(__file__), "../fixtures/sample_psf", fname))
+    pseudo = PsfData.get_or_create(absname)
+    if not pseudo.is_stored:
         print("\nCreated the pseudo for {}".format(kinds))
     else:
         print("\nUsing the pseudo for {} from DB: {}".format(kinds, pseudo.pk))
@@ -139,7 +151,8 @@ options = Dict(dict={
     "resources": {
         "num_machines": 1,
         "num_mpiprocs_per_machine": 2,
-    }
+    },
+    "environment_variables":{"LUA_PATH":lua_elements_path},
 })
 
 

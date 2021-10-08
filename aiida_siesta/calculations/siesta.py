@@ -213,23 +213,23 @@ def validate_inputs(value, _):
             return "No pseudopotentials nor ions specified in input"
         quantity = 'pseudos'
 
-    if 'basis' in value:
-        structure = internal_structure(value["structure"], value["basis"].get_dict())
-        if structure is None:
-            return "Not possibe to specify `floating_sites` (ghosts) with the same name of a structure kind."
-    else:
-        structure = value["structure"]
-
-    #Check each kind in the structure (including freshly added ghosts) have a corresponding pseudo or ion
-    kinds = [kind.name for kind in structure.kinds]
-    if set(kinds) != set(value[quantity].keys()):
-        ps_io = ', '.join(list(value[quantity].keys()))
-        kin = ', '.join(list(kinds))
-        string_out = (
-            'mismatch between defined pseudos/ions and the list of kinds of the structure\n' +
-            f' pseudos/ions: {ps_io} \n kinds(including ghosts): {kin}'
-        )
-        return string_out
+    if 'structure' in value:  #Some subclasses might make structure optional
+        if 'basis' in value:
+            structure = internal_structure(value["structure"], value["basis"].get_dict())
+            if structure is None:
+                return "Not possibe to specify `floating_sites` (ghosts) with the same name of a structure kind."
+        else:
+            structure = value["structure"]
+        #Check each kind in the structure (including freshly added ghosts) have a corresponding pseudo or ion
+        kinds = [kind.name for kind in structure.kinds]
+        if set(kinds) != set(value[quantity].keys()):
+            ps_io = ', '.join(list(value[quantity].keys()))
+            kin = ', '.join(list(kinds))
+            string_out = (
+                'mismatch between defined pseudos/ions and the list of kinds of the structure\n' +
+                f' pseudos/ions: {ps_io} \n kinds(including ghosts): {kin}'
+            )
+            return string_out
 
 
 class SiestaCalculation(CalcJob):

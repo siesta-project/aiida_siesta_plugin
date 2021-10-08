@@ -1,7 +1,10 @@
 from aiida import orm
-from aiida.engine import WorkChain, calcfunction, ToContext
-from aiida_siesta.calculations.siesta import SiestaCalculation
 from aiida.orm.nodes.data.structure import Kind
+from aiida.engine import WorkChain, calcfunction, ToContext
+from aiida.common.folders import SandboxFolder
+from aiida_siesta.utils.xyz_utils import write_xyz_file_from_structure
+from aiida_siesta.utils.structures import add_ghost_sites_to_structure
+from aiida_siesta.calculations.siesta import SiestaCalculation
 
 
 @calcfunction
@@ -35,10 +38,34 @@ def parse_neb(retrieved, ref_structure):
     return annotated_traj
 
 
+def validate_starting_path(value, _):
+    """
+    Validate starting_path input port.
+    """
+    if value.numsteps == 0:
+        return 'The trajectory data object does not contain any structures'
+
+    if value.numsteps == 1:
+        return 'The trajectory data object does not represent a path'
+
+    if value.numsteps == 2:
+        return 'The trajectory data object contains only two structures...'
+
+    if "kinds" not in value.attributes:
+        return "No kinds attribute found in TrajectoryData object"
+
+
 class SiestaBaseNEBWorkChain(WorkChain):
     """
-    Workchain to run a NEB MEP optimization
-    starting from a guessed path
+    Workchain to run a NEB MEP optimization starting from a guessed path.
+    In theory, such task can be accomplished using directly the SiestaCalculation
+    and passing the guessed path as xyz files in lua.input_files input (see
+    `examples/plugins/siesta/example_neb.py`). Here, instead, the
+    guessed path must be specified as a set of structures in a `TrajectoryData` object.
+    This better preserves the provenance.
+    Moreover here we have a dedicated output
+    This workchain can also become the place where to deal with possible errors due
+    to the lua features.
     """
 
     @classmethod
@@ -49,84 +76,54 @@ class SiestaBaseNEBWorkChain(WorkChain):
 
         # We might enforce the kinds annotation by using a new data type,
         # but it would be wasteful
-        spec.input('starting_path', valid_type=orm.TrajectoryData, help='Starting Path')
+        spec.input(
+            'starting_path', valid_type=orm.TrajectoryData, help='Starting Path', validator=validate_starting_path
+        )
         spec.input('neb_script', valid_type=orm.SinglefileData, help='Lua script for NEB engine')
 
         spec.input('options', valid_type=orm.Dict, help='Options')
 
         # These, together with n_images, are passed as 'lua' parameters
-
         spec.input('spring_constant', valid_type=orm.Float, required=False)
         # spec.input('climbing_image', valid_type=orm.Bool, required=False)
         # spec.input('max_number_of_neb_iterations', valid_type=orm.Int, required=False)
 
-        # These options could be passed together as a dictionary "neb_algorithm_parameters"
-
-        # ... tolerances, etc are encoded in the Siesta params dictionary.
-
         spec.output('neb_output_package', valid_type=orm.TrajectoryData)
 
         spec.outline(
-            cls.check_input_path,
+            cls.create_reference_structure,
             cls.run_neb,
             cls.run_results,
         )
-        spec.exit_code(201, 'ERROR_PATH_SPEC', message='The path specification is faulty')
         spec.exit_code(201, 'ERROR_NEB_CALC', message='The NEB calculation failed')
 
-    def check_input_path(self):
+    def create_reference_structure(self):
         """
-        Make sure that the input set of images is consistent, and is annotated with
-        the kinds of the structure
+        Create the reference structure with custom kinds
         """
         path = self.inputs.starting_path
 
-        if path.numsteps == 0:
-            self.report('The trajectory data object does not contain any structures')
-            return self.exit_codes.ERROR_PATH_SPEC
-
-        if path.numsteps == 1:
-            self.report('The trajectory data object does not represent a path')
-            return self.exit_codes.ERROR_PATH_SPEC
-
-        if path.numsteps == 2:
-            self.report('The trajectory data object contains only two structures...')
-            # We could just interpolate, but here this is an error
-            return self.exit_codes.ERROR_PATH_SPEC
-
-        # ... further "smoothness" tests could be implemented if needed
-
-        try:
-            _kinds_raw = path.get_attribute('kinds')
-        except AttributeError:
-            self.report('No kinds attribute found in TrajectoryData object')
-            return self.exit_codes.ERROR_PATH_SPEC
-
         # Create proper kinds list from list of raw dictionaries
+        _kinds_raw = path.get_attribute('kinds')
         _kinds = [Kind(raw=kr) for kr in _kinds_raw]
 
         ref_structure = path.get_step_structure(0, custom_kinds=_kinds)
-
         self.ctx.reference_structure = ref_structure
 
     def run_neb(self):
         """
-        Run a SiestaCalculation with a specific NEB images
-        input.
+        Run a SiestaCalculation with a specific NEB images input.
         """
 
         inputs = self.exposed_inputs(SiestaCalculation)
 
         neb_path = self.inputs.starting_path
+
         kinds = self.ctx.reference_structure.kinds
         # Where to find the ghost information
         ghost_dict = self.inputs.basis
         neb_image_prefix = 'image-'
 
-        from aiida.orm import FolderData
-        from aiida.common.folders import SandboxFolder
-        from aiida_siesta.utils.xyz_utils import write_xyz_file_from_structure
-        from aiida_siesta.utils.structures import add_ghost_sites_to_structure
         # Temporary folder
         with SandboxFolder() as folder:
             folder_path = folder.abspath
@@ -135,10 +132,10 @@ class SiestaBaseNEBWorkChain(WorkChain):
             for i in range(neb_path.numsteps):
                 s_image_phys = neb_path.get_step_structure(i, custom_kinds=kinds)
                 s_image, dummy = add_ghost_sites_to_structure(s_image_phys, ghost_dict)
-                filename = folder.get_abs_path("{}{}.xyz".format(neb_image_prefix, i))
+                filename = folder.get_abs_path(f"{neb_image_prefix}{i}.xyz")
                 write_xyz_file_from_structure(s_image, filename)
 
-            lua_input_files = FolderData(tree=folder_path)
+            lua_input_files = orm.FolderData(tree=folder_path)
 
         n_images = self.inputs.starting_path.numsteps - 2
         spring_constant = 0.1
@@ -158,9 +155,8 @@ class SiestaBaseNEBWorkChain(WorkChain):
 
         inputs['structure'] = self.ctx.reference_structure
 
-        #
-        # Note this
-        #
+        # We follow interface of SiestaBaseWorkChain where resources are in the options
+        # input, then we pass it to the calculation as metadata.
         inputs['metadata'] = {
             "label": "NEB calculation",
             'options': self.inputs.options.get_dict(),
@@ -175,11 +171,10 @@ class SiestaBaseNEBWorkChain(WorkChain):
 
         if not self.ctx.neb_wk.is_finished_ok:
             return self.exit_codes.ERROR_NEB_CALC
-        else:
-            outps = self.ctx.neb_wk.outputs
+
+        outps = self.ctx.neb_wk.outputs
 
         # Use the 'retrieved' folder and parse the NEB data here
-        #
         retrieved_folder = outps['retrieved']
         ref_structure = self.ctx.reference_structure
 

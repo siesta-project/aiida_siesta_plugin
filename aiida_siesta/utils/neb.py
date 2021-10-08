@@ -1,33 +1,33 @@
 ###### from aiida.engine import calcfunction
 ######  @calcfunction
-def parse_neb(retrieved, ref_structure):
-    """
-    Wrapper to preserve provenance.
-    :param: retrieved:  the retrieved folder from a NEB calculation
-                        (containing .xyz files and NEB data files)
-    :param: ref_structure: a reference structure
-    :return: a Trajectory object generated from the .xyz files, and
-             with extra arrays for NEB results.
-    """
-    import os
-    from aiida.orm import TrajectoryData
-    from aiida_siesta.utils.xyz_utils import get_structure_list_from_folder
-    from aiida_siesta.utils.neb import parse_neb_results
-
-    folder_path = retrieved._repository._get_base_folder().abspath
-    struct_list = get_structure_list_from_folder(folder_path, ref_structure)
-
-    traj = TrajectoryData(struct_list)
-
-    neb_results_file = 'NEB.results'
-    if neb_results_file in retrieved._repository.list_object_names():
-        neb_results_path = os.path.join(folder_path, neb_results_file)
-        annotated_traj = parse_neb_results(neb_results_path, traj)
-
-        _kinds_raw = [k.get_raw() for k in ref_structure.kinds]
-        annotated_traj.set_attribute('kinds', _kinds_raw)
-
-    return annotated_traj
+#def parse_neb(retrieved, ref_structure):
+#    """
+#    Wrapper to preserve provenance.
+#    :param: retrieved:  the retrieved folder from a NEB calculation
+#                        (containing .xyz files and NEB data files)
+#    :param: ref_structure: a reference structure
+#    :return: a Trajectory object generated from the .xyz files, and
+#             with extra arrays for NEB results.
+#    """
+#    import os
+#    from aiida.orm import TrajectoryData
+#    from aiida_siesta.utils.xyz_utils import get_structure_list_from_folder
+#    from aiida_siesta.utils.neb import parse_neb_results
+#
+#    folder_path = retrieved._repository._get_base_folder().abspath
+#    struct_list = get_structure_list_from_folder(folder_path, ref_structure)
+#
+#    traj = TrajectoryData(struct_list)
+#
+#    neb_results_file = 'NEB.results'
+#    if neb_results_file in retrieved._repository.list_object_names():
+#        neb_results_path = os.path.join(folder_path, neb_results_file)
+#        annotated_traj = parse_neb_results(neb_results_path, traj)
+#
+#        _kinds_raw = [k.get_raw() for k in ref_structure.kinds]
+#        annotated_traj.set_attribute('kinds', _kinds_raw)
+#
+#    return annotated_traj
 
 
 def parse_neb_results(file, traj_in):
@@ -73,24 +73,22 @@ def parse_neb_results(file, traj_in):
 
 def plot_neb(traj):
 
-    import os, shutil
     import matplotlib.pyplot as plt
     import numpy as np
     from scipy.interpolate import interp1d
-    from scipy import interpolate
 
-    im = traj.get_array('steps')
+    #im = traj.get_array('steps')
     x = traj.get_array('reaction_coordinates')
     y = traj.get_array('ediff')
-    y2 = traj.get_array('energies')
+    #y2 = traj.get_array('energies')
 
     barrier = round(traj.get_attribute('barrier'), 3)
 
     xnew = np.linspace(0, x[len(x) - 1], num=1000, endpoint=True)
-    f1 = interp1d(x, y, kind='linear')
-    f2 = interp1d(x, y, kind='cubic')
-    f3 = interp1d(x, y, kind='quadratic')
-    plt.plot(x, y, "o", xnew, f1(xnew), "-", xnew, f2(xnew), "--", xnew, f3(xnew), 'r')
+    fun1 = interp1d(x, y, kind='linear')
+    fun2 = interp1d(x, y, kind='cubic')
+    fun3 = interp1d(x, y, kind='quadratic')
+    plt.plot(x, y, "o", xnew, fun1(xnew), "-", xnew, fun2(xnew), "--", xnew, fun3(xnew), 'r')
     plt.title("Barrier Energy = " + str(barrier) + " eV")
     plt.legend(['data', 'linear', 'cubic', 'quadratic'], loc='best')
 
