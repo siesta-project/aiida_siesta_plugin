@@ -33,13 +33,13 @@ try:
     codename = sys.argv[1]
     load_code(codename)
 except (IndexError, NotExistent):
-    print(("The second parameter must be the code to use. Hint: `verdi code list`."),file=sys.stderr)
+    print(("The first parameter must be the code to use. Hint: `verdi code list`."),file=sys.stderr)
     sys.exit(1)
 
 try:
     lua_elements_path = sys.argv[2]
 except IndexError:
-    print(("The third parameter must be the path to the lua scripts in the flos library."),file=sys.stderr)
+    print(("The second parameter must be the path to the lua scripts in the flos library."),file=sys.stderr)
     print(("Look at the docs for more info. Library can be found at https://github.com/siesta-project/flos"),file=sys.stderr)
     sys.exit(1)
 
@@ -60,7 +60,6 @@ s.append_atom(position=( 0.757,  2.914,  0.000 ),symbols=['H']) #5
 s.append_atom(position=(-0.757,  2.914,  0.000 ),symbols=['H']) #6
 
 image_structure_list = get_structure_list_from_folder("../fixtures/neb_data", s)
-print(image_structure_list)
 _kinds_raw = [ k.get_raw() for k in image_structure_list[0].kinds ]
 
 path_object = TrajectoryData(image_structure_list)
@@ -96,14 +95,11 @@ parameters = Dict(dict={
     %endblock Geometry-Constraints"""
     })
 
-#
 # Basis set info, including floating sites. Note that
 # O_top will get a default DZP basis set. If needed,
 # it can be specified in the block.
-#
 basis = Dict(dict={
-  'floating_sites': [ {"name":'O_top', "symbols":'O',
-                       "position":(-0.757,  0.586,  2.00 ) } ],
+  'floating_sites': [ {"name":'O_top', "symbols":'O', "position":(-0.757,  0.586,  2.00 ) } ],
   '%block PAO-Basis':
     """
  O                     2                    # Species label, number of l-shells
@@ -122,16 +118,11 @@ H                     1                    # Species label, number of l-shells
 })
 
 
-#The kpoints
-#kpoints = KpointsData()
-#kpoints.set_kpoints_mesh([1, 1, 1])
-
 # The pseudopotentials
 # Lacking an automatic procedure to recognize the 'O' symbol in 'O_top'
 # (considered unsafe), we need to add explicitly the 'O_top' kind name
 # to the 'O.psf' association list.
 # Still to check: use of pseudopotential families
-#
 pseudos_dict = {}
 raw_pseudos = [ ("H.psf", ['H']),("O.psf", ['O', 'O_top'])]
 for fname, kinds in raw_pseudos:

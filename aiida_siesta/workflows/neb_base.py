@@ -62,8 +62,10 @@ class SiestaBaseNEBWorkChain(WorkChain):
     and passing the guessed path as xyz files in lua.input_files input (see
     `examples/plugins/siesta/example_neb.py`). Here, instead, the
     guessed path must be specified as a set of structures in a `TrajectoryData` object.
-    This better preserves the provenance.
-    Moreover here we have a dedicated output
+    The structures in `TrajectoryData` are then transformed in xyz files and placed
+    in a directory that is the passed to lua.input_files when the SiestaCalculation is called.
+    This better preserves the provenance. Moreover allows cleaner use of ghost (often necessaries)
+    Finally, we have a dedicated output containing all the NEB quantities.
     This workchain can also become the place where to deal with possible errors due
     to the lua features.
     """
@@ -72,6 +74,7 @@ class SiestaBaseNEBWorkChain(WorkChain):
     def define(cls, spec):
         super().define(spec)
 
+        #Nothe that the structure is not required, all comes from the `starting_path`
         spec.expose_inputs(SiestaCalculation, exclude=('structure', 'lua', 'metadata'))
 
         # We might enforce the kinds annotation by using a new data type,
@@ -84,7 +87,7 @@ class SiestaBaseNEBWorkChain(WorkChain):
         spec.input('options', valid_type=orm.Dict, help='Options')
 
         # These, together with n_images, are passed as 'lua' parameters
-        spec.input('spring_constant', valid_type=orm.Float, required=False)
+        spec.input('spring_constant', valid_type=orm.Float, default=lambda: orm.Float(0.1))
         # spec.input('climbing_image', valid_type=orm.Bool, required=False)
         # spec.input('max_number_of_neb_iterations', valid_type=orm.Int, required=False)
 
@@ -96,6 +99,7 @@ class SiestaBaseNEBWorkChain(WorkChain):
             cls.run_results,
         )
         spec.exit_code(201, 'ERROR_NEB_CALC', message='The NEB calculation failed')
+        spec.exit_code(202, 'NO_NEB_XYZ_FILES', message='No .xyz files retrieved')
 
     def create_reference_structure(self):
         """
@@ -114,7 +118,6 @@ class SiestaBaseNEBWorkChain(WorkChain):
         """
         Run a SiestaCalculation with a specific NEB images input.
         """
-
         inputs = self.exposed_inputs(SiestaCalculation)
 
         neb_path = self.inputs.starting_path
@@ -138,9 +141,8 @@ class SiestaBaseNEBWorkChain(WorkChain):
             lua_input_files = orm.FolderData(tree=folder_path)
 
         n_images = self.inputs.starting_path.numsteps - 2
-        spring_constant = 0.1
-        if 'spring_constant' in self.inputs:
-            spring_constant = self.inputs.spring_constant.value
+
+        spring_constant = self.inputs.spring_constant.value
 
         lua_parameters = {}
         lua_parameters['neb_spring_constant'] = spring_constant
@@ -172,6 +174,8 @@ class SiestaBaseNEBWorkChain(WorkChain):
         if not self.ctx.neb_wk.is_finished_ok:
             return self.exit_codes.ERROR_NEB_CALC
 
+        self.report('NEB calculation concluded succesfully.')
+
         outps = self.ctx.neb_wk.outputs
 
         # Use the 'retrieved' folder and parse the NEB data here
@@ -181,8 +185,9 @@ class SiestaBaseNEBWorkChain(WorkChain):
         annotated_traj = parse_neb(retrieved_folder, ref_structure)
         # Get better diagnostics from calcfunction...
         if annotated_traj.numsteps == 0:
-            self.logger.warning("No .xyz files retrieved")
             return self.exit_codes.NO_NEB_XYZ_FILES
+
+        self.report('NEB outputs retrived succesfully.')
 
         self.out('neb_output_package', annotated_traj)
         n_iterations = annotated_traj.get_attribute('neb_iterations')
