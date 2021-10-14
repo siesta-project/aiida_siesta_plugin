@@ -1,7 +1,7 @@
 AiiDA Siesta plugins and workflows
 ==================================
 
-A plugin to interface the `Siesta DFT code <https://icmab.es/siesta/>`_
+A plugin to interface the `Siesta DFT code <https://siesta-project.org/siesta/>`_
 to the `AiiDA system <http://www.aiida.net/>`_.
 
 Documentation can be found in:
@@ -24,10 +24,6 @@ disruptive electronics) project, funded by Horizon 2020 under grant
 agreement No 814487, and by the Spanish MINECO (projects
 FIS2012-37549-C05-05 and FIS2015-64886-C5-4-P)
 
-.. figure:: aiida_siesta/docs/miscellaneous/logos/MARVEL.png
-    :alt: MARVEL
-    :target: http://nccr-marvel.ch
-
 .. figure:: aiida_siesta/docs/miscellaneous/logos/MaX.png
     :alt: MaX
     :target: http://www.max-centre.eu/
@@ -39,3 +35,7 @@ FIS2012-37549-C05-05 and FIS2015-64886-C5-4-P)
 .. figure:: aiida_siesta/docs/miscellaneous/logos/MINECO-AEI.png
     :alt: MINECO-AEI
     :target: http://www.mineco.gob.es/
+
+.. figure:: aiida_siesta/docs/miscellaneous/logos/MARVEL.png
+    :alt: MARVEL
+    :target: http://nccr-marvel.ch
