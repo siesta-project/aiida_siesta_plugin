@@ -313,7 +313,7 @@ class SiestaCalculation(CalcJob):
         # Parameters are in a separate dictionary to enable a reduced set of 'universal' scripts for particular uses.
         # Input files (e.g., image files for NEB) should be packaged in a FolderData object.
         # Files to be retrieved should be specified in a list o# path specifications.
-        spec.input_namespace('lua', help='Script and files for the Lua engine')
+        spec.input_namespace('lua', help='Script and files for the Lua engine', required=False)
         spec.input('lua.script', valid_type=orm.SinglefileData, required=False)
         spec.input('lua.parameters', valid_type=orm.Dict, required=False)
         spec.input('lua.input_files', valid_type=orm.FolderData, required=False)

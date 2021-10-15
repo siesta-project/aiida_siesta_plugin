@@ -487,7 +487,9 @@ def test_lua(aiida_profile, fixture_sandbox, generate_calc_job,
             (psml.uuid, psml.filename, 'SiDiff.psml'),
             (lua_script.uuid, lua_script.filename, lua_script.filename),
             (lua_folder.uuid, list_lua_fold[0], list_lua_fold[0]),
-            (lua_folder.uuid, list_lua_fold[1], list_lua_fold[1])
+            (lua_folder.uuid, list_lua_fold[1], list_lua_fold[1]),
+            (lua_folder.uuid, list_lua_fold[2], list_lua_fold[2]),
+            (lua_folder.uuid, list_lua_fold[3], list_lua_fold[3]),
             ]
 
     retrieve_list = ['BASIS_ENTHALPY', 'MESSAGES','time.json','aiida.out','aiida.xml','*.ion.xml','NEB.results']

@@ -341,6 +341,43 @@ def generate_kpoints_mesh():
     return _generate_kpoints_mesh
 
 
+@pytest.fixture
+def generate_path_object():
+    """Return a `TrajectoryData` node to be used as starting path in neb calculations."""
+
+    def _generate_path_object(number_files, kinds):
+        """Return a `TrajectoryData` with a starting path for neb calculations."""
+        from aiida.orm import TrajectoryData, StructureData
+        from aiida_siesta.utils.xyz_utils import get_structure_list_from_folder
+        
+        cell = [[15.0, 00.0 , 00.0,],
+                [00.0, 15.0 , 00.0,],
+                [00.0, 00.0 , 15.0,],
+        ]
+        s = StructureData(cell=cell)
+        s.append_atom(position=( 0.000,  0.000,  0.000 ),symbols=['O']) #1
+        s.append_atom(position=( 0.757,  0.586,  0.000 ),symbols=['H']) #2
+        s.append_atom(position=(-0.757,  0.586,  0.000 ),symbols=['H']) #3
+        s.append_atom(position=( 0.000,  3.500,  0.000 ),symbols=['O']) #4
+        s.append_atom(position=( 0.757,  2.914,  0.000 ),symbols=['H']) #5
+        s.append_atom(position=(-0.757,  2.914,  0.000 ),symbols=['H']) #6
+
+        if number_files is not None:
+            foldername = os.path.join('tests', 'fixtures', 'lua_scripts', f'neb-data-{number_files}')
+        else:
+            foldername = os.path.join('tests', 'fixtures', 'lua_scripts', 'neb-data')
+        image_structure_list = get_structure_list_from_folder(foldername, s)
+        _kinds_raw = [ k.get_raw() for k in image_structure_list[0].kinds ]
+
+        path_object = TrajectoryData(image_structure_list)
+        if kinds:
+            path_object.set_attribute('kinds', _kinds_raw)
+
+        return path_object
+
+    return _generate_path_object
+
+
 @pytest.fixture(scope='session')
 def generate_parser():
     """Fixture to load a parser class for testing parsers."""

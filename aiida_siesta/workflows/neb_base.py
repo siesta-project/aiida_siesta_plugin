@@ -27,6 +27,8 @@ def parse_neb(retrieved, ref_structure):
 
     traj = TrajectoryData(struct_list)
 
+    annotated_traj = None
+
     neb_results_file = 'NEB.results'
     if neb_results_file in retrieved._repository.list_object_names():
         neb_results_path = os.path.join(folder_path, neb_results_file)
@@ -99,7 +101,7 @@ class SiestaBaseNEBWorkChain(WorkChain):
             cls.run_results,
         )
         spec.exit_code(201, 'ERROR_NEB_CALC', message='The NEB calculation failed')
-        spec.exit_code(202, 'NO_NEB_XYZ_FILES', message='No .xyz files retrieved')
+        spec.exit_code(202, 'NO_NEB_XYZ_FILES', message='The .xyz files or the NEB.results file could not be retrieved')
 
     def create_reference_structure(self):
         """
@@ -124,7 +126,10 @@ class SiestaBaseNEBWorkChain(WorkChain):
 
         kinds = self.ctx.reference_structure.kinds
         # Where to find the ghost information
-        ghost_dict = self.inputs.basis
+        if 'basis' in inputs:
+            ghost_dict = self.inputs.basis
+        else:
+            ghost_dict = None
         neb_image_prefix = 'image-'
 
         # Temporary folder
@@ -184,6 +189,8 @@ class SiestaBaseNEBWorkChain(WorkChain):
 
         annotated_traj = parse_neb(retrieved_folder, ref_structure)
         # Get better diagnostics from calcfunction...
+        if annotated_traj is None:
+            return self.exit_codes.NO_NEB_XYZ_FILES
         if annotated_traj.numsteps == 0:
             return self.exit_codes.NO_NEB_XYZ_FILES
 
