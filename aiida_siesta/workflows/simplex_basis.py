@@ -93,7 +93,10 @@ class SimplexBasisOptimization(WorkChain):
             ranges = np.array(self.ctx.upper) - np.array(self.ctx.lower)
             simplex.append(init)
             for index, num in enumerate(init):
-                val = num + ranges[index] * simplex_inps.initial_step_fraction.value
+                if num > self.ctx.upper[index] / 2 + 0.0001:
+                    val = num - ranges[index] * simplex_inps.initial_step_fraction.value
+                else:
+                    val = num + ranges[index] * simplex_inps.initial_step_fraction.value
                 new_point = init.copy()
                 new_point[index] = val
                 simplex.append(new_point)
