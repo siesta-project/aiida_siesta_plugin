@@ -36,6 +36,8 @@ class PaoManager:
         self.name = None
         self._gen_dict = None
         self._pol_dict = None
+        self._gen_occu = None
+        self._pol_occu = None
 
     def _validate_attrs(self, raise_if_empty=False):
         """
@@ -92,26 +94,38 @@ class PaoManager:
 
         gen_dict = {}
         pol_dict = {}
+        gen_occu = {}
+        pol_occu = {}
         for orbital in ion_data_instance.get_orbitals():
             i = orbital.attributes
             if not i["P"]:
                 if i["n"] not in gen_dict:
                     gen_dict[i["n"]] = {i["l"]: {i["Z"]: i["R"]}}
+                    gen_occu[i["n"]] = {i["l"]: {i["Z"]: i["q0"]}}
                 else:
                     if i["l"] not in gen_dict[i["n"]]:
                         gen_dict[i["n"]][i["l"]] = {i["Z"]: i["R"]}
+                        gen_occu[i["n"]][i["l"]] = {i["Z"]: i["q0"]}
                     else:
                         if i["Z"] not in gen_dict[i["n"]][i["l"]]:
                             gen_dict[i["n"]][i["l"]][i["Z"]] = i["R"]
+                            gen_occu[i["n"]][i["l"]][i["Z"]] = i["q0"]
+                        else:
+                            gen_occu[i["n"]][i["l"]][i["Z"]] += i["q0"]
             else:
                 if i["n"] not in pol_dict:
                     pol_dict[i["n"]] = {i["l"] - 1: {i["Z"]: i["R"]}}
+                    pol_occu[i["n"]] = {i["l"] - 1: {i["Z"]: i["q0"]}}
                 else:
                     if i["l"] - 1 not in pol_dict[i["n"]]:
                         pol_dict[i["n"]][i["l"] - 1] = {i["Z"]: i["R"]}
+                        pol_occu[i["n"]][i["l"] - 1] = {i["Z"]: i["q0"]}
                     else:
                         if i["Z"] not in pol_dict[i["n"]][i["l"] - 1]:
                             pol_dict[i["n"]][i["l"] - 1][i["Z"]] = i["R"]
+                            pol_occu[i["n"]][i["l"] - 1][i["Z"]] = i["q0"]
+                        else:
+                            pol_occu[i["n"]][i["l"] - 1][i["Z"]] += i["q0"]
 
         #The polarization of 2p is 3d (2d does not exist).
         #Same for polarization of 1s e 3d.
@@ -119,9 +133,13 @@ class PaoManager:
             if num in pol_dict and num not in gen_dict:
                 pol_dict[num - 1] = pol_dict[num]
                 pol_dict.pop(num)
+                pol_occu[num - 1] = pol_occu[num]
+                pol_dict.pop(num)
 
         self._gen_dict = gen_dict
         self._pol_dict = pol_dict
+        self._gen_occu = gen_occu
+        self._pol_occu = pol_occu
 
     def change_all_radius(self, percentage):
         """

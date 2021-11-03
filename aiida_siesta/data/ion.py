@@ -353,3 +353,52 @@ class IonData(SinglefileData):
         pao_manager.set_from_ion(self)
 
         return pao_manager.pao_size()
+
+    def _analyze_basis_specs(self):
+        """
+        From the file content get the info on soft confinement and charge confinement
+        """
+        content = self.get_content()
+        str_start = content.index("<basis_specs>") + len("<basis_specs>")
+        str_end = content.index("</basis_specs>", str_start)
+        interest_content = content[str_start:str_end].split()
+
+        dict_q_and_e = {}
+        for ind, val in enumerate(interest_content):
+            if val == 'splnorm:':
+                dict_key = interest_content[ind - 1].strip("(").strip(")")
+                dict_q_and_e[dict_key] = {
+                    "Q": [
+                        float(interest_content[ind + 7]),
+                        float(interest_content[ind + 9]),
+                        float(interest_content[ind + 11])
+                    ],
+                    "E": [float(interest_content[ind + 3]),
+                          float(interest_content[ind + 5])]
+                }
+
+        return dict_q_and_e
+
+    def orbitals_with_charge_confinement(self):
+        """
+        Return the orbitals with charge confinement
+        """
+        dict_q_and_e = self._analyze_basis_specs()
+        collect_q = {}
+        for basis_el_k, basis_el_v in dict_q_and_e.items():
+            if basis_el_v["Q"][0] != 0.0:
+                collect_q[basis_el_k] = basis_el_v["Q"]
+
+        return collect_q
+
+    def orbitals_with_soft_confinement(self):
+        """
+        Return the orbitals with charge confinement
+        """
+        dict_q_and_e = self._analyze_basis_specs()
+        collect_e = {}
+        for basis_el_k, basis_el_v in dict_q_and_e.items():
+            if basis_el_v["E"][0] != 0.0:
+                collect_e[basis_el_k] = basis_el_v["E"]
+
+        return collect_e
