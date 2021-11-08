@@ -111,7 +111,6 @@ def test_get_or_create(generate_ion_data):
     assert test_i.is_stored == True
 
 
-
 def test_get_orbitals(generate_ion_data):
     """
     Test the get_orbitals method
@@ -122,6 +121,49 @@ def test_get_orbitals(generate_ion_data):
     orbit_list = ion.get_orbitals()
     assert len(orbit_list) == 18
     assert isinstance(orbit_list[0],SislAtomicOrbital)
+
+
+def test_analyze_basis_specs(generate_ion_data):
+    """
+    Test the method hidden _analyze_basis_specs
+    """
+
+    ion = generate_ion_data('Si')
+    dict_conf = ion._analyze_basis_specs()
+    assert dict_conf == {'3p': {'E': [0.0, 0.0], 'Q': [0.0, 0.0, 0.01]}, '3s': {'E': [0.0, 0.0], 'Q': [0.0, 0.0, 0.01]}}
+
+    ion = generate_ion_data('Si_with_conf')
+    dict_conf = ion._analyze_basis_specs()
+    assert dict_conf == {'3p': {'E': [0.0, 0.0], 'Q': [3.0, 0.5, 0.01]}, '3s': {'E': [2.0, 0.3], 'Q': [0.0, 0.0, 0.01]}}
+
+
+def test_get_info_charge_conf(generate_ion_data):
+    """
+    Test the method get_info_charge_confinement
+    """
+
+    ion = generate_ion_data('Si')
+    dict_conf = ion.get_info_charge_confinement()
+    assert dict_conf == {}
+
+    ion = generate_ion_data('Si_with_conf')
+    dict_conf = ion.get_info_charge_confinement()
+    assert dict_conf == {'3p': [3.0, 0.5, 0.01]}
+
+
+def test_get_info_soft_conf(generate_ion_data):
+    """
+    Test the method get_info_soft_confinement
+    """
+
+    ion = generate_ion_data('Si')
+    dict_conf = ion.get_info_soft_confinement()
+    assert dict_conf == {}
+
+    ion = generate_ion_data('Si_with_conf')
+    dict_conf = ion.get_info_soft_confinement()
+    assert dict_conf == {'3s': [2.0, 0.3]}
+
 
 # The `get_content_ascii_format` is tested is the calculations/test_siesta.py
 # the rest of methods in utils/test_pao_manager.py

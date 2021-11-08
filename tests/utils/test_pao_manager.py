@@ -12,6 +12,7 @@ def test_set_from_ion(generate_ion_data):
     assert pao_man.name == "Si"
     assert pao_man._gen_dict is not None
     assert pao_man._pol_dict == {3: {1: {1: 4.0531999999999995, 2: 3.1566}}}
+    assert pao_man._conf_dict == {}
 
 def test_validator_and_get_pao_block():
 
@@ -32,13 +33,28 @@ def test_validator_and_get_pao_block():
 
     pao_man._pol_dict = {}
 
-    assert pao_man.get_pao_block() == "Si 1\n  n=3  0  1 \n 7.65335"
+    assert pao_man.get_pao_block() == "Si 1\n  n=3  0  1\n 7.65335"
 
     pao_man._gen_dict = {}
 
     with pytest.raises(RuntimeError):
         pao_man.get_pao_block()
 
+
+def test_confinements_features(generate_ion_data):
+
+    pao_man = PaoManager()
+
+    ion = generate_ion_data('Si_with_conf')
+
+    pao_man.set_from_ion(ion)
+
+    assert pao_man.name == "Si"
+    assert pao_man._gen_dict is not None
+    assert pao_man._pol_dict == {3: {1: {1: 4.0531999999999995, 2: 3.1566}}}
+    assert pao_man._conf_dict == {'Q': {3: {1: [3.0, 0.5, 0.01]}}, 'E': {3: {0: [2.0, 0.3]}}}
+
+    assert pao_man.get_pao_block() == 'Si 2\n  n=3  0  2 E 2.0 0.3 \n 5.965078\t 4.419101\n  n=3  1  2 P 2 Q 3.0 0.5 0.01 \n 7.659398\t 5.13417'
 
 def test_pao_size(generate_ion_data):
     
@@ -155,5 +171,57 @@ def test_remove_orbital():
     pao_man.remove_orbital(3,0,1)
     assert pao_man._gen_dict == {}
     assert pao_man._pol_dict == {}
+
+
+def test_remove_polarization_occu(generate_ion_data):
+
+    pao_man = PaoManager()
+
+    ion = generate_ion_data('Si_with_conf')
+
+    pao_man.set_from_ion(ion)
+
+    assert pao_man._pol_occu == {3: {1: {1: 0.0, 2: 0.0}}}
+
+    pao_man.remove_polarization(3,1)
+    assert pao_man._pol_dict == {3: {1: {1: 4.0531999999999995}}}
+    assert pao_man._pol_occu == {3: {1: {1: 0.0}}}
+
+    pao_man.remove_polarization(3,1)
+    assert pao_man._pol_dict == {}
+    assert pao_man._pol_occu == {}
+
+
+def test_remove_orbital_occu_and_conf(generate_ion_data):
+
+    pao_man = PaoManager()
+
+    ion = generate_ion_data('Si_with_conf')
+
+    pao_man.set_from_ion(ion)
+
+    assert pao_man._gen_occu == {3: {0: {1: 2.0, 2: 0.0}, 1: {1: 2.0, 2: 0.0}}}
+    assert pao_man._pol_occu == {3: {1: {1: 0.0, 2: 0.0}}}
+    assert pao_man._conf_dict == {'E': {3: {0: [2.0, 0.3]}}, 'Q': {3: {1: [3.0, 0.5, 0.01]}}}
+
+    pao_man.remove_orbital(3,0,2)
+    assert pao_man._gen_occu == {3: {0: {1: 2.0}, 1: {1: 2.0, 2: 0.0}}}
+    assert pao_man._pol_occu == {3: {1: {1: 0.0, 2: 0.0}}}
+    assert pao_man._conf_dict == {'E': {3: {0: [2.0, 0.3]}}, 'Q': {3: {1: [3.0, 0.5, 0.01]}}}
+
+    pao_man.remove_orbital(3,0,1)
+    assert pao_man._gen_occu == {3: {1: {1: 2.0, 2: 0.0}}}
+    assert pao_man._pol_occu == {3: {1: {1: 0.0, 2: 0.0}}}
+    assert pao_man._conf_dict == {'Q': {3: {1: [3.0, 0.5, 0.01]}}}
+
+    pao_man.remove_orbital(3,1,2)
+    assert pao_man._gen_occu == {3: {1: {1: 2.0}}}
+    assert pao_man._pol_occu == {3: {1: {1: 0.0, 2: 0.0}}}
+    assert pao_man._conf_dict == {'Q': {3: {1: [3.0, 0.5, 0.01]}}}
+
+    pao_man.remove_orbital(3,1,1)
+    assert pao_man._gen_occu == {}
+    assert pao_man._pol_occu == {}
+    assert pao_man._conf_dict == {}
 
 

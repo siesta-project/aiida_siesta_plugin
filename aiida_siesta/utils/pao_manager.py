@@ -32,12 +32,20 @@ class PaoManager:
         Also note that the radii are parsed in Å (from IonData) and treated internally as Å like
         any other aiida internals, however the Pao Block requires the radii in Bohr, therefore
         extra care is necessary for methods that return the block and that accept explicit radii.
+        Also three other dict are initialized.
+        4) self._gen_occu, containing the occupations of the orbitals self._gen_dict
+        5) self._pol_occu, containing the occupations of the orbitals self._pol_dict
+        6) self._conf_dict, containing info on soft confinements and charge confinements.
+        These dicts are set to empty (not None) because, for the moment, they are not considered
+        mandatory to specify, so they are not checked as a requirement to have set.
+        They are however set by `set_from_ion` and can be used for some internal reasons.
         """
         self.name = None
         self._gen_dict = None
         self._pol_dict = None
-        self._gen_occu = None
-        self._pol_occu = None
+        self._gen_occu = {}
+        self._pol_occu = {}
+        self._conf_dict = {}
 
     def _validate_attrs(self, raise_if_empty=False):
         """
@@ -78,7 +86,7 @@ class PaoManager:
         if Z <= 0:
             raise ValueError("Z must be bigger then zero")
 
-    def set_from_ion(self, ion_data_instance):
+    def set_from_ion(self, ion_data_instance):  # noqa
         """
         Sets the basic attributes of the class from an IonData.
         It goes through orbitals and extracts the two fundamental dictionaries of the class:
@@ -136,6 +144,18 @@ class PaoManager:
                 pol_occu[num - 1] = pol_occu[num]
                 pol_dict.pop(num)
 
+        map_l = {"s": 0, "p": 1, "d": 2, "f": 3}
+        confinement_dict = {}
+        if ion_data_instance.get_info_charge_confinement():
+            confinement_dict["Q"] = {}
+            for k, v in ion_data_instance.get_info_charge_confinement().items():
+                confinement_dict["Q"][int(k[0])] = {map_l[k[1]]: v}
+        if ion_data_instance.get_info_soft_confinement():
+            confinement_dict["E"] = {}
+            for k, v in ion_data_instance.get_info_soft_confinement().items():
+                confinement_dict["E"][int(k[0])] = {map_l[k[1]]: v}
+
+        self._conf_dict = confinement_dict  #It might be empty
         self._gen_dict = gen_dict
         self._pol_dict = pol_dict
         self._gen_occu = gen_occu
@@ -254,15 +274,23 @@ class PaoManager:
         except KeyError:
             raise ValueError(f"no polarized orbital with n={n} and l={l} is present in the basis")
 
+        has_occu = self._pol_occu.get(n, {}).get(l)
+
         num_z = len(self._pol_dict[n][l])
         if num_z > 1:
             self._pol_dict[n][l].pop(num_z)
+            if has_occu is not None:
+                self._pol_occu[n][l].pop(num_z)
         else:
             self._pol_dict[n].pop(l)
+            if has_occu is not None:
+                self._pol_occu[n].pop(l)
 
         #remove eampty self._pol_dict[n]
         if not self._pol_dict[n]:
             self._pol_dict.pop(n)
+            if has_occu is not None:
+                self._pol_occu.pop(n)
 
     def add_orbital(self, radius_units, radius, n, l, Z=1):  # noqa
         """
@@ -329,19 +357,51 @@ class PaoManager:
 
         self._gen_dict[n][l].pop(Z)
 
-        #remove eampty dicts, including polarized.
+        has_occu = self._gen_occu.get(n, {}).get(l, {}).get(Z)
+        if has_occu is not None:
+            self._gen_occu[n][l].pop(Z)
+
+        #remove eampty dicts, including polarized and confinements
         if not self._gen_dict[n][l]:
             self._gen_dict[n].pop(l)
+            if has_occu is not None:
+                self._gen_occu[n].pop(l)
             try:
                 self._pol_dict[n].pop(l)
             except KeyError:
                 pass
-        if not self._gen_dict[n]:
-            self._gen_dict.pop(n)
             try:
-                self._pol_dict.pop(n)
+                self._pol_occu[n].pop(l)
             except KeyError:
                 pass
+            have_q_conf = self._conf_dict.get("Q", {}).get(n, {}).get(l)
+            if have_q_conf is not None:
+                self._conf_dict["Q"][n].pop(l)
+                if not self._conf_dict["Q"][n]:
+                    self._conf_dict["Q"].pop(n)
+                if not self._conf_dict["Q"]:
+                    self._conf_dict.pop("Q")
+            have_e_conf = self._conf_dict.get("E", {}).get(n, {}).get(l)
+            if have_e_conf is not None:
+                self._conf_dict["E"][n].pop(l)
+                if not self._conf_dict["E"][n]:
+                    self._conf_dict["E"].pop(n)
+                if not self._conf_dict["E"]:
+                    self._conf_dict.pop("E")
+        if not self._gen_dict[n]:
+            self._gen_dict.pop(n)
+            if has_occu is not None:
+                self._gen_occu.pop(n)
+        try:
+            if not self._pol_dict[n]:
+                self._pol_dict.pop(n)
+        except KeyError:
+            pass
+        try:
+            if not self._pol_occu[n]:
+                self._pol_occu.pop(n)
+        except KeyError:
+            pass
 
     def get_pao_block(self):
         """
@@ -379,19 +439,21 @@ class PaoManager:
         atomic_paobasis_card = str(self.name) + " " + str(number_of_l) + "\n"
         for i in dictl:
             for j in dictl[i]:
-                if i in pol:
-                    if j in pol[i]:
-                        atomic_paobasis_card += f"  n={i}  {j}  {len(dictl[i][j])}  P {len(pol[i][j])} \n"
-                        listi = [dictl[i][j][l] for l in dictl[i][j]]  # noqa
-                        atomic_paobasis_card += '\t'.join([f' {val}' for val in listi]) + "\n"
-                    else:
-                        atomic_paobasis_card += f"  n={i}  {j}  {len(dictl[i][j])} \n"
-                        listi = [dictl[i][j][l] for l in dictl[i][j]]  # noqa
-                        atomic_paobasis_card += '\t'.join([f' {val}' for val in listi]) + "\n"
-                else:
-                    atomic_paobasis_card += f"  n={i}  {j}  {len(dictl[i][j])} \n"
-                    listi = [dictl[i][j][l] for l in dictl[i][j]]  # noqa
-                    atomic_paobasis_card += '\t'.join([f' {val}' for val in listi]) + "\n"
+                atomic_paobasis_card += f"  n={i}  {j}  {len(dictl[i][j])}"
+                ij_pol = pol.get(i, {}).get(j)  #This works only because I know that pol[i] is always dict, same below
+                ij_q = self._conf_dict.get("Q", {}).get(i, {}).get(j)
+                ij_e = self._conf_dict.get("E", {}).get(i, {}).get(j)
+                if ij_pol:
+                    atomic_paobasis_card += f" P {len(pol[i][j])}"
+                if ij_q:
+                    values_q = "".join([f'{val} ' for val in self._conf_dict['Q'][i][j]])
+                    atomic_paobasis_card += f" Q {values_q}"
+                if ij_e:
+                    values_e = "".join([f'{val} ' for val in self._conf_dict['E'][i][j]])
+                    atomic_paobasis_card += f" E {values_e}"
+                atomic_paobasis_card += "\n"
+                listi = [dictl[i][j][l] for l in dictl[i][j]]  # noqa
+                atomic_paobasis_card += '\t'.join([f' {val}' for val in listi]) + "\n"
 
         return atomic_paobasis_card[:-1]
 

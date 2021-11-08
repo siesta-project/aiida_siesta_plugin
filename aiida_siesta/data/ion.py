@@ -356,30 +356,46 @@ class IonData(SinglefileData):
 
     def _analyze_basis_specs(self):
         """
-        From the file content get the info on soft confinement and charge confinement
+        From the file content get the info on soft confinement and charge confinement.
+        The detection is based on reading the `<basis_specs>` section of the .ion file,
+        and it is pure string analysis. Therefore it is sensible to the change
+        of the printed info in Siesta. The current implementation supports only Max Siesta versions.
+        Monitor the basis_type.f90 file of Siesta to see if some changes
+        are introduced.
         """
+        #Extract first the `<basis_specs>` block from the content and put each word in a list
         content = self.get_content()
         str_start = content.index("<basis_specs>") + len("<basis_specs>")
         str_end = content.index("</basis_specs>", str_start)
         interest_content = content[str_start:str_end].split()
 
+        #Loop over the list to get the needed info
         dict_q_and_e = {}
         for ind, val in enumerate(interest_content):
-            if val == 'splnorm:':
-                dict_key = interest_content[ind - 1].strip("(").strip(")")
-                dict_q_and_e[dict_key] = {
-                    "Q": [
-                        float(interest_content[ind + 7]),
-                        float(interest_content[ind + 9]),
-                        float(interest_content[ind + 11])
-                    ],
-                    "E": [float(interest_content[ind + 3]),
-                          float(interest_content[ind + 5])]
-                }
+            if 'i=' in val:
+                dict_key = interest_content[ind + 3].strip("(").strip(")")
+                # Discart situation when no info on `vcte` are reported, meaning when
+                # perturbative polarization orbital or empty shell. Note that this distintion
+                # can be done only on MaX versions since the checked strings have been introduced
+                # only recently. With previous version there was no way to distinguish these orbitals.
+                if interest_content[ind + 4] != "(perturbative" and interest_content[ind + 4] != "(empty":
+                    for ind2, val2 in enumerate(interest_content[ind:]):
+                        saveind = ind2
+                        if val2 == "vcte:":
+                            break
+                    dict_q_and_e[dict_key] = {
+                        "Q": [
+                            float(interest_content[ind + saveind + 5]),
+                            float(interest_content[ind + saveind + 7]),
+                            float(interest_content[ind + saveind + 9])
+                        ],
+                        "E": [float(interest_content[ind + saveind + 1]),
+                              float(interest_content[ind + saveind + 3])]
+                    }
 
         return dict_q_and_e
 
-    def orbitals_with_charge_confinement(self):
+    def get_info_charge_confinement(self):
         """
         Return the orbitals with charge confinement
         """
@@ -391,7 +407,7 @@ class IonData(SinglefileData):
 
         return collect_q
 
-    def orbitals_with_soft_confinement(self):
+    def get_info_soft_confinement(self):
         """
         Return the orbitals with charge confinement
         """
