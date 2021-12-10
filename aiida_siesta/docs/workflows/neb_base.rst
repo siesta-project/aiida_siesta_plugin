@@ -7,7 +7,7 @@ The **SiestaBaseNEBWorkChain** is the core building block for the creation of wo
 enable the search of the Minimum Energy Pathway (MEP) connecting two local minima of the potential
 energy surface through the Nudge Elastic Band (NEB) method.
 In particular, this workchain performs NEB MEP optimizations starting from a guessed path
-and exploiting the LUA functionality of SIETA.
+and exploiting the LUA functionality of SIESTA.
 This workchain is very useful for the investigation of reaction paths and energy barriers. For instance, 
 it can be used to study the energetic barrier for interstitial diffusion of an impurity in 
 an host structure. For some concrete examples, look at the `aiida-siesta-barrier` project.
