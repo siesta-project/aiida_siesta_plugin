@@ -11,7 +11,7 @@ def generate_workchain_epsilon(generate_psml_data, fixture_code, fixture_localho
         generate_calc_job_node, generate_parser):
     """Generate an instance of a `EpsilonWorkChain`."""
 
-    def _generate_workchain_bandgap(optical=False):
+    def _generate_workchain_epsilon(optical=False):
 
         entry_point_wc = 'siesta.epsilon'
         entry_point_code = 'siesta.siesta'
@@ -45,12 +45,11 @@ def generate_workchain_epsilon(generate_psml_data, fixture_code, fixture_localho
             }
             inputs["optical"] = orm.Dict(dict=optical)
 
-
         process = generate_workchain(entry_point_wc, inputs)
 
         return process
 
-    return _generate_workchain_bandgap
+    return _generate_workchain_epsilon
 
 
 def test_opt_inputs(aiida_profile, generate_workchain_epsilon):

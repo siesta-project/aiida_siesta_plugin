@@ -54,6 +54,7 @@
 	    "siesta.eos = aiida_siesta.workflows.eos:EqOfStateFixedCellShape",
 	    "siesta.bandgap = aiida_siesta.workflows.bandgap:BandgapWorkChain",
             "siesta.stm = aiida_siesta.workflows.stm:SiestaSTMWorkChain",
+            "siesta.baseneb = aiida_siesta.workflows.neb_base:SiestaBaseNEBWorkChain",
             "siesta.epsilon = aiida_siesta.workflows.epsilon:EpsilonWorkChain",
 	    "siesta.iterator = aiida_siesta.workflows.iterate:SiestaIterator",
 	    "siesta.converger = aiida_siesta.workflows.converge:SiestaConverger",

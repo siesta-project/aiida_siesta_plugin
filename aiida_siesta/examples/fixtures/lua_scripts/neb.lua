@@ -323,6 +323,16 @@ function siesta_move(siesta)
 	   "MD.Relaxed"}
 end
 
+function file_exists(name)
+   local f = io.open(name, "r")
+   if f ~= nil then
+      io.close(f)
+      return true
+   else
+      return false
+   end
+end
+
 -- Function for retaining the DM files for the images so that we
 -- can easily restart etc.
 function siesta_update_DM(old, current)

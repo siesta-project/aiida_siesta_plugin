@@ -9,6 +9,9 @@ that introduces a post-processing step to obtain the electronic contribution to 
 constant from the epsilon_2(omega) data.
 For developers, this workchain can be taken as an example to understand how easy is to include simple
 post-processes on top of the **SietaBaseWorkChain**.
+An example on the use of the **EpsilonWorkChain** is in
+`/aiida_siesta/examples/workflows/example_epsilon.py`.
+
 
 Supported Siesta versions
 -------------------------
