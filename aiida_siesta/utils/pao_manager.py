@@ -403,7 +403,7 @@ class PaoManager:
         except KeyError:
             pass
 
-    def get_pao_block(self):
+    def get_pao_block(self):  # noqa: MC0001  - is mccabe too complex funct -
         """
         From the info of the `_gen_dict`, `_pol_dict`, creates the PAO block.
 
@@ -437,23 +437,25 @@ class PaoManager:
                         pol[i][j][l] = round(pol[i][j][l] * ANG_TO_BOHR, 6)
 
         atomic_paobasis_card = str(self.name) + " " + str(number_of_l) + "\n"
-        for i in dictl:
-            for j in dictl[i]:
-                atomic_paobasis_card += f"  n={i}  {j}  {len(dictl[i][j])}"
-                ij_pol = pol.get(i, {}).get(j)  #This works only because I know that pol[i] is always dict, same below
-                ij_q = self._conf_dict.get("Q", {}).get(i, {}).get(j)
-                ij_e = self._conf_dict.get("E", {}).get(i, {}).get(j)
-                if ij_pol:
-                    atomic_paobasis_card += f" P {len(pol[i][j])}"
-                if ij_q:
-                    values_q = "".join([f'{val} ' for val in self._conf_dict['Q'][i][j]])
-                    atomic_paobasis_card += f" Q {values_q}"
-                if ij_e:
-                    values_e = "".join([f'{val} ' for val in self._conf_dict['E'][i][j]])
-                    atomic_paobasis_card += f" E {values_e}"
-                atomic_paobasis_card += "\n"
-                listi = [dictl[i][j][l] for l in dictl[i][j]]  # noqa
-                atomic_paobasis_card += '\t'.join([f' {val}' for val in listi]) + "\n"
+        for in_n in [0, 1, 2, 3, 4, 5, 6, 7, 8]:
+            for i in dictl:
+                if i == in_n:
+                    for j in dictl[i]:
+                        atomic_paobasis_card += f"  n={i}  {j}  {len(dictl[i][j])}"
+                        ij_pol = pol.get(i, {}).get(j)  #This works only because pol[i] is always dict, same below
+                        ij_q = self._conf_dict.get("Q", {}).get(i, {}).get(j)
+                        ij_e = self._conf_dict.get("E", {}).get(i, {}).get(j)
+                        if ij_pol:
+                            atomic_paobasis_card += f" P {len(pol[i][j])}"
+                        if ij_q:
+                            values_q = "".join([f'{val} ' for val in self._conf_dict['Q'][i][j]])
+                            atomic_paobasis_card += f" Q {values_q}"
+                        if ij_e:
+                            values_e = "".join([f'{val} ' for val in self._conf_dict['E'][i][j]])
+                            atomic_paobasis_card += f" E {values_e}"
+                        atomic_paobasis_card += "\n"
+                        listi = [dictl[i][j][l] for l in dictl[i][j]]  # noqa
+                        atomic_paobasis_card += '\t'.join([f' {val}' for val in listi]) + "\n"
 
         return atomic_paobasis_card[:-1]
 
