@@ -252,11 +252,14 @@ class PaoManager:
         except KeyError:
             raise ValueError("no orbital with n = {0} and l = {1} is present in the basis".format(n, l))
 
+        if n not in self._pol_dict:
+            self._pol_dict[n] = {}
+
         if l in self._pol_dict[n]:
             num_z = len(self._pol_dict[n][l])
             self._pol_dict[n][l][num_z + 1] = 0.000
         else:
-            self._pol_dict[n][l] = {"1": self._gen_dict[n][l][1]}
+            self._pol_dict[n][l] = {1: self._gen_dict[n][l][1]}
 
     def remove_polarization(self, n, l):  # noqa
         """

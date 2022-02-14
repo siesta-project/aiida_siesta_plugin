@@ -114,8 +114,8 @@ class ForBasisOptWorkChain(WorkChain):
         if self.should_run_wc():
             if not self.ctx.workchain_base.is_finished_ok:
                 extract_ene = extract(orm.Str("none"), self.inputs.out_name)
-                self.out("ene", extract_ene)
-            extract_ene = extract(self.ctx.workchain_base.outputs["output_parameters"], self.inputs.out_name)
+            else:
+                extract_ene = extract(self.ctx.workchain_base.outputs["output_parameters"], self.inputs.out_name)
         else:
             extract_ene = extract(orm.Str("none"), self.inputs.out_name)
 
