@@ -94,6 +94,18 @@ def add_orbitals(orb_dict, **ions):
     for empty orbitals. The charge value is a variable to optimize.
     """
     l_dict = {"s": 0, "p": 1, "d": 2, "f": 3}
+
+    def check_max_n_with_particular_l(dictionary, the_l):
+        """
+        Find the maximum n with a particular l
+        """
+        max_n = -1
+        for the_n in dictionary:
+            if the_l in dictionary[the_n]:
+                if the_n > max_n:
+                    max_n = the_n
+        return max_n
+
     card = "\n"
     one_changed = False
     for ion_name, ion in ions.items():
@@ -102,8 +114,19 @@ def add_orbitals(orb_dict, **ions):
         l = to_change[1]  # noqa
         z = int(to_change[2])
         pao_mod = ion.get_pao_modifier()
+        #In order to avoid the error "orbital not bound, need to set a radius explicitely"
+        #We set the radius of the highest occupied l-1 shell. If not present l-2.
+        ok_l = l_dict[l] - 1
+        max_n = check_max_n_with_particular_l(pao_mod._gen_dict, ok_l)
+        if max_n == -1:
+            ok_l = l_dict[l] - 2
+            max_n = check_max_n_with_particular_l(pao_mod._gen_dict, ok_l)
+        if max_n == -1:
+            rad = 0.0
+        else:
+            rad = pao_mod._gen_dict[max_n][ok_l][1]
         try:
-            pao_mod.add_orbital("Ang", 0.0, n, l_dict[l])
+            pao_mod.add_orbital("Ang", rad, n, l_dict[l])
             one_changed = True
         except ValueError:
             continue
