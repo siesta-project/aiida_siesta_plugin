@@ -21,8 +21,7 @@
 	"aiida-pseudo>=0.6.2",
 	"ase~=3.18",
 	"seekpath~=1.9,>=1.9.3",
-	"sisl",
-	"sqlalchemy<1.4"
+	"sisl"
     ],
     "extras_require": {
 	"dev": [

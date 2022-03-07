@@ -9,8 +9,8 @@ Version compatible with aiida-core>=1.3.0,<2.0.0.
   dedicated inputs are created for the `SiestaCalulation` and `SiestaBaseWorkChain`.
   Moreover a `EpsilonWorkChain` workchain is created to automatically
   obtain the electronic contribution to the static dielectric constant.
-- Introduce `SiestaBaseNEBWorkChain`, the core building block for the creation of workflows that enable 
-  the search of the Minimum Energy Pathway (MEP) connecting two local minima of the potential energy surface 
+- Introduce `SiestaBaseNEBWorkChain`, the core building block for the creation of workflows that enable
+  the search of the Minimum Energy Pathway (MEP) connecting two local minima of the potential energy surface
   through the Nudge Elastic Band (NEB) method.
 
 ### Bug fixes
