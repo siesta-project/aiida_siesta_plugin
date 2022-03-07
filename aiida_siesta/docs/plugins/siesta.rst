@@ -623,7 +623,7 @@ accessed with the ``calculation.outputs`` method.
 
 * **forces_and_stress** :py:class:`ArrayData <aiida.orm.ArrayData>`
 
-  Contains the final forces (`eV/Angstrom`) and stresses (`GPa`) in array form.
+  Contains the final forces (`eV/Angstrom`) and stresses (`Ry/Angstrom^3`) in array form.
   To access their values::
 
         forces_and_stress.get_array("forces")
