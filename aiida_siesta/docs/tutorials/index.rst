@@ -8,4 +8,5 @@ tools delivered within the ``aiida-siesta`` package.
    :maxdepth: 4
 
    icn2-2020
+   siesta-school-2021
 

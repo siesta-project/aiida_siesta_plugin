@@ -1,5 +1,5 @@
-Installation
-++++++++++++
+Installation and dependences
+++++++++++++++++++++++++++++
 
 It would be a good idea to create and switch to a new python virtual
 environment before the installation.
@@ -28,6 +28,10 @@ in order to configure aiida.
         reentry scan -r aiida
         verdi daemon restart
 
+
+Since version 1.2.0, ``aiida-siesta`` also depends on ``sisl`` (https://github.com/zerothi/sisl). For the moment
+``sisl`` is used only to facilitate the management of basis orbitals, but a closer integration among the
+two packages is foreseen in the future.
 
 For developers
 --------------

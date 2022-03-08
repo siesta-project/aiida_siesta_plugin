@@ -4,9 +4,8 @@ include CHANGELOG.md
 include PyPI-README.rst
 include LICENSE.txt
 graft aiida_siesta/examples/fixtures
-recursive-include aiida_siesta/examples/ *.txt *.psf *.psml *.cif 00_README
+recursive-include aiida_siesta/examples/ 00_README
 include aiida_siesta/utils/protocols_system/*.yaml
 include aiida_siesta/utils/*.yaml
 prune tests
-prune aiida_siesta/docs/tutorials/first_workchain
-prune aiida_siesta/docs/tutorials/data_icn2_2020
+prune aiida_siesta/docs
