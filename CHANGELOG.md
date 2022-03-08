@@ -6,7 +6,7 @@ Version compatible with aiida-core>=1.3.0,<2.0.0.
 
 ### Improvements
 - Introduce dedicated support for optical calculations. In particular,
-  dedicated inputs are created for the `SiestaCalulation` and `SiestaBaseWorkChain`.
+  dedicated inputs are created for the `SiestaCalculation` and `SiestaBaseWorkChain`.
   Moreover a `EpsilonWorkChain` workchain is created to automatically
   obtain the electronic contribution to the static dielectric constant.
 - Introduce `SiestaBaseNEBWorkChain`, the core building block for the creation of workflows that enable

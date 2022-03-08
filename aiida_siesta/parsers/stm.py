@@ -18,7 +18,7 @@ class STMParser(Parser):
     Parser for the output of the "plstm" program in the Siesta distribution.
     """
 
-    _version = "1.3.0"
+    _version = "1.3.1.dev0"
 
     def parse(self, **kwargs):
         """
