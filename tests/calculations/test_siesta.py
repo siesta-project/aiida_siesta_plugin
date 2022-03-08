@@ -176,6 +176,7 @@ def test_validators(aiida_profile, fixture_sandbox, generate_calc_job,
     # The basis validator is checked in the test of test_floating_orbs. 
     # The bandskpoints validator is tested in test_bandslines
     # Test on ions is in the test_ions.
+    # Validators on optical tested in test_optical
 
 
 def test_bandslines(aiida_profile, fixture_sandbox, generate_calc_job,
@@ -492,7 +493,9 @@ def test_lua(aiida_profile, fixture_sandbox, generate_calc_job,
             (psml.uuid, psml.filename, 'SiDiff.psml'),
             (lua_script.uuid, lua_script.filename, lua_script.filename),
             (lua_folder.uuid, list_lua_fold[0], list_lua_fold[0]),
-            (lua_folder.uuid, list_lua_fold[1], list_lua_fold[1])
+            (lua_folder.uuid, list_lua_fold[1], list_lua_fold[1]),
+            (lua_folder.uuid, list_lua_fold[2], list_lua_fold[2]),
+            (lua_folder.uuid, list_lua_fold[3], list_lua_fold[3]),
             ]
 
     retrieve_list = [
@@ -513,4 +516,61 @@ def test_lua(aiida_profile, fixture_sandbox, generate_calc_job,
     file_regression.check(conflua_input_written, encoding='utf-8', extension='.lua')
 
 
+def test_optical(aiida_profile, fixture_sandbox, generate_calc_job, 
+    fixture_code, generate_structure, generate_kpoints_mesh, generate_basis,
+    generate_param, generate_psml_data, file_regression):
+    """
+    Test that single calculation is submitted with the right content of the 
+    aiida.fdf file.
+    """
 
+    entry_point_name = 'siesta.siesta'
+
+    psml = generate_psml_data('Si')
+
+    inputs = {
+        'code': fixture_code(entry_point_name),
+        'structure': generate_structure(),
+        'kpoints': generate_kpoints_mesh(2),
+        'parameters': generate_param(),
+        'pseudos': {
+            'Si': psml,
+            'SiDiff': psml
+        },
+        'optical': orm.Dict(dict={}), 
+        'metadata': {
+            'options': {
+               'resources': {'num_machines': 1  },
+               'max_wallclock_seconds': 1800,
+               'withmpi': False,
+               }
+        }
+    }
+
+    #Fail because no optical-mesh block
+    with pytest.raises(ValueError):
+        calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
+
+    optical_parameters = {"%block optical-mesh" : "\n 1 1 1 \n%endblock optical-mesh"}
+    inputs["optical"] = orm.Dict(dict=optical_parameters)
+    calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
+
+    optical_parameters["optical-polarization-type"] = "polarized"
+    inputs["optical"] = orm.Dict(dict=optical_parameters)
+    #Fail because an optical vector is needed for polarized optical calculation
+    with pytest.raises(ValueError):
+        calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
+
+    optical_parameters["%block optical-vector"] = "\n 1.0 0.0 0.0 \n%endblock optical-vector"
+    optical_parameters["optical-calculation"] = False
+    inputs["optical"] = orm.Dict(dict=optical_parameters)
+    calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
+
+    retrieve_list = ['BASIS_ENTHALPY', 'BASIS_HARRIS_ENTHALPY', 'MESSAGES','time.json','aiida.out','aiida.xml','*.ion.xml',"aiida.EPSIMG"]
+
+    assert sorted(calc_info.retrieve_list) == sorted(retrieve_list)
+
+    with fixture_sandbox.open('aiida.fdf') as handle:
+        input_written = handle.read()
+
+    file_regression.check(input_written, encoding='utf-8', extension='.fdf')

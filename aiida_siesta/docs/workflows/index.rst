@@ -18,4 +18,5 @@ calculations plugin described in the section "Calculations".
    converger
    seq_converger
    basis_opt
-
+   epsilon
+   neb_base

@@ -1,5 +1,22 @@
 # Changelog
 
+## v1.3.0
+
+Version compatible with aiida-core>=1.3.0,<2.0.0.
+
+### Improvements
+- Introduce dedicated support for optical calculations. In particular,
+  dedicated inputs are created for the `SiestaCalculation` and `SiestaBaseWorkChain`.
+  Moreover a `EpsilonWorkChain` workchain is created to automatically
+  obtain the electronic contribution to the static dielectric constant.
+- Introduce `SiestaBaseNEBWorkChain`, the core building block for the creation of workflows that enable
+  the search of the Minimum Energy Pathway (MEP) connecting two local minima of the potential energy surface
+  through the Nudge Elastic Band (NEB) method.
+
+### Bug fixes
+- Clarify units of stress.
+- The `SiestaBaseWorkChain` now correcty handle LUA inputs.
+
 ## v1.2.0
 
 Version compatible with aiida-core>=1.3.0,<2.0.0.

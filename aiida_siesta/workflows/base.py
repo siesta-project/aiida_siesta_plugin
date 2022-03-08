@@ -1,4 +1,5 @@
 from aiida import orm
+from aiida.common import AttributeDict
 from aiida.common.exceptions import NotExistent
 from aiida.engine import BaseRestartWorkChain, ProcessHandlerReport, process_handler, while_
 from aiida_siesta.calculations.siesta import SiestaCalculation, bandskpoints_warnings, internal_structure
@@ -47,49 +48,50 @@ def validate_inputs(value, _):
 
     bandskpoints_warnings(value)
 
-    if 'basis' in value:
-        structure = internal_structure(value["structure"], value["basis"].get_dict())
-        if structure is None:
-            return "Not possibe to specify `floating_sites` (ghosts) with the same name of a structure kind."
-    else:
-        structure = value["structure"]
-
-    #Check each kind in the structure (including freshly added ghosts) have a corresponding pseudo or ion
-    kinds = [kind.name for kind in structure.kinds]
-    if 'ions' in value:
-        quantity = 'ions'
-        if 'pseudos' in value or 'pseudo_family' in value:
-            warnings.warn("At least one ion file in input, all the pseudos or pseudo_family will be ignored")
-    else:
-        quantity = 'pseudos'
-        if 'pseudos' not in value and 'pseudo_family' not in value:
-            return "No `pseudos`, nor `ions`, nor `pseudo_family` specified in input"
-        if 'pseudos' in value and 'pseudo_family' in value:
-            return "You cannot specify both `pseudos` and `pseudo_family`"
-
-    if 'pseudo_family' in value:
-        group = orm.Group.get(label=value['pseudo_family'].value)
-        # To be removed in v2.0
-        if "data" in group.type_string:
-            from aiida_siesta.data.common import get_pseudos_from_structure
-            try:
-                get_pseudos_from_structure(structure, value['pseudo_family'].value)
-            except NotExistent:
-                return "The pseudo family does not incude all the required pseudos"
+    if 'structure' in value:
+        if 'basis' in value:
+            structure = internal_structure(value["structure"], value["basis"].get_dict())
+            if structure is None:
+                return "Not possibe to specify `floating_sites` (ghosts) with the same name of a structure kind."
         else:
-            try:
-                group.get_pseudos(structure=structure)
-            except ValueError:
-                return "The pseudo family does not incude all the required pseudos"
-    else:
-        if set(kinds) != set(value[quantity].keys()):
-            ps_io = ', '.join(list(value[quantity].keys()))
-            kin = ', '.join(list(kinds))
-            string_out = (
-                'mismatch between defined pseudos/ions and the list of kinds of the structure\n' +
-                f' pseudos/ions: {ps_io} \n kinds(including ghosts): {kin}'
-            )
-            return string_out
+            structure = value["structure"]
+
+        #Check each kind in the structure (including freshly added ghosts) have a corresponding pseudo or ion
+        kinds = [kind.name for kind in structure.kinds]
+        if 'ions' in value:
+            quantity = 'ions'
+            if 'pseudos' in value or 'pseudo_family' in value:
+                warnings.warn("At least one ion file in input, all the pseudos or pseudo_family will be ignored")
+        else:
+            quantity = 'pseudos'
+            if 'pseudos' not in value and 'pseudo_family' not in value:
+                return "No `pseudos`, nor `ions`, nor `pseudo_family` specified in input"
+            if 'pseudos' in value and 'pseudo_family' in value:
+                return "You cannot specify both `pseudos` and `pseudo_family`"
+
+        if 'pseudo_family' in value:
+            group = orm.Group.get(label=value['pseudo_family'].value)
+            # To be removed in v2.0
+            if "data" in group.type_string:
+                from aiida_siesta.data.common import get_pseudos_from_structure
+                try:
+                    get_pseudos_from_structure(structure, value['pseudo_family'].value)
+                except NotExistent:
+                    return "The pseudo family does not incude all the required pseudos"
+            else:
+                try:
+                    group.get_pseudos(structure=structure)
+                except ValueError:
+                    return "The pseudo family does not incude all the required pseudos"
+        else:
+            if set(kinds) != set(value[quantity].keys()):
+                ps_io = ', '.join(list(value[quantity].keys()))
+                kin = ', '.join(list(kinds))
+                string_out = (
+                    'mismatch between defined pseudos/ions and the list of kinds of the structure\n' +
+                    f' pseudos/ions: {ps_io} \n kinds(including ghosts): {kin}'
+                )
+                return string_out
 
 
 class SiestaBaseWorkChain(BaseRestartWorkChain):
@@ -139,54 +141,29 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
         """
         self.report("Preparing inputs of the SiestaBaseWorkChain")
 
+        self.ctx.inputs = AttributeDict(self.exposed_inputs(SiestaCalculation))
+        self.ctx.inputs['metadata'] = {'options': self.inputs.options.get_dict()}
+
         structure = self.inputs.structure
 
-        self.ctx.inputs = {
-            'code': self.inputs.code,
-            'parameters': self.inputs.parameters,
-            'structure': structure,
-            'metadata': {
-                'options': self.inputs.options.get_dict(),
-            }
-        }
-
-        # Ions or pseudos
-        if 'ions' in self.inputs:
-            self.ctx.inputs['ions'] = self.inputs.ions
-        else:
-            if "pseudo_family" in self.inputs:
-                fam_name = self.inputs.pseudo_family.value
-                group = orm.Group.get(label=fam_name)
-                if 'basis' in self.inputs:
-                    temp_structure = internal_structure(structure, self.inputs.basis.get_dict())
-                    # To be removed in v2.0
-                    if "data" in group.type_string:
-                        from aiida_siesta.data.common import get_pseudos_from_structure
-                        self.ctx.inputs['pseudos'] = get_pseudos_from_structure(temp_structure, fam_name)
-                    else:
-                        self.ctx.inputs['pseudos'] = group.get_pseudos(structure=temp_structure)
+        if "pseudo_family" in self.inputs:
+            fam_name = self.inputs.pseudo_family.value
+            group = orm.Group.get(label=fam_name)
+            if 'basis' in self.inputs:
+                temp_structure = internal_structure(structure, self.inputs.basis.get_dict())
+                # To be removed in v2.0
+                if "data" in group.type_string:
+                    from aiida_siesta.data.common import get_pseudos_from_structure
+                    self.ctx.inputs['pseudos'] = get_pseudos_from_structure(temp_structure, fam_name)
                 else:
-                    # To be removed in v2.0
-                    if "data" in group.type_string:
-                        from aiida_siesta.data.common import get_pseudos_from_structure
-                        self.ctx.inputs['pseudos'] = get_pseudos_from_structure(structure, fam_name)
-                    else:
-                        self.ctx.inputs['pseudos'] = group.get_pseudos(structure=structure)
+                    self.ctx.inputs['pseudos'] = group.get_pseudos(structure=temp_structure)
             else:
-                self.ctx.inputs['pseudos'] = self.inputs.pseudos
-
-        # Now the optional inputs
-        if 'basis' in self.inputs:
-            self.ctx.inputs['basis'] = self.inputs.basis
-        if 'kpoints' in self.inputs:
-            self.ctx.inputs['kpoints'] = self.inputs.kpoints
-        if 'settings' in self.inputs:
-            self.ctx.inputs['settings'] = self.inputs.settings
-        if 'bandskpoints' in self.inputs:
-            self.ctx.want_band_structure = True
-            self.ctx.inputs['bandskpoints'] = self.inputs.bandskpoints
-        if 'parent_calc_folder' in self.inputs:
-            self.ctx.inputs['parent_calc_folder'] = self.inputs.parent_calc_folder
+                # To be removed in v2.0
+                if "data" in group.type_string:
+                    from aiida_siesta.data.common import get_pseudos_from_structure
+                    self.ctx.inputs['pseudos'] = get_pseudos_from_structure(structure, fam_name)
+                else:
+                    self.ctx.inputs['pseudos'] = group.get_pseudos(structure=structure)
 
     def postprocess(self):
         """

@@ -13,6 +13,25 @@ from aiida.common import exceptions
 #####################################################
 
 
+def get_eps2(eps2_path):
+    """
+    Reads the eps2_path files to extract an array energy vs eps2
+    """
+
+    eps2_list = []
+
+    with open(eps2_path, 'r') as file_h:
+        for line in file_h:
+            # check if the current line starts with "#"
+            if line.startswith("#"):
+                pass
+            else:
+                e_and_eps2 = [float(i) for i in line.split()]
+                eps2_list.append(e_and_eps2)
+
+    return eps2_list
+
+
 def is_polarization_problem(output_path):
     """
     Check the presence of polarization errors.
@@ -300,7 +319,7 @@ class SiestaParser(Parser):
     Parser for the output of Siesta.
     """
 
-    _version = '1.2.dev1'
+    _version = '1.3.1.dev0'
 
     def parse(self, **kwargs):  # noqa: MC0001  - is mccabe too complex funct -
         """
@@ -316,7 +335,7 @@ class SiestaParser(Parser):
         except exceptions.NotExistent:
             raise OutputParsingError("Folder not retrieved")
 
-        output_path, messages_path, xml_path, json_path, bands_path, basis_enthalpy_path, harris_enthalpy_path = \
+        output_path, messages_path, xml_path, json_path, bands_path, basis_enthalpy_path, harris_en_path, eps2_path = \
             self._fetch_output_files(output_folder)
 
         if xml_path is None:
@@ -349,8 +368,8 @@ class SiestaParser(Parser):
         else:
             warnings_list.append(["BASIS_ENTHALPY file not retrieved"])
 
-        if harris_enthalpy_path is not None:
-            the_file = open(harris_enthalpy_path)
+        if harris_en_path is not None:
+            the_file = open(harris_en_path)
             harr_enthalpy = float(the_file.read().split()[0])
             the_file.close()
             output_dict["harris_basis_enthalpy"] = harr_enthalpy
@@ -490,6 +509,16 @@ class SiestaParser(Parser):
             #bandsparameters = Dict(dict={"kp_coordinates": coords})
             #self.out('bands_parameters', bandsparameters)
 
+        #Because no known error has been found, attempt to parse EPSIMG file if requested
+        if eps2_path is None:
+            if "optical" in self.node.inputs:
+                return self.exit_codes.EPS2_FILE_NOT_PRODUCED
+        else:
+            eps2_list = get_eps2(eps2_path)
+            optical_eps2 = ArrayData()
+            optical_eps2.set_array('e_eps2', np.array(eps2_list))
+            self.out('optical_eps2', optical_eps2)
+
         #At the very end, return a particular exit code if "INFO: Job completed"
         #was not present in the MESSAGES file, but no known error is detected.
         if have_errors_to_analyse:
@@ -516,7 +545,8 @@ class SiestaParser(Parser):
         json_path = None
         bands_path = None
         basis_enthalpy_path = None
-        harris_enthalpy_path = None
+        harris_en_path = None
+        eps2_path = None
 
         if self.node.get_option('output_filename') in list_of_files:
             oufil = self.node.get_option('output_filename')
@@ -542,7 +572,7 @@ class SiestaParser(Parser):
             )
 
         if self.node.process_class._HARRIS_ENTHALPY_FILE in list_of_files:
-            harris_enthalpy_path = os.path.join(
+            harris_en_path = os.path.join(
                 out_folder._repository._get_base_folder().abspath, self.node.process_class._HARRIS_ENTHALPY_FILE
             )
 
@@ -550,7 +580,11 @@ class SiestaParser(Parser):
         if namebandsfile in list_of_files:
             bands_path = os.path.join(out_folder._repository._get_base_folder().abspath, namebandsfile)
 
-        return output_path, messages_path, xml_path, json_path, bands_path, basis_enthalpy_path, harris_enthalpy_path
+        nameeps2file = str(self.node.get_option('prefix')) + ".EPSIMG"
+        if nameeps2file in list_of_files:
+            eps2_path = os.path.join(out_folder._repository._get_base_folder().abspath, nameeps2file)
+
+        return output_path, messages_path, xml_path, json_path, bands_path, basis_enthalpy_path, harris_en_path, eps2_path  # noqa
 
     def _get_warnings_from_file(self, messages_path):
         """
