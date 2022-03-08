@@ -319,7 +319,7 @@ class SiestaParser(Parser):
     Parser for the output of Siesta.
     """
 
-    _version = '1.2.dev1'
+    _version = '1.3.0'
 
     def parse(self, **kwargs):  # noqa: MC0001  - is mccabe too complex funct -
         """

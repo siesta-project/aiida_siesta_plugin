@@ -9,7 +9,7 @@ Welcome to the AiiDA-Siesta documentation!
 ..
 
 The aiida-siesta python package interfaces the SIESTA DFT code
-(http://icmab.es/siesta) with the AiiDA framework
+(https://siesta-project.org/siesta/) with the AiiDA framework
 (http://www.aiida.net).  The package contains: plugins for SIESTA
 itself and for other utility programs, new data structures, and basic
 workflows. It is distributed under the MIT license and available from
