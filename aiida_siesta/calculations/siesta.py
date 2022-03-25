@@ -49,6 +49,20 @@ def internal_structure(structure, basis_dict=None):
     return tweaked
 
 
+def validate_optical(value, _):
+    """
+    Validate the optical input.
+    """
+    if value:
+        input_params = FDFDict(value.get_dict())
+        if "opticalpolarizationtype" in input_params:
+            if input_params["opticalpolarizationtype"] in ["polarized", "unpolarized"]:
+                if "%block opticalvector" not in input_params:
+                    return "An optical vector must be specified for `polarized` and `unpolarized` polarization types"
+        if "%block opticalmesh" not in input_params:
+            return "An optical-mesh block must always be defined. For molecules set to [1 1 1]"
+
+
 def validate_pseudos(value, _):
     """
     Only used to throw deprecation warnings. Can be deleted in v2.0.0
@@ -109,7 +123,15 @@ def validate_parameters(value, _):
         input_params = FDFDict(value.get_dict())
         for key in input_params:
             if "pao" in key:
-                return "you can't have PAO options in the parameters input port, they belong to the basis input port."
+                return "you can't have PAO options in the parameters input port, they belong to the `basis` input port."
+            #This will return error in v2.0. Now only warning for back compatibility.
+            if "optical" in key:
+                import warnings
+                message = (
+                    "you shouldn't have optical options in the parameters input port, " +
+                    "they belong to the `optical` input port."
+                )
+                warnings.warn(message)  #return message
             if key in SiestaCalculation._aiida_blocked_keywords:
                 message = (
                     f"you can't specify explicitly the '{input_params.get_last_untranslated_key(key)}' flag " +
@@ -193,23 +215,23 @@ def validate_inputs(value, _):
             return "No pseudopotentials nor ions specified in input"
         quantity = 'pseudos'
 
-    if 'basis' in value:
-        structure = internal_structure(value["structure"], value["basis"].get_dict())
-        if structure is None:
-            return "Not possibe to specify `floating_sites` (ghosts) with the same name of a structure kind."
-    else:
-        structure = value["structure"]
-
-    #Check each kind in the structure (including freshly added ghosts) have a corresponding pseudo or ion
-    kinds = [kind.name for kind in structure.kinds]
-    if set(kinds) != set(value[quantity].keys()):
-        ps_io = ', '.join(list(value[quantity].keys()))
-        kin = ', '.join(list(kinds))
-        string_out = (
-            'mismatch between defined pseudos/ions and the list of kinds of the structure\n' +
-            f' pseudos/ions: {ps_io} \n kinds(including ghosts): {kin}'
-        )
-        return string_out
+    if 'structure' in value:  #Some subclasses might make structure optional
+        if 'basis' in value:
+            structure = internal_structure(value["structure"], value["basis"].get_dict())
+            if structure is None:
+                return "Not possibe to specify `floating_sites` (ghosts) with the same name of a structure kind."
+        else:
+            structure = value["structure"]
+        #Check each kind in the structure (including freshly added ghosts) have a corresponding pseudo or ion
+        kinds = [kind.name for kind in structure.kinds]
+        if set(kinds) != set(value[quantity].keys()):
+            ps_io = ', '.join(list(value[quantity].keys()))
+            kin = ', '.join(list(kinds))
+            string_out = (
+                'mismatch between defined pseudos/ions and the list of kinds of the structure\n' +
+                f' pseudos/ions: {ps_io} \n kinds(including ghosts): {kin}'
+            )
+            return string_out
 
 
 class SiestaCalculation(CalcJob):
@@ -257,6 +279,13 @@ class SiestaCalculation(CalcJob):
 
         # Input nodes
         spec.input('code', valid_type=orm.Code, help='Input code')
+        spec.input(
+            'optical',
+            valid_type=orm.Dict,
+            help='Specifications for optical properties',
+            required=False,
+            validator=validate_optical
+        )
         spec.input('structure', valid_type=orm.StructureData, help='Input structure', validator=validate_structure)
         spec.input(
             'kpoints', valid_type=orm.KpointsData, help='Input kpoints', required=False, validator=validate_kpoints
@@ -286,7 +315,7 @@ class SiestaCalculation(CalcJob):
         # Parameters are in a separate dictionary to enable a reduced set of 'universal' scripts for particular uses.
         # Input files (e.g., image files for NEB) should be packaged in a FolderData object.
         # Files to be retrieved should be specified in a list o# path specifications.
-        spec.input_namespace('lua', help='Script and files for the Lua engine')
+        spec.input_namespace('lua', help='Script and files for the Lua engine', required=False)
         spec.input('lua.script', valid_type=orm.SinglefileData, required=False)
         spec.input('lua.parameters', valid_type=orm.Dict, required=False)
         spec.input('lua.input_files', valid_type=orm.FolderData, required=False)
@@ -310,6 +339,7 @@ class SiestaCalculation(CalcJob):
         spec.output('bands', valid_type=BandsData, required=False, help='Optional band structure')
         spec.output('forces_and_stress', valid_type=ArrayData, required=False, help='Optional forces and stress')
         spec.output('pdos', valid_type=PdosData, required=False, help='Optional pdos file')
+        spec.output('optical_eps2', valid_type=ArrayData, required=False, help='Optional eps2 optical data')
         spec.output_namespace('ion_files', valid_type=IonData, dynamic=True, required=False)
 
         # Option that allows access through node.res should be existing output node and a Dict
@@ -318,6 +348,7 @@ class SiestaCalculation(CalcJob):
         # Exit codes for specific errors. Useful for error handeling in workchains
         spec.exit_code(453, 'BANDS_PARSE_FAIL', message='Failure while parsing the bands file')
         spec.exit_code(452, 'BANDS_FILE_NOT_PRODUCED', message='Bands analysis was requested, but file is not present')
+        spec.exit_code(454, 'EPS2_FILE_NOT_PRODUCED', message='Optical calculation requested, but file is not present')
         spec.exit_code(450, 'SCF_NOT_CONV', message='Calculation did not reach scf convergence!')
         spec.exit_code(451, 'GEOM_NOT_CONV', message='Calculation did not reach geometry convergence!')
         spec.exit_code(350, 'UNEXPECTED_TERMINATION', message='Statement "Job completed" not detected, unknown error')
@@ -390,6 +421,11 @@ class SiestaCalculation(CalcJob):
             bandskpoints = self.inputs.bandskpoints
         else:
             bandskpoints = None
+
+        if 'optical' in self.inputs:
+            optical = self.inputs.optical
+        else:
+            optical = None
 
         if 'parent_calc_folder' in self.inputs:
             parent_calc_folder = self.inputs.parent_calc_folder
@@ -569,6 +605,20 @@ class SiestaCalculation(CalcJob):
                 fbkpoints_card += "%endblock BandLines\n"
             del bandskpoints_card_list
 
+        # ------------------------------------ OPTICAL-KEYS ----------------------------------
+        # Optical properties info. Again, this is just given in a standard dictionary,
+        # but we make sure that the option is turned on.
+        if optical is not None:
+            optical_dict = FDFDict(optical.get_dict())
+            optical_dict.update({'opticalcalculation': True})
+            #if '%block opticalmesh' not in optical_dict:
+            #    if kpoints is not None:
+            #        mesh, offset = kpoints.get_kpoints_mesh()
+            #        optical_dic["%block optical-mesh"] =
+            #    "{0:6} {1:6} {2:6}\n %endblock optical-mesh".format(mesh[0], mesh[1], mesh[2]))
+            #    else:
+            #       optical_dic["%block optical-mesh"] = "1 1 1\n %endblock optical-mesh"
+
         # ================================= Operations for restart =================================
         # The presence of a 'parent_calc_folder' input node signals that we want to
         # get something from there, as indicated in the self._restart_copy_from attribute.
@@ -600,6 +650,11 @@ class SiestaCalculation(CalcJob):
             if basis_dict:  #It migh also be empty dict. In such case we do not write.
                 infile.write("#\n# -- Basis Set Info follows\n#\n")
                 for k, v in basis_dict.items():
+                    infile.write("%s %s\n" % (k, v))
+            # Optical properties info.
+            if optical is not None:
+                infile.write("#\n# -- Optical properties Info follows\n#\n")
+                for k, v in optical_dict.items():
                     infile.write("%s %s\n" % (k, v))
             # Write previously generated cards now
             infile.write("#\n# -- Structural Info follows\n#\n")
@@ -652,6 +707,7 @@ class SiestaCalculation(CalcJob):
         calcinfo.codes_info = [codeinfo]
         # Retrieve by default: the output file, the xml file, the messages file, and the json timing file.
         # If bandskpoints, also the bands file is added to the retrieve list.
+        # If getting optical props, also the .EPSIMG file is added.
         calcinfo.retrieve_list = []
         eig_file = str(metadataoption.prefix) + ".EIG"
         kp_file = str(metadataoption.prefix) + ".KP"
@@ -659,6 +715,8 @@ class SiestaCalculation(CalcJob):
         bands_file = str(metadataoption.prefix) + ".bands"
         pdos_file = str(metadataoption.prefix) + ".PDOS"
         dos_file = str(metadataoption.prefix) + ".DOS"
+        eps2_file = str(metadataoption.prefix) + ".EPSIMG"
+
         calcinfo.retrieve_list.append(metadataoption.output_filename)
         #calcinfo.retrieve_list.append(metadataoption.input_filename)
         calcinfo.retrieve_list.append(eig_file)
@@ -674,6 +732,9 @@ class SiestaCalculation(CalcJob):
 
         if bandskpoints is not None:
             calcinfo.retrieve_list.append(bands_file)
+
+        if optical is not None:
+            calcinfo.retrieve_list.append(eps2_file)
 
         if lua_retrieve_list is not None:
             calcinfo.retrieve_list += lua_retrieve_list.get_list()

@@ -1,7 +1,7 @@
 AiiDA Siesta plugins and workflows
 ==================================
 
-A plugin to interface the `Siesta DFT code <https://icmab.es/siesta/>`_
+A plugin to interface the `Siesta DFT code <https://siesta-project.org/siesta/>`_
 to the `AiiDA system <http://www.aiida.net/>`_.
 
 Documentation can be found in:

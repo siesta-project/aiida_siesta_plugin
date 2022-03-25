@@ -209,26 +209,36 @@ class BaseWorkChainInputGenerator(SiestaCalculationInputGenerator):
         return inps
 
 
-#class BandgapWorkChainInputsGenerator(BaseWorkChainInputsGenerator):
-#    """
-#    Inputs generator for the BandgapWorkChain, makes use of the methods
-#    of the BaseWorkChainInputsGenerator, only the __init__ requires the correct
-#    workchain class in input and the `get_inputs_dict` implements a check for the
-#    presence of `bands_path_generator`. In fact the band calculation is required.
-#    """
-#
-#    def get_inputs_dict(
-#        self, structure, calc_engines, protocol, bands_path_generator=None, relaxation_type=None, spin=None
-#    ):
-#
-#        if not bands_path_generator:
-#            raise RuntimeError(
-#                'Method `get_inputs_dict` of class `{0}` requires `bands_path_generator`'.format(
-#                    self.__class__.__name__
-#                )
-#            )
-#
-#        return super().get_inputs_dict(structure, calc_engines, protocol, bands_path_generator, relaxation_type, spin)
+class EpsilonWorkChainInputGenerator(BaseWorkChainInputGenerator):
+    """
+    Inputs generator for the EpsilonWorkChain, makes use of the methods
+    of the BaseWorkChainInputsGenerator, only adds "optical" input.
+    """
+
+    def get_inputs_dict(
+        self, structure, calc_engines, protocol, bands_path_generator=None, relaxation_type=None, spin=None
+    ):
+
+        from aiida.orm import Dict
+
+        inps = super().get_inputs_dict(structure, calc_engines, protocol, bands_path_generator, relaxation_type, spin)
+
+        if "kpoints" in inps:
+            opt_mesh = inps["kpoints"].get_kpoints_mesh()[0]
+        else:
+            opt_mesh = [1, 1, 1]
+
+        inps["optical"] = Dict(
+            dict={
+                "optical-calculation": True,
+                "optical-broaden": "0.5 eV",
+                "optical-polarization-type": "polarized",
+                "%block optical-vector": "\n 1.0 0.0 0.0 \n%endblock optical-vector",
+                "%block optical-mesh": f"\n {opt_mesh[0]} {opt_mesh[1]} {opt_mesh[2]} \n%endblock optical-mesh"
+            }
+        )
+
+        return inps
 
 
 class EosWorkChainInputGenerator(BaseWorkChainInputGenerator):
