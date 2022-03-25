@@ -558,7 +558,17 @@ def test_optical(aiida_profile, fixture_sandbox, generate_calc_job,
     inputs["optical"] = orm.Dict(dict=optical_parameters)
     calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
 
-    retrieve_list = ['BASIS_ENTHALPY', 'MESSAGES','time.json','aiida.out','aiida.xml','*.ion.xml',"aiida.EPSIMG"]
+    retrieve_list = [
+            'BASIS_ENTHALPY',
+            'MESSAGES',
+            'time.json',
+            'aiida.out',
+            'aiida.xml',
+            '*.ion.xml',
+            'aiida.EPSIMG',
+            'aiida.EIG',
+            'aiida.KP'
+            ]
 
     assert sorted(calc_info.retrieve_list) == sorted(retrieve_list)
 
