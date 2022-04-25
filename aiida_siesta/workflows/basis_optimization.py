@@ -110,7 +110,7 @@ def add_orbitals(orb_dict, **ions):
     one_changed = False
     for ion_name, ion in ions.items():
         to_change = orb_dict.get(ion_name, None)
-        if isinstance(to_change,str):
+        if isinstance(to_change, str):
             to_change = [to_change]
         pao_mod = ion.get_pao_modifier()
         for orb in to_change:
@@ -176,7 +176,7 @@ def validate_opt_schema(value, _):
             return "charge_confinement incompatible with global_energy_shift=True. Change `optimization_schema`."
 
 
-def validate_add_orbital(value, _):
+def validate_add_orbital(value, _):  #pylint: disable=too-many-return-statements
     """
     Validate the `add_orbital` input port.
     Imposes a signature of the dict of this kind:
@@ -187,6 +187,8 @@ def validate_add_orbital(value, _):
     """
     from aiida.common.constants import elements
 
+    message = "The value of each item in the `add_orbital` dict must be a list of strings 'nlz', e.g. ['3d1']."
+
     if value:
         symbols = [v['symbol'] for v in elements.values()]
         for key, val in value.get_dict().items():
@@ -195,18 +197,18 @@ def validate_add_orbital(value, _):
             if isinstance(val, str):
                 val = [val]
             if not isinstance(val, list):
-                return "The value of each item in the `add_orbital` dict must be a list of strings 'nlz', e.g. ['3d1']."
+                return message
             for orb in val:
                 if not len(orb) == 3:
-                    return "The value of each item in the `add_orbital` dict must be a list of strings 'nlz', e.g. ['3d1']."
+                    return message
                 try:
                     int(orb[0])
                 except ValueError:
-                    return "The value of each item in the `add_orbital` dict must be a list of strings 'nlz', e.g. ['3d1']."
+                    return message
                 try:
                     int(orb[2])
                 except ValueError:
-                    return "The value of each item in the `add_orbital` dict must be a list of strings 'nlz', e.g. ['3d1']."
+                    return message
                 if orb[1] not in ["s", "p", "d", "f"]:
                     return "The 'l' in the string 'nlz' in `add_orbital` dict has s, p, d and f as allowed values."
                 if int(orb[2]) not in [1, 2]:
