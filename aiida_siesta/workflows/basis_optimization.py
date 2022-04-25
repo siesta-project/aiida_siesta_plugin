@@ -110,28 +110,31 @@ def add_orbitals(orb_dict, **ions):
     one_changed = False
     for ion_name, ion in ions.items():
         to_change = orb_dict.get(ion_name, None)
-        n = int(to_change[0])  #pylint: disable=invalid-name
-        l = to_change[1]  # noqa
-        z = int(to_change[2])
+        if isinstance(to_change,str):
+            to_change = [to_change]
         pao_mod = ion.get_pao_modifier()
-        #In order to avoid the error "orbital not bound, need to set a radius explicitely"
-        #We set the radius of the highest occupied l-1 shell. If not present l-2.
-        ok_l = l_dict[l] - 1
-        max_n = check_max_n_with_particular_l(pao_mod._gen_dict, ok_l)
-        if max_n == -1:
-            ok_l = l_dict[l] - 2
+        for orb in to_change:
+            n = int(orb[0])  #pylint: disable=invalid-name
+            l = orb[1]  # noqa
+            z = int(orb[2])
+            #In order to avoid the error "orbital not bound, need to set a radius explicitely"
+            #We set the radius of the highest occupied l-1 shell. If not present l-2.
+            ok_l = l_dict[l] - 1
             max_n = check_max_n_with_particular_l(pao_mod._gen_dict, ok_l)
-        if max_n == -1:
-            rad = 0.0
-        else:
-            rad = pao_mod._gen_dict[max_n][ok_l][1]
-        try:
-            pao_mod.add_orbital("Ang", rad, n, l_dict[l])
-            one_changed = True
-        except ValueError:
-            continue
-        if z == 2:
-            pao_mod.add_polarization(n, l_dict[l])
+            if max_n == -1:
+                ok_l = l_dict[l] - 2
+                max_n = check_max_n_with_particular_l(pao_mod._gen_dict, ok_l)
+            if max_n == -1:
+                rad = 0.0
+            else:
+                rad = pao_mod._gen_dict[max_n][ok_l][1]
+            try:
+                pao_mod.add_orbital("Ang", rad, n, l_dict[l])
+                one_changed = True
+            except ValueError:
+                continue
+            if z == 2:
+                pao_mod.add_orbital("Ang", 0.0, n, l_dict[l], 2)
 
         card += pao_mod.get_pao_block() + "\n"
 
@@ -177,8 +180,8 @@ def validate_add_orbital(value, _):
     """
     Validate the `add_orbital` input port.
     Imposes a signature of the dict of this kind:
-        {"Ca": "3d1", "Sr": "4d1"}
-    Meaning the key is an element and value is the orbital to add
+        {"Ca": ["3d1","4f1"], "Sr": "4d1"}
+    Meaning the key is an element and value is the orbitals to add.
     At the moment we have suppot only for elemental symbols? Should we extend to
     kind names?
     """
@@ -189,20 +192,25 @@ def validate_add_orbital(value, _):
         for key, val in value.get_dict().items():
             if key not in symbols:
                 return "Every key of `add_orbital` dictionary must be a symbol of the periodic table"
-            if not isinstance(val, str) or not len(val) == 3:
-                return "The value of each item in the `add_orbital` dict must be a string 'nlz', e.g. '3d1'."
-            try:
-                int(val[0])
-            except ValueError:
-                return "The value of each item in the `add_orbital` dict must be a string 'nlz', e.g. '3d1'."
-            try:
-                int(val[2])
-            except ValueError:
-                return "The value of each item in the `add_orbital` dict must be a string 'nlz', e.g. '3d1'."
-            if val[1] not in ["s", "p", "d", "f"]:
-                return "The 'l' in the string 'nlz' in `add_orbital` dict has s, p, d and f as allowed values."
-            if int(val[2]) not in [1, 2]:
-                return "The 'z' in the string 'nlz' in `add_orbital` dict  has 1 and 2 as allowed values."
+            if isinstance(val, str):
+                val = [val]
+            if not isinstance(val, list):
+                return "The value of each item in the `add_orbital` dict must be a list of strings 'nlz', e.g. ['3d1']."
+            for orb in val:
+                if not len(orb) == 3:
+                    return "The value of each item in the `add_orbital` dict must be a list of strings 'nlz', e.g. ['3d1']."
+                try:
+                    int(orb[0])
+                except ValueError:
+                    return "The value of each item in the `add_orbital` dict must be a list of strings 'nlz', e.g. ['3d1']."
+                try:
+                    int(orb[2])
+                except ValueError:
+                    return "The value of each item in the `add_orbital` dict must be a list of strings 'nlz', e.g. ['3d1']."
+                if orb[1] not in ["s", "p", "d", "f"]:
+                    return "The 'l' in the string 'nlz' in `add_orbital` dict has s, p, d and f as allowed values."
+                if int(orb[2]) not in [1, 2]:
+                    return "The 'z' in the string 'nlz' in `add_orbital` dict  has 1 and 2 as allowed values."
 
 
 class BasisOptimizationWorkChain(WorkChain):
