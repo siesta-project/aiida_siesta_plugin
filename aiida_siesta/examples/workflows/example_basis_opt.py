@@ -7,7 +7,7 @@ import sys
 #AiiDA classes and functions
 from aiida.engine import submit
 from aiida.orm import load_code, load_node
-from aiida.orm import (List, Dict, StructureData, KpointsData, Int, Float)
+from aiida.orm import (List, Dict, Bool, StructureData, KpointsData, Int, Float)
 from aiida_pseudo.data.pseudo.psf import PsfData
 from aiida_siesta.workflows.simplex_basis import SimplexBasisOptimization
 from aiida_siesta.workflows.basis_optimization import BasisOptimizationWorkChain
@@ -102,8 +102,8 @@ inputs = {
         'pseudos': pseudos_dict,
         'options': options
         },
-    'simplex': {"max_iters" : Int(41), "tolerance_function": Float(0.1)},
-    'non_perturbative_pol': Bool(True)
+    'simplex': {"max_iters" : Int(10), "tolerance_function": Float(0.1)},
+    'optimization_schema': {'global_split_norm':Bool(True)}
     }
 
 process = submit(BasisOptimizationWorkChain, **inputs)
