@@ -15,9 +15,8 @@ optimization util of the siesta distribution.
 3) The **BasisOptimizationWorkChain** that performs a full optimization testing first basis cardinality and then applying
 the **SimplexBasisOptimization** to optimize all the radius of the orbitals.
 
-#An example on the use of the **SiestaConverger** is
-#`/aiida_siesta/examples/workflows/example_seq_converger.py`
-
+The simplex optimization is performed taking advantage of the `aiida-optimize package <https://aiida-optimize.readthedocs.io/en/latest/index.html>_`, in particular the
+Nelder–Mead engine implemented in that package.
 
 Supported Siesta versions
 -------------------------
@@ -45,9 +44,6 @@ for the function under investigation. Repeating the procedure, the technique pro
 until all the N+1 test points produce values that are all within a threshold. When this happens the minimum has been reached.
 In the context of the basis optimization the function is usually the basis enthalpy (but also other quantities are supported) 
 and the variable are the parameters defining the basis (typically cutoff radii of the basis orbitals).
-
-The simplex optimization is performed taking advantage of the ``aiida-optimize`` package (link), in particular the
-Nelder–Mead method implemented in that package.
 
 An example of the use of **SimplexBasisOptimization** is in `/aiida_siesta/examples/workflows/example_simplex.py`
 
@@ -156,9 +152,8 @@ Inputs are organized in two namespaces and are described in the following:
   The tolerance accepted to define the optimization converged. If the values of the functions for all 
   points in the simplex are all within the ``simplex.tolerance_function``, the optimization is considered concluded.
   The default is ``Float(0.01)``.
-  Please note that the choice of this parameter must be related to the variance of the output function.
-  For the moment only the basis enthalpy is supported as function, therefore the default is reasonable, but future
-  extensions might require to think to have a fractional tolerance.
+  Please note that the choice of this parameter must be related to the variance of the output function, therefore the default 
+  might be unreasonable for your application. In the future an extension implementing a fractional tolerance will be provided.
 
 
 Outputs
@@ -265,19 +260,24 @@ BasisOptimizationWorkChain
 
 This workchain manages entirely the optimization of the basis sets for a SIESTA calculation.
 It first run calculations with different basis sizes (using the "PAO-BasisSize" option of SIESTA)
-and gets the size that gives minimum basis enthalpy.
+and gets the size that gives minimum of the monitored quantity (e.g. basis enthalpy).
 
 NOTE: This does not include yet the possibility to test different basis sizes for different species.
 
-It then automatically sets up a **SimplexBasisOptimization** where the radii of all orbitals are considered variables.
-The first zetas are allowed between 3 and 12 Bohrs, the subsequent zetas are defined as ratios of the first zetas
-and the ratio varies between 0.2 to 0.9.
+It then allow to add extra orbitals to the calculation manually and see if this leads to a further decrease in the monitored 
+quantity.
+
+Then automatically sets up a **SimplexBasisOptimization** according to an optimization schema defined by the user.
 
 Inputs
 *******
 
-All the inputs of **SimplexBasisOptimization** are inputs of this workchain except the **simplex.variables_dict**
-and the **siesta_base.basis**.
+All the inputs of **SimplexBasisOptimization** are inputs of this workchain except the **simplex.variables_dict**.
+Please note that whathever is specified in **siesta_base.basis** will be copied in every calculation.
+So we prevwnt in this keyword to set the basis bloch or the basis sizes since the alghoritm will take care of it.
+In **siesta_base.basis** can put keywords like the "pao-non-perturbative-polarization-schema" or choices on the
+pseudopotential grid.
+
 Few more inputs are allowed:
 
 * **basis_sizes** class :py:class:`List <aiida.orm.List>` *Optional*
@@ -287,17 +287,71 @@ Few more inputs are allowed:
 .. |br| raw:: html
 
     <br />
-    
-* **non_perturbative_pol** class :py:class:`Bool <aiida.orm.Bool>` *Optional*
 
-  In order to activate the "PAO-non-perturbative-polarization-orbitals" logical keyword of SIESTA, that,
-  if enabeled, promotes any polarization shells to the status of explicit shells, thus using the
-  standard generation options. This is applied already in the part where the basis sizes are tested.
-  Default ``Bool(False)``
-  This is a fairly important feature since the "normal" (perturbative) polarization schema of SIESTA
-  does not allow control on the radii of the polarized orbitals. In setting **non_perturbative_pol** to True,
-  all the orbital are listed as standard orbitals in the PAO block and therefore their radii can be optimized
-  like any other orbital.
+* **add_orbital** class :py:class:`List <aiida.orm.Dcit>` *Optional*
+
+  A dict of lists, the key of the dict must be the name of an element of the periodic table,
+  the list must list the orbitals to add at that atom, for instance::
+
+
+          add_orbital = Dict(dict={
+            "Ca":["3d1","4f1"],
+            "O" :["4f2"]
+            })
+   
+  This would add a f orbital with two zetas for O and a d and f orbital to Ca (one zeta each).
+  As already specified, the presence of this input implies an extra step between the check of basis
+  cardinality and the actual **SimplexBasisOptimization**.
+
+
+.. |br| raw:: html
+
+    <br />
+
+* **sizes_monitored_quantity** :py:class:`List <aiida.orm.Str>` *Optional*
+
+  The quantity to monitor in the check of the cardinality. If not specified is going to be the same specified
+  in **simplex.output_name**.
+
+.. |br| raw:: html
+
+    <br />
+
+
+* **optimization_schema.global_energy_shift** :py:class:`List <aiida.orm.Bool>`
+
+  If set to true, the energy shift and the pao-split-norm are used as optimization variables, not
+  the explicit radius of the basis block. Default is False
+
+.. |br| raw:: html
+
+    <br />
+
+
+* **optimization_schema.global_split_norm** :py:class:`List <aiida.orm.Bool>`
+
+  If set to true, the pao-split-norm is optimized as a global variable. Please note that this can be used in
+  conjunction with **global_energy_shift** in order to optimize only global variables and not the pao block,
+  but it can be also used alone to set that the first zeta radii of the orbitals are optimized, but the second zetas 
+  no! If **optimization_schema.global_split_norm** is True and **optimization_schema.global_energy_shift** is False
+  the basis block is created putting all the second and further zetas to zero and the globas pao-split-norm
+  is a variable for optimization. Default False.
+
+.. |br| raw:: html
+
+    <br />
+
+* **optimization_schema.charge_confinement** :py:class:`List <aiida.orm.Bool>`
+  
+  If set to true, the empty orbitals will receive a charge confinement and the charge of
+  the confinement is a variable for optimization. Default False
+
+.. |br| raw:: html
+
+    <br />
+
+To conclude, the inputs allow to do various type of optimizations. As default all the radia are optimized,
+but this can be modified using the **optimization_schema** keywords
 
 Outputs
 *******
@@ -306,7 +360,7 @@ Only one output is produced:
 
 * **optimal_basis_block** class :py:class:`Dict <aiida.orm.Dict>`
 
-  Returning the optimal pao block, meaning the one that gives minimum basis enthalpy.
+  Returning the optimal pao block, meaning the one that gives the minimum of the monitored quantity.
 
 
 
