@@ -22,7 +22,7 @@
 	"ase~=3.18",
 	"seekpath~=1.9,>=1.9.3",
 	"sisl",
-	"aiida-optimize"
+	"aiida-optimize>=0.5.0"
     ],
     "extras_require": {
 	"dev": [
