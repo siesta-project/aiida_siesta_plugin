@@ -335,7 +335,7 @@ class SiestaParser(Parser):
         except exceptions.NotExistent:
             raise OutputParsingError("Folder not retrieved")
 
-        output_path, messages_path, xml_path, json_path, bands_path, basis_enthalpy_path, eps2_path = \
+        output_path, messages_path, xml_path, json_path, bands_path, basis_enthalpy_path, harris_en_path, eps2_path = \
             self._fetch_output_files(output_folder)
 
         if xml_path is None:
@@ -367,6 +367,15 @@ class SiestaParser(Parser):
             output_dict["basis_enthalpy_units"] = "eV"
         else:
             warnings_list.append(["BASIS_ENTHALPY file not retrieved"])
+
+        if harris_en_path is not None:
+            the_file = open(harris_en_path)
+            harr_enthalpy = float(the_file.read().split()[0])
+            the_file.close()
+            output_dict["harris_basis_enthalpy"] = harr_enthalpy
+            output_dict["harris_basis_enthalpy_units"] = "eV"
+        else:
+            warnings_list.append(["HARRIS_BASIS_ENTHALPY file not retrieved"])
 
         have_errors_to_analyse = False
         if messages_path is None:
@@ -536,6 +545,7 @@ class SiestaParser(Parser):
         json_path = None
         bands_path = None
         basis_enthalpy_path = None
+        harris_en_path = None
         eps2_path = None
 
         if self.node.get_option('output_filename') in list_of_files:
@@ -561,6 +571,11 @@ class SiestaParser(Parser):
                 out_folder._repository._get_base_folder().abspath, self.node.process_class._BASIS_ENTHALPY_FILE
             )
 
+        if self.node.process_class._HARRIS_ENTHALPY_FILE in list_of_files:
+            harris_en_path = os.path.join(
+                out_folder._repository._get_base_folder().abspath, self.node.process_class._HARRIS_ENTHALPY_FILE
+            )
+
         namebandsfile = str(self.node.get_option('prefix')) + ".bands"
         if namebandsfile in list_of_files:
             bands_path = os.path.join(out_folder._repository._get_base_folder().abspath, namebandsfile)
@@ -569,7 +584,7 @@ class SiestaParser(Parser):
         if nameeps2file in list_of_files:
             eps2_path = os.path.join(out_folder._repository._get_base_folder().abspath, nameeps2file)
 
-        return output_path, messages_path, xml_path, json_path, bands_path, basis_enthalpy_path, eps2_path
+        return output_path, messages_path, xml_path, json_path, bands_path, basis_enthalpy_path, harris_en_path, eps2_path  # noqa
 
     def _get_warnings_from_file(self, messages_path):
         """

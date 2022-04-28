@@ -33,7 +33,7 @@ refined the architecture of the package.
 Vladimir Dikan and Emanuele Bosoni ported the plugin and the base workflow to AiiDA 1.0.
 Alberto Garcia futher refined the 1.0-compatible functionality.
 
-Since November 2019, Emanuele Bosoni is in charge of the code's development and maintenance, 
+From November 2019 to May 2022, Emanuele Bosoni was in charge of the code's development and maintenance, 
 under the supervision of Alberto Garcia.
 
 Pol Febrer contributed the SiestaIterator and SiestaConverger workflows, including the underline

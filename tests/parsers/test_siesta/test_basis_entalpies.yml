@@ -1,26 +1,3 @@
-bands:
-  array|bands:
-  - 3
-  - 26
-  array|kpoints:
-  - 3
-  - 3
-  cell:
-  - - 2.715
-    - 2.715
-    - 0.0
-  - - 2.715
-    - 0.0
-    - 2.715
-  - - 0.0
-    - 2.715
-    - 2.715
-  label_numbers: []
-  labels: []
-  pbc1: true
-  pbc2: true
-  pbc3: true
-  units: eV
 forces_and_stress:
   array|forces:
   - 2
@@ -40,7 +17,8 @@ output_parameters:
   basis_enthalpy: -214.0372814354993
   basis_enthalpy_units: eV
   dc:contributor: Siesta-CML
-  global_time: 6.396
+  harris_basis_enthalpy: -214.03728573158955
+  harris_basis_enthalpy_units: eV
   mesh:
   - 36
   - 36
@@ -49,27 +27,16 @@ output_parameters:
   no_u: 26
   parser_info: AiiDA Siesta Parser V. 1.3.1.dev0
   siesta:Arch: gfortran-esl-bundle-0.4
-  siesta:EndTime: 2020-01-07T14-53-55
+  siesta:EndTime: 2020-01-07T11-59-44
   siesta:Flags: 'mpif90 -O2 -fbacktrace '
   siesta:Mode: Serial
   siesta:NetCDF: 'true'
   siesta:Nodes: '         1'
   siesta:PPFlags: -DCDF  -DMPI -DMPI_TIMING  -DF2003  -DSIESTA__DIAG_2STAGE
   siesta:Program: Siesta
-  siesta:StartTime: 2020-01-07T14-53-51
+  siesta:StartTime: 2020-01-07T11-59-41
   siesta:Version: MaX-1.0-3
-  siesta:run_UUID: f44daa90-3165-11ea-6209-6169ffb35de7
-  timing_decomposition:
-    compute_DM: 0.651
-    nlefsm-1: 0.084
-    nlefsm-2: 0.107
-    post-SCF: 1.868
-    setup_H: 2.108
-    setup_H0: 1.414
-    siesta: 6.396
-    siesta_analysis: 0.007
-    state_init: 0.261
+  siesta:run_UUID: 9f80c280-314d-11ea-55fa-c1b1f37f0f6a
   variable_geometry: true
   warnings:
-  - - HARRIS_BASIS_ENTHALPY file not retrieved
-  - - 'INFO: Job completed'
+  - []

@@ -354,6 +354,45 @@ def test_siesta_bands_error(aiida_profile, fixture_localhost, generate_calc_job_
     assert 'output_structure' in results
 
 
+def test_basis_entalpies(aiida_profile, fixture_localhost, generate_calc_job_node, 
+    generate_parser, generate_structure, data_regression):
+    """
+    Test the parsing of the BASIS_ENTHALPY and BASIS_HARRIS_ENTHALPY files.
+    """
+
+    name = 'basis_enthalpies'
+
+    entry_point_calc_job = 'siesta.siesta'
+    entry_point_parser = 'siesta.parser'
+
+    structure=generate_structure()
+
+    inputs = AttributeDict({
+        'structure': structure
+    })
+
+    attributes=AttributeDict({'input_filename':'aiida.fdf', 'output_filename':'aiida.out', 'prefix':'aiida'})
+
+    node = generate_calc_job_node(entry_point_calc_job, fixture_localhost, name, inputs, attributes)
+    parser = generate_parser(entry_point_parser)
+    results, calcfunction = parser.parse_from_node(node, store_provenance=False)
+
+    assert calcfunction.is_finished
+    assert calcfunction.exception is None
+    assert not calcfunction.is_finished_ok
+
+    assert calcfunction.exit_message == 'Statement "Job completed" not detected, unknown error'
+    logs = orm.Log.objects.get_logs_for(node)[0]
+    assert "Job completed" in logs.message
+    assert 'forces_and_stress' in results
+    assert 'output_parameters' in results
+    assert 'output_structure' in results
+
+    data_regression.check({
+        'forces_and_stress': results['forces_and_stress'].attributes,
+        'output_parameters': results['output_parameters'].get_dict()
+    })
+
 
 def test_siesta_optical_error(aiida_profile, fixture_localhost, generate_calc_job_node,
     generate_parser, generate_structure, data_regression):

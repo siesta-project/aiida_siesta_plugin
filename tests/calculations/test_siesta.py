@@ -49,7 +49,9 @@ def test_base(aiida_profile, fixture_sandbox, generate_calc_job,
 
     cmdline_params = ['-option1', '-option2']
     local_copy_list = [(psf.uuid, psf.filename, 'Si.psf'),(psml.uuid, psml.filename,'SiDiff.psml')]
-    retrieve_list = ["w",'BASIS_ENTHALPY', 'MESSAGES','time.json','aiida.out','aiida.xml','*.ion.xml']
+    retrieve_list = [
+            'w','BASIS_HARRIS_ENTHALPY','BASIS_ENTHALPY', 'MESSAGES','time.json','aiida.out','aiida.xml','*.ion.xml'
+            ]
     
     # Check the attributes of the returned `CalcInfo`
     assert isinstance(calc_info, datastructures.CalcInfo)
@@ -232,7 +234,9 @@ def test_bandslines(aiida_profile, fixture_sandbox, generate_calc_job,
 
     calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
 
-    retrieve_list = ['BASIS_ENTHALPY', 'MESSAGES','time.json','aiida.out','aiida.xml','aiida.bands','*.ion.xml']
+    retrieve_list = [
+            'BASIS_HARRIS_ENTHALPY','BASIS_ENTHALPY', 'MESSAGES','time.json','aiida.out','aiida.xml','aiida.bands','*.ion.xml'
+            ]
 
     assert sorted(calc_info.retrieve_list) == sorted(retrieve_list)
 
@@ -283,7 +287,9 @@ def test_bandspoints(aiida_profile, fixture_sandbox, generate_calc_job,
 
     calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
 
-    retrieve_list = ['BASIS_ENTHALPY', 'MESSAGES','time.json','aiida.out','aiida.xml','aiida.bands','*.ion.xml']
+    retrieve_list = [
+            'BASIS_HARRIS_ENTHALPY', 'BASIS_ENTHALPY', 'MESSAGES','time.json','aiida.out','aiida.xml','aiida.bands','*.ion.xml'
+            ]
 
     assert sorted(calc_info.retrieve_list) == sorted(retrieve_list)
 
@@ -492,7 +498,9 @@ def test_lua(aiida_profile, fixture_sandbox, generate_calc_job,
             (lua_folder.uuid, list_lua_fold[3], list_lua_fold[3]),
             ]
 
-    retrieve_list = ['BASIS_ENTHALPY', 'MESSAGES','time.json','aiida.out','aiida.xml','*.ion.xml','NEB.results']
+    retrieve_list = [
+            'BASIS_HARRIS_ENTHALPY','BASIS_ENTHALPY', 'MESSAGES','time.json','aiida.out','aiida.xml','*.ion.xml','NEB.results'
+            ]
 
     assert sorted(calc_info.local_copy_list) == sorted(local_copy_list)
     assert sorted(calc_info.retrieve_list) == sorted(retrieve_list)
@@ -558,7 +566,7 @@ def test_optical(aiida_profile, fixture_sandbox, generate_calc_job,
     inputs["optical"] = orm.Dict(dict=optical_parameters)
     calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
 
-    retrieve_list = ['BASIS_ENTHALPY', 'MESSAGES','time.json','aiida.out','aiida.xml','*.ion.xml',"aiida.EPSIMG"]
+    retrieve_list = ['BASIS_ENTHALPY', 'BASIS_HARRIS_ENTHALPY', 'MESSAGES','time.json','aiida.out','aiida.xml','*.ion.xml',"aiida.EPSIMG"]
 
     assert sorted(calc_info.retrieve_list) == sorted(retrieve_list)
 

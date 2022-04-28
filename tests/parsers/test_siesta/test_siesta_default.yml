@@ -36,4 +36,5 @@ output_parameters:
   variable_geometry: true
   warnings:
   - - BASIS_ENTHALPY file not retrieved
+  - - HARRIS_BASIS_ENTHALPY file not retrieved
   - - 'WARNING: No MESSAGES file, could not check if calculation terminated correctly'
