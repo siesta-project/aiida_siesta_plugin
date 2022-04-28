@@ -80,7 +80,7 @@ builder = inp_gen.get_filled_builder(structure, calc_engines, protocol)
 # If no change is performed, just submitting the builder should still work and produce sensible results.
 new_params = builder.parameters.get_dict()
 new_params['max_scf_iterations'] = 200
-builder.parameters = Dict(dict=new_params)
+builder.parameters = Dict(new_params)
 
 # Here we just submit the builder
 if submit_test:

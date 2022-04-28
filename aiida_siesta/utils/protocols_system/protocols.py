@@ -107,25 +107,7 @@ class ProtocolManager:
                 try:
                     Group.get(label=famname)
                 except exceptions.NotExistent:
-                    if k == "standard_psml":
-                        try:
-                            Group.get(label="nc-sr-04_pbe_standard_psml")
-                            from aiida_siesta.utils.warn import AiidaSiestaDeprecationWarning
-                            import warnings
-                            mesg = (
-                                f'protocol `{k}` now requires `pseudo_family` with name `{famname}`. This is not ' +
-                                'present in the database, but family `nc-sr-04_pbe_standard_psml` is found instead. ' +
-                                f'This is an old name for the family of {k}. It is accepted now but deprecated ' +
-                                'after v2.0. To create the family with updated name, run the command ' +
-                                '`aiida-pseudo install pseudo-dojo -v 0.4 -x PBE -r SR -p standard -f psml`. ' +
-                                'This will also remove other deprecation messages.'
-                            )
-                            warnings.warn(mesg, AiidaSiestaDeprecationWarning)
-                            self._protocols[k]["pseudo_family"] = "nc-sr-04_pbe_standard_psml"
-                        except exceptions.NotExistent:
-                            raise_invalid(messagg)
-                    else:
-                        raise_invalid(messagg)
+                    raise_invalid(messagg)
 
         if self._default_protocol not in self._protocols:
             raise_invalid(f'default protocol `{self._default_protocol}` is not a defined protocol')

@@ -70,7 +70,7 @@ s.append_atom(position=(0.250 * alat, 0.250 * alat, 0.250 * alat),
 
 elements = list(s.get_symbols_set())
 
-seekpath_parameters = Dict(dict={
+seekpath_parameters = Dict({
     'reference_distance': 0.02,
     'symprec': 0.0001
 })
@@ -80,7 +80,7 @@ structure = result['primitive_structure']
 code = load_code(codename)
 
 parameters = Dict(
-    dict={
+    {
         'xc-functional': 'GGA',
         'xc-authors': 'PBE',
         'max-scfiterations': 50,
@@ -92,7 +92,7 @@ parameters = Dict(
     })
 
 basis = Dict(
-    dict={
+    {
         'pao-energy-shift': '300 meV',
         '%block pao-basis-sizes': """
 Ge DZP

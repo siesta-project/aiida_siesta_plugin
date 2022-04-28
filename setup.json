@@ -16,8 +16,7 @@
 	"Framework :: AiiDA"
     ],
     "install_requires": [
-	"plumpy>=0.15.0",
-	"aiida_core>=1.3.0,<2.0.0",
+	"aiida_core>=2.0.0",
 	"aiida-pseudo>=0.6.2",
 	"ase~=3.18",
 	"seekpath~=1.9,>=1.9.3",

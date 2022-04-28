@@ -13,9 +13,9 @@ from aiida.tools import get_explicit_kpoints_path
 ################################################################
 
 PsfData = DataFactory('pseudo.psf')
-Dict = DataFactory('dict')
-KpointsData = DataFactory('array.kpoints')
-StructureData = DataFactory('structure')
+Dict = DataFactory('core.dict')
+KpointsData = DataFactory('core.array.kpoints')
+StructureData = DataFactory('core.structure')
 
 try:
     dontsend = sys.argv[1]
@@ -82,7 +82,7 @@ params_dict= {
 'dm-tolerance': 1.e-3,
 'electronic-temperature': '300.000 K'
 }
-parameters = Dict(dict=params_dict)
+parameters = Dict(params_dict)
 
 # The basis
 basis_dict = {
@@ -94,7 +94,7 @@ Fe    SZP
 %endblock pao-basis-sizes""",
 }
 #
-basis = Dict(dict=basis_dict)
+basis = Dict(basis_dict)
 
 
 # K ponts mesh

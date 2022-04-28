@@ -72,7 +72,7 @@ structure.append_atom(position=(0.250 * alat, 0.250 * alat, 0.250 * alat),
 
 #The parameters
 parameters = Dict(
-    dict={
+    {
         'xc-functional': 'LDA',
         'xc-authors': 'CA',
         'max-scfiterations': 50,
@@ -86,7 +86,7 @@ parameters = Dict(
 
 #The basis set
 
-basis = Dict(dict={
+basis = Dict({
     'floating_sites': [{"name":'Si_bond', "symbols":'Si', "position":(0.125*alat, 0.125*alat, 0.125*alat)}],
 'pao-energy-shift': '300 meV',
 '%block pao-basis-sizes': """

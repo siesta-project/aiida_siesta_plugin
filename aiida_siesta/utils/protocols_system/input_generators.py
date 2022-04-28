@@ -153,9 +153,9 @@ class SiestaCalculationInputGenerator(InputGenerator):
 
         inputs = {
             'structure': ok_structure,
-            'parameters': Dict(dict=parameters),
+            'parameters': Dict(parameters),
             'code': code,
-            'basis': Dict(dict=basis),
+            'basis': Dict(basis),
             'pseudos': pseudos,
             'metadata': {
                 "options": options
@@ -203,7 +203,7 @@ class BaseWorkChainInputGenerator(SiestaCalculationInputGenerator):
 
         inps = super().get_inputs_dict(structure, calc_engines, protocol, bands_path_generator, relaxation_type, spin)
 
-        inps['options'] = Dict(dict=inps['metadata']['options'])
+        inps['options'] = Dict(inps['metadata']['options'])
         inps['metadata'] = {}
 
         return inps
@@ -229,7 +229,7 @@ class EpsilonWorkChainInputGenerator(BaseWorkChainInputGenerator):
             opt_mesh = [1, 1, 1]
 
         inps["optical"] = Dict(
-            dict={
+            {
                 "optical-calculation": True,
                 "optical-broaden": "0.5 eV",
                 "optical-polarization-type": "polarized",
@@ -336,7 +336,7 @@ class StmWorkChainInputGenerator(BaseWorkChainInputGenerator):
         siesta_in["stm_value"] = Float(stm_value)
         siesta_in["emin"] = Float(-6.5)
         siesta_in["emax"] = Float(+0.1)
-        siesta_in["stm_options"] = Dict(dict=calc_engines['stm']["options"])
+        siesta_in["stm_options"] = Dict(calc_engines['stm']["options"])
         siesta_in["stm_code"] = load_code(calc_engines['stm']["code"])
 
         return siesta_in

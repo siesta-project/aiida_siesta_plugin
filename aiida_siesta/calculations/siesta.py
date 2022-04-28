@@ -61,25 +61,6 @@ def validate_optical(value, _):
             return "An optical-mesh block must always be defined. For molecules set to [1 1 1]"
 
 
-def validate_pseudos(value, _):
-    """
-    Only used to throw deprecation warnings. Can be deleted in v2.0.0
-    """
-    if value:
-        for key, val in value.items():
-            if isinstance(val, (DeprecatedPsfData, DeprecatedPsmlData)):
-                import warnings
-                from aiida_siesta.utils.warn import AiidaSiestaDeprecationWarning
-                message = (
-                    f'You are using as pseudos for {key} a `PsfData/PsmlData` class from the aiida_siesta package. ' +
-                    'These classes has been deprecated and will be removed in `v2.0.0`. ' +
-                    'Use the same classes imported from `aiida_pseudo.data.pseudo`.'
-                )
-                warnings.warn(message, AiidaSiestaDeprecationWarning)
-
-        return None
-
-
 def validate_basis(value, _):
     """
     Validate basis input port. Only validates that `floating_sites`, if present,
@@ -302,7 +283,7 @@ class SiestaCalculation(CalcJob):
         spec.input('parent_calc_folder', valid_type=orm.RemoteData, required=False, help='Parent folder')
         spec.input_namespace(
             'pseudos',
-            valid_type=(PsfData, PsmlData, DeprecatedPsfData, DeprecatedPsmlData),
+            valid_type=(PsfData, PsmlData),
             help='Input pseudo potentials',
             dynamic=True,
             required=False,

@@ -17,9 +17,9 @@ from aiida.tools import get_explicit_kpoints_path
 # and example_psf_family.py for better understanding
 
 PsfData = DataFactory('pseudo.psf')
-Dict = DataFactory('dict')
-KpointsData = DataFactory('array.kpoints')
-StructureData = DataFactory('structure')
+Dict = DataFactory('core.dict')
+KpointsData = DataFactory('core.array.kpoints')
+StructureData = DataFactory('core.structure')
 
 try:
     dontsend = sys.argv[1]
@@ -82,7 +82,7 @@ params_dict = {
     'writeforces': True,
 }
 #
-parameters = Dict(dict=params_dict)
+parameters = Dict(params_dict)
 
 # Basis Set Info ------------------------------------------
 basis_dict = {
@@ -94,7 +94,7 @@ O    SZP
 %endblock pao-basis-sizes""",
 }
 #
-basis = Dict(dict=basis_dict)
+basis = Dict(basis_dict)
 
 #--------------------- Pseudopotentials ---------------------------------
 #

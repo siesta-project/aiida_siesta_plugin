@@ -80,7 +80,7 @@ lua_retrieve_list = [ '*.xyz', 'NEB.results' ]
 
 
 #The parameters
-parameters = Dict(dict={
+parameters = Dict({
    "mesh-cutoff": "50 Ry",
    "dm-tolerance": "0.0001",
    "DM-NumberPulay ":  "3",
@@ -97,7 +97,7 @@ parameters = Dict(dict={
     %endblock Geometry-Constraints"""
     })
 
-basis = Dict(dict={
+basis = Dict({
   "%block PAO-Basis":
     """
  O                     2                    # Species label, number of l-shells
@@ -152,8 +152,8 @@ options = {
 inputs = {
     'lua': { 'script': lua_script,
              'input_files': lua_input_files,
-             'parameters': Dict(dict=lua_parameters),
-             'retrieve_list': List(list=lua_retrieve_list)
+             'parameters': Dict(lua_parameters),
+             'retrieve_list': List(lua_retrieve_list)
              },
 
     'structure': s,

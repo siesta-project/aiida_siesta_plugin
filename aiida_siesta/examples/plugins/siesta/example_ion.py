@@ -72,7 +72,7 @@ structure.append_atom(position=(0.250 * alat, 0.250 * alat, 0.250 * alat),
 
 #The parameters
 parameters = Dict(
-    dict={
+    {
         'xc-functional': 'LDA',
         'xc-authors': 'CA',
         'max-scfiterations': 50,

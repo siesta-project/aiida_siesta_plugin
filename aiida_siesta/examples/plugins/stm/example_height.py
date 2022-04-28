@@ -79,7 +79,7 @@ options = {
 # Parameters ---------------------------------------------------
 #
 settings_dict = {}
-settings = Dict(dict=settings_dict)
+settings = Dict(settings_dict)
 #
 #--All the inputs of a Siesta calculations are listed in a dictionary--
 #

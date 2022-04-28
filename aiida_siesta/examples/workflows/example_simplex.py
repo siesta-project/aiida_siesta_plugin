@@ -50,7 +50,7 @@ structure.append_atom(position=(0.250 * alat, 0.250 * alat, 0.250 * alat),
 
 #The parameters
 parameters = Dict(
-    dict={
+    {
         'meshcutoff': '100 Ry',
         'xc-functional': 'GGA',
         'xc-authors': 'PBE',
@@ -65,7 +65,7 @@ parameters = Dict(
 
 #The basis set 'pao-split-tail-norm':"T",
 basis = Dict(
-    dict={
+    {
         '%block pao-basis': "\nSi   2\n n=3   0   2\n 4.99376      $sz2 \n n=3   1   2 P 1\n 6.2538      $pz2 \n%endblock pao-basis"
     })
 
@@ -88,7 +88,7 @@ for fname, kinds in raw_pseudos:
 
 #Resources
 options = Dict(
-    dict={
+    {
         "max_wallclock_seconds": 36000,
         "resources": {
             "num_machines": 1,
@@ -110,7 +110,7 @@ inputs = {
     'simplex': {
      #   'max_iters': Int(4),
         'output_name': Str("basis_enthalpy"),
-        'variables_dict': Dict(dict={
+        'variables_dict': Dict({
             "sz2":[2.0,4.8,3.0],
             "pz2":[2.0,6.0,3.0]
             }),

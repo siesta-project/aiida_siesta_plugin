@@ -56,7 +56,7 @@ structure = StructureData(ase=ase_struct)
 
 # Specify some parameters that go into the fdf file
 parameters = Dict(
-    dict={
+    {
         'xc-functional': 'LDA',
         'xc-authors': 'CA',
         'max-scfiterations': 40,
@@ -70,7 +70,7 @@ parameters = Dict(
 # Extra parameters that also go to the fdf file, but are related
 # to the basis.
 basis = Dict(
-    dict={
+    {
         'pao-energy-shift': '300 meV',
         '%block pao-basis-sizes': """
 Si DZP
@@ -104,7 +104,7 @@ for fname, kinds in raw_pseudos:
 # 'max_wallclock_seconds' is a required option, so that SIESTA can stop
 # gracefully before the job runs out of time.
 options = Dict(
-    dict={
+    {
         "max_wallclock_seconds": 360,
         #'withmpi': True,
         #'account': "tcphy113c",

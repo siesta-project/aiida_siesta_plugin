@@ -10,9 +10,9 @@ from aiida_siesta.calculations.siesta import SiestaCalculation
 from aiida.plugins import DataFactory
 import os.path as op
 
-Dict = DataFactory('dict')
-KpointsData = DataFactory('array.kpoints')
-StructureData = DataFactory('structure')
+Dict = DataFactory('core.dict')
+KpointsData = DataFactory('core.array.kpoints')
+StructureData = DataFactory('core.structure')
 
 try:
     dontsend = sys.argv[1]
@@ -61,7 +61,7 @@ options = {
 #-------------------------- Settings ---------------------------------
 #
 settings_dict = {'additional_retrieve_list': ['aiida.BONDS', 'aiida.EIG']}
-settings = Dict(dict=settings_dict)
+settings = Dict(settings_dict)
 #
 # Structure -----------------------------------------
 #
@@ -106,7 +106,7 @@ params_dict = {
     'md-maxforcetol': '0.020 eV/Ang',
 }
 
-parameters = Dict(dict=params_dict)
+parameters = Dict(params_dict)
 #------------------------------------------------------------------------
 #
 # No basis set spec in this calculation (default)

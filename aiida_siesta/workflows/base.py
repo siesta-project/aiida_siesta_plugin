@@ -22,16 +22,6 @@ def validate_ps_fam(value, _):
     if value:
         try:
             group = orm.Group.get(label=value.value)
-            # To be removed in v2.0
-            if "data" in group.type_string:
-                import warnings
-                from aiida_siesta.utils.warn import AiidaSiestaDeprecationWarning
-                message = (
-                    f'You are using a pseudo family associatd to the entry point {group.type_string}. ' +
-                    'This has been deprecated and will be removed in `v2.0.0`. It is suggested ' +
-                    'to create new families using the functionality of the `aiida_pseudo` package.'
-                )
-                warnings.warn(message, AiidaSiestaDeprecationWarning)
         except NotExistent:
             return f"{value.value} does not correspond to any known pseudo family."
 

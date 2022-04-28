@@ -385,7 +385,7 @@ class BaseIterator(WorkChain):
             # Now that we are sure the node has a pk, we append it to the list
             parsed_list.append(obj.pk)
 
-        return List(list=parsed_list)
+        return List(parsed_list)
 
     @classmethod
     def iteration_input(cls, name, input_key=None, parse_func=None, **kwargs):

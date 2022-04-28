@@ -15,9 +15,9 @@ from aiida.plugins import DataFactory
 ################################################################
 
 PsfData = DataFactory('pseudo.psf')
-Dict = DataFactory('dict')
-KpointsData = DataFactory('array.kpoints')
-StructureData = DataFactory('structure')
+Dict = DataFactory('core.dict')
+KpointsData = DataFactory('core.array.kpoints')
+StructureData = DataFactory('core.structure')
 
 try:
     dontsend = sys.argv[1]
@@ -57,7 +57,7 @@ options = {
 #----Settings first  -----------------------------
 #
 settings_dict = {'additional_retrieve_list': ['aiida.BONDS', 'aiida.LDOS']}
-settings = Dict(dict=settings_dict)
+settings = Dict(settings_dict)
 #---------------------------------------------------
 
 #
@@ -119,7 +119,7 @@ params_dict = {
  -9.6 -1.6 eV
 %endblock local-density-of-states """
 }
-parameters = Dict(dict=params_dict)
+parameters = Dict(params_dict)
 #
 # Basis Set Info ------------------------------------------
 # The basis dictionary follows the 'parameters' convention
@@ -135,7 +135,7 @@ Cred SZ
 H    SZP
 %endblock pao-basis-sizes"""
 }
-basis = Dict(dict=basis_dict)
+basis = Dict(basis_dict)
 #--------------------------------------------------------------
 
 #--------------------- Pseudopotentials ---------------------------------

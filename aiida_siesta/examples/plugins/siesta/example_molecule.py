@@ -10,9 +10,9 @@ from aiida.plugins import DataFactory
 #  Siesta calculation on benzene molecule
 
 PsfData = DataFactory('pseudo.psf')
-Dict = DataFactory('dict')
-KpointsData = DataFactory('array.kpoints')
-StructureData = DataFactory('structure')
+Dict = DataFactory('core.dict')
+KpointsData = DataFactory('core.array.kpoints')
+StructureData = DataFactory('core.structure')
 
 try:
     dontsend = sys.argv[1]
@@ -52,7 +52,7 @@ options = {
 #-------------------------- Settings ---------------------------------
 #
 settings_dict = {'additional_retrieve_list': ['aiida.BONDS', 'aiida.EIG']}
-settings = Dict(dict=settings_dict)
+settings = Dict(settings_dict)
 #---------------------------------------------------------------------
 
 #
@@ -115,7 +115,7 @@ params_dict = {
     'writeforces': True,
 }
 
-parameters = Dict(dict=params_dict)
+parameters = Dict(params_dict)
 #------------------------------------------------------------------------
 
 #
@@ -137,7 +137,7 @@ H    SZP
 %endblock pao-basis-sizes""",
 }
 
-basis = Dict(dict=basis_dict)
+basis = Dict(basis_dict)
 #------------------------------------------------------------------------
 
 #--------------------- Pseudopotentials ---------------------------------

@@ -389,7 +389,7 @@ class SiestaParser(Parser):
         output_dict["warnings"] = warnings_list
 
         # An output_parametrs port is always return, even if only parser's info are present
-        output_data = Dict(dict=output_dict)
+        output_data = Dict(output_dict)
         self.out('output_parameters', output_data)
 
         #

@@ -16,9 +16,9 @@ from aiida_siesta.workflows.stm import SiestaSTMWorkChain
 
 
 PsfData = DataFactory('pseudo.psf')
-Dict = DataFactory('dict')
-KpointsData = DataFactory('array.kpoints')
-StructureData = DataFactory('structure')
+Dict = DataFactory('core.dict')
+KpointsData = DataFactory('core.array.kpoints')
+StructureData = DataFactory('core.structure')
 
 
 try:
@@ -109,7 +109,7 @@ params_dict = {
  -9.6 -1.6 eV
 %endblock local-density-of-states """
 }
-parameters = Dict(dict=params_dict)
+parameters = Dict(params_dict)
 #
 # Basis Set Info ------------------------------------------
 # The basis dictionary follows the 'parameters' convention
@@ -125,7 +125,7 @@ Cred SZ
 H    SZP
 %endblock pao-basis-sizes"""
 }
-basis = Dict(dict=basis_dict)
+basis = Dict(basis_dict)
 #--------------------------------------------------------------
 
 #--------------------- Pseudopotentials ---------------------------------
@@ -155,7 +155,7 @@ inputs = {
     'code': code,
     'basis': basis,
     'pseudos': pseudos_dict,
-    'options': Dict(dict=options),
+    'options': Dict(options),
     'emin': Float(-6.5),
     'emax': Float(0.0),
     'stm_code': stm_code,

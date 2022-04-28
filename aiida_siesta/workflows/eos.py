@@ -24,8 +24,8 @@ def get_info(outpar, struct):
     evdict["vol_units"] = 'ang^3/atom'
     evdict["en"] = outpar['E_KS'] / len(struct.sites)
     evdict["en_units"] = outpar['E_KS_units'] + '/atom'
-    Dict = DataFactory('dict')
-    resultdict = Dict(dict=evdict)
+    Dict = DataFactory('core.dict')
+    resultdict = Dict(evdict)
 
     return resultdict
 
@@ -105,7 +105,7 @@ def scale_to_vol(structure, vol):
     new = in_structure.copy()
     vol_ratio = vol * len(in_structure) / in_structure.get_volume()
     new.set_cell(in_structure.get_cell() * pow(vol_ratio, 1 / 3), scale_atoms=True)
-    StructureData = DataFactory("structure")
+    StructureData = DataFactory("core.structure")
     structure_new = StructureData(ase=new)
 
     return structure_new
@@ -191,11 +191,11 @@ def fit_and_final_dicts(**calcs):
         #In the future we could use these info to improve help,
         #residuals0 is a np array
 
-    Dict = DataFactory("dict")
+    Dict = DataFactory("core.dict")
     if fit_res:
-        result_dict = Dict(dict={'eos_data': eos, "fit_res": fit_res})
+        result_dict = Dict({'eos_data': eos, "fit_res": fit_res})
     else:
-        result_dict = Dict(dict={'eos_data': eos})
+        result_dict = Dict({'eos_data': eos})
 
     return result_dict
 

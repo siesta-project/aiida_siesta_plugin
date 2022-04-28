@@ -136,9 +136,9 @@ class BasicConverger(BaseIterator):
 
         converged = Bool(self.converged)
         converged_index = Int(getattr(self.ctx, 'converged_index', -1))
-        iteration_keys = List(list=list(self.ctx.iteration_keys))
-        used_values = List(list=self.ctx.used_values)
-        target_values = List(list=self.ctx.target_values)
+        iteration_keys = List(list(self.ctx.iteration_keys))
+        used_values = List(self.ctx.used_values)
+        target_values = List(self.ctx.target_values)
 
         outputs = generate_convergence_results(iteration_keys, used_values, target_values, converged, converged_index)
 

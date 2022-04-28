@@ -78,7 +78,7 @@ lua_script = SinglefileData(absname)
 # would likely not converge, as the magnitude of the forces on
 # ghosts bear no relation to the rest...
 #
-parameters = Dict(dict={
+parameters = Dict({
    "mesh-cutoff": "50 Ry",
    "dm-tolerance": "0.0001",
    "DM-NumberPulay ":  "3",
@@ -99,7 +99,7 @@ parameters = Dict(dict={
 # Basis set info, including floating sites. Note that
 # O_top will get a default DZP basis set. If needed,
 # it can be specified in the block.
-basis = Dict(dict={
+basis = Dict({
   'floating_sites': [ {"name":'O_top', "symbols":'O', "position":(-0.757,  0.586,  2.00 ) } ],
   '%block PAO-Basis':
     """
@@ -137,7 +137,7 @@ for fname, kinds in raw_pseudos:
         pseudos_dict[j]=pseudo
 
 # Resources and other options
-options = Dict(dict={
+options = Dict({
     "max_wallclock_seconds": 3600,
     'withmpi': True,
     "resources": {

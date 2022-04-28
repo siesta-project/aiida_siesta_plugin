@@ -64,11 +64,11 @@ relaxation = {
 # Use this for relaxation
 #
 parameters.update(relaxation)
-parameters = Dict(dict=parameters)
+parameters = Dict(parameters)
 
 
 #The basis set
-basis = Dict(dict={
+basis = Dict({
 'pao-energy-shift': '300 meV',
 '%block pao-basis-sizes': """
 Si DZP
@@ -76,7 +76,7 @@ Si DZP
     })
 
 # Optical calculation
-optical = Dict(dict={
+optical = Dict({
 'optical-broaden': '0.5 eV',
 'optical-energy-maximum': '20.0 eV',
 '%block optical-mesh': """
@@ -121,7 +121,7 @@ inputs = {
     'basis': basis,
     'kpoints': kpoints,
     'pseudos': pseudos_dict,
-    'options': Dict(dict=options),
+    'options': Dict(options),
     'optical': optical,
 }
 

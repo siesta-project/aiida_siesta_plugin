@@ -14,9 +14,9 @@ from aiida.plugins import DataFactory
 ################################################################
 
 PsfData = DataFactory('pseudo.psf')
-KpointsData = DataFactory('array.kpoints')
-StructureData = DataFactory('structure')
-Dict = DataFactory('dict')
+KpointsData = DataFactory('core.array.kpoints')
+StructureData = DataFactory('core.structure')
+Dict = DataFactory('core.dict')
 
 try:
     dontsend = sys.argv[1]
@@ -85,7 +85,7 @@ options = {
 #-------------------------- Settings ---------------------------------
 #
 settings_dict = {'additional_retrieve_list': ['aiida.BONDS', 'aiida.EIG']}
-settings = Dict(dict=settings_dict)
+settings = Dict(settings_dict)
 
 #---------------------------------------------
 # Code-specific operational parameters
@@ -104,7 +104,7 @@ params_dict = {
     'md-numcgsteps': 0
 }
 
-parameters = Dict(dict=params_dict)
+parameters = Dict(params_dict)
 
 # ---------------------Basis Set Info -----------------------------------
 # The basis dictionary follows the 'parameters' convention
@@ -118,7 +118,7 @@ Si DZP
 %endblock pao-basis-sizes""",
 }
 
-basis = Dict(dict=basis_dict)
+basis = Dict(basis_dict)
 
 #-------------------------------------------
 kpoints = KpointsData()

@@ -13,9 +13,9 @@ from aiida.plugins import DataFactory
 ##########################################################
 
 PsmlData = DataFactory('pseudo.psml')
-Dict = DataFactory('dict')
-KpointsData = DataFactory('array.kpoints')
-StructureData = DataFactory('structure')
+Dict = DataFactory('core.dict')
+KpointsData = DataFactory('core.array.kpoints')
+StructureData = DataFactory('core.structure')
 
 try:
     dontsend = sys.argv[1]
@@ -54,7 +54,7 @@ options = {
 #-------------------------- Settings ---------------------------------
 #
 settings_dict = {'additional_retrieve_list': ['aiida.BONDS', 'aiida.EIG']}
-settings = Dict(dict=settings_dict)
+settings = Dict(settings_dict)
 #---------------------------------------------------------------------
 
 #
@@ -118,7 +118,7 @@ params_dict = {
     'write-mulliken-pop': 1,
 }
 
-parameters = Dict(dict=params_dict)
+parameters = Dict(params_dict)
 #------------------------------------------------------------------------
 
 #
@@ -131,7 +131,7 @@ basis_dict = {
     'pao-energyshift': '0.020 Ry'
 }
 
-basis = Dict(dict=basis_dict)
+basis = Dict(basis_dict)
 #------------------------------------------------------------------------
 
 #--------------------- Pseudopotentials ---------------------------------

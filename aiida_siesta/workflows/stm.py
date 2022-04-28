@@ -19,7 +19,7 @@ def strip_ldosblock(param):
     translated_para = FDFDict(param_copy)
     translated_para.pop('%block localdensityofstates')
 
-    return Dict(dict=translated_para)
+    return Dict(translated_para)
 
 
 #Here, instead, the use of @calcfunction is mandatory as we want to
@@ -212,10 +212,10 @@ class SiestaSTMWorkChain(WorkChain):
         param_dict = restart.parameters.get_dict()
         param_dict["%block local-density-of-states"] = ldos_e
         #pop the relax keys??
-        restart.parameters = Dict(dict=param_dict)
+        restart.parameters = Dict(param_dict)
         restart.parent_calc_folder = outwc.remote_folder
         settings_dict = {'additional_retrieve_list': ['aiida.BONDS', 'aiida.LDOS']}
-        restart.settings = Dict(dict=settings_dict)
+        restart.settings = Dict(settings_dict)
 
         running = self.submit(restart)
         self.report(f'Launched SiestaBaseWorkChain<{running.pk}> to obtain the .LDOS file.')

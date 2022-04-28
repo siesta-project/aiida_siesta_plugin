@@ -49,7 +49,7 @@ structure.append_atom(position=(0.250 * alat, 0.250 * alat, 0.250 * alat),
 
 #The parameters
 parameters = Dict(
-    dict={
+    {
         'xc-functional': "GGA",
         'xc-authors': "PBE",
         'max-scf-iterations': 200,
@@ -70,7 +70,7 @@ kpoints.set_kpoints_mesh([8, 8, 8])
 
 #Resources
 options = Dict(
-    dict={
+    {
         "max_wallclock_seconds": 36000,
         "resources": {
             "num_machines": 1,

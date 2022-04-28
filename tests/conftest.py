@@ -300,7 +300,7 @@ def generate_param():
         'md-maxcgdispl': '0.1 Ang',
         'md-maxforcetol': '0.04 eV/Ang'}
 
-        return Dict(dict=parameters)
+        return Dict(parameters)
 
     return _generate_param
 
@@ -320,7 +320,7 @@ def generate_basis():
         %endblock pao-basis-sizes""",
         }
 
-        return Dict(dict=basis)
+        return Dict(basis)
 
     return _generate_basis
 

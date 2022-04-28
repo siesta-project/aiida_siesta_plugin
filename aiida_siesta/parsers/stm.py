@@ -75,7 +75,7 @@ class STMParser(Parser):
         # Add parser info dictionary
         parsed_dict = dict(list(result_dict.items()) + list(parser_info.items()))
 
-        output_data = Dict(dict=parsed_dict)
+        output_data = Dict(parsed_dict)
         self.out('output_parameters', output_data)
 
         return ExitCode(0)
