@@ -1,5 +1,13 @@
-def get_timing_info(json_file):
+# -*- coding: utf-8 -*-
+"""
+Parse the time.json produce by siesta.
+"""
 
+
+def get_timing_info(json_file):
+    """
+    Parse the time.json produce by siesta.
+    """
     import json
 
     timing_decomp = {}
@@ -8,7 +16,6 @@ def get_timing_info(json_file):
     try:
         data = json.load(open(json_file))
     except:
-        #
         # The JSON file is not parseable...
         # Emit message
         return global_time, timing_decomp

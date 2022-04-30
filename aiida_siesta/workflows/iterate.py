@@ -1,9 +1,15 @@
-from aiida.plugins import DataFactory
-from aiida.orm import KpointsData
+# -*- coding: utf-8 -*-
+"""
+Siesta iterator.
 
+Can iterate over any siesta keyword.
+"""
+from aiida.orm import KpointsData
+from aiida.plugins import DataFactory
+
+from ..utils.iterate_absclass import BaseIterator
 from ..utils.tkdict import FDFDict
 from .base import SiestaBaseWorkChain
-from ..utils.iterate_absclass import BaseIterator
 
 # The following are helper functions to parse input values in the SiestaIterator. See
 # the global dict SIESTA_ITERATION_PARAMS to know which parameters make use of them.
@@ -16,8 +22,6 @@ def set_up_parameters_dict(val, inputs, parameter, input_key, defaults=None):
     This is used by the basis parameters (input_key='basis') and the rest of
     fdf parameters (input_key='parameters')
 
-    Parameters
-    -----------
     val: str, float, int, bool
         the value to set for the parameter.
     inputs: AttributeDict
@@ -30,7 +34,6 @@ def set_up_parameters_dict(val, inputs, parameter, input_key, defaults=None):
         a dictionary of defaults. The only key that matters right now is "units",
         which is the units to set for the value if the value is a number. This may change.
     """
-
     val = getattr(val, "value", val)
 
     # Get the current FDFdict for the corresponding input
@@ -56,8 +59,6 @@ def set_up_kpoint_grid(val, inputs, parameter, input_key='kpoints'):
     This is used by the basis parameters (input_key='basis') and the rest of
     fdf parameters (input_key='parameters')
 
-    Parameters
-    -----------
     val: str, float, int, bool
         the value to set for the parameter.
     inputs: AttributeDict
@@ -73,7 +74,6 @@ def set_up_kpoint_grid(val, inputs, parameter, input_key='kpoints'):
     input_key: str
         the input of the fdf dict that should be modified.
     """
-
     # If there is already a KpointsData() in inputs grab it to modify it
     old_kpoints = getattr(inputs, input_key, None)
 
@@ -190,7 +190,9 @@ SIESTA_ITERATION_PARAMS = ({
 
 class SiestaIterator(BaseIterator):
     """
-    Iterator for the SietaBaseWorkChain. The iterator is extended to iterate over any Siesta keyword.
+    Iterator for the SietaBaseWorkChain.
+
+    The iterator is extended to iterate over any Siesta keyword.
     WARNING: if a keyword not recognized by Siesta is used in `iterate_over`, the iterator will not
     complain. It will just add the keyword to the parameters dict and run the calculation!
     """

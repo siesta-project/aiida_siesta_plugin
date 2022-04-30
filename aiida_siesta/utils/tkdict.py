@@ -1,5 +1,7 @@
+# -*- coding: utf-8 -*-
 """
 Module with implementation of TKDict (translated-keys-dictionary) class.
+
 It is actually a dictionary with 'translation insensitive' keys. For
 example, in the FDFDict subclass:
 
@@ -11,7 +13,6 @@ a setting operation.
 
 Vladimir Dikan and Alberto Garcia, 2017
 Refined by Emanuele Bosoni in 2020
-
 """
 
 from abc import abstractmethod
@@ -20,8 +21,8 @@ from collections.abc import MutableMapping
 
 class TKDict(MutableMapping):
     """
-    Abstract class that mocks a python dictionary but with some translation
-    rules applied to the key of the dictionary.
+    Abstract class that mocks a python dictionary but with some translation rules applied to keys of the dictionary.
+
     Its subclasses need to define the method `translate_key` that contains the translation rule.
     Once the translation rule is set. This abstract class
     provides all the methods for the management of the dictionary.
@@ -32,11 +33,15 @@ class TKDict(MutableMapping):
     @classmethod
     @abstractmethod
     def translate_key(cls, key):
-        """ Definition of a rule for key translation. """
+        """
+        Definition of a rule for key translation.
+        """
 
     def __init__(self, inp_dict=None):  #*args, **kw):
         """
-        Create translated-keys-dictionary from initial data. Initail data must be a dictionary.
+        Create translated-keys-dictionary from initial data.
+
+        Initail data must be a dictionary.
         If several input keys translate to same string, only the last occurrence is saved.
         The class can also be instantiaced with no argument passed.
         """
@@ -45,7 +50,7 @@ class TKDict(MutableMapping):
 
         if inp_dict is not None:
             if not isinstance(inp_dict, dict):
-                message = 'invalid argument for `{}`: it only accepts a dictionary'.format(self.__class__.__name__)
+                message = f'invalid argument for `{self.__class__.__name__}`: it only accepts a dictionary'
                 raise RuntimeError(message)
 
         if inp_dict is not None:
@@ -64,6 +69,7 @@ class TKDict(MutableMapping):
     def __getitem__(self, key):
         """
         Translate the key, unpack value-tuple and return the value if exists.
+
         If the translated_key is not present in the dictionary, a KeyError
         will be reported, like in any normal python dictionary.
         """
@@ -71,79 +77,92 @@ class TKDict(MutableMapping):
         return self._storage[trans_key][0]
 
     def __delitem__(self, key):
-        """ Translate the key, purge value-tuple """
+        """
+        Translate the key, purge value-tuple.
+        """
         self._storage.__delitem__(self.translate_key(key))
 
     def __iter__(self):
-        """We iter on the translated keys"""
+        """
+        We iter on the translated keys.
+        """
         return iter(self._storage)
 
     def __len__(self):
+        """
+        Return the lenght.
+        """
         return len(self._storage)
 
     def __repr__(self):
+        """
+        Return the reps.
+        """
         return self._storage.__repr__()
 
     def __str__(self):
+        """
+        Return the string.
+        """
         return self._storage.__str__()
 
     def values(self):
         """
         Return list of values.
-
         """
         return [self[k] for k in self]
 
     def untranslated_keys(self):
         """
-        Return a list of last occurencies of the untranslated keys. For each translated_key,
+        Return a list of last occurencies of the untranslated keys.
+
+        For each translated_key,
         it is stored as second entry of the self._storage[translated_key] tuple.
         """
-        return [self._storage[k][1] for k in self._storage]
+        return [self._storage[k][1] for k in self._storage]  #pylint: disable=consider-using-dict-items
 
     def keys(self):
         """
         Return list of translated keys. The self_storage keys are already translated.
-
         """
         return self._storage.keys()
 
     def untranslated_items(self):
         """
-        Return a list of the items with the last occurencies of the untranslated keys
-        as key.
+        Return a list of the items with the last occurencies of the untranslated keys as key.
         """
         return [(self._storage[key][1], self._storage[key][0]) for key in self]
 
     def items(self):
         """
         Return a list of the items with the translated key as key.
-
         """
         return [(key, self._storage[key][0]) for key in self]
 
     def get_dict(self):
         """
-        Return a dictionary, where the key are the translated keys
+        Return a dictionary, where the key are the translated keys.
         """
         return {key: val[0] for key, val in self._storage.items()}
 
     def get_untranslated_dict(self):
         """
-        Return a dictionary, where the key are the translated keys
+        Return a dictionary, where the key are the translated keys.
         """
         return {val[1]: val[0] for val in self._storage.values()}
 
     #Only for back compatibility!!! Does the same job of
     #items when iterated, but can't be called by itself
     def get_filtered_items(self):
+        """
+        Return the converted items.
+        """
         for k, v in self._storage.items():
             yield k, v[0]
 
     def get_last_untranslated_key(self, key):
         """
-        Translate the key, unpack value-tuple and return
-        the corresponding initial key if exists or None.
+        Translate the key, unpack value-tuple and return the corresponding initial key if exists or None.
         """
         trans_key = self.translate_key(key)
         return self._storage[trans_key][1]
@@ -162,6 +181,9 @@ class FDFDict(TKDict):  # pylint: disable=too-many-ancestors
 
     @classmethod
     def translate_key(cls, key):
+        """
+        The central function that set the translation rules.
+        """
         to_remove = "-.:"
 
         if not isinstance(key, str):

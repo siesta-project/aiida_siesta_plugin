@@ -1,7 +1,15 @@
+# -*- coding: utf-8 -*-
+"""
+Base workchain to run siesta calculation.
+
+It handles error and it is based on the RestartWorkChain of aiida core.
+"""
+
 from aiida import orm
 from aiida.common import AttributeDict
 from aiida.common.exceptions import NotExistent
 from aiida.engine import BaseRestartWorkChain, ProcessHandlerReport, process_handler, while_
+
 from aiida_siesta.calculations.siesta import SiestaCalculation, bandskpoints_warnings, internal_structure
 from aiida_siesta.utils.tkdict import FDFDict
 
@@ -21,15 +29,16 @@ def validate_ps_fam(value, _):
     """
     if value:
         try:
-            group = orm.Group.get(label=value.value)
+            orm.Group.get(label=value.value)
         except NotExistent:
             return f"{value.value} does not correspond to any known pseudo family."
 
 
 def validate_inputs(value, _):
     """
-    Validate the entire input namespace. It takes care to ckeck the consistency
-    and compatibility of the inputed basis, pseudos, pseudofamilies and ions.
+    Validate the entire input namespace.
+
+    It takes care to ckeck the consistency and compatibility of the inputed basis, pseudos, pseudofamilies and ions.
     Also calls the `bandskpoints_warnings` that issues warning about bandskpoints selection.
     It is similar to the `validate_inputs` of SiestaCalculation but with the additional complexity
     due to the presence of 'pseudo_family' input.
@@ -61,18 +70,10 @@ def validate_inputs(value, _):
 
         if 'pseudo_family' in value:
             group = orm.Group.get(label=value['pseudo_family'].value)
-            # To be removed in v2.0
-            if "data" in group.type_string:
-                from aiida_siesta.data.common import get_pseudos_from_structure
-                try:
-                    get_pseudos_from_structure(structure, value['pseudo_family'].value)
-                except NotExistent:
-                    return "The pseudo family does not incude all the required pseudos"
-            else:
-                try:
-                    group.get_pseudos(structure=structure)
-                except ValueError:
-                    return "The pseudo family does not incude all the required pseudos"
+            try:
+                group.get_pseudos(structure=structure)
+            except ValueError:
+                return "The pseudo family does not incude all the required pseudos"
         else:
             if set(kinds) != set(value[quantity].keys()):
                 ps_io = ', '.join(list(value[quantity].keys()))
@@ -86,13 +87,17 @@ def validate_inputs(value, _):
 
 class SiestaBaseWorkChain(BaseRestartWorkChain):
     """
-    Base Workchain to launch a total energy calculation via Siesta
+    Base Workchain to launch a total energy calculation via Siesta.
     """
+
     _process_class = SiestaCalculation
     _proc_exit_cod = _process_class.exit_codes
 
     @classmethod
     def define(cls, spec):
+        """
+        Define the specs.
+        """
         super().define(spec)
         spec.expose_inputs(SiestaCalculation, exclude=('metadata',))
         spec.input('pseudo_family', valid_type=orm.Str, required=False, validator=validate_ps_fam)
@@ -119,13 +124,14 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
 
     def preprocess(self):
         """
-        Here a higher level WorkChain could put preprocesses
+        Here a higher level WorkChain could put preprocesses.
         """
 
     def prepare_inputs(self):
         """
-        Initialize context variables. Note that in context we must include
-        exactly the same data nodes obtained in input (except the parameters
+        Initialize context variables.
+
+        Note that in context we must include exactly the same data nodes obtained in input (except the parameters
         where we add `max-walltime`)
         On the contrary, useless nodes would be created.
         """
@@ -141,22 +147,14 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
             group = orm.Group.get(label=fam_name)
             if 'basis' in self.inputs:
                 temp_structure = internal_structure(structure, self.inputs.basis.get_dict())
-                # To be removed in v2.0
-                if "data" in group.type_string:
-                    from aiida_siesta.data.common import get_pseudos_from_structure
-                    self.ctx.inputs['pseudos'] = get_pseudos_from_structure(temp_structure, fam_name)
-                else:
-                    self.ctx.inputs['pseudos'] = group.get_pseudos(structure=temp_structure)
+                self.ctx.inputs['pseudos'] = group.get_pseudos(structure=temp_structure)
             else:
-                # To be removed in v2.0
-                if "data" in group.type_string:
-                    from aiida_siesta.data.common import get_pseudos_from_structure
-                    self.ctx.inputs['pseudos'] = get_pseudos_from_structure(structure, fam_name)
-                else:
-                    self.ctx.inputs['pseudos'] = group.get_pseudos(structure=structure)
+                self.ctx.inputs['pseudos'] = group.get_pseudos(structure=structure)
 
     def postprocess(self):
         """
+        Attach the output_namespaces to outputs.
+
         In theory, the BaseRestartWorkChain should already return all the output
         requested in spec if they are returned (output nodes) by the last completed
         process. However this fails for `output_namespaces` (issue #4623 aiida-core).
@@ -170,8 +168,7 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
     @process_handler(priority=70, exit_codes=_proc_exit_cod.GEOM_NOT_CONV)  #pylint: disable = no-member
     def handle_error_geom_not_conv(self, node):
         """
-        At the end of the scf cycle, the geometry convergence was not
-        reached.  We need to restart from the previous calculation
+        Geometry convergence was not reached.We need to restart from the previous calculation.
         """
 
         self.report(f'SiestaCalculation<{node.pk}> did not reach geometry convergence')
@@ -188,8 +185,9 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
     @process_handler(priority=80, exit_codes=_proc_exit_cod.SCF_NOT_CONV)  #pylint: disable = no-member
     def handle_error_scf_not_conv(self, node):
         """
-        SCF convergence was not reached.  We need to restart from the
-        previous calculation without changing any of the input parameters.
+        SCF convergence was not reached.
+
+        We need to restart from the previous calculation without changing any of the input parameters.
         """
 
         self.report(f'SiestaCalculation<{node.pk}> did not achieve scf convergence.')
@@ -208,8 +206,9 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
     @process_handler(priority=90, exit_codes=_proc_exit_cod.SPLIT_NORM)  #pylint: disable = no-member
     def handle_error_split_norm(self, node):
         """
-        The split_norm parameter was too small.  We need to change it and restart.
-        The minimum split_norm is stored in the logs of the old calculation.
+        The split_norm parameter was too small.
+
+        We need to change it and restart. The minimum split_norm is stored in the logs of the old calculation.
         This error happens only at the beginning of the run, therefore no real restart needed.
         Just a new calculation with a new split_norm.
         """
@@ -249,6 +248,8 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
     @process_handler(priority=89, exit_codes=_proc_exit_cod.BASIS_POLARIZ)  #pylint: disable = no-member
     def handle_error_basis_pol(self, node):  #pylint: disable = unused-argument
         """
+        Problem in generating plarized orbitals.
+
         For the moment, we don't handle this error, but we terminate the WorkChain with
         a specific error code.
         """
@@ -258,6 +259,8 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
     @process_handler(priority=60, exit_codes=[_proc_exit_cod.BANDS_PARSE_FAIL, _proc_exit_cod.BANDS_FILE_NOT_PRODUCED])
     def handle_error_bands(self, node):  #pylint: disable = unused-argument
         """
+        Error on bands.
+
         If an error in the parsing of bands occours in the SiestaCalculation (node here), we expose all
         the output ports node that have been produced (SiestaCalculation is designed to produce the
         output_parameter and stress/forcess port before the check on the bands outputs) and then we
@@ -273,5 +276,8 @@ class SiestaBaseWorkChain(BaseRestartWorkChain):
 
     @classmethod
     def inputs_generator(cls):  # pylint: disable=no-self-argument,no-self-use
+        """
+        Get the input generator.
+        """
         from aiida_siesta.utils.protocols_system.input_generators import BaseWorkChainInputGenerator
         return BaseWorkChainInputGenerator(cls)

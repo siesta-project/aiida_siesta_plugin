@@ -1,18 +1,22 @@
+# -*- coding: utf-8 -*-
+"""
+Collect here the abstract classes that allow to create convergers wc.
+"""
+from aiida.engine import calcfunction
+from aiida.orm import Bool, Float, Int, List, Str, load_node
+from aiida.plugins import DataFactory
 import numpy as np
 
-from aiida.engine import calcfunction
-from aiida.orm import Float, Str, List, Bool, Int, load_node
-from aiida.plugins import DataFactory
-
 from .iterate_absclass import BaseIterator
+
+# pylint: disable=protected-access
 
 
 @calcfunction
 def generate_convergence_results(iteration_keys, used_values, target_values, converged, converged_index):
-    '''
-    Generates the final output of the convergence workflows.
-    '''
-
+    """
+    Generate the final output of the convergence workflows.
+    """
     convergence_results = {
         'converged': Bool(converged),
     }
@@ -30,26 +34,24 @@ def generate_convergence_results(iteration_keys, used_values, target_values, con
 
 
 class BasicConverger(BaseIterator):
-    '''
+    """
     Plugin to add to an Iterator workchain to convert it to a convergence workflow.
 
     To use it, just build a class that inherits from this plugin and the iterator
-    that you want to use.
-
-    Examples
-    -----------
+    that you want to use. Examples
     class MyConverger(BasicConverger, MyIterator):
         pass
-
     This class will now iterate as MyIterator while checking for convergence.
-
     This class just checks between the difference in a target output between two
     consecutive steps and compares it to a threshold. To implement a different
     convergence algorithm, just overwrite the `converged` property.
-    '''
+    """
 
     @classmethod
     def define(cls, spec):
+        """
+        Define the specs of the class.
+        """
         super().define(spec)
 
         # The outline is defined by Iterator workflow, and most of the inputs too.
@@ -89,9 +91,9 @@ class BasicConverger(BaseIterator):
 
     @property
     def converged(self):
-        '''
-        Checks if the target property has already converged.
-        '''
+        """
+        Check if the target property has already converged.
+        """
         target_values = self.ctx.target_values
 
         if len(target_values) <= 1:
@@ -104,21 +106,20 @@ class BasicConverger(BaseIterator):
             if converged:
                 self.ctx.converged_index = below_thresh[0]
 
-            self.report(
-                'Convergence criterium: '
-                '{0}; Last step diffs: {1}'.format(
-                    self.ctx.inputs.threshold.value, diffs[-len(self.ctx.last_step_processes):]
-                )
-            )
+            last_step_diff = diffs[-len(self.ctx.last_step_processes):]
+            self.report(f'Convergence criterium: {self.ctx.inputs.threshold.value}; Last step diffs: {last_step_diff}.')
 
         return converged
 
     def _should_proceed(self):
+        """
+        Proceed if not converged.
+        """
         return not self.converged
 
     def _analyze_process(self, process_node):
         """
-        Takes the output from the process and stores the value of the target.
+        Take the output from the process and stores the value of the target.
         """
         # Append the value of the target property for the last run
         results = process_node.outputs
@@ -130,10 +131,9 @@ class BasicConverger(BaseIterator):
         super()._analyze_process(process_node)
 
     def return_results(self):
-        '''
-        Takes care of returning the results of the convergence to the user
-        '''
-
+        """
+        Take care of returning the results of the convergence to the user.
+        """
         converged = Bool(self.converged)
         converged_index = Int(getattr(self.ctx, 'converged_index', -1))
         iteration_keys = List(list(self.ctx.iteration_keys))
@@ -156,9 +156,10 @@ class BasicConverger(BaseIterator):
 
 
 class SequentialConverger(BaseIterator):
-    '''
-    Launches several convergence workchains sequentially. It is actally an iterator that
-    iterate a _process_class which is a converger!!!!
+    """
+    Launch several convergence workchains sequentially.
+
+    It is an iterator that iterate a _process_class which is a converger!!!!
 
     It is perfectly fine to define a class:
         class SiestaSeqConv(ProcessInputsIterator):
@@ -180,14 +181,14 @@ class SequentialConverger(BaseIterator):
 
     THIS CLASS CAN NOT BE USED DIRECTLY, you need to subclass it and specify a cls._process_class,
     which should be the converger that you want to use.
-    '''
+    """
 
     _expose_inputs_kwargs = {'exclude': ("iterate_over",), "namespace": 'converger_inputs'}
     _reuse_inputs = True
 
     def __init_subclass__(cls, *args, **kwargs):
         """
-        Imposes some requirements for each class that will inherit from the present class
+        Impose some requirements for each class that will inherit from the present class.
         """
 
         super().__init_subclass__(*args, **kwargs)
@@ -200,6 +201,9 @@ class SequentialConverger(BaseIterator):
 
     @classmethod
     def define(cls, spec):
+        """
+        Define the spec of the class.
+        """
         super().define(spec)
 
         # In this case, iterate_over is going to be a list where each item is a dict as accepted
@@ -223,7 +227,8 @@ class SequentialConverger(BaseIterator):
     @classmethod
     def _iterate_input_serializer(cls, iterate_over):
         """
-        Parses the "iterate_over" input of the workchain (a List of dicts) and applys serializations.
+        Parse the "iterate_over" input of the workchain (a List of dicts) and applys serializations.
+
         For each dictionary in the list, each key is the name of a parameter we want to iterate
         over (str) and each value is a list with all the values to iterate over for that parameter.
         Therefore, for each element of the list, we just call the serializer of the of _process_class
@@ -242,14 +247,18 @@ class SequentialConverger(BaseIterator):
         return iterate_over
 
     def initialize(self):
+        """
+        Add an initialization respect to the super method.
+        """
         super().initialize()
 
         self.ctx.already_converged = {}
 
     def _parse_iterate_over(self):
         """
-        The parameter to iterate over is `iterate_over` of _process_class (the converger!!!),
-        the _process_input_keys corresponding to `iterate_over` is `iterate_over` itself and
+        The parameter to iterate over is `iterate_over` of _process_class (the converger!!!).
+
+        The _process_input_keys corresponding to `iterate_over` is `iterate_over` itself and
         no parsing function is needed.
         """
 
@@ -260,17 +269,14 @@ class SequentialConverger(BaseIterator):
         """
         Iterator is now simply the list of values passed to `iterate_over`.
         """
-
         iterate_over = self.ctx.inputs.iterate_over.get_list()
 
         return zip(iterate_over)
 
     def _analyze_process(self, process_node):
         """
-        Here we implement the part of incorporating the converged parameter in the
-        sequential process.
+        Implement the part of incorporating the converged parameter in the sequential process.
         """
-
         if process_node.outputs.converged:
 
             # Get the parameters that have resulted in convergence
@@ -307,7 +313,9 @@ class SequentialConverger(BaseIterator):
             )
 
     def return_results(self):
-
+        """
+        Return the results.
+        """
         self.out('converged_parameters', DataFactory('dict')(dict=self.ctx.already_converged).store())
 
         #Create and return a list of parameters that did not converge. We compare

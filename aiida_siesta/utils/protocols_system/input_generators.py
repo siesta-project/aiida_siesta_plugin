@@ -1,8 +1,17 @@
+# -*- coding: utf-8 -*-
+"""
+Collects all the input generators.
+"""
+
 from .generator_absclass import InputGenerator
+
+# pylint: disable=arguments-renamed
 
 
 class SiestaCalculationInputGenerator(InputGenerator):
     """
+    Input generator for the SiestaCalculation.
+
     This class has two main purposes:
     1) Provide a method (get_filled_builder) that returns a builder for SiestaCalculation
        with pre-compiled inputs according to a protocol and some relaxation/bands/spin options.
@@ -41,60 +50,77 @@ class SiestaCalculationInputGenerator(InputGenerator):
     #Some methods to return info about options that the get_filled_builder of this class
     #can obtain as optional input parameters.
     def get_relaxation_types(self):
+        """
+        Get available relaxation types.
+        """
         return list(self._relax_types.keys())
 
     def get_rel_type_info(self, key):
+        """
+        Get the infor of a relaxation type.
+        """
         try:
             return self._relax_types[key]
         except KeyError:
-            raise ValueError("Wrong relaxation type: no relax_type with name {} implemented".format(key))
+            raise ValueError(f"Wrong relaxation type: no relax_type with name {key} implemented")
 
     def get_bands_path_generators(self):
+        """
+        List possible generators of bands paths.
+        """
         return list(self._bands_path_generators.keys())
 
     def get_bands_path_generator_info(self, key):
+        """
+        Get info of a particular generator.
+        """
         try:
             return self._bands_path_generators[key]
         except KeyError:
-            raise ValueError("Wrong path generator type: no bands_path_generator with name {} implemented".format(key))
+            raise ValueError(f"Wrong path generator type: no bands_path_generator with name {key} implemented")
 
     def get_spins(self):
+        """
+        List spin type availables.
+        """
         return list(self._spins.keys())
 
     def get_spin_info(self, key):
+        """
+        Get info on a spin type.
+        """
         try:
             return self._spins[key]
         except KeyError:
-            raise ValueError("Wrong spin type: no spin with name {} implemented".format(key))
+            raise ValueError(f"Wrong spin type: no spin with name {key} implemented")
 
-    #pylint: disable=too-many-statements,arguments-differ
-    def get_inputs_dict(  # noqa: MC0001  - is mccabe too complex funct -
+    #pylint: disable=too-many-statements,too-many-locals,arguments-differ
+    def get_inputs_dict(
         self, structure, calc_engines, protocol, bands_path_generator=None, relaxation_type=None, spin=None
     ):
         """
-        Method return a dictionary with the inputs of a SiestaBaseWorkChain, obtained according
-        to the protocol, structure, calc_engines passed by the user (optionally bands_path_generator
-        relaxation_type and spin as well)
-        """
+        Method return a dictionary with the inputs of a SiestaBaseWorkChain.
 
-        from aiida.orm import (Dict, KpointsData)
-        from aiida.orm import load_code
+        Obtained according to the protocol, structure, calc_engines passed by the user (optionally
+        bands_path_generator, relaxation_type and spin as well)
+        """
+        from aiida.orm import Dict, KpointsData, load_code
         from aiida.tools import get_explicit_kpoints_path
 
         #Checks
         if spin is not None:
             if spin not in self.get_spins():
-                raise ValueError("No `spin` with name {} implemented".format(bands_path_generator))
+                raise ValueError(f"No `spin` with name {bands_path_generator} implemented")
         if bands_path_generator is not None:
             if bands_path_generator not in self.get_bands_path_generators():
-                raise ValueError("No `bands_path_generator` with name {} implemented".format(bands_path_generator))
+                raise ValueError(f"No `bands_path_generator` with name {bands_path_generator} implemented")
         if relaxation_type is not None:
             if relaxation_type not in self.get_relaxation_types():
-                raise ValueError("No `relaxation_type` with name {} implemented".format(relaxation_type))
+                raise ValueError(f"No `relaxation_type` with name {relaxation_type} implemented")
         if not self.is_valid_protocol(protocol):
             import warnings
             defpro = self.get_default_protocol_name()
-            warnings.warn("no protocol implemented with name `{0}`, using default `{1}`".format(protocol, defpro))
+            warnings.warn(f"no protocol implemented with name `{protocol}`, using default `{defpro}`")
             protocol = defpro
         if 'siesta' not in calc_engines:
             raise ValueError("Wrong syntax in `calc_engines`. Check method `how_to_pass_computation_options`.")
@@ -175,11 +201,11 @@ class SiestaCalculationInputGenerator(InputGenerator):
         self, structure, calc_engines, protocol, bands_path_generator=None, relaxation_type=None, spin=None
     ):
         """
-        Return a builder for the SiestaBaseWorkChain, pre filled according to the protocol,
-        structure, calc_engines passed by the user (optionally bands_path_generator
+        Return a builder for the SiestaBaseWorkChain, pre filled.
+
+        According to the protocol, structure, calc_engines passed by the user (optionally bands_path_generator
         relaxation_type and spin as well). Ready to be submitted.
         """
-
         inp_dict = self.get_inputs_dict(structure, calc_engines, protocol, bands_path_generator, relaxation_type, spin)
 
         builder = self._fill_builder(inp_dict)
@@ -189,8 +215,9 @@ class SiestaCalculationInputGenerator(InputGenerator):
 
 class BaseWorkChainInputGenerator(SiestaCalculationInputGenerator):
     """
-    Inputs generator for the SiestaBaseWorkChain, it must receive
-    a SiestaBaseWorkChain as argument when instanciated.
+    Inputs generator for the SiestaBaseWorkChain.
+
+    It must receive a SiestaBaseWorkChain as argument when instanciated.
     Makes use of the methods of the SiestaCalculationInputsGenerator, only the
     handling of the options needs to be changed.
     """
@@ -198,7 +225,9 @@ class BaseWorkChainInputGenerator(SiestaCalculationInputGenerator):
     def get_inputs_dict(
         self, structure, calc_engines, protocol, bands_path_generator=None, relaxation_type=None, spin=None
     ):
-
+        """
+        Return the dictionary.
+        """
         from aiida.orm import Dict
 
         inps = super().get_inputs_dict(structure, calc_engines, protocol, bands_path_generator, relaxation_type, spin)
@@ -211,14 +240,17 @@ class BaseWorkChainInputGenerator(SiestaCalculationInputGenerator):
 
 class EpsilonWorkChainInputGenerator(BaseWorkChainInputGenerator):
     """
-    Inputs generator for the EpsilonWorkChain, makes use of the methods
-    of the BaseWorkChainInputsGenerator, only adds "optical" input.
+    Inputs generator for the EpsilonWorkChain.
+
+    Makes use of the methods of the BaseWorkChainInputsGenerator, only adds "optical" input.
     """
 
     def get_inputs_dict(
         self, structure, calc_engines, protocol, bands_path_generator=None, relaxation_type=None, spin=None
     ):
-
+        """
+        Return the dictionary.
+        """
         from aiida.orm import Dict
 
         inps = super().get_inputs_dict(structure, calc_engines, protocol, bands_path_generator, relaxation_type, spin)
@@ -228,23 +260,27 @@ class EpsilonWorkChainInputGenerator(BaseWorkChainInputGenerator):
         else:
             opt_mesh = [1, 1, 1]
 
-        inps["optical"] = Dict(
-            {
-                "optical-calculation": True,
-                "optical-broaden": "0.5 eV",
-                "optical-polarization-type": "polarized",
-                "%block optical-vector": "\n 1.0 0.0 0.0 \n%endblock optical-vector",
-                "%block optical-mesh": f"\n {opt_mesh[0]} {opt_mesh[1]} {opt_mesh[2]} \n%endblock optical-mesh"
-            }
-        )
+        inps["optical"] = Dict({
+            "optical-calculation":
+            True,
+            "optical-broaden":
+            "0.5 eV",
+            "optical-polarization-type":
+            "polarized",
+            "%block optical-vector":
+            "\n 1.0 0.0 0.0 \n%endblock optical-vector",
+            "%block optical-mesh":
+            f"\n {opt_mesh[0]} {opt_mesh[1]} {opt_mesh[2]} \n%endblock optical-mesh"
+        })
 
         return inps
 
 
 class EosWorkChainInputGenerator(BaseWorkChainInputGenerator):
     """
-    Inputs generator for the FixedCellEoS WorkChain, makes use of the methods
-    of the BaseWorkChainInputsGenerator, only the __init__ requires the correct
+    Inputs generator for the FixedCellEoS WorkChain.
+
+    Makes use of the methods of the BaseWorkChainInputsGenerator, only the __init__ requires the correct
     workchain class in input and the `get_inputs_dict` implements a check for the
     presence of an unsupported relaxation.
     """
@@ -257,7 +293,9 @@ class EosWorkChainInputGenerator(BaseWorkChainInputGenerator):
 
 class StmWorkChainInputGenerator(BaseWorkChainInputGenerator):
     """
-    Inputs generator for the STMWorkChain, makes use of the methods
+    Inputs generator for the STMWorkChain.
+
+    Makes use of the methods
     of the BaseWorkChainInputsGenerator, but, in addition to the __init__ requiring the correct
     workchain class in input, also the _calc_types needs to be modified to have the possibility
     to pass computational resources for the stm plugin. The `get_inputs_dict` implements the selection
@@ -284,15 +322,24 @@ class StmWorkChainInputGenerator(BaseWorkChainInputGenerator):
     }
 
     def get_stm_modes(self):
+        """
+        List the available stm modes.
+        """
         return list(self._stm_modes.keys())
 
     def get_stm_mode_info(self, key):
+        """
+        Return info on a stm mode.
+        """
         try:
             return self._stm_modes[key]
         except KeyError:
-            raise ValueError("Wrong stm mode: no stm_mode with name {} implemented".format(key))
+            raise ValueError(f"Wrong stm mode: no stm_mode with name {key} implemented")
 
     def get_stm_value_info(self):  # pylint: disable=no-self-use
+        """
+        Return info on the convemtions for the stm value.
+        """
         return "Value of height in Ang or value of current in e/bohr**3 (float)"
 
     # pylint: disable=arguments-differ
@@ -307,16 +354,17 @@ class StmWorkChainInputGenerator(BaseWorkChainInputGenerator):
         relaxation_type=None,
         spin=None
     ):
-
-        from aiida.orm import (Dict, Float, Str)
-        from aiida.orm import load_code
+        """
+        Return the dictionary.
+        """
+        from aiida.orm import Dict, Float, Str, load_code
 
         siesta_in = super().get_inputs_dict(
             structure, calc_engines, protocol, bands_path_generator, relaxation_type, spin
         )
 
         if stm_mode not in self._stm_modes:
-            raise ValueError("Wrong stm mode: no stm_mode with name {} implemented".format(stm_mode))
+            raise ValueError(f"Wrong stm mode: no stm_mode with name {stm_mode} implemented")
         try:
             float(stm_value)
         except ValueError:
@@ -353,7 +401,9 @@ class StmWorkChainInputGenerator(BaseWorkChainInputGenerator):
         relaxation_type=None,
         spin=None
     ):
-
+        """
+        Return the builder filled.
+        """
         inp_dict = self.get_inputs_dict(
             structure, calc_engines, protocol, stm_mode, stm_value, bands_path_generator, relaxation_type, spin
         )

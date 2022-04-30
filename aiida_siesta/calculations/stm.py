@@ -1,8 +1,13 @@
+# -*- coding: utf-8 -*-
+"""
+Plugin for the plstm executable of the siesta distribution.
+"""
 import os
+
 from aiida import orm
 from aiida.common import CalcInfo, CodeInfo
 from aiida.engine import CalcJob
-from aiida.orm import Dict, ArrayData
+from aiida.orm import ArrayData, Dict
 
 # See the LICENSE.txt and AUTHORS.txt files.
 
@@ -29,8 +34,9 @@ def validate_spin(value, _):
 
 class STMCalculation(CalcJob):
     """
-    Plugin for the "plstm" program in the Siesta distribution, which takes the .LDOS file and
-    generates a plot file to simulate an STM image.
+    Plugin for the "plstm" program in the Siesta distribution.
+
+    The "plstm" program takes the .LDOS file and generates a plot file with a simulated STM image.
     It supports both the old "plstm" versions (inputs in a files) and the new ones (inputs in the command
     line). Spin options are supported only in recent "plstm" versions, therefore ignored otherwise.
     """
@@ -47,7 +53,10 @@ class STMCalculation(CalcJob):
 
     @classmethod
     def define(cls, spec):
-        super(STMCalculation, cls).define(spec)
+        """
+        Define the process specifications.
+        """
+        super().define(spec)
 
         spec.input('code', valid_type=orm.Code, help='Input code')
         spec.input('settings', valid_type=orm.Dict, help='Input settings', required=False)
@@ -89,7 +98,7 @@ class STMCalculation(CalcJob):
         spec.exit_code(102, 'ERROR_OUTPUT_PLOT_READ', message='The .STM file can not be read')
         spec.exit_code(102, 'ERROR_CREATION_STM_ARRAY', message='The array containing the STM data can not be produced')
 
-    def prepare_for_submission(self, folder):  # noqa: MC0001  - is mccabe too complex funct -
+    def prepare_for_submission(self, folder):  # pylint: disable=too-many-statements,too-many-locals
         """
         Create the input files from the input nodes passed to this instance of the `CalcJob`.
 
@@ -136,7 +145,7 @@ class STMCalculation(CalcJob):
             vvalue = value.value / 0.529177
         else:
             vvalue = value.value
-        with open(input_filename, 'w') as infile:
+        with open(input_filename, 'w', encoding='utf8') as infile:
             infile.write(f"{prefix}\n")
             infile.write("ldos\n")
             infile.write(f"{mode.value}\n")
@@ -162,9 +171,9 @@ class STMCalculation(CalcJob):
         # Code information object. Sets the command line
         codeinfo = CodeInfo()
         if mode.value == "constant-height":
-            cmdline_params = (list(cmdline_params) + ['-z', '{0:.5f}'.format(vvalue)])
+            cmdline_params = (list(cmdline_params) + ['-z', f'{vvalue:.5f}'])
         else:
-            cmdline_params = (list(cmdline_params) + ['-i', '{0:.5f}'.format(vvalue)])
+            cmdline_params = (list(cmdline_params) + ['-i', f'{vvalue:.5f}'])
         if spin_option.value != "q":
             cmdline_params = (list(cmdline_params) + ['-s', str(spin_option.value), ldosfile])
         else:

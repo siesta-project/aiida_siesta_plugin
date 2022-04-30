@@ -1,9 +1,14 @@
+# -*- coding: utf-8 -*-
+"""
+Collect functions to post process optical results.
+"""
 import numpy as np
 
 
 def get_epsilon_from_eps2(eps2_array):
     """
     Computes epsilon(0) from eps2(w) using Kramers-Kronig relations.
+
     For this particular case:
     epsilon(0) = 1 + 2/pi * integral_from_0_to_infinity{eps2(w)/w dw}
 

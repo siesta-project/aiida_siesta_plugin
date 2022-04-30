@@ -1,22 +1,33 @@
+# -*- coding: utf-8 -*-
+"""
+Base classes for the construction of an iterator.
+"""
+from functools import partial
 import inspect
 import itertools
-from functools import partial
+
+from aiida.common import AttributeDict
+from aiida.engine import ToContext, WorkChain, while_
+from aiida.orm import Int, List, Node, Str, load_node
+from aiida.orm.nodes.data.base import to_aiida_type
+from aiida.plugins import DataFactory
 import numpy as np
 
-from aiida.plugins import DataFactory
-from aiida.engine import WorkChain, while_, ToContext
-from aiida.orm import Str, List, Int, Node, load_node
-from aiida.orm.nodes.data.base import to_aiida_type
-from aiida.common import AttributeDict
+# pylint: disable=protected-access
 
 
 class ParametersDescriptor:  #pylint: disable=too-few-public-methods
     """
-    Uses the _params_lookup variable of an iterator to provide a helpful description of the possibilities.
+    Use the _params_lookup variable of an iterator to provide a helpful description of the possibilities.
+
+    It also has lots of methods introduced by Pol Febrer to make prettier the use in jupyter notebooks.
+    Probably a bit out of place respect to the rest of the code. Maybe remove??
     """
 
     def __init__(self, cls=None):
-
+        """
+        Set the instanciation.
+        """
         self._cls = cls
 
         if cls is not None:
@@ -44,7 +55,9 @@ class ParametersDescriptor:  #pylint: disable=too-few-public-methods
 
     @property
     def param_groups(self):
-        """Returns all the iterable parameter groups available to the Workchain"""
+        """
+        Return all the iterable parameter groups available to the Workchain.
+        """
         groups = ()
 
         # If the iterate_over port is enabled, add all the parameters
@@ -59,11 +72,14 @@ class ParametersDescriptor:  #pylint: disable=too-few-public-methods
         return groups
 
     def __get__(self, instance, owner):
+        """
+        Representation of the class.
+        """
         return self.__class__(owner)
 
     def __str__(self):
         """
-        Builds a string representation of a help message for an iterator parameters.
+        Build a string representation of a help message for an iterator parameters.
 
         It is also used for markdown (see _repr_markdown_).
         """
@@ -91,13 +107,13 @@ class ParametersDescriptor:  #pylint: disable=too-few-public-methods
 
     def _ipython_display_(self):
         """
-        Displays the help message in ipython.
+        Display the help message in ipython.
 
-        First tries to use ipywidgets if available, otherwise builds an html string
+        First tries to use ipywidgets if available, otherwise builds an html string.
         """
         from IPython.display import HTML, display
         try:
-            from ipywidgets import widgets  #pylint: disable=import-error
+            from ipywidgets import widgets  # pylint: disable=import-error
 
             description = f"""
             <div>
@@ -137,7 +153,7 @@ class ParametersDescriptor:  #pylint: disable=too-few-public-methods
 
     def _repr_html_(self):
         """
-        Builds an html representation of the help message.
+        Build an html representation of the help message.
 
         The classes in html elements assume that bootstrap is present (which is the case in jupyter notebooks).
         """
@@ -189,7 +205,7 @@ class ParametersDescriptor:  #pylint: disable=too-few-public-methods
 
 
 class BaseIterator(WorkChain):
-    '''
+    """
     General workflow that runs iteratively a given `_process_class`.
 
     This is an abstract class, but subclasses just need to define the attribute `_process_class`.
@@ -274,7 +290,7 @@ class BaseIterator(WorkChain):
     cls.return_results
     cls.report_end
     --------------------------------------------------------------------------------
-    '''
+    """
 
     # THE _process_class NEEDS TO BE PROVIDED IN CHILD CLASSES!
     _process_class = None
@@ -285,9 +301,8 @@ class BaseIterator(WorkChain):
 
     def __init_subclass__(cls, *args, **kwargs):
         """
-        Imposes some requirements for each class that will inherit from the present class
+        Imposes some requirements for each class that will inherit from the present class.
         """
-
         super().__init_subclass__(*args, **kwargs)
 
         process_class = getattr(cls, "_process_class", None)
@@ -303,9 +318,8 @@ class BaseIterator(WorkChain):
 
     def __init__(self, *args, **kwargs):
         """
-        Construct the instance. Just needed to implement a check on the passed _process_class
+        Construct the instance. Just needed to implement a check on the passed _process_class.
         """
-
         process_class = getattr(self, "_process_class", None)
 
         if process_class is None:
@@ -334,6 +348,7 @@ class BaseIterator(WorkChain):
     def _iterate_input_serializer(cls, iterate_over):
         """
         Parses the "iterate_over" input of the workchain (a dictionary) and applys serializations.
+
         For each key-value of the dictionary, it parses the value (which is a list), using
         `cls._values_list_serializer`. See its documentation.
 
@@ -342,7 +357,6 @@ class BaseIterator(WorkChain):
             that parameter.
         :return: an aiida Dict, the serialized input.
         """
-
         if isinstance(iterate_over, dict):
             for key, val in iterate_over.items():
                 if not isinstance(val, (list, tuple, np.ndarray)):
@@ -358,8 +372,9 @@ class BaseIterator(WorkChain):
 
     @staticmethod
     def _values_list_serializer(list_to_parse):
-        '''
+        """
         Parses a list of objects to a list of node pks.
+
         This is done because aiida's List does not accept items with certain data structures
         (e.g. StructureData). In this way, we normalize the input to a list of pk, so that at
         each iteration we can access the value of the node.
@@ -367,7 +382,7 @@ class BaseIterator(WorkChain):
 
         :param list_to_parse: a list with aiida data object
         :return: an aiida List containing the pk of each element of list_to_parse
-        '''
+        """
 
         parsed_list = []
         # Let's iterate over all values so that we can parse them all
@@ -456,6 +471,9 @@ class BaseIterator(WorkChain):
 
     @classmethod
     def define(cls, spec):
+        """
+        Define the specs of the class.
+        """
         super().define(spec)
 
         cls._iteration_inputs = {}
@@ -527,6 +545,7 @@ class BaseIterator(WorkChain):
     def initialize(self):
         """
         Initializes the variables that are used through the workchain.
+
         The methods `_parse_iterate_over` and `_get_iterator` are called.
         The first method analyzes the input ports `iterate_over`, performs checks on its
         content and organizes into context the informations. The second method adds the info
@@ -552,15 +571,15 @@ class BaseIterator(WorkChain):
 
     def _parse_iterate_over(self):
         """
-        Sets up self.ctx.iteration_keys (list of keys of `iterate_over`, passed by user)
-        and self.ctx.iteration_vals (list of lists. Each list contains the values
-        for the corresponding key).
+        Set up self.ctx.iteration_keys and self.ctx.iteration_vals.
 
+        The self.ctx.iteration_keys is a list of keys of `iterate_over`, passed by user
+        and self.ctx.iteration_vals is a list of lists where each list contains the values
+        for the corresponding key).
         For each iteration key, we try to find the appropiate way of parsing the values and
         building the inputs. We end up storing a parsing function and the input key where the
         value should go for each iteration key under `self.ctx._iteration_parsing`.
         """
-
         iterate_over = {}
         if "iterate_over" in self.ctx.inputs:
             iterate_over.update(self.ctx.inputs.iterate_over.get_dict())
@@ -592,10 +611,10 @@ class BaseIterator(WorkChain):
 
     def _get_iterator(self):
         """
-        Builds the iterator that will generate values according to the inputs
-        `iterate_over` and `iterate_mode`. Here also `port_name_and_parse_func` is called.
-        """
+        Builds the iterator that will generate values according to inputs `iterate_over` and `iterate_mode`.
 
+        Here also `port_name_and_parse_func` is called.
+        """
         iterate_mode = self.ctx.inputs.iterate_mode.value
 
         # Define the iterator depending on the iterate_mode.
@@ -609,8 +628,8 @@ class BaseIterator(WorkChain):
     @classmethod
     def process_input_and_parse_func(cls, parameter):
         """
-        Function that makes use of the _params_lookup attribute in order to understand
-        accepted iteration parameters and their management.
+        Make use of _params_lookup in order to understand accepted iteration parameters and their management.
+
         Scopes:
         1) To implement errors for forbidden parameters.
         2) For each allowed parameter, to define the process_input and the parsing_func. The process_input is the
@@ -627,7 +646,6 @@ class BaseIterator(WorkChain):
         :return: a python function that takes "key" and a corresponding value and returns an aiida dat node
                  of the type accepted by "key".
         """
-
         #In order to make use of cls._exposed_input_keys, we need to call first spec
         cls.spec()
 
@@ -670,10 +688,10 @@ class BaseIterator(WorkChain):
     def next_step(self):
         """
         Puts the next step in context.
+
         Returns a boolean stating whether it should move to the next step or not (see this workchain's
         outline in the `define` method).
         """
-
         # Give the oportunity to abort next cycle
         if not self._should_proceed():
             return False
@@ -689,6 +707,8 @@ class BaseIterator(WorkChain):
 
     def _should_proceed(self):  #pylint: disable=no-self-use
         """
+        Method to implement possible logic for stop iteration.
+
         The only logic a normal iterator knows is to run until there are no more
         values to iterate. However this method is an opportunity for developers to
         introduce a more complicated logic, for instance stop the iteration when a
@@ -697,15 +717,16 @@ class BaseIterator(WorkChain):
         return True
 
     def _next_val(self):
-        '''
-        Gets the next value to try. This method is called by `_store_next_val`.
+        """
+        Get the next value to try.
+
+        This method is called by `_store_next_val`.
         NOTE: Calling this method irreversibly 'outdates' the current value. Therefore
         it makes no sense to call it outside the `next_step` method.
         Since the input values are normalized to aiida pks, we load the corresponding
         nodes here. This method won't hold if the serializer is modified, so it should be
         changed accordingly.
-        '''
-
+        """
         # Get the next values
         next_pks = next(self.ctx.values_iterator)
 
@@ -714,10 +735,10 @@ class BaseIterator(WorkChain):
 
     def _store_next_val(self):
         """
-        Gets the next value from the iterator and appends it to the list of values.
+        Get the next value from the iterator and appends it to the list of values.
+
         It also informs of what are the values that have been stored for use.
         """
-
         # Store the next value
         self.ctx.used_values.append(self._next_val())
 
@@ -727,24 +748,28 @@ class BaseIterator(WorkChain):
 
     @property
     def current_val(self):
+        """
+        The current value.
+        """
         return self.ctx.used_values[-1]
 
     def run_batch(self):
-        '''
-        Takes care of handling a batch of simulations. The numeber of processes for
+        """
+        Take care of handling a batch of simulations.
+
+        The numeber of processes for
         each batch is decided by the user through the input port `batch_size`.
         For each item in the batch, it calls `_run_process`.
-        '''
-
+        """
         self.ctx.last_step_processes = []
 
         processes = {}
         batch_size = self.ctx.inputs.batch_size.value
         # Run as many processes as the "batch_size" input tells us to
-        for i in range(batch_size):
+        for batch_ind in range(batch_size):
 
             # If the batch size is bigger than 1, we need to retrieve more values
-            if i != 0:
+            if batch_ind != 0:
                 try:
                     self._store_next_val()
                 except StopIteration:
@@ -767,11 +792,11 @@ class BaseIterator(WorkChain):
         return ToContext(**processes)
 
     def _run_process(self):
-        '''
+        """
         Given a current value (self.current_val), runs the process.
-        Before running, it sets up the inputs.
-        '''
 
+        Before running, it sets up the inputs.
+        """
         # Get the exposed inputs for the process that we want to run.
         if self._reuse_inputs and hasattr(self.ctx, 'last_inputs'):
             inputs = self.ctx.last_inputs
@@ -796,7 +821,7 @@ class BaseIterator(WorkChain):
         return process_node
 
     def _add_inputs(self, key, val, inputs):
-        '''
+        """
         Given a parameter (key) and the value (val, the node!), modify the inputs.
 
         We need:
@@ -808,8 +833,7 @@ class BaseIterator(WorkChain):
         :param key: parameter (`str`) the user wants to iterate over, key of `iterate_over`
         :param val: an aiida data node containing the value associated to "key" at the present step
         :param inputs: AttributeDict containing all the `_process_class` inputs.
-        '''
-
+        """
         # Get the name of the process input that will be modified
         attribute = self.ctx._iteration_parsing[key].get("input_key", key)
 
@@ -823,15 +847,13 @@ class BaseIterator(WorkChain):
         setattr(inputs, attribute, val)
 
     def analyze_batch(self):
-        '''
-        Here, one could process the results of the processes that have been ran
-        in the last batch.
+        """
+        Here, one could process the results of the processes that have been ran in the last batch.
 
         This default implementation just grabs each process in the order they have been
         launched and passes it to `analyze_process`. In this way, `analyze_process` does not need
         to handle anything related to the batch.
-        '''
-
+        """
         for process_id in self.ctx.last_step_processes:
 
             self._analyze_process(self.ctx[process_id])
@@ -840,22 +862,18 @@ class BaseIterator(WorkChain):
         """
         A child class has the oportunity to analyze a process here.
 
-        Parameters
-        -----------
-        process_node:
-            a process that has been ran in the batch.
+        :param process_node: a process that has been ran in the batch.
         """
 
     def return_results(self):
-        '''
+        """
         Takes care of postprocessing and returning the results of the workchain to the user.
-        (if any outputs need to be returned)
-        '''
+        """
 
     def report_end(self):
-        '''
+        """
         Simply reports the end of the workchain.
 
         This is not inside return_results because that method is expected to be overwritten.
-        '''
+        """
         self.report(f'End of the {self.__class__.__name__} Workchain')

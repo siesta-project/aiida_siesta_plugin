@@ -1,6 +1,11 @@
+# -*- coding: utf-8 -*-
+"""
+Optimization of basis similar to the tool in the siesta util.
+"""
 from aiida import orm
-from aiida.engine import WorkChain, while_, ToContext
 from aiida.common import AttributeDict
+from aiida.engine import ToContext, WorkChain, while_
+
 from aiida_siesta.workflows.simplex_basis import SimplexBasisOptimization
 
 
@@ -19,19 +24,23 @@ def validate_var_dict(value, _):
                     "the initial value."
                 )
                 return messag
-            if not all([isinstance(el, (float, int)) for el in v]):
+            if not all((isinstance(el, (float, int)) for el in v)):
                 return f"the values for each key {k} must be list/tuple of floats or integers."
 
 
 class TwoStepsBasisOpt(WorkChain):
     """
     Optimization that is more similar to the simplex code in the siesta utils.
+
     The optimization has two levels, a "marcrostep" that consists in the restart of
     a simplex with gradual reduction of the dimention of the initial simplex.
     """
 
     @classmethod
     def define(cls, spec):
+        """
+        Define the specs.
+        """
         super().define(spec)
         spec.expose_inputs(SimplexBasisOptimization, exclude=('metadata', 'simplex.initial_step_fraction'))
         spec.input('macrostep.initial_lambda', valid_type=orm.Float, default=lambda: orm.Float(0.4))
@@ -79,6 +88,7 @@ class TwoStepsBasisOpt(WorkChain):
     def update_attributes(self):
         """
         Updtae the value of lambda and the initial values of the variable for the next simplex.
+
         Please not we get the initial values of the variable from the `last_simplex` output
         of the last run optimization. This output is the only one that is returned when the
         optimization does not conclude in the max number of steps and it has the "best so far"

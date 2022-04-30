@@ -1,6 +1,14 @@
-from aiida.plugins import DataFactory
+# -*- coding: utf-8 -*-
+"""
+Equation of state workchain.
+
+It is created using the SiestaIterator. It is an iterator that iterates over structures.
+"""
+
 from aiida.engine import calcfunction
 from aiida.orm import Float
+from aiida.plugins import DataFactory
+
 from aiida_siesta.utils.tkdict import FDFDict
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
 
@@ -10,21 +18,20 @@ from ..utils.iterate_absclass import BaseIterator
 @calcfunction
 def get_info(outpar, struct):
     """
-    Calcfunction creating a dictionary with selected
-    inputs and results of a SiestaBaseWC, usefull for
-    the creation of the Equation of State.
+    Calcfunction creating a dictionary with selected inputs and results of a SiestaBaseWC.
+
+    Usefull for the creation of the Equation of State.
     :param struct: Aiida structure of a SiestaBaseWC
     :param outpar: The output_parameters of a SiestaBaseWC
     :return: A dictionary containing volume per atom and
              energy per atom.
     """
-
     evdict = {}
     evdict["vol"] = struct.get_cell_volume() / len(struct.sites)
     evdict["vol_units"] = 'ang^3/atom'
     evdict["en"] = outpar['E_KS'] / len(struct.sites)
     evdict["en_units"] = outpar['E_KS_units'] + '/atom'
-    Dict = DataFactory('core.dict')
+    Dict = DataFactory('core.dict')  # pylint: disable=invalid-name
     resultdict = Dict(evdict)
 
     return resultdict
@@ -32,14 +39,14 @@ def get_info(outpar, struct):
 
 def delta_project_BM_fit(volumes, energies):  #pylint: disable=invalid-name
     """
-    The fitting procedure implemented in this function
-    was copied from the Delta Project Code.
+    The fitting procedure implemented in this function was copied from the Delta Project Code.
+
+    Link to the code:
     https://github.com/molmod/DeltaCodesDFT/blob/master/eosfit.py
     It is introduced to fully uniform the delta test procedure
     with the one performed with other codes, moreover it
     has the upside to not use scypi.
     """
-
     import numpy as np
 
     #Does the fit always succeed?
@@ -77,12 +84,12 @@ def delta_project_BM_fit(volumes, energies):  #pylint: disable=invalid-name
 def rescale(structure, scale):
     """
     Calcfunction to rescale a structure by a scaling factor.
+
     Uses ase.
     :param structure: An AiiDA structure to rescale
     :param scale: The scale factor
     :return: The rescaled structure
     """
-
     the_ase = structure.get_ase()
     new_ase = the_ase.copy()
     new_ase.set_cell(the_ase.get_cell() * pow(float(scale), 1 / 3), scale_atoms=True)
@@ -95,79 +102,47 @@ def rescale(structure, scale):
 def scale_to_vol(structure, vol):
     """
     Calcfunction to scale a structure to a target volume.
+
     Uses ase.
     :param stru: An aiida structure
     :param vol: The target volume per atom in angstroms
     :return: The new scaled AiiDA structure
     """
-
     in_structure = structure.get_ase()
     new = in_structure.copy()
     vol_ratio = vol * len(in_structure) / in_structure.get_volume()
     new.set_cell(in_structure.get_cell() * pow(vol_ratio, 1 / 3), scale_atoms=True)
-    StructureData = DataFactory("core.structure")
+    StructureData = DataFactory("core.structure")  # pylint: disable=invalid-name
     structure_new = StructureData(ase=new)
 
     return structure_new
 
 
 def get_scaled(val, inputs):
-
+    """
+    Rescale a structure.
+    """
     modified_struct = rescale(inputs.structure, val)
 
     return modified_struct
 
 
-#def standard_BM_fit(volumes, energies):
-#
-#    from scipy.optimize import curve_fit
-#    import numpy as np
-#
-#    def birch_murnaghan(V, E0, V0, B0, B01):
-#        r = (V0 / V) ** (2. / 3.)
-#        return E0 + 9. / 16. * B0 * V0 * (r - 1.) ** 2 * \
-#                (2. + (B01 - 4.) * (r - 1.))
-#
-#    #Does the fit always succeed?
-#    params, covariance = curve_fit(
-#         birch_murnaghan,
-#         xdata=volumes,
-#         ydata=energies,
-#         p0=(
-#            energies.min(),  # E0
-#            volumes.mean(),  # V0
-#            0.1,  # B0
-#            3.,  # B01
-#            ),
-#         sigma=None
-#        )
-#
-#    #Implement here something checking if there is a reasonable minimum!
-#    #...
-#    #Implement here something checking if the covariance is small enough!
-#    #...
-#        return residuals0, volume0
-#    else:
-#        return params[0], params[1], params[2], params[3]
-
-
 @calcfunction
 def fit_and_final_dicts(**calcs):
     """
-    Calcfunction that collects all the E vs V, performs
-    the birch_murnaghan fit and creates a dictionary with all
-    the relevant results. Uses scipy.optimize and numpy.
+    Calcfunction that collects all the E vs V, performs the birch_murnaghan fit and creates results.
+
+    Results are in a dictionary. Uses scipy.optimize and numpy.
     :param clacs: Dictionaries result of get_info
     :return: A dictionary containing a list EvsV and
              the results of the murnagan fit.
     """
-
     import numpy as np
 
     eos = []
     volu = []
     ener = []
-    for cal in calcs:
+    for cal in calcs:  # pylint: disable=consider-using-dict-items
         arg = calcs[cal]
         volu.append(arg["vol"])
         ener.append(arg["en"])
@@ -191,7 +166,7 @@ def fit_and_final_dicts(**calcs):
         #In the future we could use these info to improve help,
         #residuals0 is a np array
 
-    Dict = DataFactory("core.dict")
+    Dict = DataFactory("core.dict")  # pylint: disable=invalid-name
     if fit_res:
         result_dict = Dict({'eos_data': eos, "fit_res": fit_res})
     else:
@@ -203,6 +178,7 @@ def fit_and_final_dicts(**calcs):
 class EqOfStateFixedCellShape(BaseIterator):
     """
     WorkChain to calculate the equation of state of a solid.
+
     The cell shape is fixed, only the volume is rescaled.
     In particular the volumes considered are 7 equidistant volumes
     around a starting volume. The starting volume is
@@ -220,6 +196,9 @@ class EqOfStateFixedCellShape(BaseIterator):
 
     @classmethod
     def define(cls, spec):
+        """
+        Define the specs.
+        """
         super().define(spec)
 
         spec.input(
@@ -254,6 +233,9 @@ class EqOfStateFixedCellShape(BaseIterator):
         )
 
     def initialize(self):
+        """
+        Modify the parent initialize method.
+        """
         super().initialize()
 
         self.ctx.collectwcinfo = []
@@ -272,7 +254,9 @@ class EqOfStateFixedCellShape(BaseIterator):
                     )
 
     def _analyze_process(self, process_node):
-
+        """
+        Get results.
+        """
         if "output_structure" in process_node.outputs:
             out_struct = process_node.outputs.output_structure
         else:
@@ -283,7 +267,9 @@ class EqOfStateFixedCellShape(BaseIterator):
         self.ctx.collectwcinfo.append(info)
 
     def return_results(self):
-
+        """
+        Return the results.
+        """
         from aiida.engine import ExitCode
 
         collectwcinfo = {
@@ -306,5 +292,8 @@ class EqOfStateFixedCellShape(BaseIterator):
 
     @classmethod
     def inputs_generator(cls):  # pylint: disable=no-self-argument,no-self-use
+        """
+        Get the input generator.
+        """
         from aiida_siesta.utils.protocols_system.input_generators import EosWorkChainInputGenerator
         return EosWorkChainInputGenerator(cls)

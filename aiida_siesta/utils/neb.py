@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+"""
+Collect function to manage neb results.
+"""
 ###### from aiida.engine import calcfunction
 ######  @calcfunction
 #def parse_neb(retrieved, ref_structure):
@@ -32,10 +36,10 @@
 
 def parse_neb_results(file, traj_in):
     """
-    Parses NEB.results
+    Parses NEB.results.
+
     :param: file: NEB results
     :param: traj_in: TrajectoryData object with final MEP images
-
     :return: Extended trajectory object with NEB data arrays
              and estimation of barrier, and number of iterations.
     """
@@ -73,11 +77,10 @@ def parse_neb_results(file, traj_in):
 
 def plot_neb(traj):
     """
-    Plot the neb energies and the value of the computed barrier
-    in a file NEB.png
+    Plot the neb energies and the value of the computed barrier in a file NEB.png.
+
     :param traj: a TrajectoryData poduced by neb_base workchain
     """
-
     import matplotlib.pyplot as plt
     import numpy as np
     from scipy.interpolate import interp1d
@@ -99,3 +102,15 @@ def plot_neb(traj):
 
     plt.savefig("NEB.png")
     plt.show()
+
+
+def plot_neb_info(folder, structure):
+    """
+    Given a 'retrieved' folder from a NEB Siesta calculation, and a reference structure, compute NEB trajectory.
+
+    And plots the barrier curve
+    """
+    from aiida_siesta.workflows.neb_base import parse_neb
+
+    traj = parse_neb(folder, structure)
+    plot_neb(traj)
