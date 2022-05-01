@@ -83,4 +83,3 @@ jobs:
     - name: Run pytest
       run:
         pytest -sv tests
-

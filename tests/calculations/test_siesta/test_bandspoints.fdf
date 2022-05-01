@@ -23,7 +23,7 @@ xmlwrite T
 # -- Basis Set Info follows
 #
 pao-energy-shift 300 meV
-%block pao-basis-sizes 
+%block pao-basis-sizes
         Si DZP
         SiDiff DZP
         %endblock pao-basis-sizes
@@ -56,9 +56,9 @@ pao-energy-shift 300 meV
 #
 BandLinesScale ReciprocalLatticeVectors
 %block BandPoints
-   0.500    0.250    0.750 
-   0.500    0.500    0.500 
-   0.000    0.000    0.000 
+   0.500    0.250    0.750
+   0.500    0.500    0.500
+   0.000    0.000    0.000
 %endblock BandPoints
 #
 # -- Max wall-clock time block

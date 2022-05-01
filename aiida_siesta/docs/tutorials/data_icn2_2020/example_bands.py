@@ -1,19 +1,21 @@
 #!/usr/bin/env runaiida
+# -*- coding: utf-8 -*-
 import os.path as op
 import sys
+
+from aiida.engine import submit
+from aiida.orm import Dict, KpointsData, StructureData, load_code
+from aiida.tools import get_explicit_kpoints_path
+
+from aiida_siesta.calculations.siesta import SiestaCalculation
+from aiida_siesta.data.psf import get_pseudos_from_structure
+from aiida_siesta.workflows.base import SiestaBaseWorkChain
 
 #In this example we will calculate the band structure of Si.
 #Thanks to SeeK-path we can automatically generate the
 #high symmetry points path where to calculate the bands.
 ################################################################
 
-from aiida.engine import submit
-from aiida.orm import load_code
-from aiida.orm import (Dict, StructureData, KpointsData)
-from aiida_siesta.calculations.siesta import SiestaCalculation
-from aiida_siesta.workflows.base import SiestaBaseWorkChain
-from aiida_siesta.data.psf import get_pseudos_from_structure
-from aiida.tools import get_explicit_kpoints_path
 
 try:
     dontsend = sys.argv[1]
@@ -117,14 +119,12 @@ if submit_test:
     inputs["metadata"]["dry_run"] = True
     inputs["metadata"]["store_provenance"] = False
     process = submit(SiestaCalculation, **inputs)
-    print("Submited test for calculation (uuid='{}')".format(process.uuid))
+    print(f"Submited test for calculation (uuid='{process.uuid}')")
     print("Check the folder submit_test for the result of the test")
 
 else:
     process = submit(SiestaCalculation, **inputs)
     #process = submit(SiestaBaseWorkChain, **inputs)
-    print("Submitted calculation; ID={}".format(process.pk))
-    print("For information about this calculation type: verdi process show {}".
-          format(process.pk))
+    print(f"Submitted calculation; ID={process.pk}")
+    print(f"For information about this calculation type: verdi process show {process.pk}")
     print("For a list of running processes type: verdi process list")
-

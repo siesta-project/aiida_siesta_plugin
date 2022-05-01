@@ -23,7 +23,7 @@ xmlwrite T
 # -- Basis Set Info follows
 #
 pao-energy-shift 300 meV
-%block pao-basis-sizes 
+%block pao-basis-sizes
         Si DZP
         SiDiff DZP
         %endblock pao-basis-sizes

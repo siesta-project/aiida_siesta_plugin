@@ -96,13 +96,13 @@ AiiDA took charge of your script, created the inputs and submitted the calculati
 process with the command ``verdi process show <pk>`` as suggested in the shell. The ``<pk>`` number
 uniquely identify your calculation and it will be used later on.
 
-In few seconds the calculation is finished. You will relized that when ``verdi process show <pk>`` 
+In few seconds the calculation is finished. You will relized that when ``verdi process show <pk>``
 shows "Finished" status and reports the oututs. We explore the outputs. This can be done from command line,
 for instance::
 
         verdi data array show <PK_forces_and_stress>
 
-        
+
 however it is worth exploring the shell provided by AiiDA::
 
         verdi shell
@@ -120,12 +120,12 @@ type::
 
         gnuplot --persist Si_bands
 
-Take the chance to explore in the ``verdi shell`` some methods and attributes of data types associated to 
+Take the chance to explore in the ``verdi shell`` some methods and attributes of data types associated to
 the inputs and outputs of a ``SiestaCalculation``. Use tab complition of ``l.inputs``, ``l.outputs``, ``l.attributes``, ..
 
 The submission script can be modified very easily in order to run a ``SiestaBaseWorkChain`` instead of a
 ``SiestaCalculation``. Look at the commented part of the ``example_bands.py`` script in order to understand the differences.
-If you want to try to run a SiestaBaseWorkChain, just uncomment the 
+If you want to try to run a SiestaBaseWorkChain, just uncomment the
 ``inputs["option"] =  Dict ...`` part and comment the line above (``inputs['metadata']['options'] = ..``
 was just for the SiestaCalculation), change the definition of ``process`` and run the script.
 The "dry_run" option is not available for the ``SiestaBaseWorkChain``.
@@ -149,7 +149,7 @@ You just imported the inputs generator for the ``SiestaBaseWorkChain``. We can e
 And many more... Use tab complition to explore them. These methods allows you
 to understand which options you can pass to ``get_filled_builder``, as will be explained in a second.
 
-The main feature of the input generator is the possibility to obtain a ``builder`` (a tool that helps you build 
+The main feature of the input generator is the possibility to obtain a ``builder`` (a tool that helps you build
 the inputs for the specific process) that is ready to be submitted::
 
         l=load_node(<PK_calculation>)  #The PK loaded before
@@ -186,10 +186,10 @@ The calculation will take about 10 minutes, therefore let it run and go on with 
 At the end of this section you can come back on this terminal and explore the results if you wish.
 
 We are now going to create our own protocol.
-Look at the file :download:`my_protocols_registry.yaml <data_siesta_school_2021/my_protocols_registry.yaml>`. 
+Look at the file :download:`my_protocols_registry.yaml <data_siesta_school_2021/my_protocols_registry.yaml>`.
 This is the way you specify a protocol in aiida-siesta, using YAML syntax.
 You can recognize the same pseudos family used before and other familiar siesta keywords.
-The ``spin_additions`` are added just for spin pilarized calculations. The ``relax_additions`` only for the 
+The ``spin_additions`` are added just for spin pilarized calculations. The ``relax_additions`` only for the
 times a relaxation is requested.
 The ``atom_heuristics`` are added just if in the structure there is the indicated element.
 Look at the `corresponding docs
@@ -197,7 +197,7 @@ Look at the `corresponding docs
 for more info.
 
 This file can be modified at will and its content will become a new protocol. Simply look at the folder where
-you are ``pwd`` and attach the file to the correct environment variable, like that:: 
+you are ``pwd`` and attach the file to the correct environment variable, like that::
 
         export AIIDA_SIESTA_PROTOCOLS="path_discovered_with_pwd/my_protocols_registry.yaml"
 

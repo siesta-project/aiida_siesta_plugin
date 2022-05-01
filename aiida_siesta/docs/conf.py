@@ -38,11 +38,11 @@ extensions = [
     "sphinx_rtd_theme",
     'sphinx.ext.viewcode',
     'sphinx.ext.githubpages',
-    'sphinx.ext.autodoc', 
-    'sphinx.ext.doctest', 
-    'sphinx.ext.todo', 
-    'sphinx.ext.coverage', 
-    'sphinx.ext.imgmath', 
+    'sphinx.ext.autodoc',
+    'sphinx.ext.doctest',
+    'sphinx.ext.todo',
+    'sphinx.ext.coverage',
+    'sphinx.ext.imgmath',
     'sphinx.ext.ifconfig']
 
 # Add any paths that contain templates here, relative to this directory.

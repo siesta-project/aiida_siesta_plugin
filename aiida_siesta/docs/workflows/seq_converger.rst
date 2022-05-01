@@ -17,7 +17,7 @@ Supported Siesta versions
 At least 4.0.1 of the 4.0 series, 4.1-b3 of the 4.1 series and the MaX-1.0 release, which
 can be found in the development platform
 (https://gitlab.com/siesta-project/siesta).
-For more up to date info on compatibility, please check the      
+For more up to date info on compatibility, please check the
 `wiki <https://github.com/siesta-project/aiida_siesta_plugin/wiki/Supported-siesta-versions>`_.
 
 
@@ -29,7 +29,7 @@ Two are the required inputs:
 
 * **converger_inputs**, class :py:class:`dict`, *Mandatory*
 
-  A dictionary containing all the inputs required by the **SiestaConverger**, except the 
+  A dictionary containing all the inputs required by the **SiestaConverger**, except the
   **iterate_over** port. The explanations of the converger inputs can be examined
   `here <siesta-converger-inputs>`. Please note that the normal inputs of a **SiestaBaseWorkChain**
   process (structure, parameters, basis, code, ...) must be included as well in this dictionary.

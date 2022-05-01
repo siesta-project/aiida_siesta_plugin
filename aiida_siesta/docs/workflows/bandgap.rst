@@ -4,7 +4,7 @@ Bandgap workflow
 Description
 -----------
 
-The **BandgapWorkChain** is an extension of the **SietaBaseWorkChain** 
+The **BandgapWorkChain** is an extension of the **SietaBaseWorkChain**
 that introduces some logic to automatically obtain the bands and
 applyes a simple post-process with the scope to return the metallic or
 insulating nature of the material and, possibly, the band gap.
@@ -36,7 +36,7 @@ There is however the addition of an importan feature. If **bandskpoints** are no
 in inputs, the **BandgapWorkChain** will anyway calculate the bands following these rules:
 
 * If a single-point calculation is requested, the kpoints path for bands is set automatically using SeeK-path.
-  Please note that this choice might change the structure, as explained in the 
+  Please note that this choice might change the structure, as explained in the
   `SeeK-path`_ documentation.
 
 * If a relaxation was asked, first a siesta calculation without bands is performed to take
@@ -56,11 +56,11 @@ taken and the behaviour follow what explained for the **SiestaBaseWorkChain**
 An additional input is present:
 
 * **seekpath_dict** class :py:class:`Dict <aiida.orm.Dict>`, *Optional*
- 
+
   Dictionary hosting the parametrs to pass to the ``get_explicit_kpoints_path``
   method of SeeK-path.
   The default sets ``{'reference_distance': 0.02, 'symprec': 0.0001}``,
-  meaning target distance between neighboring k-points of 
+  meaning target distance between neighboring k-points of
   0.02 1/ang and symmetry precision parameter of 0.0001.
   Full list of the possible options and their explanation
   can be found `here`_.
@@ -68,15 +68,15 @@ An additional input is present:
 Outputs
 -------
 
-* All the outputs of **SiestaBaseWorkChain** are also outputs of this 
+* All the outputs of **SiestaBaseWorkChain** are also outputs of this
   WorkChain, they can be explored in the relative section of the **SiestaBaseWorkChain**.
 
 .. |br| raw:: html
 
     <br />
-  
+
 * **band_gap_info** :py:class:`Dict <aiida.orm.Dict>`
-  
+
   A dictionary containing a bool (`is_insulator`) set to True if the material has a band gap,
   to False otherwise. Moreover the dictionary contains the value of the gap in `eV`.
 

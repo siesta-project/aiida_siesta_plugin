@@ -47,4 +47,3 @@ repos:
         types: [python]
         language: system
         exclude: *exclude_files
-
