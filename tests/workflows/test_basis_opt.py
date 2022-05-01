@@ -1,10 +1,13 @@
 #!/usr/bin/env runaiida
-import pytest
-from plumpy import ProcessState
-from aiida.engine import ExitCode
+# -*- coding: utf-8 -*-
 from aiida import orm
-from aiida.common import (LinkType, AttributeDict)
-from aiida_siesta.workflows.iterate import set_up_parameters_dict 
+from aiida.common import AttributeDict, LinkType
+from aiida.engine import ExitCode
+from plumpy import ProcessState
+import pytest
+
+from aiida_siesta.workflows.iterate import set_up_parameters_dict
+
 
 @pytest.fixture
 def generate_workchain_basis_op(generate_psml_data, fixture_code, generate_workchain,

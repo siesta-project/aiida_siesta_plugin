@@ -1,5 +1,5 @@
-data_O2   
-_pd_phase_name O2  
+data_O2
+_pd_phase_name O2
 _cell_length_a  3.5990002970
 _cell_length_b  3.5990002970
 _cell_length_c  4.4474929310

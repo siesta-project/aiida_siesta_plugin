@@ -1,16 +1,18 @@
 #!/usr/bin/env runaiida
+# -*- coding: utf-8 -*-
 
-import sys
 import os.path as op
+import sys
 
 from aiida.engine import submit
 from aiida.orm import load_code
-from aiida_siesta.calculations.siesta import SiestaCalculation
 from aiida.plugins import DataFactory
+
+from aiida_siesta.calculations.siesta import SiestaCalculation
 
 # There is no parsing for the ldos, but the file .LDOS can be
 # retrieved using the "settings" feature (see below).
-# The remote_folder node produced by this example, can 
+# The remote_folder node produced by this example, can
 # be used as input of the stm examples in ../stm
 ################################################################
 
@@ -103,7 +105,7 @@ s.append_atom(position=(5.604, 0.000, 0.000), symbols=['H'])
 #
 # Parameters ---------------------------------------------------
 #
-ldos_block_content = "\n {e1} {e2} eV".format(e1=-5.0, e2=1.0)
+ldos_block_content = f"\n {-5.0} {1.0} eV"
 
 params_dict = {
     'spin':'polarized',
@@ -149,9 +151,9 @@ for fname, kinds in raw_pseudos:
     absname = op.realpath(op.join(op.dirname(__file__), "../../fixtures/sample_psf", fname))
     pseudo = PsfData.get_or_create(absname)
     if not pseudo.is_stored:
-        print("\nCreated the pseudo for {}".format(kinds))
+        print(f"\nCreated the pseudo for {kinds}")
     else:
-        print("\nUsing the pseudo for {} from DB: {}".format(kinds, pseudo.pk))
+        print(f"\nUsing the pseudo for {kinds} from DB: {pseudo.pk}")
     for j in kinds:
         pseudos_dict[j]=pseudo
 
@@ -177,12 +179,11 @@ if submit_test:
     inputs["metadata"]["store_provenance"] = False
     process = submit(SiestaCalculation, **inputs)
     #    subfolder, script_filename = calc.submit_test()
-    print("Submited test for calculation (uuid='{}')".format(process.uuid))
+    print(f"Submited test for calculation (uuid='{process.uuid}')")
     print("Check the folder submit_test for the result of the test")
 
 else:
     process = submit(SiestaCalculation, **inputs)
-    print("Submitted calculation; ID={}".format(process.pk))
-    print("For information about this calculation type: verdi process show {}".
-          format(process.pk))
+    print(f"Submitted calculation; ID={process.pk}")
+    print(f"For information about this calculation type: verdi process show {process.pk}")
     print("For a list of running processes type: verdi process list")

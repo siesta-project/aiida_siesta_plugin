@@ -1,6 +1,6 @@
 Some of the examples use explicitly pseudopotential files contained in the fixtures/sample_psf folder.
 
-Other examples set up automatically the pseudopotential dictionary by searching for the appropriate 
+Other examples set up automatically the pseudopotential dictionary by searching for the appropriate
 PsfData nodes in a "pseudopotential family", named 'psf_family'.
 Before they can be run, the family must be created with the command:
 

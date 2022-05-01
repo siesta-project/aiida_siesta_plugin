@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 def test_siesta_calculation_entry_point():
     from aiida.plugins import CalculationFactory
     siesta_calculation = CalculationFactory('siesta.siesta')
@@ -19,4 +20,3 @@ def test_siesta_psml_entry_point():
     from aiida.plugins import DataFactory
     siesta_psml = DataFactory('siesta.psf')
     assert siesta_psml is not None
-

@@ -1,4 +1,5 @@
 #!/usr/bin/env runaiida
+# -*- coding: utf-8 -*-
 
 #Not required by AiiDA
 import os.path as op
@@ -6,8 +7,8 @@ import sys
 
 #AiiDA classes and functions
 from aiida.engine import submit
-from aiida.orm import load_code
-from aiida.orm import (Dict, StructureData, KpointsData, Str)
+from aiida.orm import Dict, KpointsData, Str, StructureData, load_code
+
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
 
 # This example shows the use of the SiestaBaseWorkChain
@@ -107,8 +108,7 @@ inputs = {
 }
 
 process = submit(SiestaBaseWorkChain, **inputs)
-print("Submitted workchain; ID={}".format(process.pk))
+print(f"Submitted workchain; ID={process.pk}")
 print(
-    "For information about this workchain type: verdi process show {}".format(
-        process.pk))
+    f"For information about this workchain type: verdi process show {process.pk}")
 print("For a list of running processes type: verdi process list")

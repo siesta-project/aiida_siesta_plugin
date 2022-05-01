@@ -1,5 +1,8 @@
+# -*- coding: utf-8 -*-
 import pytest
+
 from aiida_siesta.utils.pao_manager import PaoManager
+
 
 def test_set_from_ion(generate_ion_data):
 
@@ -27,7 +30,7 @@ def test_validator_and_get_pao_block():
         pao_man.get_pao_block()
 
     pao_man._gen_dict = {3: {0: {1: 4.05}}}
-    
+
     with pytest.raises(RuntimeError):
         pao_man.get_pao_block()
 
@@ -57,7 +60,7 @@ def test_confinements_features(generate_ion_data):
     assert pao_man.get_pao_block() == 'Si 2\n  n=3  0  2 E 2.0 0.3 \n 5.965078\t 4.419101\n  n=3  1  2 P 2 Q 3.0 0.5 0.01 \n 7.659398\t 5.13417'
 
 def test_pao_size(generate_ion_data):
-    
+
     pao_man = PaoManager()
 
     ion = generate_ion_data('Si')
@@ -75,7 +78,7 @@ def test_change_all_radius():
     pao_man._pol_dict = {3: {0: {1: 4.05}}}
 
     pao_man.change_all_radius(2)
-    
+
     assert pao_man._gen_dict == {3: {0: {1: 4.131}}}
     assert pao_man._pol_dict == {3: {0: {1: 4.131}}}
 
@@ -223,5 +226,3 @@ def test_remove_orbital_occu_and_conf(generate_ion_data):
     assert pao_man._gen_occu == {}
     assert pao_man._pol_occu == {}
     assert pao_man._conf_dict == {}
-
-

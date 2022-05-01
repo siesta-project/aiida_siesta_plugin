@@ -1,12 +1,14 @@
 #!/usr/bin/env runaiida
+# -*- coding: utf-8 -*-
 """
 File showcasing the submission of a SiestaCalculation using the protocol system.
 """
 import sys
-from aiida_siesta.calculations.siesta import SiestaCalculation
+
 from aiida.engine import submit
 from aiida.orm import Dict, StructureData
 
+from aiida_siesta.calculations.siesta import SiestaCalculation
 
 try:
     dontsend = sys.argv[1]
@@ -43,9 +45,9 @@ structure.append_atom(position=(0.250 * alat, 0.250 * alat, 0.250 * alat),
 
 calc_engines = {
      'siesta': {
-         'code': codename, 
+         'code': codename,
          'options': {
-             'resources': {'num_machines': 1, "num_mpiprocs_per_machine": 1}, 
+             'resources': {'num_machines': 1, "num_mpiprocs_per_machine": 1},
              "max_wallclock_seconds": 3600, #'queue_name': 'DevQ', 'withmpi': True, 'account': "tcphy113c"
          }}}
 
@@ -84,15 +86,14 @@ builder.parameters = Dict(new_params)
 
 # Here we just submit the builder
 if submit_test:
-    builder.metadata["dry_run"] = True 
+    builder.metadata["dry_run"] = True
     builder.metadata["store_provenance"] = False
     process = submit(builder)
-    print("Submited test for calculation (uuid='{}')".format(process.uuid))
+    print(f"Submited test for calculation (uuid='{process.uuid}')")
     print("Check the folder submit_test for the result of the test")
 
 else:
     process = submit(builder)
-    print("Submitted calculation; ID={}".format(process.pk))
-    print("For information about this calculation type: verdi process show {}".format(process.pk))
+    print(f"Submitted calculation; ID={process.pk}")
+    print(f"For information about this calculation type: verdi process show {process.pk}")
     print("For a list of running processes type: verdi process list")
-

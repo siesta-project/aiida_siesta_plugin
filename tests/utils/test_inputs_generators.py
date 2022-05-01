@@ -1,6 +1,6 @@
 #!/usr/bin/env runaiida
 # -*- coding: utf-8 -*-
-from aiida.plugins import WorkflowFactory, CalculationFactory
+from aiida.plugins import CalculationFactory, WorkflowFactory
 
 
 def test_siestacalc_inpgen(aiida_profile, fixture_code, generate_structure, generate_psml_fam):
@@ -32,7 +32,7 @@ def test_baseworkchain_inpgen(aiida_profile, fixture_code, generate_structure):
     protocol = inp_gen.get_default_protocol_name()
     code = fixture_code("siesta.siesta")
     code.store()
-    calc_engines = {"siesta": {'code': code.uuid, 'options': {"resources": {"num_mpiprocs_per_machine": 1}, "max_wallclock_seconds": 360}}} 
+    calc_engines = {"siesta": {'code': code.uuid, 'options': {"resources": {"num_mpiprocs_per_machine": 1}, "max_wallclock_seconds": 360}}}
 
     build = inp_gen.get_filled_builder(structure, calc_engines, protocol, spin="polarized")
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env runaiida
+# -*- coding: utf-8 -*-
 
 #Not required by AiiDA
 import os.path as op
@@ -6,9 +7,9 @@ import sys
 
 #AiiDA classes and functions
 from aiida.engine import submit
-from aiida.orm import load_code, load_node
-from aiida.orm import (Str, List, Dict, StructureData, KpointsData, Int, Float)
+from aiida.orm import Dict, Float, Int, KpointsData, List, Str, StructureData, load_code, load_node
 from aiida_pseudo.data.pseudo.psf import PsfData
+
 from aiida_siesta.workflows.simplex_basis import SimplexBasisOptimization
 from aiida_siesta.workflows.two_steps_optimization import TwoStepsBasisOpt
 
@@ -80,9 +81,9 @@ for fname, kinds in raw_pseudos:
     absname = op.realpath(op.join(op.dirname(__file__), "../fixtures/sample_psf", fname))
     pseudo = PsfData.get_or_create(absname)
     if not pseudo.is_stored:
-        print("\nCreated the pseudo for {}".format(kinds))
+        print(f"\nCreated the pseudo for {kinds}")
     else:
-        print("\nUsing the pseudo for {} from DB: {}".format(kinds, pseudo.pk))
+        print(f"\nUsing the pseudo for {kinds} from DB: {pseudo.pk}")
     for j in kinds:
         pseudos_dict[j]=pseudo
 

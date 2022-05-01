@@ -1,14 +1,16 @@
 #!/usr/bin/env runaiida
+# -*- coding: utf-8 -*-
 
-import sys
 import os.path as op
+import sys
 
 from aiida.engine import submit
 from aiida.orm import load_code
-from aiida_siesta.calculations.siesta import SiestaCalculation
 from aiida.plugins import DataFactory
 
-# Version of siesta supporting psml files is needed to run 
+from aiida_siesta.calculations.siesta import SiestaCalculation
+
+# Version of siesta supporting psml files is needed to run
 # this example
 ##########################################################
 
@@ -177,12 +179,11 @@ if submit_test:
     inputs["metadata"]["dry_run"] = True
     inputs["metadata"]["store_provenance"] = False
     process = submit(SiestaCalculation, **inputs)
-    print("Submited test for calculation (uuid='{}')".format(process.uuid))
+    print(f"Submited test for calculation (uuid='{process.uuid}')")
     print("Check the folder submit_test for the result of the test")
 
 else:
     process = submit(SiestaCalculation, **inputs)
-    print("Submitted calculation; ID={}".format(process.pk))
-    print("For information about this calculation type: verdi process show {}".
-          format(process.pk))
+    print(f"Submitted calculation; ID={process.pk}")
+    print(f"For information about this calculation type: verdi process show {process.pk}")
     print("For a list of running processes type: verdi process list")

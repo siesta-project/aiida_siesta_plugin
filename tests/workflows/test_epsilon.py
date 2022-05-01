@@ -1,12 +1,14 @@
 #!/usr/bin/env runaiida
-import pytest
-from plumpy import ProcessState
+# -*- coding: utf-8 -*-
 from aiida import orm
-from aiida.common import (LinkType, AttributeDict)
+from aiida.common import AttributeDict, LinkType
 from aiida.engine import ExitCode
+from plumpy import ProcessState
+import pytest
+
 
 @pytest.fixture
-def generate_workchain_epsilon(generate_psml_data, fixture_code, fixture_localhost, generate_workchain, 
+def generate_workchain_epsilon(generate_psml_data, fixture_code, fixture_localhost, generate_workchain,
         generate_structure, generate_param, generate_basis, generate_kpoints_mesh,
         generate_calc_job_node, generate_parser):
     """Generate an instance of a `EpsilonWorkChain`."""

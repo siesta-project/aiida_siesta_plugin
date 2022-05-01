@@ -1,4 +1,5 @@
 #!/usr/bin/env runaiida
+# -*- coding: utf-8 -*-
 
 '''
 This is an example of how to launch multiple SIESTA simulations iterating
@@ -11,9 +12,9 @@ import sys
 
 #AiiDA classes and functions
 from aiida.engine import submit
-from aiida.orm import load_code
-from aiida.orm import Float, Dict, StructureData, KpointsData
+from aiida.orm import Dict, Float, KpointsData, StructureData, load_code
 from aiida_pseudo.data.pseudo.psf import PsfData
+
 from aiida_siesta.workflows.iterate import SiestaIterator
 
 '''
@@ -39,7 +40,7 @@ code = load_code(codename)
 try:
     # We can get it using sisl (useful if we have it in an *fdf, *XV, ...)
     import sisl
-    
+
     ase_struct = sisl.geom.diamond(5.430, 'Si').toASE()
 except:
     # Or using ASE
@@ -87,16 +88,16 @@ for fname, kinds in raw_pseudos:
     absname = op.realpath(op.join(op.dirname(__file__), "../fixtures/sample_psf", fname))
     pseudo = PsfData.get_or_create(absname)
     if not pseudo.is_stored:
-        print("\nCreated the pseudo for {}".format(kinds))
+        print(f"\nCreated the pseudo for {kinds}")
     else:
-        print("\nUsing the pseudo for {} from DB: {}".format(kinds, pseudo.pk))
+        print(f"\nUsing the pseudo for {kinds} from DB: {pseudo.pk}")
     for j in kinds:
         pseudos_dict[j]=pseudo
 
 
 # Options that are related to how the job is technically submitted and
 # run. Some of this options define flags for the job manager (e.g. SLURM)
-# and some other's are related to how the code is executed. Note that 
+# and some other's are related to how the code is executed. Note that
 # 'max_wallclock_seconds' is a required option, so that SIESTA can stop
 # gracefully before the job runs out of time.
 options = Dict(
@@ -137,7 +138,7 @@ inputs = {
 #    batch_size=Int(4)
 #)
 
-# Iterate over meshcutoff and energyshift at the same time 
+# Iterate over meshcutoff and energyshift at the same time
 #process = submit(SiestaIterator, **inputs,
 #    iterate_over={
 #        'meshcutoff': [100,200,300],
@@ -162,8 +163,7 @@ process = submit(SiestaIterator, **inputs,
 # (100, 0.02), (100, 0.01), (300, 0.05), (200, 0.02), (200, 0.01) ...
 
 # Print some info
-print("Submitted workchain; ID={}".format(process.pk))
+print(f"Submitted workchain; ID={process.pk}")
 print(
-    "For information about this workchain type: verdi process show {}".format(
-        process.pk))
+    f"For information about this workchain type: verdi process show {process.pk}")
 print("For a list of running processes type: verdi process list")

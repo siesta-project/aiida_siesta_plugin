@@ -1,9 +1,12 @@
 #!/usr/bin/env runaiida
+# -*- coding: utf-8 -*-
 
 import os.path as op
 import sys
-from aiida_siesta.calculations.siesta import SiestaCalculation
+
 from aiida.engine import submit
+
+from aiida_siesta.calculations.siesta import SiestaCalculation
 
 # Script to restart a calculation, for instance the one obtained with
 # example_scf_fail.py or example_geom_fail.py
@@ -79,13 +82,11 @@ if submit_test:
     restart.metadata.dry_run=True
     restart.metadata.store_provenance=False
     process = submit(restart)
-    print("Submited test for calculation (uuid='{}')".format(process.uuid))
+    print(f"Submited test for calculation (uuid='{process.uuid}')")
     print("Check the folder submit_test for the result of the test")
 
 else:
     process = submit(restart)
-    print("Submitted calculation; ID={}".format(process.pk))
-    print("For information about this calculation type: verdi process show {}".
-          format(process.pk))
+    print(f"Submitted calculation; ID={process.pk}")
+    print(f"For information about this calculation type: verdi process show {process.pk}")
     print("For a list of running processes type: verdi process list")
-

@@ -1,4 +1,5 @@
 #!/usr/bin/env runaiida
+# -*- coding: utf-8 -*-
 
 #Not required by AiiDA
 import os.path as op
@@ -6,10 +7,10 @@ import sys
 
 #AiiDA classes and functions
 from aiida.engine import submit
-from aiida.orm import load_code
-from aiida.orm import (Dict, StructureData, KpointsData)
-from aiida_siesta.calculations.siesta import SiestaCalculation
+from aiida.orm import Dict, KpointsData, StructureData, load_code
 from aiida_pseudo.data.pseudo.psf import PsfData
+
+from aiida_siesta.calculations.siesta import SiestaCalculation
 
 ##In alternative, Data and Calculation factories could be loaded.
 ##They containing all the data and calculation plugins:
@@ -63,7 +64,7 @@ cell = [
     ],
 ]
 #The atom positions were originally given in the "ScaledCartesian" format
-#but standard for aiida structures is Cartesian in Angstrom 
+#but standard for aiida structures is Cartesian in Angstrom
 structure = StructureData(cell=cell)
 structure.append_atom(position=(0.000 * alat, 0.000 * alat, 0.000 * alat),
                       symbols=['Si'], name="Si_one")
@@ -106,9 +107,9 @@ for fname, kinds in raw_pseudos:
     absname = op.realpath(op.join(op.dirname(__file__), "../../fixtures/sample_psf", fname))
     pseudo = PsfData.get_or_create(absname)
     if not pseudo.is_stored:
-        print("\nCreated the pseudo for {}".format(kinds))
+        print(f"\nCreated the pseudo for {kinds}")
     else:
-        print("\nUsing the pseudo for {} from DB: {}".format(kinds, pseudo.pk))
+        print(f"\nUsing the pseudo for {kinds} from DB: {pseudo.pk}")
     for j in kinds:
         pseudos_dict[j]=pseudo
 
@@ -142,14 +143,13 @@ if submit_test:
     inputs["metadata"]["dry_run"] = True
     inputs["metadata"]["store_provenance"] = False
     process = submit(SiestaCalculation, **inputs)
-    print("Submited test for calculation (uuid='{}')".format(process.uuid))
+    print(f"Submited test for calculation (uuid='{process.uuid}')")
     print("Check the folder submit_test for the result of the test")
 
 else:
     process = submit(SiestaCalculation, **inputs)
-    print("Submitted calculation; ID={}".format(process.pk))
-    print("For information about this calculation type: verdi process show {}".
-          format(process.pk))
+    print(f"Submitted calculation; ID={process.pk}")
+    print(f"For information about this calculation type: verdi process show {process.pk}")
     print("For a list of running processes type: verdi process list")
 
 ##An alternative is be to use the builder
@@ -160,5 +160,3 @@ else:
 #...
 #build.metadata.options.resources = {'num_machines': 1 "num_mpiprocs_per_machine": 1}
 #process = submit(builder)
-
-

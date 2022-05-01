@@ -1,4 +1,5 @@
 #!/usr/bin/env runaiida
+# -*- coding: utf-8 -*-
 
 '''
 This is an example of how to converge multiple parameters sequentially using the aiida_siesta
@@ -14,10 +15,10 @@ import os.path as op
 import sys
 
 # AiiDA classes and functions
-from aiida.engine import submit, run
-from aiida.orm import load_code
-from aiida.orm import Float, Dict, StructureData, Str, Int, KpointsData
+from aiida.engine import run, submit
+from aiida.orm import Dict, Float, Int, KpointsData, Str, StructureData, load_code
 from aiida_pseudo.data.pseudo.psf import PsfData
+
 # The workchain that we are going to use to converge things.
 from aiida_siesta.workflows.converge import SiestaSequentialConverger
 
@@ -44,7 +45,7 @@ code = load_code(codename)
 try:
     # We can get it using sisl (useful if we have it in an *fdf, *XV, ...)
     import sisl
-    
+
     ase_struct = sisl.geom.diamond(5.430, 'Si').toASE()
 except:
     # Or using ASE
@@ -92,15 +93,15 @@ for fname, kinds in raw_pseudos:
     absname = op.realpath(op.join(op.dirname(__file__), "../fixtures/sample_psf", fname))
     pseudo = PsfData.get_or_create(absname)
     if not pseudo.is_stored:
-        print("\nCreated the pseudo for {}".format(kinds))
+        print(f"\nCreated the pseudo for {kinds}")
     else:
-        print("\nUsing the pseudo for {} from DB: {}".format(kinds, pseudo.pk))
+        print(f"\nUsing the pseudo for {kinds} from DB: {pseudo.pk}")
     for j in kinds:
         pseudos_dict[j]=pseudo
 
 # Options that are related to how the job is technically submitted and
 # run. Some of this options define flags for the job manager (e.g. SLURM)
-# and some other's are related to how the code is executed. Note that 
+# and some other's are related to how the code is executed. Note that
 # 'max_wallclock_seconds' is a required option, so that SIESTA can stop
 # gracefully before the job runs out of time.
 options = Dict(
@@ -164,11 +165,10 @@ process = submit(SiestaSequentialConverger,
         # And we also specify a batch size to submit more than one job at a time
         "batch_size": Int(1)
     }
-    
+
 )
 # Print some info
-print("Submitted workchain; ID={}".format(process.pk))
+print(f"Submitted workchain; ID={process.pk}")
 print(
-    "For information about this workchain type: verdi process show {}".format(
-        process.pk))
+    f"For information about this workchain type: verdi process show {process.pk}")
 print("For a list of running processes type: verdi process list")
