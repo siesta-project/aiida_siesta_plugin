@@ -26,23 +26,27 @@ def parse_neb(retrieved, ref_structure):
              with extra arrays for NEB results.
     """
     import os
+    import tempfile
 
     from aiida.orm import TrajectoryData
 
     from aiida_siesta.utils.neb import parse_neb_results
     from aiida_siesta.utils.xyz_utils import get_structure_list_from_folder
 
-    folder_path = retrieved._repository._get_base_folder().abspath
-    struct_list = get_structure_list_from_folder(folder_path, ref_structure)
+    with tempfile.TemporaryDirectory() as dirpath:
+        retrieved.copy_tree(dirpath)
+        struct_list = get_structure_list_from_folder(dirpath, ref_structure)
 
     traj = TrajectoryData(struct_list)
 
     annotated_traj = None
 
     neb_results_file = 'NEB.results'
-    if neb_results_file in retrieved._repository.list_object_names():
-        neb_results_path = os.path.join(folder_path, neb_results_file)
-        annotated_traj = parse_neb_results(neb_results_path, traj)
+    if neb_results_file in retrieved.list_object_names():
+        with tempfile.TemporaryDirectory() as dirpath:
+            retrieved.copy_tree(dirpath)
+            neb_results_path = os.path.join(dirpath, neb_results_file)
+            annotated_traj = parse_neb_results(neb_results_path, traj)
 
         _kinds_raw = [k.get_raw() for k in ref_structure.kinds]
         annotated_traj.set_attribute('kinds', _kinds_raw)

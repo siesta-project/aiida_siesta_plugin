@@ -22,11 +22,11 @@ xmlwrite T
 #
 # -- Optical properties Info follows
 #
-%block opticalmesh
+%block opticalmesh 
  1 1 1
 %endblock optical-mesh
 opticalcalculation True
-%block opticalvector
+%block opticalvector 
  1.0 0.0 0.0
 %endblock optical-vector
 opticalpolarizationtype polarized

@@ -59,7 +59,7 @@ def write_xyz_file_from_structure(struct, filename, labels=True):
 
     if labels:
         # We add the labels
-        with open(filename, 'wb', encoding='utf8') as fileo:
+        with open(filename, 'wb') as fileo:
             fileo.write(xyz_tuple[0])
     else:
         # We need to remove the labels

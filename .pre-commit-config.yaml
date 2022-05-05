@@ -6,6 +6,13 @@ repos:
     -   id: fix-encoding-pragma
     -   id: mixed-line-ending
     -   id: trailing-whitespace
+        exclude: &exclude_files >
+            (?x)^(
+                aiida_siesta/docs/.*|
+                tests/.*|
+                aiida_siesta/examples/.*|
+            )$
+
 
 -   repo: https://github.com/ikamensh/flynt/
     rev: '0.76'
@@ -25,12 +32,7 @@ repos:
         types: [python]
         args: ['-i']
         additional_dependencies: ['toml']
-        exclude: &exclude_files >
-            (?x)^(
-                aiida_siesta/docs/.*|
-                tests/.*|
-                aiida_siesta/examples/.*|
-            )$
+        exclude: *exclude_files
 
 -   repo: https://github.com/PyCQA/pydocstyle
     rev: '6.1.1'

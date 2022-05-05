@@ -552,7 +552,7 @@ def test_optical(aiida_profile, fixture_sandbox, generate_calc_job,
     with pytest.raises(ValueError):
         calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
 
-    optical_parameters = {"%block optical-mesh" : "\n 1 1 1 \n%endblock optical-mesh"}
+    optical_parameters = {"%block optical-mesh" : "\n 1 1 1\n%endblock optical-mesh"}
     inputs["optical"] = orm.Dict(dict=optical_parameters)
     calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
 
@@ -562,7 +562,7 @@ def test_optical(aiida_profile, fixture_sandbox, generate_calc_job,
     with pytest.raises(ValueError):
         calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
 
-    optical_parameters["%block optical-vector"] = "\n 1.0 0.0 0.0 \n%endblock optical-vector"
+    optical_parameters["%block optical-vector"] = "\n 1.0 0.0 0.0\n%endblock optical-vector"
     optical_parameters["optical-calculation"] = False
     inputs["optical"] = orm.Dict(dict=optical_parameters)
     calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
