@@ -79,7 +79,6 @@ jobs:
     - name: Install python dependencies
       run: |
         pip install -e .[dev]
-        reentry scan
     - name: Run pytest
       run:
         pytest -sv tests
