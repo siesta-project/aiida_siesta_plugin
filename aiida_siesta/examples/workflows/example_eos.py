@@ -120,7 +120,7 @@ inputs = {
     'pseudos': pseudos_dict,
     'options': options,
     'volume_per_atom': Float(19),
-    'batch_size': Int(7) #selects the number of volumes to run at the same time
+    'batch_size': Int(1) #selects the number of volumes to run at the same time
 }
 
 process = submit(EqOfStateFixedCellShape, **inputs)

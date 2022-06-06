@@ -7,7 +7,6 @@ from aiida.orm import Group, load_code
 from aiida.plugins import DataFactory
 from aiida.tools import get_explicit_kpoints_path
 import ase.io
-import pymatgen as mg
 
 from aiida_siesta.calculations.siesta import SiestaCalculation
 

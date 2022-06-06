@@ -71,7 +71,7 @@ parameters = Dict(
         'Solution-method': 'diagon',
         'electronic-temperature': '25 meV',
         'md-typeofrun': 'cg',
-        'md-numcgsteps': 2,
+        'md-numcgsteps': 100,
         'md-maxcgdispl': '0.1 Ang',
         'md-maxforcetol': '0.04 eV/Ang',
         'write-forces': True,

@@ -10,7 +10,7 @@ from aiida_siesta.calculations.siesta import SiestaCalculation
 
 #  Siesta calculation on Water molecule -- to fail in geom relaxation
 
-PsfData = DataFactory('siesta.psf')
+PsfData = DataFactory('pseudo.psf')
 Dict = DataFactory('core.dict')
 KpointsData = DataFactory('core.array.kpoints')
 StructureData = DataFactory('core.structure')

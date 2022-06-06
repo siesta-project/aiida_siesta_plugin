@@ -138,14 +138,13 @@ process = submit(SiestaSequentialConverger,
         # First we want to converge the kpoints by increasing all components
         # at the same time.
         {
-            'kpoints_0': [4,10,12,14,16,18,20],
-            'kpoints_1': [4,10,12,14,16,18,20],
-            'kpoints_2': [4,10,12,14,16,18,20],
+            'kpoints_0': [4,10,12,14,16,18],
+            'kpoints_1': [4,10,12,14,16,18],
+            'kpoints_2': [4,10,12,14,16,18],
         },
         # Then the mesh cutoff (using the default units, Ry)
         {
-            'meshcutoff': [500, 600, 700,
-                            800, 900, 1000],
+            'meshcutoff': [500, 600, 700, 800, 900],
         },
         # And finally the energy shift (using the default units, Ry)
         {

@@ -6,5 +6,9 @@ Before they can be run, the family must be created with the command:
 
   aiida-pseudo install family /path-to-examples/fixtures/sample_psf psf_family -P pseudo.psf
 
+Few examples use the 'protocol' system that requires the PseudoDojo pseudo set. One can install it with:
+  
+  aiida-pseudo install pseudo-dojo -v 0.4 -x PBE -r SR -p standard -f psml
+
 To run the examples, follow the instructions in the 00_READMEs of the plugins and workflows
 folders.
