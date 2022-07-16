@@ -9,7 +9,7 @@ Documentation can be found in:
 http://aiida-siesta-plugin.readthedocs.io
 
 If you use this package in your research, please consider citing J. Chem. Phys. **152**, 204108 (2020)
-(https://doi.org/10.1063/5.0005077) and the relevant `aiida-core <https://github.com/aiidateam/aiida-core>`
+(https://doi.org/10.1063/5.0005077) and the relevant `aiida-core <https://github.com/aiidateam/aiida-core>`_
 papers.
 
 
