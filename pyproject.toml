@@ -95,6 +95,7 @@ name = 'aiida_siesta'
 exclude = [
     '.github/',
     'tests/',
+    'aiida_siesta/docs/',
 ]
 
 [tool.flynt]
