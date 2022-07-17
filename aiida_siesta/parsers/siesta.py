@@ -409,7 +409,7 @@ class SiestaParser(Parser):
     Parser for the output of Siesta.
     """
 
-    _version = '2.0.0.dev0'
+    _version = '2.0.0'
 
     def parse(self, **kwargs):  # pylint: disable=too-many-locals,too-many-branches,too-many-statements
         """
