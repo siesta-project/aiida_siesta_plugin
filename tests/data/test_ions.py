@@ -1,12 +1,14 @@
-import pytest
+# -*- coding: utf-8 -*-
 from aiida.common.exceptions import StoringNotAllowed
+import pytest
+
 
 def test_ions(generate_ion_data):
     """
     Test the `set_file`, `_prepare_source` and `parse_ion` methods of IonData. They are called
-    during instanciation of the class. Instanciation can be done through the passing of a stream of 
-    a filepath. The parent class already allows that but, it is important to test the parsing 
-    of the info on the file (element, name, atomic_number, mass) in both cases since if filepath 
+    during instanciation of the class. Instanciation can be done through the passing of a stream of
+    a filepath. The parent class already allows that but, it is important to test the parsing
+    of the info on the file (element, name, atomic_number, mass) in both cases since if filepath
     is passed, it is immediately converted to a stream.
     """
 
@@ -74,8 +76,10 @@ def test_get_or_create(generate_ion_data):
     and it can not rely on the parent class
     """
 
+    import io
+    import os
+
     from aiida_siesta.data.ion import IonData
-    import os,io
     filename = os.path.join('tests', 'fixtures', 'ions', 'SiDiff.ion.xml')
     filepath = os.path.abspath(filename)
 

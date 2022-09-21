@@ -1,4 +1,5 @@
 #!/usr/bin/env runaiida
+# -*- coding: utf-8 -*-
 
 #Not required by AiiDA
 import os.path as op
@@ -6,9 +7,9 @@ import sys
 
 #AiiDA classes and functions
 from aiida.engine import submit
-from aiida.orm import load_code, load_node
-from aiida.orm import (List, Dict, StructureData, KpointsData, Int, Float)
+from aiida.orm import Dict, Float, Int, KpointsData, List, StructureData, load_code, load_node
 from aiida_pseudo.data.pseudo.psf import PsfData
+
 from aiida_siesta.workflows.simplex_basis import SimplexBasisOptimization
 from aiida_siesta.workflows.two_steps_optimization import TwoStepsBasisOpt
 
@@ -50,7 +51,7 @@ structure.append_atom(position=(0.250 * alat, 0.250 * alat, 0.250 * alat),
 
 #The parameters
 parameters = Dict(
-    dict={
+    {
         'meshcutoff': '100 Ry',
         'xc-functional': 'GGA',
         'xc-authors': 'PBE',
@@ -65,7 +66,7 @@ parameters = Dict(
 
 #The basis set 'pao-split-tail-norm':"T",
 basis = Dict(
-    dict={
+    {
         '%block pao-basis': "\nSi   2\n n=3   0   2\n 4.99376      $sz2 \n n=3   1   2 P 1\n 6.2538      $pz2 \n%endblock pao-basis"
     })
 
@@ -80,15 +81,15 @@ for fname, kinds in raw_pseudos:
     absname = op.realpath(op.join(op.dirname(__file__), "../fixtures/sample_psf", fname))
     pseudo = PsfData.get_or_create(absname)
     if not pseudo.is_stored:
-        print("\nCreated the pseudo for {}".format(kinds))
+        print(f"\nCreated the pseudo for {kinds}")
     else:
-        print("\nUsing the pseudo for {} from DB: {}".format(kinds, pseudo.pk))
+        print(f"\nUsing the pseudo for {kinds} from DB: {pseudo.pk}")
     for j in kinds:
         pseudos_dict[j]=pseudo
 
 #Resources
 options = Dict(
-    dict={
+    {
         "max_wallclock_seconds": 36000,
         "resources": {
             "num_machines": 1,
@@ -109,7 +110,7 @@ inputs = {
         },
     'simplex': {
         'max_iters': Int(10),
-        'variables_dict': Dict(dict={
+        'variables_dict': Dict({
             "sz2":[2.0,4.8,3.0],
             "pz2":[2.0,6.0,3.0]
             }),

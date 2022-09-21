@@ -7,9 +7,9 @@ Description
 The AiiDA-siesta package offers three workchains to help users in selecting the optimal
 basis set for a given system:
 
-1) The **SimplexBasisOptimization** that finds the minimum of a quantity (typically the basis enthalpy)  varying a set of input variables (typically 
+1) The **SimplexBasisOptimization** that finds the minimum of a quantity (typically the basis enthalpy)  varying a set of input variables (typically
 cutoff radii of orbitals) using the Nelder–Mead (simplex / amoeba) method.
-2) The **TwoStepsBasisOpt** that performs a two level optimization, running simplex iterations followed by periodic 
+2) The **TwoStepsBasisOpt** that performs a two level optimization, running simplex iterations followed by periodic
 restarts with new simplex hyper-tetrahedra of progressively smaller sizes. This replicates more closely the
 optimization util of the siesta distribution.
 3) The **BasisOptimizationWorkChain** that performs a full optimization testing first basis cardinality and then applying
@@ -24,7 +24,7 @@ Supported Siesta versions
 At least 4.0.1 of the 4.0 series, 4.1-b3 of the 4.1 series and the MaX-1.0 release, which
 can be found in the development platform
 (https://gitlab.com/siesta-project/siesta).
-For more up to date info on compatibility, please check the      
+For more up to date info on compatibility, please check the
 `wiki <https://github.com/siesta-project/aiida_siesta_plugin/wiki/Supported-siesta-versions>`_.
 
 
@@ -32,17 +32,17 @@ For more up to date info on compatibility, please check the
 SimplexBasisOptimization
 ------------------------
 
-The Nelder–Mead method (commonly known as simplex or amoeba method) is 
+The Nelder–Mead method (commonly known as simplex or amoeba method) is
 a numerical method to find the minimum of a function with N variables.
-A simplex is a special polytope of N+1 vertices in N dimensions 
+A simplex is a special polytope of N+1 vertices in N dimensions
 (for instance a triangle in 2D, a tetrahedron in 3D and so forth). The
-Nelder–Mead methods in N dimensions starts from a set of N+1 test points arranged as a simplex. 
+Nelder–Mead methods in N dimensions starts from a set of N+1 test points arranged as a simplex.
 The value of the function is calculated at each test point and these values are then used
-in order to find a new test point and 
+in order to find a new test point and
 to replace one of the old test points with the new one in case it returns a smaller value
 for the function under investigation. Repeating the procedure, the technique progresses
 until all the N+1 test points produce values that are all within a threshold. When this happens the minimum has been reached.
-In the context of the basis optimization the function is usually the basis enthalpy (but also other quantities are supported) 
+In the context of the basis optimization the function is usually the basis enthalpy (but also other quantities are supported)
 and the variable are the parameters defining the basis (typically cutoff radii of the basis orbitals).
 
 An example of the use of **SimplexBasisOptimization** is in `/aiida_siesta/examples/workflows/example_simplex.py`
@@ -53,16 +53,16 @@ Inputs
 Inputs are organized in two namespaces and are described in the following:
 
 * **siesta_base**, input namespace, *Mandatory*
-  
+
   Accepts all the inputs of a **SiestaBaseWorkChain** (listed `here <siesta-base-wc-inputs>`) with the only mandatory modification
   to include in the "basis" input some variables to optimize. The variable must be defined using a dollar and
   a string. An example::
 
        basis = Dict(dict={
         '%block pao-basis': "\nSi   2\n n=3   0   2\n 4.99376      $sz2 \n n=3   1   2 P 1\n 6.2538      $pz2 \n%endblock pao-basis"
-        }) 
+        })
 
-  An upper and lower value must be set for each variable and optionally one or more starting points (see next point in this list). 
+  An upper and lower value must be set for each variable and optionally one or more starting points (see next point in this list).
   Please note that variables are typically defined for orbitals radii in the ``pao-basis`` block,
   but one can also create variables for "higher level" keywords like the ``energy-shift`` or ``split-norm``.
 
@@ -72,7 +72,7 @@ Inputs are organized in two namespaces and are described in the following:
 
 
 * **simplex**, input namespace, *Mandatory*
-  
+
   Here all the inputs for the simplex method can be defined. They are listed in the next lines.
 
 .. |br| raw:: html
@@ -98,15 +98,15 @@ Inputs are organized in two namespaces and are described in the following:
   The starting value is going to be the point from which the simplex hyper-tetrahedron is constructed.
   In particular, the first test point is directly formed by the specified starting points (in the example above is [3.0,3.0]).
   The other N test points are obtained substituing one component with ``num + range *  simplex_inps.initial_step_fraction``,
-  where ``num`` is the defined starting point, ``range`` is the upper - lower limit and ``simplex_inps.initial_step_fraction`` 
+  where ``num`` is the defined starting point, ``range`` is the upper - lower limit and ``simplex_inps.initial_step_fraction``
   is a number between 0 and 1 defined in the next point of this list.
-  Supposing ``simplex_inps.initial_step_fraction = 0.2``, in out example, the other two test points are [3.0,3.8] and 
+  Supposing ``simplex_inps.initial_step_fraction = 0.2``, in out example, the other two test points are [3.0,3.8] and
   [3.56,3.0].
 
   When 3) is not defined, it is chosen randomly between the boundaries, but it is always suggested
-  to set it since it will be used to construct the 
+  to set it since it will be used to construct the
   Alternatively to 3), N+1 values can be entered and this would correspond to define explicitly all the components of
-  all the simplex initial points. 
+  all the simplex initial points.
 
 .. |br| raw:: html
 
@@ -137,11 +137,11 @@ Inputs are organized in two namespaces and are described in the following:
     <br />
 
 * **simplex.output_name** class :py:class:`Str <aiida.orm.Str>`, *Optional*
-  
+
   The name of the output that needs to be minimized. In principle all the numerical values returned
   in the "output_parameters" of a **SiestaBaseWorkChain** are accepted, but typically the "basis_entalpy"
   or the "harris_energy" are of interest. Defalut is ``Str("basis_entalpy")``
-     
+
 .. |br| raw:: html
 
     <br />
@@ -149,10 +149,10 @@ Inputs are organized in two namespaces and are described in the following:
 
 * **simplex.tolerance_function**  class :py:class:`Float <aiida.orm.Float>`, *Optional*
 
-  The tolerance accepted to define the optimization converged. If the values of the functions for all 
+  The tolerance accepted to define the optimization converged. If the values of the functions for all
   points in the simplex are all within the ``simplex.tolerance_function``, the optimization is considered concluded.
   The default is ``Float(0.01)``.
-  Please note that the choice of this parameter must be related to the variance of the output function, therefore the default 
+  Please note that the choice of this parameter must be related to the variance of the output function, therefore the default
   might be unreasonable for your application. In the future an extension implementing a fractional tolerance will be provided.
 
 
@@ -200,8 +200,8 @@ It is important to note that the optimization is entirely an AiiDA process, ther
 We can have a look at the attempted variables values and the obtained basis entalpy in this simple way. In the verdi shell::
 
         node=load_node(<PK>)  #PK of your SimplexBasisOptimization
-        for wc in node.called[0].called: 
-             print(wc.inputs.the_values.get_list(),wc.outputs.ene.value) 
+        for wc in node.called[0].called:
+             print(wc.inputs.the_values.get_list(),wc.outputs.ene.value)
 
 And many more info can be extracted from the inputs and outputs of each run ``wc``. These ``wc`` are **SiestaBaseWorkChain**
 wrapped into a thin layer that attach to each calculation the information needed by the optimizer.
@@ -234,7 +234,7 @@ This workchain adds a further called **macrostep**. This allows:
     <br />
 
 * **macrostep.lambda_scaling_factor** class :py:class:`Float <aiida.orm.Float>`
-  
+
   The rate at which lambda decreases between from a macrostep to the other.
   Default ``Float(0.5)``
 
@@ -244,7 +244,7 @@ This workchain adds a further called **macrostep**. This allows:
     <br />
 
 * **macrostep.minimum_lambda** class :py:class:`Float <aiida.orm.Float>`
-  
+
   When this value for lambda is reached, the macrostep iteration stops. Default ``Float(0.01)``.
 
 
@@ -264,7 +264,7 @@ and gets the size that gives minimum of the monitored quantity (e.g. basis entha
 
 NOTE: This does not include yet the possibility to test different basis sizes for different species.
 
-It then allow to add extra orbitals to the calculation manually and see if this leads to a further decrease in the monitored 
+It then allow to add extra orbitals to the calculation manually and see if this leads to a further decrease in the monitored
 quantity.
 
 Then automatically sets up a **SimplexBasisOptimization** according to an optimization schema defined by the user.
@@ -298,7 +298,7 @@ Few more inputs are allowed:
             "Ca":["3d1","4f1"],
             "O" :["4f2"]
             })
-   
+
   This would add a f orbital with two zetas for O and a d and f orbital to Ca (one zeta each).
   As already specified, the presence of this input implies an extra step between the check of basis
   cardinality and the actual **SimplexBasisOptimization**.
@@ -332,7 +332,7 @@ Few more inputs are allowed:
 
   If set to true, the pao-split-norm is optimized as a global variable. Please note that this can be used in
   conjunction with **global_energy_shift** in order to optimize only global variables and not the pao block,
-  but it can be also used alone to set that the first zeta radii of the orbitals are optimized, but the second zetas 
+  but it can be also used alone to set that the first zeta radii of the orbitals are optimized, but the second zetas
   no! If **optimization_schema.global_split_norm** is True and **optimization_schema.global_energy_shift** is False
   the basis block is created putting all the second and further zetas to zero and the globas pao-split-norm
   is a variable for optimization. Default False.
@@ -342,7 +342,7 @@ Few more inputs are allowed:
     <br />
 
 * **optimization_schema.charge_confinement** :py:class:`List <aiida.orm.Bool>`
-  
+
   If set to true, the empty orbitals will receive a charge confinement and the charge of
   the confinement is a variable for optimization. Default False
 

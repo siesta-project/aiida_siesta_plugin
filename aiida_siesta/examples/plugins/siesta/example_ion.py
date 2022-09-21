@@ -1,4 +1,5 @@
 #!/usr/bin/env runaiida
+# -*- coding: utf-8 -*-
 
 #Not required by AiiDA
 import os.path as op
@@ -6,8 +7,8 @@ import sys
 
 #AiiDA classes and functions
 from aiida.engine import submit
-from aiida.orm import load_code
-from aiida.orm import (Dict, StructureData, KpointsData)
+from aiida.orm import Dict, KpointsData, StructureData, load_code
+
 from aiida_siesta.calculations.siesta import SiestaCalculation
 from aiida_siesta.data.ion import IonData
 
@@ -63,7 +64,7 @@ cell = [
     ],
 ]
 #The atom positions were originally given in the "ScaledCartesian" format
-#but standard for aiida structures is Cartesian in Angstrom 
+#but standard for aiida structures is Cartesian in Angstrom
 structure = StructureData(cell=cell)
 structure.append_atom(position=(0.000 * alat, 0.000 * alat, 0.000 * alat),
                       symbols=['Si'])
@@ -72,7 +73,7 @@ structure.append_atom(position=(0.250 * alat, 0.250 * alat, 0.250 * alat),
 
 #The parameters
 parameters = Dict(
-    dict={
+    {
         'xc-functional': 'LDA',
         'xc-authors': 'CA',
         'max-scfiterations': 50,
@@ -134,14 +135,13 @@ if submit_test:
     inputs["metadata"]["dry_run"] = True
     inputs["metadata"]["store_provenance"] = False
     process = submit(SiestaCalculation, **inputs)
-    print("Submited test for calculation (uuid='{}')".format(process.uuid))
+    print(f"Submited test for calculation (uuid='{process.uuid}')")
     print("Check the folder submit_test for the result of the test")
 
 else:
     process = submit(SiestaCalculation, **inputs)
-    print("Submitted calculation; ID={}".format(process.pk))
-    print("For information about this calculation type: verdi process show {}".
-          format(process.pk))
+    print(f"Submitted calculation; ID={process.pk}")
+    print(f"For information about this calculation type: verdi process show {process.pk}")
     print("For a list of running processes type: verdi process list")
 
 ##An alternative is be to use the builder
@@ -152,5 +152,3 @@ else:
 #...
 #build.metadata.options.resources = {'num_machines': 1 "num_mpiprocs_per_machine": 1}
 #process = submit(builder)
-
-

@@ -1,21 +1,22 @@
 #!/usr/bin/env runaiida
 # -*- coding: utf-8 -*-
 import os.path as op
-import pytest
+
 from aiida import orm
 from aiida.common import datastructures
 from aiida.tools import get_explicit_kpoints_path
+import pytest
 
 #from aiida_quantumespresso.utils.resources import get_default_options
 
 
-def test_base(aiida_profile, fixture_sandbox, generate_calc_job, 
+def test_base(aiida_profile, fixture_sandbox, generate_calc_job,
     fixture_code, generate_structure, generate_kpoints_mesh, generate_basis,
     generate_param, generate_psf_data, generate_psml_data, file_regression):
     """
-    Test that single calculation is submitted with the right content of the 
+    Test that single calculation is submitted with the right content of the
     aiida.fdf file and with correct lists of options. Also checks that the
-    `settings` inputs properly works. 
+    `settings` inputs properly works.
     """
 
     entry_point_name = 'siesta.siesta'
@@ -52,10 +53,10 @@ def test_base(aiida_profile, fixture_sandbox, generate_calc_job,
     retrieve_list = [
             'w','BASIS_HARRIS_ENTHALPY','BASIS_ENTHALPY', 'MESSAGES','time.json','aiida.out','aiida.xml','*.ion.xml'
             ]
-    
+
     # Check the attributes of the returned `CalcInfo`
     assert isinstance(calc_info, datastructures.CalcInfo)
-    assert sorted(calc_info.codes_info[0].cmdline_params) == sorted(cmdline_params) 
+    assert sorted(calc_info.codes_info[0].cmdline_params) == sorted(cmdline_params)
     assert sorted(calc_info.local_copy_list) == sorted(local_copy_list)
     assert sorted(calc_info.retrieve_list) == sorted(retrieve_list)
 
@@ -69,7 +70,7 @@ def test_base(aiida_profile, fixture_sandbox, generate_calc_job,
 
 
 # Still in progress ...
-#def test_restart(aiida_profile, fixture_sandbox, fixture_localhost, generate_calc_job, 
+#def test_restart(aiida_profile, fixture_sandbox, fixture_localhost, generate_calc_job,
 #    fixture_code, generate_structure, generate_kpoints_mesh, generate_basis,
 #    generate_param, generate_psf_data, generate_psml_data, file_regression):
 #    """Test that single calculation is submitted."""
@@ -81,7 +82,7 @@ def test_base(aiida_profile, fixture_sandbox, generate_calc_job,
 #
 #    import os
 #    basepath = os.path.dirname(os.path.abspath(__file__))
-#    fake_remote_path=os.path.join(basepath, 'fixtures', 'restart') 
+#    fake_remote_path=os.path.join(basepath, 'fixtures', 'restart')
 #    fake_remote_folder = orm.RemoteData(computer=fixture_localhost, remote_path=fake_remote_path)
 #
 #    #remote_folder.add_incoming(node, link_type=LinkType.CREATE, link_label='remote_folder')
@@ -111,7 +112,7 @@ def test_base(aiida_profile, fixture_sandbox, generate_calc_job,
 #    remote_copy_list = ["as.DM"]
 #    assert sorted(calc_info.remote_copy_list) == sorted(remote_copy_list)
 
-def test_validators(aiida_profile, fixture_sandbox, generate_calc_job, 
+def test_validators(aiida_profile, fixture_sandbox, generate_calc_job,
     fixture_code, generate_structure, generate_kpoints_mesh, generate_basis,
     generate_param, generate_psf_data, generate_psml_data, file_regression):
     """
@@ -173,7 +174,7 @@ def test_validators(aiida_profile, fixture_sandbox, generate_calc_job,
     with pytest.raises(ValueError):
         calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
 
-    # The basis validator is checked in the test of test_floating_orbs. 
+    # The basis validator is checked in the test of test_floating_orbs.
     # The bandskpoints validator is tested in test_bandslines
     # Test on ions is in the test_ions.
     # Validators on optical tested in test_optical
@@ -202,8 +203,8 @@ def test_bandslines(aiida_profile, fixture_sandbox, generate_calc_job,
 
     #bandskpoints = orm.KpointsData()
     #bandskpoints = result['explicit_kpoints']
-    
-    
+
+
     inputs = {
         #'bandskpoints': bandskpoints,
         'code': fixture_code(entry_point_name),
@@ -299,7 +300,7 @@ def test_bandspoints(aiida_profile, fixture_sandbox, generate_calc_job,
     file_regression.check(input_written, encoding='utf-8', extension='.fdf')
 
 
-def test_floating_orbs(aiida_profile, fixture_sandbox, generate_calc_job, 
+def test_floating_orbs(aiida_profile, fixture_sandbox, generate_calc_job,
     fixture_code, generate_structure, generate_kpoints_mesh, generate_basis,
     generate_param, generate_psf_data, generate_psml_data, file_regression):
     """
@@ -372,10 +373,10 @@ def test_floating_orbs(aiida_profile, fixture_sandbox, generate_calc_job,
     inputs['basis'] = orm.Dict(dict=basis)
     with pytest.raises(ValueError):
         calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
-    
+
     #fail because no pseudo:
     basis = generate_basis().get_dict()
-    basis["floating_sites"] = [{"name":'Si_bond',"symbols":'Si',"position": ( 0.125, 0.125, 0.125)}] 
+    basis["floating_sites"] = [{"name":'Si_bond',"symbols":'Si',"position": ( 0.125, 0.125, 0.125)}]
     inputs['basis'] = orm.Dict(dict=basis)
     with pytest.raises(ValueError):
         calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
@@ -389,7 +390,7 @@ def test_floating_orbs(aiida_profile, fixture_sandbox, generate_calc_job,
     file_regression.check(input_written, encoding='utf-8', extension='.fdf')
 
 
-def test_ions(aiida_profile, fixture_sandbox, generate_calc_job, 
+def test_ions(aiida_profile, fixture_sandbox, generate_calc_job,
     fixture_code, generate_structure, generate_kpoints_mesh, generate_basis,
     generate_param, generate_ion_data, generate_psml_data, file_regression):
     """
@@ -439,11 +440,11 @@ def test_ions(aiida_profile, fixture_sandbox, generate_calc_job,
 
 
 
-def test_lua(aiida_profile, fixture_sandbox, generate_calc_job, 
+def test_lua(aiida_profile, fixture_sandbox, generate_calc_job,
     fixture_code, generate_structure, generate_kpoints_mesh, generate_basis,
     generate_param, generate_psml_data, generate_lua_file, generate_lua_folder, file_regression):
     """
-    Test that single calculation is submitted with the right content of the 
+    Test that single calculation is submitted with the right content of the
     aiida.fdf file.
     """
 
@@ -470,7 +471,7 @@ def test_lua(aiida_profile, fixture_sandbox, generate_calc_job,
             'Si': psml,
             'SiDiff': psml
         },
-        'lua': { 
+        'lua': {
             'script': lua_script,
             'input_files': lua_folder,
             'parameters': orm.Dict(dict=lua_parameters),
@@ -516,11 +517,11 @@ def test_lua(aiida_profile, fixture_sandbox, generate_calc_job,
     file_regression.check(conflua_input_written, encoding='utf-8', extension='.lua')
 
 
-def test_optical(aiida_profile, fixture_sandbox, generate_calc_job, 
+def test_optical(aiida_profile, fixture_sandbox, generate_calc_job,
     fixture_code, generate_structure, generate_kpoints_mesh, generate_basis,
     generate_param, generate_psml_data, file_regression):
     """
-    Test that single calculation is submitted with the right content of the 
+    Test that single calculation is submitted with the right content of the
     aiida.fdf file.
     """
 
@@ -537,7 +538,7 @@ def test_optical(aiida_profile, fixture_sandbox, generate_calc_job,
             'Si': psml,
             'SiDiff': psml
         },
-        'optical': orm.Dict(dict={}), 
+        'optical': orm.Dict(dict={}),
         'metadata': {
             'options': {
                'resources': {'num_machines': 1  },
@@ -551,7 +552,7 @@ def test_optical(aiida_profile, fixture_sandbox, generate_calc_job,
     with pytest.raises(ValueError):
         calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
 
-    optical_parameters = {"%block optical-mesh" : "\n 1 1 1 \n%endblock optical-mesh"}
+    optical_parameters = {"%block optical-mesh" : "\n 1 1 1\n%endblock optical-mesh"}
     inputs["optical"] = orm.Dict(dict=optical_parameters)
     calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
 
@@ -561,7 +562,7 @@ def test_optical(aiida_profile, fixture_sandbox, generate_calc_job,
     with pytest.raises(ValueError):
         calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
 
-    optical_parameters["%block optical-vector"] = "\n 1.0 0.0 0.0 \n%endblock optical-vector"
+    optical_parameters["%block optical-vector"] = "\n 1.0 0.0 0.0\n%endblock optical-vector"
     optical_parameters["optical-calculation"] = False
     inputs["optical"] = orm.Dict(dict=optical_parameters)
     calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)

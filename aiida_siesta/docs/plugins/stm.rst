@@ -5,11 +5,11 @@ Description
 -----------
 
 A plugin for `Util/plstm` of the Siesta distribution, a tool to simulate STM images.
-The code plstm is able to process the .LDOS file produced by Siesta. The .LDOS file 
-contains informations on the local density of states (LDOS) in an energy window. 
-In the Tersoff-Hamann approximation, the LDOS can be used as a proxy for the simulation 
+The code plstm is able to process the .LDOS file produced by Siesta. The .LDOS file
+contains informations on the local density of states (LDOS) in an energy window.
+In the Tersoff-Hamann approximation, the LDOS can be used as a proxy for the simulation
 of STM experiments.
-This plugin requires in input the AiiDA folder where the .LDOS folder was generated 
+This plugin requires in input the AiiDA folder where the .LDOS folder was generated
 and few other parameters (see Inputs section). It produces an array that can be plotted to
 obtain the STM images.
 The plugin is implemented in the class **STMCalculation**.
@@ -18,9 +18,9 @@ The plugin is implemented in the class **STMCalculation**.
 Supported Siesta versions
 -------------------------
 
-At least 4.0.1 of the 4.0 series, 4.1-b3 of the 4.1 series and the MaX-1.0 release, 
+At least 4.0.1 of the 4.0 series, 4.1-b3 of the 4.1 series and the MaX-1.0 release,
 which can be found in the development platform (https://gitlab.com/siesta-project/siesta).
-For more up to date info on compatibility, please check the      
+For more up to date info on compatibility, please check the
 `wiki <https://github.com/siesta-project/aiida_siesta_plugin/wiki/Supported-siesta-versions>`_.
 
 
@@ -53,7 +53,7 @@ Some examples are referenced in the following list. They are located in the fold
 
 * **value**, class :py:class:`Float <aiida.orm.Float>`, *Mandatory*
 
-  The value of height or current at which the user wants to simulate the 
+  The value of height or current at which the user wants to simulate the
   STM. The height must be expressed in `Angstrom`, the current in `e/bohr**3`.
 
 .. |br| raw:: html
@@ -62,12 +62,12 @@ Some examples are referenced in the following list. They are located in the fold
 
 
 * **ldos_folder**, class :py:class:`RemoteData <aiida.orm.RemoteData>`, *Mandatory*
-      
+
   The parent folder of a previous Siesta calculation in which the .LDOS
   file was generated. To have more information on how to produce the .LDOS file,
   one can refer to the example `aiida_siesta/examples/plugins/siesta/example_ldos.py`.
   Please note that the **ldos_folder** must be on the same machine on which the STM analysis
-  is performed. In other words, the input **code** must be installed on the same machine 
+  is performed. In other words, the input **code** must be installed on the same machine
   where the **ldos_folder** resides. This is a limitation of AiiDA that can not copy
   between different computers, but it is also required by `plstm` itself, as the .LDOS
   file is produced in an unformatted way.
@@ -79,7 +79,7 @@ Some examples are referenced in the following list. They are located in the fold
 * **spin_option**, class :py:class:`Str <aiida.orm.Str>`, *Optional*
 
   Input port that allows the selection of the spin options offered by `plstm`. It follows the same
-  syntax of the code. The value "q" selects a total charge analysis. The value "s" selects the 
+  syntax of the code. The value "q" selects a total charge analysis. The value "s" selects the
   total spin magnitude analyisis (only available if the parent Siesta calculation is spin polarized).
   Finally, the values "x", "y" or "z" indicate a separate analysis of one the three spin components
   (only available if the parent Siesta calculation is performed with non-collinear options).
@@ -106,14 +106,14 @@ The only change is to import the correct plugin::
 
         from aiida_siesta.calculations.stm import STMCalculation
         builder = STMCalculation.get_builder()
-and, of course, to define the correct inputs allowed by **STMCalculation** (previous 
+and, of course, to define the correct inputs allowed by **STMCalculation** (previous
 section).
 
 
 Outputs
 -------
 
-* **stm_array** :py:class:`ArrayData <aiida.orm.ArrayData>` 
+* **stm_array** :py:class:`ArrayData <aiida.orm.ArrayData>`
 
   A collection of three 2D arrays (`grid_X`, `grid_Y`, `STM`) holding the section or
   topography information. They follow the `meshgrid` convention in
@@ -124,16 +124,16 @@ Outputs
 
     <br />
 
-* **output_parameters** :py:class:`Dict <aiida.orm.Dict>` 
+* **output_parameters** :py:class:`Dict <aiida.orm.Dict>`
 
-  At this point, it constains only the parser information and the name of the 
+  At this point, it constains only the parser information and the name of the
   retrieved file where the STM info were stored.
 
 
 Errors
 ------
 
-Errors during the parsing stage are reported in the log of the calculation (accessible 
-with the ``verdi process report`` command). 
+Errors during the parsing stage are reported in the log of the calculation (accessible
+with the ``verdi process report`` command).
 
 .. _aiida guidelines: https://aiida-core.readthedocs.io/en/latest/get_started/computers.html

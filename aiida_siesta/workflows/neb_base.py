@@ -1,16 +1,24 @@
+# -*- coding: utf-8 -*-
+"""
+Base workchain for NEB calculations.
+"""
 from aiida import orm
-from aiida.orm.nodes.data.structure import Kind
-from aiida.engine import WorkChain, calcfunction, ToContext
 from aiida.common.folders import SandboxFolder
-from aiida_siesta.utils.xyz_utils import write_xyz_file_from_structure
-from aiida_siesta.utils.structures import add_ghost_sites_to_structure
+from aiida.engine import ToContext, WorkChain, calcfunction
+from aiida.orm.nodes.data.structure import Kind
+
 from aiida_siesta.calculations.siesta import SiestaCalculation
+from aiida_siesta.utils.structures import add_ghost_sites_to_structure
+from aiida_siesta.utils.xyz_utils import write_xyz_file_from_structure
+
+# pylint: disable=protected-access
 
 
 @calcfunction
 def parse_neb(retrieved, ref_structure):
     """
     Wrapper to preserve provenance.
+
     :param: retrieved:  the retrieved folder from a NEB calculation
                         (containing .xyz files and NEB data files)
     :param: ref_structure: a reference structure
@@ -18,21 +26,27 @@ def parse_neb(retrieved, ref_structure):
              with extra arrays for NEB results.
     """
     import os
-    from aiida.orm import TrajectoryData
-    from aiida_siesta.utils.xyz_utils import get_structure_list_from_folder
-    from aiida_siesta.utils.neb import parse_neb_results
+    import tempfile
 
-    folder_path = retrieved._repository._get_base_folder().abspath
-    struct_list = get_structure_list_from_folder(folder_path, ref_structure)
+    from aiida.orm import TrajectoryData
+
+    from aiida_siesta.utils.neb import parse_neb_results
+    from aiida_siesta.utils.xyz_utils import get_structure_list_from_folder
+
+    with tempfile.TemporaryDirectory() as dirpath:
+        retrieved.copy_tree(dirpath)
+        struct_list = get_structure_list_from_folder(dirpath, ref_structure)
 
     traj = TrajectoryData(struct_list)
 
     annotated_traj = None
 
     neb_results_file = 'NEB.results'
-    if neb_results_file in retrieved._repository.list_object_names():
-        neb_results_path = os.path.join(folder_path, neb_results_file)
-        annotated_traj = parse_neb_results(neb_results_path, traj)
+    if neb_results_file in retrieved.list_object_names():
+        with tempfile.TemporaryDirectory() as dirpath:
+            retrieved.copy_tree(dirpath)
+            neb_results_path = os.path.join(dirpath, neb_results_file)
+            annotated_traj = parse_neb_results(neb_results_path, traj)
 
         _kinds_raw = [k.get_raw() for k in ref_structure.kinds]
         annotated_traj.set_attribute('kinds', _kinds_raw)
@@ -60,6 +74,7 @@ def validate_starting_path(value, _):
 class SiestaBaseNEBWorkChain(WorkChain):
     """
     Workchain to run a NEB MEP optimization starting from a guessed path.
+
     In theory, such task can be accomplished using directly the SiestaCalculation
     and passing the guessed path as xyz files in lua.input_files input (see
     `examples/plugins/siesta/example_neb.py`). Here, instead, the
@@ -74,6 +89,9 @@ class SiestaBaseNEBWorkChain(WorkChain):
 
     @classmethod
     def define(cls, spec):
+        """
+        Define the specs.
+        """
         super().define(spec)
 
         #Nothe that the structure is not required, all comes from the `starting_path`
@@ -105,7 +123,7 @@ class SiestaBaseNEBWorkChain(WorkChain):
 
     def create_reference_structure(self):
         """
-        Create the reference structure with custom kinds
+        Create the reference structure with custom kinds.
         """
         path = self.inputs.starting_path
 
@@ -175,7 +193,9 @@ class SiestaBaseNEBWorkChain(WorkChain):
         return ToContext(neb_wk=running)
 
     def run_results(self):
-
+        """
+        Get the results.
+        """
         if not self.ctx.neb_wk.is_finished_ok:
             return self.exit_codes.ERROR_NEB_CALC
 

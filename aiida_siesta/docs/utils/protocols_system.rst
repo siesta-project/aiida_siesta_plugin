@@ -4,13 +4,13 @@ The protocols system
 Description
 -----------
 
-In order to submit **SiestaCalculations**, the user needs to manually select all the inputs, 
+In order to submit **SiestaCalculations**, the user needs to manually select all the inputs,
 being careful to pass the correct specifications to perform the calculation
 (as explained in the :ref:`corresponding section <siesta-plugin-inputs>`).
 The package ``aiida_siesta`` provides also a set of pre-selected inputs to run a **SiestaCalculations**,
 and the WorkChains distributed in the package,
 supporting the tasks of the relaxation of a structure and the calculations of bands.
-In other words, the user can obtain a ``builder`` of the 
+In other words, the user can obtain a ``builder`` of the
 **SiestaCalculation** that is ready to be submitted. This ``builder``, in fact, is pre-filled
 with inputs selected according to the structure under investigation and very few options specified by the user.
 The lengthy inputs selection is substitute by::
@@ -19,16 +19,16 @@ The lengthy inputs selection is substitute by::
         builder = inp_gen.get_filled_builder(structure, calc_engines, protocol)
 
 
-The list of options to obtain the builder is presented :ref:`here <how-to>`, however the main feature is the 
+The list of options to obtain the builder is presented :ref:`here <how-to>`, however the main feature is the
 use of *protocols*. A *protocol* groups operational parameters for a Siesta calculation
 and it is meant to offer a set of inputs with the desired balance of accuracy and efficiency.
-At the moment only one protocol is shipped in the package, it is called 
+At the moment only one protocol is shipped in the package, it is called
 *standard_psml*. More on it is presented in the next to next subsection.
 It is important to note that the implemented protocols are not, for the moment,
 input parameters that are guaranteed to perform in any situation. They are only
 based on reasonable assumptions and few tests. However, in the package it is also implemented
 a system that allows users to create their own protocols, as clarified :ref:`here <custom-prot>`.
-Finally, it must be remembered that the ``builder`` produced according to a *protocol* and few other options is fully 
+Finally, it must be remembered that the ``builder`` produced according to a *protocol* and few other options is fully
 modifiable before submission, leaving full flexibility to the user.
 We expect in the future to have more and more "know how" and improve the
 reliability and richness of the available *protocols*.
@@ -46,7 +46,7 @@ Supported Siesta versions
 .. can be found in the development platform
 .. (https://gitlab.com/siesta-project/siesta).
 
-The protocol system, at the moment, requires a version of siesta 
+The protocol system, at the moment, requires a version of siesta
 with support for psml pseudopotential. At least **the MaX-1.0 release of Siesta**, which
 can be found in the development platform
 (https://gitlab.com/siesta-project/siesta), meets this requirement.
@@ -63,7 +63,7 @@ CalJobs/WorkChains that allow users to more easily automatize their workflows.
 These inputs reflects a certain set of operational parameters for a Siesta
 calculation. The choice of the inputs of a DFT simulation should be carefully tested
 for any new system. Therefore the use of protocols, in place of a careful and tested
-choice of inputs, it is always somehow limiting. It can be, however, 
+choice of inputs, it is always somehow limiting. It can be, however,
 considered a good starting point.
 This is the very beginning of the development and, for the moment, only
 one very basic protocol is implemented.
@@ -93,7 +93,7 @@ peculiarities of particular elements.
 
     <br />
 
- 
+
   * *atomic_heuristics*
 
     The element "Ag" requires a bigger ``mesh-cutoff`` because ``mesh-cutoff = 200 Ry`` was leading to a
@@ -102,11 +102,11 @@ peculiarities of particular elements.
     in a too-large radius for the "s" orbitals. The "Hg" custom basis introduces an increment of
     all radii of 5% compared to the automatic generated orbitals and adds a Z orbital for the "p"
     channel, while removing polarization.
-    The elements "Li", "Be", "Mg", Na", "Fe", "Mn", "Sb" require a bigger 
+    The elements "Li", "Be", "Mg", Na", "Fe", "Mn", "Sb" require a bigger
     ``mesh-cutoff`` because ``mesh-cutoff = 200 Ry`` resulted in
     a discontinuous equation of state.
 
-  This choice of parameters have been tested on crystal elements up to the 
+  This choice of parameters have been tested on crystal elements up to the
   element "Rn" and compared with the reference equation of state of the
   `DeltaTest`_ project, resulting on an average delta value of 7.1 meV.
   The parameters of this protocol for noble gasses do not result in an a minimum of the equation of state.
@@ -118,13 +118,13 @@ peculiarities of particular elements.
   is just an indication that the parameters' choice gives reasonable results for elemental crystals.
   We are working on a more accurate (and expensive) protocol that will provide much better
   values of delta.
-  New tests and checks on the *standard_psml* protocol will be added in the aiida-siesta 
+  New tests and checks on the *standard_psml* protocol will be added in the aiida-siesta
   `wiki <https://github.com/siesta-project/aiida_siesta_plugin/wiki/Protocols-validations>`_.
 
 
-  
+
 .. Maximum delta is 28 meV for "Ne" and "Ar".
-  
+
 ..  Download at https://icmab.es/leem/SIESTA_MATERIAL/tmp_PseudoDojo/nc-sr-04_pbe_standard-psf.tgz.
   Basis set apply globally, with size DZ and energy-shift of 100 meV. Meshcutoff is 100 Ry,
   electronic temp 25 meV, and a kpoint mesh with distance 0.2 are implemented.
@@ -164,7 +164,7 @@ and an input structure, that is ready to be submitted (or modified and then subm
 
 First of all, the scalar relativistic "standard" pseudo set from `PseudoDojo`_ must be installed
 as aiida family pseudo family::
-       
+
         aiida-pseudo install pseudo-dojo -v 0.4 -x PBE -r SR -p standard -f psml
 
 
@@ -175,7 +175,7 @@ as aiida family pseudo family::
 
 Once this first step is done, the pre-filled builder can be
 accessed through the method ``inputs_generator`` of the **SiestaCalculation**
-(and of any other workchain). 
+(and of any other workchain).
 For example::
 
         from aiida_siesta.calculations.siesta import SiestaCalculation
@@ -204,9 +204,9 @@ The arguments of ``get_filled_builder`` of the input generator are explained her
                 'code': codename,
                 'options': {
                         'resources': {'num_machines': 1, "num_mpiprocs_per_machine": 1},
-                        'max_wallclock_seconds': 360, 
-                        'queue_name': 'DevQ', 
-                        'withmpi': True, 
+                        'max_wallclock_seconds': 360,
+                        'queue_name': 'DevQ',
+                        'withmpi': True,
                         'account': "tcphy113c"
                  }
             }
@@ -234,8 +234,8 @@ The arguments of ``get_filled_builder`` of the input generator are explained her
   The presence of this parameter triggers the calculation of bands.
   Two are the available value to pass as `bands_path_generator`: "seekpath" or "legacy".
   They set the way the path in k-space is produced. This path is used to display the
-  bands. While "seekpath" modify the structure running the calculation on an equivalent "conventional" 
-  cell, "legacy" doesn't and preserves the input structure. However the "legacy" method is known to 
+  bands. While "seekpath" modify the structure running the calculation on an equivalent "conventional"
+  cell, "legacy" doesn't and preserves the input structure. However the "legacy" method is known to
   have bugs for certain structure cells.
 
 .. |br| raw:: html
@@ -310,7 +310,7 @@ An example::
                 split-tail-norm: True
 
 The protocol name should be the outer entry of the indentation.
-For each protocol, some keyword are mandatory. They are `description`, `parameters`, `basis` and `pseudo_family`. 
+For each protocol, some keyword are mandatory. They are `description`, `parameters`, `basis` and `pseudo_family`.
 The `pseudo_family`
 must contain the name of a family (Psml or Psf family) that has been already uploaded in the database.
 The number of elements covered by your pseudo family will limit the materials you
@@ -323,12 +323,12 @@ Two optional keywords are `relax_additions` and `spin_additions`.
 This two entries are not meant to host the siesta keywords that activate the relaxation or spin options,
 but possible additions/modifications to the `parameters` entry, to apply in case of relaxation
 or spin. When the use of protocols is called and the relax/spin options are requested (see `here <how-to>`_),
-the system will automatically take care of introducing the correct siesta keyword (`MD.TypeOfRun`, 
+the system will automatically take care of introducing the correct siesta keyword (`MD.TypeOfRun`,
 `MD.VariableCell`, `spin` etc.) that are indispensable to run the task. However, it might happen that
 a user desires a more loose `scf-dm-tolerance` for the task of the relaxation or a different `scf-mixer-weight`
 when the spin is active. The `relax_additions` and `spin_additions` keywords have been created
 exactly for this purpose.
-Please be carefull that (except for the `mesh-cutoff`) if a keyword in `spin_additions` or 
+Please be carefull that (except for the `mesh-cutoff`) if a keyword in `spin_additions` or
 `relax_additions` is already present in `parameters`, its value in `parameters` will overriden.
 In other words, values in `spin_additions` or `relax_additions` have priority compared to the one
 in `parameters`. Moreover `relax_additions` has priority respect to `spin_additions`.
@@ -338,7 +338,7 @@ Another optional entry is `kpoints`, where a `distance` and an `offset` only can
 The system will take care to create a uniform mesh for the structure under investigation with
 a density that correspond to a distance (in 1/Angstrom) between adjacent kpoints equal to `dinstance`.
 
-The final allowed (optional) keyword is `atomic_heuristics`. 
+The final allowed (optional) keyword is `atomic_heuristics`.
 In it, two only sub-keys are allowed: `parameters` and `basis`.
 In `parameters`,  only a 'mesh-cutoff' can be specified. This `mesh-cutoff` applies globally
 and only if it is the biggest one among the all `mesh-cutoff` that apply.

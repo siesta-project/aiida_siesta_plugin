@@ -1,9 +1,14 @@
-from aiida.orm import (Str, Float, Code, Dict, ArrayData, StructureData)
+# -*- coding: utf-8 -*-
+"""
+Workchain to run siesta and then plstm, obtaining the STM image.
+"""
 from aiida.common import AttributeDict
-from aiida.engine import WorkChain, calcfunction, ToContext
-from aiida_siesta.workflows.base import SiestaBaseWorkChain
+from aiida.engine import ToContext, WorkChain, calcfunction
+from aiida.orm import ArrayData, Code, Dict, Float, Str, StructureData
+
 from aiida_siesta.calculations.stm import STMCalculation
 from aiida_siesta.utils.tkdict import FDFDict
+from aiida_siesta.workflows.base import SiestaBaseWorkChain
 
 
 #This is one of the situations where there is no obbligation to
@@ -14,31 +19,38 @@ from aiida_siesta.utils.tkdict import FDFDict
 #in the input port of the SiestaBaseWorkChain, but without @calcfunction,
 #the connection between them is lost.
 def strip_ldosblock(param):
-
+    """
+    Strip the ldos block.
+    """
     param_copy = param.get_dict()
     translated_para = FDFDict(param_copy)
     translated_para.pop('%block localdensityofstates')
 
-    return Dict(dict=translated_para)
+    return Dict(translated_para)
 
 
 #Here, instead, the use of @calcfunction is mandatory as we want to
 #create something to return in output
 @calcfunction
 def create_non_coll_array(**arrays):
+    """
+    Create an array with results.
+    """
     arraydata = ArrayData()
     arraydata.set_array('grid_X', arrays["q"].get_array("grid_X"))
     arraydata.set_array('grid_Y', arrays["q"].get_array("grid_Y"))
     arraydata.set_array('STM_q', arrays["q"].get_array("STM"))
     for spinmod in ("x", "y", "z"):
-        arraydata.set_array('STM_s{}'.format(spinmod), arrays[spinmod].get_array("STM"))
+        arraydata.set_array(f'STM_s{spinmod}', arrays[spinmod].get_array("STM"))
 
     return arraydata
 
 
 class SiestaSTMWorkChain(WorkChain):
     """
-    STM Workchain. This workchain runs a DFT calculation with siesta, calculates
+    STM Workchain.
+
+    This workchain runs a DFT calculation with siesta, calculates
     the local density of states in an energy window specified by the user (stored
     in a .LDOS file) and post-process it in order to produce simulated STM images.
     """
@@ -48,6 +60,9 @@ class SiestaSTMWorkChain(WorkChain):
 
     @classmethod
     def define(cls, spec):
+        """
+        Define the specs.
+        """
         super().define(spec)
         spec.expose_inputs(SiestaBaseWorkChain, exclude=('metadata',))
         #Temporary fix to issue #135 plumpy
@@ -77,9 +92,8 @@ class SiestaSTMWorkChain(WorkChain):
 
     def checks(self):  # noqa: MC0001  - is mccabe too complex funct -
         """
-        Checks on inputs and definition of few variables useful in the next steps
+        Checks on inputs and definition of few variables useful in the next steps.
         """
-
         stm_code = self.inputs.stm_code
         code = self.inputs.code
         mode = self.inputs.stm_mode.value
@@ -165,7 +179,6 @@ class SiestaSTMWorkChain(WorkChain):
         """
         Run the SiestaBaseWorkChain, might be a relaxation or a scf only.
         """
-
         self.report('Initial checks where succesfull')
 
         inputs = AttributeDict(self.exposed_inputs(SiestaBaseWorkChain))
@@ -174,12 +187,14 @@ class SiestaSTMWorkChain(WorkChain):
             inputs["parameters"] = newpar
 
         running = self.submit(SiestaBaseWorkChain, **inputs)
-        self.report('Launched SiestaBaseWorkChain<{}> to perform the siesta calculation.'.format(running.pk))
+        self.report(f'Launched SiestaBaseWorkChain<{running.pk}> to perform the siesta calculation.')
 
         return ToContext(workchain_base=running)
 
     def run_siesta_with_ldos(self):
         """
+        Define the range of energy and run a siesta calc to get LDOS.
+
         This step is only necessary because the old versions of siesta do not allow
         to specify the energy range in the local-density-of-states block refered to
         the Fermi energy. Therefore, knowing now the Ef from the previous step,
@@ -212,10 +227,10 @@ class SiestaSTMWorkChain(WorkChain):
         param_dict = restart.parameters.get_dict()
         param_dict["%block local-density-of-states"] = ldos_e
         #pop the relax keys??
-        restart.parameters = Dict(dict=param_dict)
+        restart.parameters = Dict(param_dict)
         restart.parent_calc_folder = outwc.remote_folder
         settings_dict = {'additional_retrieve_list': ['aiida.BONDS', 'aiida.LDOS']}
-        restart.settings = Dict(dict=settings_dict)
+        restart.settings = Dict(settings_dict)
 
         running = self.submit(restart)
         self.report(f'Launched SiestaBaseWorkChain<{running.pk}> to obtain the .LDOS file.')
@@ -224,9 +239,8 @@ class SiestaSTMWorkChain(WorkChain):
 
     def run_stm(self):
         """
-        Run a STMCalculation with the relaxed_calculation parent folder
+        Run a STMCalculation with the relaxed_calculation parent folder.
         """
-
         if not self.ctx.siesta_ldos.is_finished_ok:
             return self.exit_codes.ERROR_LDOS_WC
 
@@ -277,9 +291,8 @@ class SiestaSTMWorkChain(WorkChain):
 
     def run_results(self):
         """
-        Attach the relevant output nodes
+        Attach the relevant output nodes.
         """
-
         from aiida.engine import ExitCode
 
         if self.ctx.spinstm == "non-collinear":
@@ -308,5 +321,8 @@ class SiestaSTMWorkChain(WorkChain):
 
     @classmethod
     def inputs_generator(cls):  # pylint: disable=no-self-argument,no-self-use
+        """
+        Get the input generator.
+        """
         from aiida_siesta.utils.protocols_system.input_generators import StmWorkChainInputGenerator
         return StmWorkChainInputGenerator(cls)

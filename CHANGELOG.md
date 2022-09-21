@@ -1,5 +1,29 @@
 # Changelog
 
+## v2.0.0
+
+Version compatible with aiida-core>=2.0.0,<3.0.0.
+
+### Improvements
+- Added support to aiida-core>=2.0.0.
+
+### For developers
+- Moved to `flit` for build and distribution of the package.
+
+
+## v1.4.0
+
+Version compatible with aiida-core>=1.3.0,<2.0.0.
+
+### Improvements
+- Introduce several workchains to help the optimization of basis sets.
+
+### For developers
+- Introduces dependences on aiida-optimize.
+- It is supposed to be the last release before moving the development to 2.0.x (that will be compatible
+  with aiida-core>=2.0.0 only).
+
+
 ## v1.3.0
 
 Version compatible with aiida-core>=1.3.0,<2.0.0.

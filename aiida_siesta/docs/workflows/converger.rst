@@ -7,7 +7,7 @@ Description
 The **SiestaConverger** is a tool to facilitate convergence tests with Siesta.
 It extends the **SiestaIterator** to accept a target quantity that is checked
 after each step to evaluate whether convergence has been reached or not.
-The convergence check just consists in calculating the difference in the target quantity 
+The convergence check just consists in calculating the difference in the target quantity
 between the present step and the step before and comparing it with a threshold value
 passed by the user in input.
 An example on the use of the **SiestaConverger** is
@@ -20,7 +20,7 @@ Supported Siesta versions
 At least 4.0.1 of the 4.0 series, 4.1-b3 of the 4.1 series and the MaX-1.0 release, which
 can be found in the development platform
 (https://gitlab.com/siesta-project/siesta).
-For more up to date info on compatibility, please check the      
+For more up to date info on compatibility, please check the
 `wiki <https://github.com/siesta-project/aiida_siesta_plugin/wiki/Supported-siesta-versions>`_.
 
 

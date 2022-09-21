@@ -1,9 +1,17 @@
-import os
-import numpy as np
-from aiida.parsers import Parser
+# -*- coding: utf-8 -*-
+"""
+Parser for a siesta calculation.
+
+Most of the info are parsed from the .xml file but also the .out is checked for errors.
+The .ion.xml is also always parsed. The .bands and .EPSIMG are parsed if bands and
+optical calculations are   requested respectively.
+"""
+from aiida.common import OutputParsingError, exceptions
 from aiida.orm import Dict
-from aiida.common import OutputParsingError
-from aiida.common import exceptions
+from aiida.parsers import Parser
+import numpy as np
+
+# pylint: disable=protected-access
 
 # See the LICENSE.txt and AUTHORS.txt files.
 
@@ -13,15 +21,84 @@ from aiida.common import exceptions
 #####################################################
 
 
-def get_eps2(eps2_path):
+def get_timing_info(output_folder, json_name):
     """
-    Reads the eps2_path files to extract an array energy vs eps2
-    """
+    Parse the time.json produce by siesta.
 
+    Need a lot of trial and error becuse the format of the file is differente
+    changing the siesta version.
+    """
+    import json
+
+    timing_decomp = {}
+    global_time = None
+
+    with output_folder.base.repository.open(json_name, mode='rb') as handle:
+        try:
+            data = json.load(handle)
+        except:  # pylint: disable=bare-except
+            # The JSON file is not parseable...emit message
+            return global_time, timing_decomp
+
+    try:
+        data1 = data["global_section"]["siesta"]
+        global_time = data1["_time"]
+        timing_decomp["siesta"] = global_time
+    except KeyError:
+        # wrong structure
+        return global_time, timing_decomp
+
+    try:
+        data2 = data1["IterGeom"]
+        timing_decomp["state_init"] = data2["state_init"]["_time"]
+    except KeyError:
+        pass
+
+    try:
+        timing_decomp["setup_H0"] = data2["Setup_H0"]["_time"]
+    except KeyError:
+        pass
+
+    try:
+        timing_decomp["nlefsm-1"] = data2["Setup_H0"]["nlefsm"]["_time"]
+    except KeyError:
+        pass
+    try:
+        timing_decomp["setup_H"] = data2["IterSCF"]["setup_H"]["_time"]
+    except KeyError:
+        pass
+    try:
+        timing_decomp["compute_DM"] = data2["IterSCF"]["compute_dm"]["_time"]
+    except KeyError:
+        pass
+    try:
+        timing_decomp["post-SCF"] = data2["PostSCF"]["_time"]
+    except KeyError:
+        pass
+    try:
+        timing_decomp["nlefsm-2"] = data2["PostSCF"]["nlefsm"]["_time"]
+    except KeyError:
+        pass
+    try:
+        timing_decomp["siesta_analysis"] = data1["siesta_analysis"]["_time"]
+    except KeyError:
+        pass
+    try:
+        timing_decomp["siesta_analysis"] = data1["Analysis"]["_time"]
+    except KeyError:
+        pass
+
+    return global_time, timing_decomp
+
+
+def get_eps2(output_folder, eps2_name):
+    """
+    Read the eps2_path files to extract an array energy vs eps2.
+    """
     eps2_list = []
 
-    with open(eps2_path, 'r') as file_h:
-        for line in file_h:
+    with output_folder.base.repository.open(eps2_name, mode='r') as handle:
+        for line in handle:
             # check if the current line starts with "#"
             if line.startswith("#"):
                 pass
@@ -32,31 +109,29 @@ def get_eps2(eps2_path):
     return eps2_list
 
 
-def is_polarization_problem(output_path):
+def is_polarization_problem(output_folder, out_name):
     """
     Check the presence of polarization errors.
     """
-
-    thefile = open(output_path)
-    lines = thefile.read().split('\n')
+    with output_folder.base.repository.open(out_name, mode='rb') as handle:
+        print(handle)
+        lines = handle.read().split('\n')
 
     for line in lines:
         if "POLARIZATION: Iteration to find the polarization" in line:
             return True
 
-    thefile.close()
-
     return False
 
 
-def get_min_split(output_path):
+def get_min_split(output_folder, out_name):
     """
     Check the presence of split_norm errors in the .out.
+
     If present, extract the minimum split_norm parameter. If not, return None.
     """
-
-    thefile = open(output_path)
-    lines = thefile.read().split('\n')
+    with output_folder.base.repository.open(out_name, mode='rb') as handle:
+        lines = handle.read().split('\n')
 
     min_split_norm = None
     split_norm_error = False
@@ -73,20 +148,33 @@ def get_min_split(output_path):
     return min_split_norm
 
 
-def get_parsed_xml_doc(xml_path):
+def get_parsed_xml_doc(output_folder, xml_name):
+    """
+    Check that the parsed xml is not corrupted.
+    """
 
     from xml.dom import minidom
 
-    try:
-        xmldoc = minidom.parse(xml_path)
-    except EOFError:
-        raise OutputParsingError("Faulty Xml File")
+    with output_folder.base.repository.open(xml_name, mode='rb') as handle:
+        try:
+            xmldoc = minidom.parse(handle)
+        except EOFError:
+            raise OutputParsingError("Faulty Xml File")
 
     return xmldoc
 
 
 def get_dict_from_xml_doc(xmldoc):
+    """
+    Most important part of the parsing of the .xml file.
 
+    The code looks for the "SCF Finalization" section (in case of relazation, the
+    last of the many "SCF Finalization" sections). There is also a "Finalize"
+    section in the .xml but "SCF Finalization" is preferred since it is always
+    written, even if something goes wrong. For instance, during a relaxation
+    that gets interrupted, "Finalize" is not present, but an "SCF Finalization"
+    yes and that can be used for restart.
+    """
     # List of scalar values from CML to be transferred to AiiDA
     #pylint: disable=invalid-name
     standard_output_list = ['siesta:FreeE', 'siesta:E_KS', 'siesta:Ebs', 'siesta:E_Fermi', 'siesta:stot']
@@ -149,10 +237,8 @@ def get_dict_from_xml_doc(xmldoc):
 
 def is_variable_geometry(xmldoc):
     """
-     Tries to guess whether the calculation involves changes in
-     geometry.
-     """
-
+    Try to guess whether the calculation involves changes in geometry.
+    """
     itemlist = xmldoc.getElementsByTagName('module')
     for item in itemlist:
         # Check there is a step which is a "geometry optimization" one
@@ -169,8 +255,8 @@ def is_variable_geometry(xmldoc):
 
 def get_sizes_info(xmldoc):
     """
-     Gets the number of orbitals and non-zero interactions
-     """
+    Get the number of orbitals and non-zero interactions.
+    """
     no_u = None
     nnz = None
     mesh = None
@@ -197,7 +283,9 @@ def get_sizes_info(xmldoc):
 
 
 def get_last_structure(xmldoc, input_structure):
-
+    """
+    Get the final structure of a relaxation.
+    """
     itemlist = xmldoc.getElementsByTagName('module')
 
     # Use the last "geometry" module, and not the "Finalization" one.
@@ -243,13 +331,14 @@ def get_last_structure(xmldoc, input_structure):
     # 'names' are not handled by the CML file (at least not in Siesta versions <= 4.0)
 
     import copy
+
     from aiida.orm.nodes.data.structure import Site
     new_structure = input_structure.clone()
     new_structure.reset_cell(cell)
     new_structure.clear_sites()
-    for i in range(number_of_real_atoms):
-        new_site = Site(site=input_structure.sites[i])
-        new_site.position = copy.deepcopy(atomlist[i][1])
+    for indx in range(number_of_real_atoms):
+        new_site = Site(site=input_structure.sites[indx])
+        new_site.position = copy.deepcopy(atomlist[indx][1])
         new_structure.append_site(new_site)
 
     # The most obvious alternative does not work, as the reset method below does not
@@ -262,14 +351,15 @@ def get_last_structure(xmldoc, input_structure):
 
 
 def get_final_forces_and_stress(xmldoc):
-    #
-    # Extracts final forces and stress as lists of lists...
+    """
+    Extract final forces and stress as lists of lists.
+    """
     itemlist = xmldoc.getElementsByTagName('module')
 
     # Note: In modern versions of Siesta, forces and stresses
     # are written in the "SCF Finalization" modules at the end
     # of each geometry step.
-    # Search for the last one of those modules
+    # Search for the last one of those modules.
 
     scf_final = None
     for item in itemlist:
@@ -319,91 +409,88 @@ class SiestaParser(Parser):
     Parser for the output of Siesta.
     """
 
-    _version = '1.3.1.dev0'
+    _version = '2.0.0'
 
-    def parse(self, **kwargs):  # noqa: MC0001  - is mccabe too complex funct -
+    def parse(self, **kwargs):  # pylint: disable=too-many-locals,too-many-branches,too-many-statements
         """
         Receives in input a dictionary of retrieved nodes. Does all the logic here.
         """
         from aiida.engine import ExitCode
 
         parser_info = {}
-        parser_info['parser_info'] = 'AiiDA Siesta Parser V. {}'.format(self._version)
+        parser_info['parser_info'] = f'AiiDA Siesta Parser V. {self._version}'
 
         try:
             output_folder = self.retrieved
         except exceptions.NotExistent:
             raise OutputParsingError("Folder not retrieved")
 
-        output_path, messages_path, xml_path, json_path, bands_path, basis_enthalpy_path, harris_en_path, eps2_path = \
-            self._fetch_output_files(output_folder)
-
-        if xml_path is None:
+        xml_name = str(self.node.get_option('prefix')) + ".xml"
+        if xml_name not in output_folder.list_object_names():
             raise OutputParsingError("Xml file not retrieved")
-        xmldoc = get_parsed_xml_doc(xml_path)
+        xmldoc = get_parsed_xml_doc(output_folder, xml_name)
         result_dict = get_dict_from_xml_doc(xmldoc)
 
-        if output_path is None:
+        out_name = self.node.get_option('output_filename')
+        if out_name not in output_folder.list_object_names():
             raise OutputParsingError("output file not retrieved")
 
         output_dict = dict(list(result_dict.items()) + list(parser_info.items()))
 
         warnings_list = []
 
-        if json_path is not None:
-            from .json_time import get_timing_info
-            global_time, timing_decomp = get_timing_info(json_path)
+        json_name = self.node.process_class._JSON_FILE
+        if json_name in output_folder.list_object_names():
+            global_time, timing_decomp = get_timing_info(output_folder, json_name)
             if global_time is None:
                 warnings_list.append(["Cannot fully parse the time.json file"])
             else:
                 output_dict["global_time"] = global_time
                 output_dict["timing_decomposition"] = timing_decomp
 
-        if basis_enthalpy_path is not None:
-            the_file = open(basis_enthalpy_path)
-            bas_enthalpy = float(the_file.read().split()[0])
-            the_file.close()
+        basis_enthalpy_name = self.node.process_class._BASIS_ENTHALPY_FILE
+        if basis_enthalpy_name in output_folder.list_object_names():
+            with output_folder.base.repository.open(basis_enthalpy_name, mode='rb') as handle:
+                bas_enthalpy = float(handle.read().split()[0])
             output_dict["basis_enthalpy"] = bas_enthalpy
             output_dict["basis_enthalpy_units"] = "eV"
         else:
             warnings_list.append(["BASIS_ENTHALPY file not retrieved"])
 
-        if harris_en_path is not None:
-            the_file = open(harris_en_path)
-            harr_enthalpy = float(the_file.read().split()[0])
-            the_file.close()
+        harris_en_name = self.node.process_class._HARRIS_ENTHALPY_FILE
+        if harris_en_name in output_folder.list_object_names():
+            with output_folder.base.repository.open(harris_en_name, mode='rb') as handle:
+                harr_enthalpy = float(handle.read().split()[0])
             output_dict["harris_basis_enthalpy"] = harr_enthalpy
             output_dict["harris_basis_enthalpy_units"] = "eV"
         else:
             warnings_list.append(["HARRIS_BASIS_ENTHALPY file not retrieved"])
 
         have_errors_to_analyse = False
-        if messages_path is None:
+        message_name = self.node.process_class._MESSAGES_FILE
+        if message_name not in output_folder.list_object_names():
             # Perhaps using an old version of Siesta
             warnings_list.append(['WARNING: No MESSAGES file, could not check if calculation terminated correctly'])
         else:
             have_errors_to_analyse = True
             #succesful when "INFO: Job completed" is present in message files
-            succesful, from_message = self._get_warnings_from_file(messages_path)
+            succesful, from_message = self._get_warnings_from_file(output_folder, message_name)
             warnings_list.append(from_message)
         output_dict["warnings"] = warnings_list
 
         # An output_parametrs port is always return, even if only parser's info are present
-        output_data = Dict(dict=output_dict)
+        output_data = Dict(output_dict)
         self.out('output_parameters', output_data)
 
-        #
         # When using floating sites, Siesta associates 'atomic positions' to them, and
         # the structure and forces in the XML file include these fake atoms.
         # In order to return physical structures and forces, we need to remove them.
         # Recall that the input structure is the physical one, and the floating sites
         # are specified in the 'basis' input
-        #
         physical_structure = self.node.inputs.structure
         number_of_real_atoms = len(physical_structure.sites)
 
         # If the structure has changed, save it
-        #
         if output_dict['variable_geometry']:
             in_struc = self.node.inputs.structure
             # The next function never fails. If problems arise, the initial structure is
@@ -430,16 +517,16 @@ class SiestaParser(Parser):
         #Attempt to parse the ion files. Files ".ion.xml" are not produced by siesta if ions file are used
         #in input (`user-basis = T`). This explains the first "if" statement. The SiestaCal input is called
         #`ions__El` (El is the element label) therefore we look for the str "ions" in any of the inputs name.
-        if not any(["ions" in inp for inp in self.node.inputs]):  #pylint: disable=too-many-nested-blocks
+        if not any(("ions" in inp for inp in self.node.inputs)):  #pylint: disable=too-many-nested-blocks
             from aiida_siesta.data.ion import IonData
             ions = {}
             #Ions from the structure
             in_struc = self.node.inputs.structure
             for kind in in_struc.get_kind_names():
                 ion_file_name = kind + ".ion.xml"
-                if ion_file_name in output_folder._repository.list_object_names():
-                    ion_file_path = os.path.join(output_folder._repository._get_base_folder().abspath, ion_file_name)
-                    ions[kind] = IonData(ion_file_path)
+                if ion_file_name in output_folder.list_object_names():
+                    with output_folder.base.repository.open(ion_file_name, mode='rb') as handle:
+                        ions[kind] = IonData(handle)
                 else:
                     self.logger.warning(f"no ion file retrieved for {kind}")
             #Ions from floating_sites
@@ -451,11 +538,9 @@ class SiestaParser(Parser):
                         if orb["name"] not in floating_kinds:
                             floating_kinds.append(orb["name"])
                             ion_file_name = orb["name"] + ".ion.xml"
-                            if ion_file_name in output_folder._repository.list_object_names():
-                                ion_file_path = os.path.join(
-                                    output_folder._repository._get_base_folder().abspath, ion_file_name
-                                )
-                                ions[orb["name"]] = IonData(ion_file_path)
+                            if ion_file_name in output_folder.list_object_names():
+                                with output_folder.base.repository.open(ion_file_name, mode='rb') as handle:
+                                    ions[orb["name"]] = IonData(handle)
                             else:
                                 self.logger.warning(f"no ion file retrieved for {orb['name']}")
             #Return the outputs
@@ -468,30 +553,31 @@ class SiestaParser(Parser):
             # errors. They might apprear as WARNING (therefore with succesful True) or FATAL
             # (succesful False)
             for line in from_message:
-                if u'split options' in line:
-                    min_split = get_min_split(output_path)
+                if 'split options' in line:
+                    min_split = get_min_split(output_folder, out_name)
                     if min_split:
-                        self.logger.error("Error in split_norm option. Minimum value is {}".format(min_split))
+                        self.logger.error(f"Error in split_norm option. Minimum value is {min_split}")
                         return self.exit_codes.SPLIT_NORM
-                if u'sys::die' in line:
+                if 'sys::die' in line:
                     #This is the situation when siesta dies with no specified error
                     #to be reported in "MESSAGES", unfortunately some interesting cases
                     #are treated in this way, we explore the .out file for more insights.
-                    if is_polarization_problem(output_path):
+                    if is_polarization_problem(output_folder, out_name):
                         return self.exit_codes.BASIS_POLARIZ
-                if u'SCF_NOT_CONV' in line:
+                if 'SCF_NOT_CONV' in line:
                     return self.exit_codes.SCF_NOT_CONV
-                if u'GEOM_NOT_CONV' in line:
+                if 'GEOM_NOT_CONV' in line:
                     return self.exit_codes.GEOM_NOT_CONV
 
         #Because no known error has been found, attempt to parse bands if requested
-        if bands_path is None:
+        namebandsfile = str(self.node.get_option('prefix')) + ".bands"
+        if namebandsfile not in output_folder.list_object_names():
             if "bandskpoints" in self.node.inputs:
                 return self.exit_codes.BANDS_FILE_NOT_PRODUCED
         else:
             #bands, coords = self._get_bands(bands_path)
             try:
-                bands = self._get_bands(bands_path)
+                bands = self._get_bands(output_folder, namebandsfile)
             except (ValueError, IndexError):
                 return self.exit_codes.BANDS_PARSE_FAIL
             from aiida.orm import BandsData
@@ -510,11 +596,12 @@ class SiestaParser(Parser):
             #self.out('bands_parameters', bandsparameters)
 
         #Because no known error has been found, attempt to parse EPSIMG file if requested
-        if eps2_path is None:
+        nameepsfile = str(self.node.get_option('prefix')) + ".EPSIMG"
+        if nameepsfile not in output_folder.list_object_names():
             if "optical" in self.node.inputs:
                 return self.exit_codes.EPS2_FILE_NOT_PRODUCED
         else:
-            eps2_list = get_eps2(eps2_path)
+            eps2_list = get_eps2(output_folder, nameepsfile)
             optical_eps2 = ArrayData()
             optical_eps2.set_array('e_eps2', np.array(eps2_list))
             self.out('optical_eps2', optical_eps2)
@@ -531,70 +618,16 @@ class SiestaParser(Parser):
 
         return ExitCode(0)
 
-    def _fetch_output_files(self, out_folder):
+    def _get_warnings_from_file(self, output_folder, messages_name):
         """
-        Checks the output folder for standard output and standard error files, returns their absolute paths
-        or "None" in case the file is not found in the remote folder.
-        """
+        Generate a list of warnings from the 'MESSAGES' file.
 
-        list_of_files = out_folder._repository.list_object_names()
-
-        output_path = None
-        messages_path = None
-        xml_path = None
-        json_path = None
-        bands_path = None
-        basis_enthalpy_path = None
-        harris_en_path = None
-        eps2_path = None
-
-        if self.node.get_option('output_filename') in list_of_files:
-            oufil = self.node.get_option('output_filename')
-            output_path = os.path.join(out_folder._repository._get_base_folder().abspath, oufil)
-
-        namexmlfile = str(self.node.get_option('prefix')) + ".xml"
-        if namexmlfile in list_of_files:
-            xml_path = os.path.join(out_folder._repository._get_base_folder().abspath, namexmlfile)
-
-        if self.node.process_class._JSON_FILE in list_of_files:
-            json_path = os.path.join(
-                out_folder._repository._get_base_folder().abspath, self.node.process_class._JSON_FILE
-            )
-
-        if self.node.process_class._MESSAGES_FILE in list_of_files:
-            messages_path = os.path.join(
-                out_folder._repository._get_base_folder().abspath, self.node.process_class._MESSAGES_FILE
-            )
-
-        if self.node.process_class._BASIS_ENTHALPY_FILE in list_of_files:
-            basis_enthalpy_path = os.path.join(
-                out_folder._repository._get_base_folder().abspath, self.node.process_class._BASIS_ENTHALPY_FILE
-            )
-
-        if self.node.process_class._HARRIS_ENTHALPY_FILE in list_of_files:
-            harris_en_path = os.path.join(
-                out_folder._repository._get_base_folder().abspath, self.node.process_class._HARRIS_ENTHALPY_FILE
-            )
-
-        namebandsfile = str(self.node.get_option('prefix')) + ".bands"
-        if namebandsfile in list_of_files:
-            bands_path = os.path.join(out_folder._repository._get_base_folder().abspath, namebandsfile)
-
-        nameeps2file = str(self.node.get_option('prefix')) + ".EPSIMG"
-        if nameeps2file in list_of_files:
-            eps2_path = os.path.join(out_folder._repository._get_base_folder().abspath, nameeps2file)
-
-        return output_path, messages_path, xml_path, json_path, bands_path, basis_enthalpy_path, harris_en_path, eps2_path  # noqa
-
-    def _get_warnings_from_file(self, messages_path):
-        """
-        Generates a list of warnings from the 'MESSAGES' file, which  contains a line per message,
-        prefixed with 'INFO', 'WARNING' or 'FATAL'.
-
+        This file contains a line per message, prefixed with 'INFO', 'WARNING' or 'FATAL'.
         Returns a boolean indicating success (True) or failure (False) and a list of strings.
         """
-        thefile = open(messages_path)
-        lines = thefile.read().split('\n')  # There will be a final '' element
+        lines = output_folder.get_object_content(messages_name).split('\n')
+        #print(handle)
+        #lines = handle.read().split('\n')  # There will be a final '' element
 
         import re
 
@@ -618,13 +651,17 @@ class SiestaParser(Parser):
         #Therefore the list is eampty but the Bool knows that something was wrong.
         return False, lines[:-1]
 
-    def _get_bands(self, bands_path):
-        # The parsing is different depending on whether I have Bands or Points.
-        # I recognise these two situations by looking at bandskpoints.label
-        # (like I did in the plugin)
+    def _get_bands(self, output_folder, bands_name):
+        """
+        Parse the .bands file.
+
+        The parsing is different depending on whether I have Bands or Points.
+        I recognise these two situations by looking at bandskpoints.label
+        (like I did in the plugin)
+        """
         tottx = []
-        thefile = open(bands_path)
-        tottx = thefile.read().split()
+        with output_folder.base.repository.open(bands_name, mode='rb') as handle:
+            tottx = handle.read().split()
         #ef = float(tottx[0])
         if self.node.inputs.bandskpoints.labels is None:
             #minfreq, maxfreq = float(tottx[1]), float(tottx[2])
@@ -636,13 +673,14 @@ class SiestaParser(Parser):
                 block_length = nbands * 2
             else:
                 block_length = nbands
-            for i in range(nkpoints):
-                # coords[i] = float(tottx[i * (block_length + 3) + 6])
-                for j in range(nbands):
-                    spinup[i, j] = (float(tottx[i * (block_length + 3) + 6 + j + 3]))
+            for kp_indx in range(nkpoints):
+                # coords[kp_indx] = float(tottx[kp_indx * (block_length + 3) + 6])
+                for band_indx in range(nbands):
+                    spinup[kp_indx, band_indx] = (float(tottx[kp_indx * (block_length + 3) + 6 + band_indx + 3]))
                     if nspins == 2:
-                        # Probably wrong! - need to test!!!
-                        spindown[i, j] = (float(tottx[i * (nbands * 2 + 3) + 6 + j + 3 + nbands]))
+                        # Need more test!!!
+                        spindown[kp_indx,
+                                 band_indx] = (float(tottx[kp_indx * (nbands * 2 + 3) + 6 + band_indx + 3 + nbands]))
         else:
             #mink, maxk = float(tottx[1]), float(tottx[2])
             #minfreq, maxfreq = float(tottx[3]), float(tottx[4])
@@ -655,12 +693,13 @@ class SiestaParser(Parser):
             else:
                 block_length = nbands
 
-            for i in range(nkpoints):
-                #coords[i] = float(tottx[i * (block_length + 1) + 8])
-                for j in range(nbands):
-                    spinup[i, j] = (float(tottx[i * (block_length + 1) + 8 + j + 1]))
+            for kp_indx in range(nkpoints):
+                #coords[kp_indx] = float(tottx[kp_indx * (block_length + 1) + 8])
+                for band_indx in range(nbands):
+                    spinup[kp_indx, band_indx] = (float(tottx[kp_indx * (block_length + 1) + 8 + band_indx + 1]))
                     if nspins == 2:
-                        spindown[i, j] = (float(tottx[i * (nbands * 2 + 1) + 8 + j + 1 + nbands]))
+                        spindown[kp_indx,
+                                 band_indx] = (float(tottx[kp_indx * (nbands * 2 + 1) + 8 + band_indx + 1 + nbands]))
         if nspins == 2:
             bands = (spinup, spindown)
         elif nspins == 1:

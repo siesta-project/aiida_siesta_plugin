@@ -1,11 +1,14 @@
 #!/usr/bin/env runaiida
+# -*- coding: utf-8 -*-
 """
 File showcasing the submission of a SiestaBaseWorkChain using the protocol system.
 """
 import sys
-from aiida_siesta.workflows.stm import SiestaSTMWorkChain
+
 from aiida.engine import submit
-from aiida.orm import Dict, StructureData, Float
+from aiida.orm import Dict, Float, StructureData
+
+from aiida_siesta.workflows.stm import SiestaSTMWorkChain
 
 try:
     codename = sys.argv[1]
@@ -57,7 +60,7 @@ s.append_atom(position=(5.604, 0.000, 0.000), symbols=['H'])
 
 calc_engines = {
      'siesta': {
-         'code': codename, 
+         'code': codename,
          'options': {'resources': {'num_machines': 1, "num_mpiprocs_per_machine": 1}, "max_wallclock_seconds": 3600 }
          },
      'stm': {
@@ -89,7 +92,6 @@ builder.emin = Float(-6.4) #eV respect to Fermi energy
 
 # Here we just submit the builder
 process = submit(builder)
-print("Submitted workchain; ID={}".format(process.pk))
-print("For information about this workchain type: verdi process show {}".format(process.pk))
+print(f"Submitted workchain; ID={process.pk}")
+print(f"For information about this workchain type: verdi process show {process.pk}")
 print("For a list of running processes type: verdi process list")
-

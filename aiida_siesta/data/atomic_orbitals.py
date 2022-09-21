@@ -1,17 +1,23 @@
+# -*- coding: utf-8 -*-
+"""
+Facilitator to manage orbitals description, it it a wrapper of sisl.AtomicOrbital.
+"""
 from aiida.plugins.entry_point import get_entry_point_from_class
 from sisl import AtomicOrbital
 
 
 class SislAtomicOrbital(AtomicOrbital):
     """
-    This is a thin wrapper for sisl.AtomicOrbital. It just sets a dictionary "attributes"
-    where the relevant info are summarized.
+    Thin wrapper for sisl.AtomicOrbital, sets a dictionary "attributes" with relevant info.
+
     Note: this class is not Data! It can not be stored! I is used in order to
     return in an easy way the orbitals from an IonData.
     """
 
     def __init__(self, *args, **kwargs):
         """
+        Define the instantiation of the class.
+
         The super is sisl.AtomicOrbital, therefore the instantiation follows its rules, as explained here:
         https://github.com/zerothi/sisl/blob/e28cdfff68d444139d54a755596de2a0285b0fd6/sisl/orbital.py#L689
         In addition we call `_set_orbital_dict`, that stores the info of the orbital in an internal dictionary.
@@ -22,7 +28,7 @@ class SislAtomicOrbital(AtomicOrbital):
 
     def _set_orbital_dict(self):
         """
-        Function called in the __init__, returns the orbital fetures in dictionary
+        Return the orbital features in a dictionary. Function called in the __init__.
         """
 
         orbital_dict = {}

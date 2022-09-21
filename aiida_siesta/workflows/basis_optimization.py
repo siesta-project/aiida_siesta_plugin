@@ -1,14 +1,21 @@
-from aiida.engine import WorkChain, ToContext, if_
+# -*- coding: utf-8 -*-
+"""
+Basis optimization workchain.
+"""
 from aiida import orm
-from aiida_siesta.workflows.simplex_basis import SimplexBasisOptimization
+from aiida.engine import ToContext, WorkChain, if_
+
+from aiida_siesta.utils.tkdict import FDFDict
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
 from aiida_siesta.workflows.iterate import SiestaIterator
-from aiida_siesta.utils.tkdict import FDFDict
+from aiida_siesta.workflows.simplex_basis import SimplexBasisOptimization
+
+# pylint: disable=protected-access
 
 
 def set_variables_in_pao_mod(ion_name, variables, n, l, pao_mod, global_splitnorm, charge_conf):  # noqa
     """
-    Changes the pao_mod dictionary to include variables for obtimization
+    Changes the pao_mod dictionary to include variables for optimization.
     """
     ang_to_bohr = 1.8897161646321
     save_z1 = pao_mod._gen_dict[n][l][1]
@@ -45,6 +52,7 @@ def set_variables_in_pao_mod(ion_name, variables, n, l, pao_mod, global_splitnor
 def extract_pao_block(global_splitnorm, global_enrgyshift, charge_conf, **ions):
     """
     From the outputs ions, create a basis block with the variables for the optimization.
+
     It also selects range of the variables and initial point. This choice is not so
     trivial. The most natural decision would be to start from the radii suggested by
     the basis size choice but not sure for simplex it is good to have an optimal
@@ -89,6 +97,7 @@ def extract_pao_block(global_splitnorm, global_enrgyshift, charge_conf, **ions):
 def add_orbitals(orb_dict, **ions):
     """
     From the outputs ions, create a basis block with the variables for the optimization.
+
     It also selects range of the variables and initial point.
     First zeta radia are variables and the split-norm value. Also a charge confinament is added
     for empty orbitals. The charge value is a variable to optimize.
@@ -97,7 +106,7 @@ def add_orbitals(orb_dict, **ions):
 
     def check_max_n_with_particular_l(dictionary, the_l):
         """
-        Find the maximum n with a particular l
+        Find the maximum n with a particular l.
         """
         max_n = -1
         for the_n in dictionary:
@@ -148,8 +157,9 @@ def add_orbitals(orb_dict, **ions):
 
 def validate_basis_opt(value, _):
     """
-    Integrate the `basis` validator of the SiestaBaseWorkChain with a check
-    on the presence of "%block pao-basis" and 'pao-basis-size'. They are not allowed because
+    Integrate the `basis` validator of SiestaBaseWorkChain.
+
+    Introduce a check on the presence of "%block pao-basis" and 'pao-basis-size'. They are not allowed because
     they are set automatically by the workflow.
     Also remove the check on the presence of a '$' character, that was implemented
     in the ForBasisOptWorkChain class.
@@ -167,7 +177,7 @@ def validate_basis_opt(value, _):
 
 def validate_opt_schema(value, _):
     """
-    Validate the `optimization_schema` port
+    Validate the `optimization_schema` port.
     """
     if value:
         if value["global_energy_shift"].value and not value["global_split_norm"].value:
@@ -179,6 +189,7 @@ def validate_opt_schema(value, _):
 def validate_add_orbital(value, _):  #pylint: disable=too-many-return-statements
     """
     Validate the `add_orbital` input port.
+
     Imposes a signature of the dict of this kind:
         {"Ca": ["3d1","4f1"], "Sr": "4d1"}
     Meaning the key is an element and value is the orbitals to add.
@@ -217,11 +228,14 @@ def validate_add_orbital(value, _):  #pylint: disable=too-many-return-statements
 
 class BasisOptimizationWorkChain(WorkChain):
     """
-    WorkChain for basis optimization
+    WorkChain for basis optimization.
     """
 
     @classmethod
     def define(cls, spec):
+        """
+        Define the specs.
+        """
         super().define(spec)
         spec.expose_inputs(SimplexBasisOptimization, exclude=('metadata', 'simplex.variables_dict'))
         spec.input('basis_sizes', valid_type=orm.List, default=lambda: orm.List(list=["DZ", "DZP", "TZ"]))
@@ -250,7 +264,7 @@ class BasisOptimizationWorkChain(WorkChain):
 
     def run_sizes(self):
         """
-        Run the iterator trying different basis sizes
+        Run the iterator trying different basis sizes.
         """
         siesta_inputs = self.exposed_inputs(SimplexBasisOptimization).siesta_base
         sizes_list = self.inputs.basis_sizes.get_list()
@@ -293,7 +307,7 @@ class BasisOptimizationWorkChain(WorkChain):
 
     def should_add_orbitals(self):
         """
-        Check on the need of an extra step to check extra orbitals
+        Check on the need of an extra step to check extra orbitals.
         """
         if 'add_orbital' not in self.inputs:
             return False
@@ -316,7 +330,7 @@ class BasisOptimizationWorkChain(WorkChain):
 
     def run_extra(self):
         """
-        Run an extra calculation addind d orbitals
+        Run an extra calculation adding orbitals specified in `add_orbital` input.
         """
         if "ion_files" in self.ctx.good_sizes_calc.get_outgoing().nested():
             ions = self.ctx.good_sizes_calc.get_outgoing().nested()["ion_files"]
@@ -348,7 +362,7 @@ class BasisOptimizationWorkChain(WorkChain):
 
     def check_extra(self):
         """
-        Check the outputs of the extra run with additional orbitals
+        Check the outputs of the extra run with additional orbitals.
         """
         extra_run = self.ctx.extra_run
         monitoring_quantity = self.ctx.monitoring_quantity
@@ -368,11 +382,8 @@ class BasisOptimizationWorkChain(WorkChain):
 
     def run_optimizer(self):
         """
-        basis size. A check is than on what basis size gives the smallest "sizes_monitored_quantity".
-        This quantity can be defined in input. By default it is the one used for the simplex and
-        specified in the input "simplex.output_name".
+        Run the SimplexBasisOptimization according to the rules in `optimization_schema`.
         """
-
         if "ion_files" in self.ctx.good_sizes_calc.get_outgoing().nested():
             ions = self.ctx.good_sizes_calc.get_outgoing().nested()["ion_files"]
 
@@ -408,7 +419,7 @@ class BasisOptimizationWorkChain(WorkChain):
 
     def run_results(self):
         """
-        Extract outputs
+        Extract outputs.
         """
         if not self.ctx.simplex_run.is_finished_ok:
             return self.exit_codes.ERROR_OPT

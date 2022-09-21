@@ -1,7 +1,12 @@
+# -*- coding: utf-8 -*-
+"""
+Simplex optimization.
+"""
 from aiida import orm
-from aiida.engine import WorkChain, ToContext
-from aiida_optimize.engines import NelderMead
+from aiida.engine import ToContext, WorkChain
 from aiida_optimize import OptimizationWorkChain
+from aiida_optimize.engines import NelderMead
+
 from aiida_siesta.workflows._for_optimization import ForBasisOptWorkChain
 
 
@@ -21,18 +26,20 @@ def validate_variables_dict(value, _):
                     "the initial value, the others (optional) the numbers to create the initial simplex."
                 )
                 return messag
-            if not all([isinstance(el, (float, int)) for el in v]):
+            if not all((isinstance(el, (float, int)) for el in v)):
                 return f"the values for each key {k} must be list/tuple of floats or integers."
 
 
 class SimplexBasisOptimization(WorkChain):
     """
-    Workchain running a simple NelderMead optimization (simplex) varing variables
-    defined in the basis dictionaries.
+    Workchain running a simple NelderMead optimization (simplex) varing variables defined in the basis dictionaries.
     """
 
     @classmethod
     def define(cls, spec):
+        """
+        Define the specs.
+        """
         super().define(spec)
         spec.expose_inputs(
             ForBasisOptWorkChain,
@@ -57,13 +64,15 @@ class SimplexBasisOptimization(WorkChain):
 
     def preprocess(self):
         """
-        In the preprocess, we transform the `variables_dict` info into lists. This
-        is necessary to exploit the OptimizationWorkChain features. It accepts the variables
+        In the preprocess, we transform the `variables_dict` info into lists.
+
+        This is necessary to exploit the OptimizationWorkChain features. It accepts the variables
         values as list in a separate input. Also the initaial simplex is created since it is
         explicitly needed by OptimizationWorkChain.
         """
-        import numpy as np
         import random
+
+        import numpy as np
 
         simplex_inps = self.inputs.simplex
         dime = len(simplex_inps.variables_dict.get_dict().keys())
@@ -85,7 +94,7 @@ class SimplexBasisOptimization(WorkChain):
             if len(v) > 3:
                 for ind in range(dime):
                     others[ind].append(v[ind + 2])
-        if all([len(others[ind]) == dime for ind in range(dime)]):
+        if all((len(others[ind]) == dime for ind in range(dime))):
             #Means comlete simplex is passed
             self.ctx.simplex = others.insert(0, init)
         else:
@@ -108,7 +117,6 @@ class SimplexBasisOptimization(WorkChain):
         """
         Run the NelderMead optimization through the OptimizationWorkChain.
         """
-
         inputs = self.exposed_inputs(ForBasisOptWorkChain)
 
         siesta_base = inputs.siesta_base

@@ -1,16 +1,18 @@
+# -*- coding: utf-8 -*-
 # pylint: disable=redefined-outer-name
 """
 Initialise a text database and profile for pytest.
 Courtesy of Sebastiaan Huber, aiida-quantumespresso
 """
+import collections
 import io
 import os
-import collections
+
 import pytest
 import six
 
 pytest_plugins = ['aiida.manage.tests.pytest_fixtures']  # pylint: disable=invalid-name
-#Here there is aiida_profile, aiida_localhost 
+#Here there is aiida_profile, aiida_localhost
 #Strange way to call it, it is the way of pytest https://docs.pytest.org/en/latest/plugins.html
 
 @pytest.fixture(scope='function')
@@ -105,7 +107,7 @@ def generate_calc_job_node():
 
         if attributes:
             node.set_attribute_many(attributes)
-        
+
         #What inputs do we need? I don't think it checks the mandatory inputs,
         #for instance the pseudo is not defined in quantum espresso.
         #Probably only the ones that trigger a particular parsing? Or not even.
@@ -143,9 +145,9 @@ def generate_psf_data():
     def _generate_psf_data(element):
         """Return `PsfData` node."""
         #from aiida_siesta.data.psf import PsfData
-        from aiida_pseudo.data.pseudo.psf import PsfData 
+        from aiida_pseudo.data.pseudo.psf import PsfData
 
-        filename = os.path.join('tests', 'fixtures',  'pseudos', '{}.psf'.format(element))
+        filename = os.path.join('tests', 'fixtures',  'pseudos', f'{element}.psf')
         filepath = os.path.abspath(filename)
 
         with io.open(filepath, 'rb') as handle:
@@ -165,7 +167,7 @@ def generate_psml_data():
         """Return `PsmlData` node."""
         from aiida_pseudo.data.pseudo.psml import PsmlData
 
-        filename = os.path.join('tests', 'fixtures', 'pseudos', '{}.psml'.format(element))
+        filename = os.path.join('tests', 'fixtures', 'pseudos', f'{element}.psml')
         filepath = os.path.abspath(filename)
 
         with io.open(filepath, 'rb') as handle:
@@ -240,8 +242,9 @@ def generate_psml_fam(generate_psml_data):
 
     def _generate_psml_fam(fam_name, element):
         """Return `PsmlData` node."""
-       
+
         from aiida_pseudo.groups.family.pseudo import PseudoPotentialFamily
+
         #from aiida_siesta.groups.pseudos import PsmlFamily
 
         group, created = PseudoPotentialFamily.objects.get_or_create(fam_name)
@@ -300,7 +303,7 @@ def generate_param():
         'md-maxcgdispl': '0.1 Ang',
         'md-maxforcetol': '0.04 eV/Ang'}
 
-        return Dict(dict=parameters)
+        return Dict(parameters)
 
     return _generate_param
 
@@ -320,7 +323,7 @@ def generate_basis():
         %endblock pao-basis-sizes""",
         }
 
-        return Dict(dict=basis)
+        return Dict(basis)
 
     return _generate_basis
 
@@ -347,9 +350,10 @@ def generate_path_object():
 
     def _generate_path_object(number_files, kinds):
         """Return a `TrajectoryData` with a starting path for neb calculations."""
-        from aiida.orm import TrajectoryData, StructureData
+        from aiida.orm import StructureData, TrajectoryData
+
         from aiida_siesta.utils.xyz_utils import get_structure_list_from_folder
-        
+
         cell = [[15.0, 00.0 , 00.0,],
                 [00.0, 15.0 , 00.0,],
                 [00.0, 00.0 , 15.0,],
@@ -470,7 +474,7 @@ def generate_wc_job_node():
         entry_point = format_entry_point_string('aiida.workflows', entry_point_name)
 
         node = orm.WorkChainNode(computer=computer, process_type=entry_point)
-        
+
         if inputs:
             for link_label, input_node in flatten_inputs(inputs):
                 input_node.store()

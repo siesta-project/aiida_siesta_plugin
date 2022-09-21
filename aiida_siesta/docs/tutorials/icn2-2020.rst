@@ -20,7 +20,7 @@
 .. _Siesta v4.1-rc1: https://gitlab.com/siesta-project/siesta/-/wikis/Guide-to-Siesta-versions
 
 These are the notes of the tutorial delivered to the "Theory and Simulation group" at ICN2 (Barcelona) the 19th of October 2020.
-The tutorial was carried on using the Quantum Mobile Virtual Machine, however the steps described below can be 
+The tutorial was carried on using the Quantum Mobile Virtual Machine, however the steps described below can be
 replicated (with some small modifications pointed out along the way) on a local machine to obtain a working AiiDA (and aiida-siesta)
 installation.
 Tutors: Emanuele Bosoni, Pol Febrer.
@@ -110,7 +110,7 @@ Then a file is automatically opened with "vi" editor. It allows to insert text t
 any submission script. We don't require it. Therefore just press ``Esc`` and type ``:wq``.
 
 Any remote computer can be set up in the exact same way, just making sure to have a password-less
-access to it (ssh key) and selecting "ssh" as "Transport plugin". 
+access to it (ssh key) and selecting "ssh" as "Transport plugin".
 
 The computer must be configured, this allows to select some advanced features::
 
@@ -136,7 +136,7 @@ and the interactive shell will facilitate the setting up of the code. For Quantu
         Label: siesta-v4.1
         Description []: siesta-v4.1-rc1
         Default calculation input plugin: siesta.siesta
-        Installed on target computer? [True]: 
+        Installed on target computer? [True]:
         Computer: localhost
         Remote absolute path: /usr/local/bin/siesta
 
@@ -197,13 +197,13 @@ AiiDA took charge of your script, created the inputs and submitted the calculati
 process with the command ``verdi process show <pk>`` as suggested in the shell. The ``<pk>`` number
 uniquely identify your calculation and it will be used later on.
 
-In few seconds the calculation is finished. You will relized that when ``verdi process show <pk>`` 
+In few seconds the calculation is finished. You will relized that when ``verdi process show <pk>``
 shows "Finished" status and reports the oututs. We explore the outputs. This can be done from command line,
 for instance::
 
         verdi data array show <PK_forces_and_stress>
 
-        
+
 however it is worth exploring the shell provided by AiiDA::
 
         verdi shell
@@ -221,7 +221,7 @@ type::
 
         gnuplot --persist Si_bands
 
-Take the chance to explore in the ``verdi shell`` some methods and attributes of data types associated to 
+Take the chance to explore in the ``verdi shell`` some methods and attributes of data types associated to
 the inputs and outputs of a ``SiestaCalculation``. Use tab complition of ``l.inputs``, ``l.outputs``, ``l.attributes``, ..
 
 The submission script can be modified very easily in order to run a ``SiestaBaseWorkChain`` instead of a
@@ -247,7 +247,7 @@ You just imported the inputs generator for the ``SiestaBaseWorkChain``. We can e
 And many more... Use tab complition to explore them. These methods allows you
 to understand which options you can pass to ``get_filled_builder``, as will be explained in a second.
 
-The main feature of the input generator is the possibility to obtain a ``builder`` (a tool that helps you build 
+The main feature of the input generator is the possibility to obtain a ``builder`` (a tool that helps you build
 the inputs for the specific process) that is ready to be submitted::
 
         struct = l.inputs.structure
@@ -280,9 +280,9 @@ We could run the builder straight away, however::
 
 remind us that the protocol we are using does not support siesta-4.1 because it uses psml pseudopotentials.
 
-Close the shell and look at the file :download:`my_protocols_registry.yaml <data_icn2_2020/my_protocols_registry.yaml>`. 
-It contains a new set of inputs and the psf pseudos. 
-This file can be modified at will and its content will become a new protocol. Simply do:: 
+Close the shell and look at the file :download:`my_protocols_registry.yaml <data_icn2_2020/my_protocols_registry.yaml>`.
+It contains a new set of inputs and the psf pseudos.
+This file can be modified at will and its content will become a new protocol. Simply do::
 
         export AIIDA_SIESTA_PROTOCOLS="/home/max/abs_path_to/my_protocols_registry.yaml"
 
@@ -373,7 +373,7 @@ to converge your structure's kpoints (first and second components), running thre
 Create a WorkChain
 ------------------
 
-In this section, we will guide you through your first steps at creating workchains. 
+In this section, we will guide you through your first steps at creating workchains.
 
 Please download :download:`this zip file <data_icn2_2020/first_workchain.zip>` where you will find all the contents for the section.
 Then unzip it and enter the directory::
@@ -414,13 +414,13 @@ And include the following lines to the file (with one empty line before and afte
 
 With this, you are all good to go! We just need to setup the computer and the code.
 
-There's a **small gotcha** though with the hpcq: *Each farm needs to be setup as a different computer, as it has a different architecture 
+There's a **small gotcha** though with the hpcq: *Each farm needs to be setup as a different computer, as it has a different architecture
 and it runs a different compilation of the code.*
 
 Therefore for each farm we will need to setup a computer with this configuration::
 
         label: "hpcq-farm<farm name>"
-        hostname: "10.100.2.51" 
+        hostname: "10.100.2.51"
         description: "hpcq farm <farm name>"
         shebang: "#!/bin/bash"
         transport: "ssh"

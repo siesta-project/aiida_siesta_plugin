@@ -14,7 +14,7 @@ The aiida-siesta python package interfaces the SIESTA DFT code
 itself and for other utility programs, new data structures, and basic
 workflows. It is distributed under the MIT license and available from
 (https://github.com/siesta-project/aiida_siesta_plugin).
-If you use this package, please cite J. Chem. Phys. **152**, 204108 (2020) 
+If you use this package, please cite J. Chem. Phys. **152**, 204108 (2020)
 (https://doi.org/10.1063/5.0005077).
 
 
@@ -33,7 +33,7 @@ refined the architecture of the package.
 Vladimir Dikan and Emanuele Bosoni ported the plugin and the base workflow to AiiDA 1.0.
 Alberto Garcia futher refined the 1.0-compatible functionality.
 
-From November 2019 to May 2022, Emanuele Bosoni was in charge of the code's development and maintenance, 
+From November 2019 to May 2022, Emanuele Bosoni was in charge of the code's development and maintenance,
 under the supervision of Alberto Garcia.
 
 Pol Febrer contributed the SiestaIterator and SiestaConverger workflows, including the underline
@@ -100,7 +100,7 @@ Workflows
 
    workflows/index
 ..
-   
+
 Tutorials
 =========
 

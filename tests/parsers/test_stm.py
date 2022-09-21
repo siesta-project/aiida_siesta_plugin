@@ -1,10 +1,12 @@
+# -*- coding: utf-8 -*-
 """Tests for the `SiestaParser`."""
 
-import pytest
 from aiida import orm
 from aiida.common import AttributeDict
+import pytest
 
-def test_stm_default(aiida_profile, fixture_localhost, generate_calc_job_node, 
+
+def test_stm_default(aiida_profile, fixture_localhost, generate_calc_job_node,
     generate_parser, generate_structure, data_regression):
     """Test a parser of a stm calculation.
     The output is created by running a dead simple SCF calculation for a silicon structure. This test should test the

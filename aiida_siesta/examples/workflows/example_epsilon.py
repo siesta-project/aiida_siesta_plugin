@@ -1,4 +1,5 @@
 #!/usr/bin/env runaiida
+# -*- coding: utf-8 -*-
 
 #Not required by AiiDA
 import os.path as op
@@ -6,9 +7,9 @@ import sys
 
 #AiiDA classes and functions
 from aiida.engine import submit
-from aiida.orm import load_code
-from aiida.orm import (Dict, StructureData, KpointsData)
+from aiida.orm import Dict, KpointsData, StructureData, load_code
 from aiida_pseudo.data.pseudo.psf import PsfData
+
 from aiida_siesta.workflows.epsilon import EpsilonWorkChain
 
 try:
@@ -64,11 +65,11 @@ relaxation = {
 # Use this for relaxation
 #
 parameters.update(relaxation)
-parameters = Dict(dict=parameters)
+parameters = Dict(parameters)
 
 
 #The basis set
-basis = Dict(dict={
+basis = Dict({
 'pao-energy-shift': '300 meV',
 '%block pao-basis-sizes': """
 Si DZP
@@ -76,7 +77,7 @@ Si DZP
     })
 
 # Optical calculation
-optical = Dict(dict={
+optical = Dict({
 'optical-broaden': '0.5 eV',
 'optical-energy-maximum': '20.0 eV',
 '%block optical-mesh': """
@@ -98,9 +99,9 @@ for fname, kinds in raw_pseudos:
     absname = op.realpath(op.join(op.dirname(__file__), "../fixtures/sample_psf", fname))
     pseudo = PsfData.get_or_create(absname)
     if not pseudo.is_stored:
-        print("\nCreated the pseudo for {}".format(kinds))
+        print(f"\nCreated the pseudo for {kinds}")
     else:
-        print("\nUsing the pseudo for {} from DB: {}".format(kinds, pseudo.pk))
+        print(f"\nUsing the pseudo for {kinds} from DB: {pseudo.pk}")
     for j in kinds:
         pseudos_dict[j]=pseudo
 
@@ -121,13 +122,12 @@ inputs = {
     'basis': basis,
     'kpoints': kpoints,
     'pseudos': pseudos_dict,
-    'options': Dict(dict=options),
+    'options': Dict(options),
     'optical': optical,
 }
 
 process = submit(EpsilonWorkChain, **inputs)
-print("Submitted Epsilon workchain; ID={}".format(process.pk))
+print(f"Submitted Epsilon workchain; ID={process.pk}")
 print(
-    "For information about this workchain type: verdi process show {}".format(
-        process.pk))
+    f"For information about this workchain type: verdi process show {process.pk}")
 print("For a list of running processes type: verdi process list")

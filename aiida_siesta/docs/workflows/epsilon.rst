@@ -4,7 +4,7 @@ Epsilon workflow
 Description
 -----------
 
-The **EpsilonWorkChain** is a simple extension of the **SietaBaseWorkChain** 
+The **EpsilonWorkChain** is a simple extension of the **SietaBaseWorkChain**
 that introduces a post-processing step to obtain the electronic contribution to the static dielectric
 constant from the epsilon_2(omega) data.
 For developers, this workchain can be taken as an example to understand how easy is to include simple
@@ -35,15 +35,15 @@ Here we only impose a mandatory definition of the **optical** input port.
 Outputs
 -------
 
-* All the outputs of **SiestaBaseWorkChain** are also outputs of this 
+* All the outputs of **SiestaBaseWorkChain** are also outputs of this
   WorkChain, they can be explored in the relative section of the **SiestaBaseWorkChain**.
 
 .. |br| raw:: html
 
     <br />
-  
+
 * **epsilon** :py:class:`Float <aiida.orm.Float>`
-  
+
   The low frequency (static) dielectric constant (electronic contribution) computed from the eps2(omega) data
   using Kramers-Kronig relations.
 
@@ -56,4 +56,3 @@ makes available all the methods explained in the :ref:`protocols documentation <
 the **optical** input is populated, setting the optical mesh equal to the kpoints mesh of the calculation,
 the "optical-broaden" to 0.5 eV and the "optical-polarization-type" to "polarized" with optical vector
 of [1.0 0.0 0.0].
-

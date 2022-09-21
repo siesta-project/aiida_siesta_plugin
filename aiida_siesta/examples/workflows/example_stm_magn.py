@@ -1,12 +1,15 @@
 #!/usr/bin/env runaiida
+# -*- coding: utf-8 -*-
 
-import sys
 import os.path as op
-import numpy as np
+import sys
+
 from aiida.engine import submit
 from aiida.orm import load_code
-from aiida_siesta.calculations.siesta import SiestaCalculation
 from aiida.plugins import DataFactory
+import numpy as np
+
+from aiida_siesta.calculations.siesta import SiestaCalculation
 from aiida_siesta.workflows.stm import SiestaSTMWorkChain
 
 # This is an example for the submission of the STM WorkChain
@@ -18,9 +21,9 @@ from aiida_siesta.workflows.stm import SiestaSTMWorkChain
 
 
 PsfData = DataFactory('pseudo.psf')
-Dict = DataFactory('dict')
-KpointsData = DataFactory('array.kpoints')
-StructureData = DataFactory('structure')
+Dict = DataFactory('core.dict')
+KpointsData = DataFactory('core.array.kpoints')
+StructureData = DataFactory('core.structure')
 
 
 try:
@@ -87,7 +90,7 @@ params_dict = {
      2 +3.73  90.0 -60.0
      3 +3.73  90.0 180.0\n%endblock DMInitSpin"""
 }
-parameters = Dict(dict=params_dict)
+parameters = Dict(params_dict)
 #
 # Kpoints
 #
@@ -111,7 +114,7 @@ basis_dict = {
     n=3   2   2
 	0.0   0.0\n%endblock PAO.Basis"""
 }
-basis = Dict(dict=basis_dict)
+basis = Dict(basis_dict)
 #--------------------------------------------------------------
 
 #--------------------- Pseudopotentials ---------------------------------
@@ -125,9 +128,9 @@ for fname, kinds in raw_pseudos:
     absname = op.realpath(op.join(op.dirname(__file__), "../fixtures/sample_psf", fname))
     pseudo = PsfData.get_or_create(absname)
     if not pseudo.is_stored:
-        print("\nCreated the pseudo for {}".format(kinds))
+        print(f"\nCreated the pseudo for {kinds}")
     else:
-        print("\nUsing the pseudo for {} from DB: {}".format(kinds, pseudo.pk))
+        print(f"\nUsing the pseudo for {kinds} from DB: {pseudo.pk}")
     for j in kinds:
         pseudos_dict[j]=pseudo
 
@@ -142,7 +145,7 @@ inputs = {
     'basis': basis,
     'pseudos': pseudos_dict,
     'kpoints': kpoints,
-    'options': Dict(dict=options),
+    'options': Dict(options),
     'emin': Float(-1),
     'emax': Float(+0.1),
     'stm_code': stm_code,
@@ -152,9 +155,7 @@ inputs = {
     }
 
 process = submit(SiestaSTMWorkChain, **inputs)
-print("Submitted workchain; ID={}".format(process.pk))
+print(f"Submitted workchain; ID={process.pk}")
 print(
-    "For information about this workchain type: verdi process show {}".format(
-        process.pk))
+    f"For information about this workchain type: verdi process show {process.pk}")
 print("For a list of running processes type: verdi process list")
-

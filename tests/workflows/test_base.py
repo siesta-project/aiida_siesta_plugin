@@ -1,24 +1,26 @@
 #!/usr/bin/env runaiida
-import pytest
-from plumpy import ProcessState
+# -*- coding: utf-8 -*-
 from aiida import orm
-from aiida.common import LinkType
-from aiida.common import AttributeDict
+from aiida.common import AttributeDict, LinkType
 from aiida.engine import ProcessHandlerReport
 from aiida_pseudo.groups.family.pseudo import PseudoPotentialFamily
+from plumpy import ProcessState
+import pytest
+
 from aiida_siesta.calculations.siesta import SiestaCalculation
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
+
 #from aiida_siesta.groups.pseudos import PsmlFamily
 
 
 @pytest.fixture
-def generate_workchain_base(generate_psml_data, fixture_code, fixture_localhost, generate_workchain, 
+def generate_workchain_base(generate_psml_data, fixture_code, fixture_localhost, generate_workchain,
         generate_structure, generate_param, generate_basis, generate_kpoints_mesh,
         generate_calc_job_node, generate_parser, generate_psml_fam):
     """
     Generate an instance of a `SiestaBaseWorkChain`.
     The parameters:
-    1) exit_code. This inputs triggers the generation of a SiestaCalculation through the 
+    1) exit_code. This inputs triggers the generation of a SiestaCalculation through the
        `generate_calc_job_node` fixture with a particular exit_code and it is attached to
        the current SiestaBaseWorkChain as children.
     2) remove_inp. An input to remove among the one standardly set. Special keyword accepted
@@ -92,7 +94,7 @@ def generate_workchain_base(generate_psml_data, fixture_code, fixture_localhost,
 def test_prepare_inputs(aiida_profile, generate_workchain_base):
     """
     Test `SiestaBaseWorkChain.prepare_inputs`. The logic inside the
-    method is different whether there is a pseudo_family specified. 
+    method is different whether there is a pseudo_family specified.
     """
     process = generate_workchain_base()
     process.setup()
@@ -151,7 +153,7 @@ def test_validators(aiida_profile, generate_workchain_base):
 
     generate_workchain_base(remove_inp="pseudos", add_pseudo_fam="test3")
 
- 
+
 def test_handle_error_geom_not_conv(aiida_profile, generate_workchain_base):
     """
     Test `SiestaBaseWorkChain.handle_error_geom_not_conv`.
@@ -243,4 +245,3 @@ def test_handle_error_split_norm(aiida_profile, generate_workchain_base):
     result = process.handle_error_split_norm(calculation)
     assert isinstance(result, ProcessHandlerReport)
     assert result.do_break
-

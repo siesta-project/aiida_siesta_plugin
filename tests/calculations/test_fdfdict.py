@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 from aiida_siesta.utils.tkdict import FDFDict
 
 
@@ -32,11 +33,11 @@ def test_fdfdict():
     """
 
     inp_dict = {"w":3,"e":4,"w--":5}
-    
+
     f = FDFDict(inp_dict)
 
     assert f["w"] == 5
-    
+
     f["e-"] = 4
     assert f.get_last_untranslated_key("e") == "e-"
 
