@@ -1,4 +1,5 @@
 #!/usr/bin/env runaiida
+# -*- coding: utf-8 -*-
 
 #Not required by AiiDA
 import os.path as op
@@ -6,9 +7,9 @@ import sys
 
 #AiiDA classes and functions
 from aiida.engine import submit
-from aiida.orm import load_code
-from aiida.orm import (Int, Float, Dict, StructureData, KpointsData)
+from aiida.orm import Dict, Float, Int, KpointsData, StructureData, load_code
 from aiida_pseudo.data.pseudo.psf import PsfData
+
 from aiida_siesta.workflows.eos import EqOfStateFixedCellShape
 
 # This example shows the use of the EqOfStateFixedCellShape
@@ -56,7 +57,7 @@ structure.append_atom(position=(0.250 * alat, 0.250 * alat, 0.250 * alat),
 
 #The parameters
 parameters = Dict(
-    dict={
+    {
         'xc-functional': 'LDA',
         'xc-authors': 'CA',
         'max-scfiterations': 40,
@@ -70,7 +71,7 @@ parameters = Dict(
 
 #The basis set
 basis = Dict(
-    dict={
+    {
         'pao-energy-shift': '300 meV',
         '%block pao-basis-sizes': """
 Si DZP
@@ -88,15 +89,15 @@ for fname, kinds in raw_pseudos:
     absname = op.realpath(op.join(op.dirname(__file__), "../fixtures/sample_psf", fname))
     pseudo = PsfData.get_or_create(absname)
     if not pseudo.is_stored:
-        print("\nCreated the pseudo for {}".format(kinds))
+        print(f"\nCreated the pseudo for {kinds}")
     else:
-        print("\nUsing the pseudo for {} from DB: {}".format(kinds, pseudo.pk))
+        print(f"\nUsing the pseudo for {kinds} from DB: {pseudo.pk}")
     for j in kinds:
         pseudos_dict[j]=pseudo
 
 #Resources
 options = Dict(
-    dict={
+    {
         "max_wallclock_seconds": 360,
         #'withmpi': True,
         #'account': "tcphy113c",
@@ -119,12 +120,11 @@ inputs = {
     'pseudos': pseudos_dict,
     'options': options,
     'volume_per_atom': Float(19),
-    'batch_size': Int(7) #selects the number of volumes to run at the same time
+    'batch_size': Int(1) #selects the number of volumes to run at the same time
 }
 
 process = submit(EqOfStateFixedCellShape, **inputs)
-print("Submitted workchain; ID={}".format(process.pk))
+print(f"Submitted workchain; ID={process.pk}")
 print(
-    "For information about this workchain type: verdi process show {}".format(
-        process.pk))
+    f"For information about this workchain type: verdi process show {process.pk}")
 print("For a list of running processes type: verdi process list")

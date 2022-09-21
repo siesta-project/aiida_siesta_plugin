@@ -1,7 +1,10 @@
-from aiida_siesta.utils.protocols_system.generator_absclass import InputGenerator
+# -*- coding: utf-8 -*-
 from aiida.plugins import WorkflowFactory
 #from aiida_siesta.groups.pseudos import PsmlFamily
 from aiida_pseudo.groups.family.pseudo import PseudoPotentialFamily
+
+from aiida_siesta.utils.protocols_system.generator_absclass import InputGenerator
+
 
 def test_validation(aiida_profile):
     """Test the validation of subclasses of `InputsGenerator`."""
@@ -65,5 +68,5 @@ def test_validation(aiida_profile):
 
             pass
 
-    subinpgen=SubInputsGenerator(WorkflowFactory("siesta.base")) 
+    subinpgen=SubInputsGenerator(WorkflowFactory("siesta.base"))
     assert  subinpgen.how_to_pass_computation_options()[1] == {"si":{"code": "pp", "resources": "tt"}}

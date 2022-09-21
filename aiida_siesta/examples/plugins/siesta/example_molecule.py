@@ -1,18 +1,20 @@
 #!/usr/bin/env runaiida
-import sys
+# -*- coding: utf-8 -*-
 import os.path as op
+import sys
 
 from aiida.engine import submit
 from aiida.orm import load_code
-from aiida_siesta.calculations.siesta import SiestaCalculation
 from aiida.plugins import DataFactory
+
+from aiida_siesta.calculations.siesta import SiestaCalculation
 
 #  Siesta calculation on benzene molecule
 
 PsfData = DataFactory('pseudo.psf')
-Dict = DataFactory('dict')
-KpointsData = DataFactory('array.kpoints')
-StructureData = DataFactory('structure')
+Dict = DataFactory('core.dict')
+KpointsData = DataFactory('core.array.kpoints')
+StructureData = DataFactory('core.structure')
 
 try:
     dontsend = sys.argv[1]
@@ -52,7 +54,7 @@ options = {
 #-------------------------- Settings ---------------------------------
 #
 settings_dict = {'additional_retrieve_list': ['aiida.BONDS', 'aiida.EIG']}
-settings = Dict(dict=settings_dict)
+settings = Dict(settings_dict)
 #---------------------------------------------------------------------
 
 #
@@ -115,7 +117,7 @@ params_dict = {
     'writeforces': True,
 }
 
-parameters = Dict(dict=params_dict)
+parameters = Dict(params_dict)
 #------------------------------------------------------------------------
 
 #
@@ -137,7 +139,7 @@ H    SZP
 %endblock pao-basis-sizes""",
 }
 
-basis = Dict(dict=basis_dict)
+basis = Dict(basis_dict)
 #------------------------------------------------------------------------
 
 #--------------------- Pseudopotentials ---------------------------------
@@ -151,9 +153,9 @@ for fname, kinds in raw_pseudos:
     absname = op.realpath(op.join(op.dirname(__file__), "../../fixtures/sample_psf", fname))
     pseudo = PsfData.get_or_create(absname)
     if not pseudo.is_stored:
-        print("\nCreated the pseudo for {}".format(kinds))
+        print(f"\nCreated the pseudo for {kinds}")
     else:
-        print("\nUsing the pseudo for {} from DB: {}".format(kinds, pseudo.pk))
+        print(f"\nUsing the pseudo for {kinds} from DB: {pseudo.pk}")
     for j in kinds:
         pseudos_dict[j]=pseudo
 
@@ -179,12 +181,11 @@ if submit_test:
     inputs["metadata"]["dry_run"] = True
     inputs["metadata"]["store_provenance"] = False
     process = submit(SiestaCalculation, **inputs)
-    print("Submited test for calculation (uuid='{}')".format(process.uuid))
+    print(f"Submited test for calculation (uuid='{process.uuid}')")
     print("Check the folder submit_test for the result of the test")
 
 else:
     process = submit(SiestaCalculation, **inputs)
-    print("Submitted calculation; ID={}".format(process.pk))
-    print("For information about this calculation type: verdi process show {}".
-          format(process.pk))
+    print(f"Submitted calculation; ID={process.pk}")
+    print(f"For information about this calculation type: verdi process show {process.pk}")
     print("For a list of running processes type: verdi process list")

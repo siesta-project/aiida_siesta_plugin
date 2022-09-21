@@ -1,13 +1,16 @@
 #!/usr/bin/env runaiida
-import pytest
-from plumpy import ProcessState
-from aiida.engine import ExitCode
+# -*- coding: utf-8 -*-
 from aiida import orm
-from aiida.common import (LinkType, AttributeDict)
+from aiida.common import AttributeDict, LinkType
+from aiida.engine import ExitCode
+from plumpy import ProcessState
+import pytest
+
 from aiida_siesta.workflows.stm import SiestaSTMWorkChain
 
+
 @pytest.fixture
-def generate_workchain_stm(generate_psml_data, fixture_code, generate_workchain, 
+def generate_workchain_stm(generate_psml_data, fixture_code, generate_workchain,
         generate_structure, generate_param, generate_basis, generate_kpoints_mesh,
         generate_calc_job_node, generate_parser):
     """Generate an instance of a `BandgapWorkChain`."""
@@ -55,10 +58,10 @@ def generate_workchain_stm(generate_psml_data, fixture_code, generate_workchain,
     return _generate_workchain_stm
 
 
-def test_setup_mainrun_errorbasewc(aiida_profile, generate_workchain_stm, 
+def test_setup_mainrun_errorbasewc(aiida_profile, generate_workchain_stm,
         generate_wc_job_node, fixture_localhost):
     """Test `SiestaSTMWorkChain`."""
-    
+
     process = generate_workchain_stm()
     process.checks()
 
@@ -79,7 +82,7 @@ def test_setup_mainrun_errorbasewc(aiida_profile, generate_workchain_stm,
     result = process.run_siesta_with_ldos()
 
     assert result == SiestaSTMWorkChain.exit_codes.ERROR_BASE_WC
-    
+
 def test_runldos_errorldos(aiida_profile, generate_workchain_stm, generate_psml_data,
         generate_wc_job_node, fixture_localhost, fixture_code, generate_structure):
 
@@ -122,7 +125,7 @@ def test_runldos_errorldos(aiida_profile, generate_workchain_stm, generate_psml_
 
     assert result == SiestaSTMWorkChain.exit_codes.ERROR_LDOS_WC
 
-def test_runstm_failstm(aiida_profile, generate_workchain_stm, generate_wc_job_node, 
+def test_runstm_failstm(aiida_profile, generate_workchain_stm, generate_wc_job_node,
          generate_calc_job_node, fixture_localhost):
 
     process = generate_workchain_stm()
@@ -136,7 +139,7 @@ def test_runstm_failstm(aiida_profile, generate_workchain_stm, generate_wc_job_n
     remote_folder.store()
     remote_folder.add_incoming(ldos_basewc, link_type=LinkType.RETURN, link_label='remote_folder')
     process.ctx.siesta_ldos = ldos_basewc
-    
+
     process.run_stm()
 
     #Fake the stm calculation
@@ -155,7 +158,7 @@ def test_runstm_failstm(aiida_profile, generate_workchain_stm, generate_wc_job_n
     assert result == SiestaSTMWorkChain.exit_codes.ERROR_STM_PLUGIN
 
 
-def test_outputs(aiida_profile, generate_workchain_stm, generate_wc_job_node, 
+def test_outputs(aiida_profile, generate_workchain_stm, generate_wc_job_node,
          generate_calc_job_node, fixture_localhost):
     """Test `SiestaSTMWorkChain`."""
 
@@ -186,4 +189,3 @@ def test_outputs(aiida_profile, generate_workchain_stm, generate_wc_job_node,
 
     assert result == ExitCode(0)
     assert isinstance(process.outputs["stm_array"], orm.ArrayData)
-

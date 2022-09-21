@@ -1,16 +1,12 @@
-from aiida.parsers import Parser
-from aiida.orm import Dict
-from aiida.common import OutputParsingError
+# -*- coding: utf-8 -*-
+"""
+Parser for the plstm code of the siesta package.
+"""
 from aiida.common import exceptions
+from aiida.orm import Dict
+from aiida.parsers import Parser
 
 # See the LICENSE.txt and AUTHORS.txt files.
-
-
-class STMOutputParsingError(OutputParsingError):
-    pass
-
-
-#---------------------------
 
 
 class STMParser(Parser):
@@ -18,12 +14,11 @@ class STMParser(Parser):
     Parser for the output of the "plstm" program in the Siesta distribution.
     """
 
-    _version = "1.3.0"
+    _version = "2.0.0"
 
     def parse(self, **kwargs):
         """
-        Receives in input a dictionary of retrieved nodes.
-        Does all the logic here.
+        Receive in input a dictionary of retrieved nodes and do all the logic here.
         """
         from aiida.engine import ExitCode
 
@@ -64,7 +59,7 @@ class STMParser(Parser):
         self.out('stm_array', stm_data)
 
         parser_info = {}
-        parser_info['parser_info'] = 'AiiDA STM(Siesta) Parser V. {}'.format(self._version)
+        parser_info['parser_info'] = f'AiiDA STM(Siesta) Parser V. {self._version}'
         parser_info['parser_warnings'] = []
         parser_info['output_data_filename'] = filename_plot
 
@@ -75,7 +70,7 @@ class STMParser(Parser):
         # Add parser info dictionary
         parsed_dict = dict(list(result_dict.items()) + list(parser_info.items()))
 
-        output_data = Dict(dict=parsed_dict)
+        output_data = Dict(parsed_dict)
         self.out('output_parameters', output_data)
 
         return ExitCode(0)
@@ -83,43 +78,38 @@ class STMParser(Parser):
 
 def get_stm_data(plot_contents):
     """
-    Parses the STM plot file to get an Array object with
-    X, Y, and Z arrays in the 'meshgrid'
-    setting, as in the example code:
+    Parse the STM plot file to get an Array object with  X, Y, and Z arrays in the 'meshgrid'setting.
 
-    import numpy as np
-    xlist = np.linspace(-3.0, 3.0, 3)
-    ylist = np.linspace(-3.0, 3.0, 4)
-    X, Y = np.meshgrid(xlist, ylist)
-    Z = np.sqrt(X**2 + Y**2)
-
+    Example code:
+        import numpy as np
+        xlist = np.linspace(-3.0, 3.0, 3)
+        ylist = np.linspace(-3.0, 3.0, 4)
+        X, Y = np.meshgrid(xlist, ylist)
+        Z = np.sqrt(X**2 + Y**2)
     X:
     [[-3.  0.  3.]
     [-3.  0.  3.]
     [-3.  0.  3.]
     [-3.  0.  3.]]
-
     Y:
     [[-3. -3. -3.]
     [-1. -1. -1.]
     [ 1.  1.  1.]
     [ 3.  3.  3.]]
-
     Z:
     [[ 4.24264069  3.          4.24264069]
     [ 3.16227766  1.          3.16227766]
     [ 3.16227766  1.          3.16227766]
     [ 4.24264069  3.          4.24264069]]
-
     These can then be used in matplotlib to get a contour plot.
-
     :param plot_contents: the contents of the *.STM file as a string
     :return: `aiida.orm.ArrayData` instance representing the STM contour.
     """
 
-    import numpy as np
     from itertools import groupby
+
     from aiida.orm import ArrayData
+    import numpy as np
 
     # aiida.CH.STM or aiida.CC.STM...
     data = plot_contents.split('\n')

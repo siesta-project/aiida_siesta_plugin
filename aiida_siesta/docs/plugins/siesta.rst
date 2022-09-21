@@ -5,7 +5,7 @@ Description
 -----------
 
 A plugin for Siesta main code. It allows to prepare, submit and retrieve the results of a standard siesta calculation,
-including support for the parsing of the electronic bands and the output geometry of a relaxation. 
+including support for the parsing of the electronic bands and the output geometry of a relaxation.
 It is implemented in the class **SiestaCalculation**.
 
 Supported Siesta versions
@@ -13,7 +13,7 @@ Supported Siesta versions
 
 At least 4.0.1 of the 4.0 series, 4.1-b3 of the 4.1 series and the MaX-1.0 release, which
 can be found in the development platform (https://gitlab.com/siesta-project/siesta).
-For more up to date info on compatibility, please check the 
+For more up to date info on compatibility, please check the
 `wiki <https://github.com/siesta-project/aiida_siesta_plugin/wiki/Supported-siesta-versions>`_.
 
 .. _siesta-plugin-inputs:
@@ -25,7 +25,7 @@ Some examples are referenced in the following list. They are located in the fold
 
 * **code**, class :py:class:`Code <aiida.orm.Code>`, *Mandatory*
 
-  A code object linked to a Siesta executable. 
+  A code object linked to a Siesta executable.
   If you setup the code ``Siesta4.0.1`` on machine ``kelvin`` following the `aiida guidelines`_,
   then the code is selected in this way::
 
@@ -33,7 +33,7 @@ Some examples are referenced in the following list. They are located in the fold
         from aiida.orm import Code
         code = Code.get_from_string(codename)
 
- 
+
 * **structure**, class :py:class:`StructureData <aiida.orm.StructureData>`, *Mandatory*
 
   A structure. Siesta employs "species labels" to implement special
@@ -67,7 +67,7 @@ Some examples are referenced in the following list. They are located in the fold
   The class :py:class:`StructureData <aiida.orm.StructureData>` uses Angstrom
   as internal units, the cell and atom positions must be specified in Angstrom.
 
-  The :py:class:`StructureData <aiida.orm.StructureData>` can also import 
+  The :py:class:`StructureData <aiida.orm.StructureData>` can also import
   ase structures or pymatgen structures. These two tools can be used to load
   structure from files. See example `example_cif_bands.py`.
 
@@ -92,19 +92,19 @@ Some examples are referenced in the following list. They are located in the fold
   not allowed (the restart options are explained :ref:`here <siesta-restart>`)
   together with the keyword ``geometry-must-converge`` (set to True by default for each
   calculation with variable geometry). Also the ``max-walltime`` is blocked since it is
-  set by the plugin to be equal to the ``max_wallclock_seconds`` passed in the 
+  set by the plugin to be equal to the ``max_wallclock_seconds`` passed in the
   :ref:`computational resources <submission-siesta-calc>`. This should prevent
   the calculation to be terminated by the scheduler. In case a siesta max time
   smaller than the ``max_wallclock_seconds`` is required, it is suggested to increase
   the ``max-walltime-slack`` value.
-  Finally,  all the ``pao`` and ``optical`` options must be avoided here, 
-  because they belong to the **basis** and **optical** inputs respectively 
+  Finally,  all the ``pao`` and ``optical`` options must be avoided here,
+  because they belong to the **basis** and **optical** inputs respectively
   (see following of the list). Any units are
   specified for now as part of the value string. Blocks are entered
   by using an appropriate key and Python's multiline string
   constructor. For example::
 
-    from aiida.orm import Dict    
+    from aiida.orm import Dict
 
     parameters = Dict(dict={
       "mesh-cutoff": "200 Ry",
@@ -121,8 +121,8 @@ Some examples are referenced in the following list. They are located in the fold
   inserted in the database, so it should not be used in the input script
   (or removed before assigning the dictionary to the Dict
   instance). For legibility, a single dash ('-') is suggested, as in the
-  examples above. Moreover, because the parameters are passed through a python 
-  dictionary, if, by mistake, the user passes the same keyword two (or more) 
+  examples above. Moreover, because the parameters are passed through a python
+  dictionary, if, by mistake, the user passes the same keyword two (or more)
   times, only the last specification will be considered. For instance::
 
      parameters = Dict(dict={
@@ -130,8 +130,8 @@ Some examples are referenced in the following list. They are located in the fold
        "mesh-cutoff": "300 Ry",
        })
 
-  will set a ``mesh-cutoff`` of `300 Ry`. This is the opposite respect to what is done 
-  in the Siesta code, where the first assignment is the selected one. Please note that 
+  will set a ``mesh-cutoff`` of `300 Ry`. This is the opposite respect to what is done
+  in the Siesta code, where the first assignment is the selected one. Please note that
   this applies also to keywords that correspond to the same fdf variable. For instance::
 
      parameters = Dict(dict={
@@ -184,7 +184,7 @@ Some examples are referenced in the following list. They are located in the fold
 
         basis = Dict(dict={
                 'floating_sites': [{"name":'Si_bond', "symbols":'Si', "position":(0.125, 0.125, 0.125)}],
-                '%block pao-basis-sizes': 
+                '%block pao-basis-sizes':
                 """
                 Si_bond SZ
                 %endblock pao-basis-sizes""",
@@ -236,7 +236,7 @@ Some examples are referenced in the following list. They are located in the fold
 
   The simplest way to install a pseudo family is through the command::
 
-     aiida-pseudo install family /PATH/TO/FOLDER/ FAM_NAME -P pseudo.psf  #or pseudo.psml 
+     aiida-pseudo install family /PATH/TO/FOLDER/ FAM_NAME -P pseudo.psf  #or pseudo.psml
 
   where ``/PATH/TO/FOLDER/`` is a folder containing the pseudos.
   The `aiida-pseudo package`_ allows more sophisticated ways of creating pseudo family,
@@ -252,10 +252,10 @@ Some examples are referenced in the following list. They are located in the fold
 
 * **ions**, input namespace of class :py:class:`IonData  <aiida_siesta.data.ion.IonfData>`, *Optional*
 
-  The class `IonData <aiida_siesta.data.ion.IonData>` has been implemented along the lines of the 
+  The class `IonData <aiida_siesta.data.ion.IonData>` has been implemented along the lines of the
   `PsfData` class to carry information on the entity that in siesta terminology is called
-  "ion", and that packages the set of basis orbitals and KB projectors for a given species. 
-  It contains also some extra metadata. The class `IonData` stores ".ion.xml" files and it also 
+  "ion", and that packages the set of basis orbitals and KB projectors for a given species.
+  It contains also some extra metadata. The class `IonData` stores ".ion.xml" files and it also
   provides a method `get_content_ascii_format` that translates the content of an
   ".ion.xml" into an ".ion" file format, which is the only one currently accepted by Siesta.
 
@@ -295,10 +295,10 @@ Some examples are referenced in the following list. They are located in the fold
           mesh_displ = 0.5 #optional
           kpoints.set_kpoints_mesh([kp_mesh,kp_mesh,kp_mesh],[mesh_displ,mesh_displ,mesh_displ])
 
-  The class `KpointsData <aiida.orm.KpointsData>` also implements the methods 
+  The class `KpointsData <aiida.orm.KpointsData>` also implements the methods
   ``set_cell_from_structure`` and ``set_kpoints_mesh_from_density``
   that allow to obtain a uniform mesh automatically.
-  
+
   If this node is not present, only the Gamma point is used for sampling.
 
 .. |br| raw:: html
@@ -324,7 +324,7 @@ Some examples are referenced in the following list. They are located in the fold
           bandskpoints.set_kpoints(kpp)
 
   In this case the Siesta input will use the "BandPoints" block.
-  
+
   Alternatively (recommended) the high-symmetry path associated to the
   structure under investigation can be
   automatically generated through the aiida tool ``get_explicit_kpoints_path``.
@@ -344,8 +344,8 @@ Some examples are referenced in the following list. They are located in the fold
 
   .. warning:: "SeeK-path"
      might modify the structure to follow particular conventions
-     and the generated kpoints might only 
-     apply on the internally generated 'primitive_structure' and not 
+     and the generated kpoints might only
+     apply on the internally generated 'primitive_structure' and not
      on the input structure that was provided. The correct
      way to use this tool is to use the generated 'primitive_structure' also for the
      Siesta calculation::
@@ -394,7 +394,7 @@ Some examples are referenced in the following list. They are located in the fold
 
   .. warning:: The implementation relies on the correct description of
      the labels in the class :py:class:`KpointsData <aiida.orm.KpointsData>`.
-     Refrain from improper use of ``bandskpoints.labels`` and follow the 
+     Refrain from improper use of ``bandskpoints.labels`` and follow the
      the instructions described above. An incorrect use of the labels
      might result in an incorrect parsing of the bands.
 
@@ -422,7 +422,7 @@ Some examples are referenced in the following list. They are located in the fold
 
   This input namespace allows control on the LUA interface to SIESTA.
   The user should remember that to enable the LUA interface,
-  it is suggested to compile SIESTA with ``flook`` and to use the ``flos`` library 
+  it is suggested to compile SIESTA with ``flook`` and to use the ``flos`` library
   (`flos documentation`_). Follow the SIESTA manual for complete
   instructions.
   Since this option also requires the definition of the ``LUA_PATH``, an
@@ -440,7 +440,7 @@ Some examples are referenced in the following list. They are located in the fold
   operational parameters. For example, the LBFGS geometry relaxation
   algorithm, or the NEB path-optimization scheme, can be implemented
   in Lua. See the examples provided.
-  
+
 * **lua.parameters** is a dictionary containing the
   operational parameters for the script. For example, it can set the
   tolerance to be used in the script, or the value of the 'spring
@@ -459,7 +459,7 @@ Some examples are referenced in the following list. They are located in the fold
 
     <br />
 
-* **settings**, class  :py:class:`Dict <aiida.orm.Dict>` , *Optional*      
+* **settings**, class  :py:class:`Dict <aiida.orm.Dict>` , *Optional*
 
   An optional dictionary that activates non-default operations. For a list of possible
   values to pass, see the section on :ref:`advanced features <siesta-advanced-features>`.
@@ -477,7 +477,7 @@ Some examples are referenced in the following list. They are located in the fold
 Submitting the calculation
 --------------------------
 
-Once all the inputs above are set, the subsequent step consists in passing them to the 
+Once all the inputs above are set, the subsequent step consists in passing them to the
 calculation class and run/submit it.
 
 First, the Siesta calculation class is loaded::
@@ -504,10 +504,10 @@ In case of LUA calculations, the ``LUA_PATH`` must be defined. To do so::
 
         builder.metadata.options.environment_variables = {"LUA_PATH":"/flos_path/?.lua;/flos_path/?/init.lua;;;"}
 
-where ``flos_path`` is the path to the flos library repository (in the computer where SIESTA will run). 
-Please note that the explicit path must be used due to a problem of aiida 
+where ``flos_path`` is the path to the flos library repository (in the computer where SIESTA will run).
+Please note that the explicit path must be used due to a problem of aiida
 (https://github.com/aiidateam/aiida-core/issues/4836). This means that, for instance, the command
-``export LUA_PATH="$HOME/flos/?.lua;$HOME/flos/?/init.lua;$LUA_PATH;;"`` suggested in the `flos documentation`_ 
+``export LUA_PATH="$HOME/flos/?.lua;$HOME/flos/?/init.lua;$LUA_PATH;;"`` suggested in the `flos documentation`_
 must be substitute with explicit
 path of ``$HOME``.
 
@@ -521,7 +521,7 @@ To run the calculation in an interactive way::
         from aiida.engine import run
         results = run(builder)
 
-Here the results variable will contain a dictionary 
+Here the results variable will contain a dictionary
 containing all the nodes that were produced as output.
 
 Another option is to submit it to the daemon::
@@ -531,7 +531,7 @@ Another option is to submit it to the daemon::
 
 In this case, calc is the calculation node and not the results dictionary.
 
-.. note:: In order to inspect the inputs created by AiiDA without 
+.. note:: In order to inspect the inputs created by AiiDA without
    actually running the calculation, we can perform a dry run of the submission process::
 
         builder.metadata.dry_run = True
@@ -540,14 +540,14 @@ In this case, calc is the calculation node and not the results dictionary.
    This will create the input files, that are available for inspection.
 
 .. note:: The use of the builder makes the process more intuitive, but it
-   is not mandatory. The inputs can be provided as keywords argument when you 
+   is not mandatory. The inputs can be provided as keywords argument when you
    launch the calculation, passing the calculation class as the first argument::
 
         run(SiestaCalculation, structure=s, pseudos=pseudos, kpoints = kpoints, ...)
 
    same syntax for the command ``submit``.
 
-A large set of examples covering some standard cases are in the folder 
+A large set of examples covering some standard cases are in the folder
 `aiida_siesta/examples/plugins/siesta`. They can be run with::
 
         runaiida example_name.py {--send, --dont-send} code@computer
@@ -555,7 +555,7 @@ A large set of examples covering some standard cases are in the folder
 The parameter ``--dont-send`` will activate the "dry run" option. In that case a test
 folder (`submit_test`) will be created, containing all the files that aiida
 generates automatically. The parameter ``--send`` will submit the example to
-the daemon. One of the two options needs to be present to run the script. 
+the daemon. One of the two options needs to be present to run the script.
 The second argument contains the name of the code (``code@computer``) to use
 in the calculation. It must be a previously set up code, corresponding to
 a siesta executable.
@@ -570,7 +570,7 @@ according to the calculation details.  All output nodes can be
 accessed with the ``calculation.outputs`` method.
 
 
-* **output_parameters** :py:class:`Dict <aiida.orm.Dict>` 
+* **output_parameters** :py:class:`Dict <aiida.orm.Dict>`
 
   A dictionary with metadata, scalar result values, a warnings
   list, and possibly a timing section.
@@ -587,15 +587,15 @@ accessed with the ``calculation.outputs`` method.
       "E_KS_units": 'eV',
       "global_time": 55.213,
       "timing_decomposition": {
-        "compute_DM": 33.208, 
-        "nlefsm-1": 0.582, 
-        "nlefsm-2": 0.045, 
-        "post-SCF": 2.556, 
-        "setup_H": 16.531, 
-        "setup_H0": 2.351, 
-        "siesta": 55.213, 
+        "compute_DM": 33.208,
+        "nlefsm-1": 0.582,
+        "nlefsm-2": 0.045,
+        "post-SCF": 2.556,
+        "setup_H": 16.531,
+        "setup_H0": 2.351,
+        "siesta": 55.213,
         "state_init": 0.171
-      }, 
+      },
       "warnings": [ "INFO: Job Completed"]
     }
 
@@ -628,13 +628,13 @@ accessed with the ``calculation.outputs`` method.
 
         forces_and_stress.get_array("forces")
         forces_and_stress.get_array("stress")
-  
+
 .. |br| raw:: html
 
     <br />
 
 * **output_structure** :py:class:`StructureData <aiida.orm.StructureData>`
-  
+
   Present only if the calculation is moving the ions.  Cell and ionic
   positions refer to the last configuration.
 
@@ -643,13 +643,13 @@ accessed with the ``calculation.outputs`` method.
     <br />
 
 * **bands**, :py:class:`BandsData  <aiida.orm.BandsData>`
-  
+
   Present only if a band calculation is requested (signaled by the
   presence of a **bandskpoints** input node of class `KpointsData <aiida.orm.KpointsData>`).
   It contains an array with the list of electronic energies (in `eV`) for every
   kpoint. For spin-polarized calculations, there is an extra dimension
   for spin. In this class also the full list of kpoints is stored and they are
-  in units of `1/Angstrom`. Therefore a direct comparison with the Siesta output 
+  in units of `1/Angstrom`. Therefore a direct comparison with the Siesta output
   SystLabel.bands is possible only after the conversion of `Angstrom` to `Bohr`.
   The bands are not rescaled by the Fermi energy. Tools for the generation
   of files that can be easly plot are available through ``bands.export``.
@@ -660,12 +660,12 @@ accessed with the ``calculation.outputs`` method.
 
 * **optical_eps2** :py:class:`ArrayData <aiida.orm.ArrayData>`
 
-  Array containing the imaginary part of the dielectric function (epsilon_2) 
+  Array containing the imaginary part of the dielectric function (epsilon_2)
   versus energy  (`eV`).
   To access the values::
 
         optical_eps2.get_array("e_eps2")
-  
+
 .. |br| raw:: html
 
     <br />
@@ -681,7 +681,7 @@ accessed with the ``calculation.outputs`` method.
   These files are parsed and stored into `IonData` instances that can be then easily reused in
   subsequent calculations. From `IonData` instances also the explicit orbitals of the basis can be obtained.
   One **ions** for each species is created and they will be output with the name ``ions_El`` where
-  ``El`` is the label of the species. 
+  ``El`` is the label of the species.
 
 .. |br| raw:: html
 
@@ -706,8 +706,8 @@ No trajectories have been implemented yet.
 Errors
 ------
 
-Errors during the parsing stage are reported in the log of the calculation (accessible 
-with the ``verdi process report`` command). 
+Errors during the parsing stage are reported in the log of the calculation (accessible
+with the ``verdi process report`` command).
 Moreover, they are stored in the **output_parameters** node under the key ``warnings``.
 
 .. _siesta-restart:
@@ -746,11 +746,11 @@ uppercase by the plugin.
 Adding command-line options
 ...........................
 
-If you want to add command-line options to the executable (particularly 
-relevant e.g. to tune the parallelization level), you can pass each option 
+If you want to add command-line options to the executable (particularly
+relevant e.g. to tune the parallelization level), you can pass each option
 as a string in a list, as follows::
 
-  settings_dict = {  
+  settings_dict = {
       'cmdline': ['-option1', '-option2'],
   }
   builder.settings = Dict(dict=settings_dict)
@@ -766,7 +766,7 @@ retrieve (and preserve in the AiiDA repository), you can add
 those files as a list as follows::
 
 
-  settings_dict = {  
+  settings_dict = {
     'additional_retrieve_list': ['aiida.EIG', 'aiida.ORB_INDX'],
   }
    builder.settings = Dict(dict=settings_dict)

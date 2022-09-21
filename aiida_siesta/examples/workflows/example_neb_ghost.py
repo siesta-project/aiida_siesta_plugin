@@ -1,4 +1,5 @@
 #!/usr/bin/env runaiida
+# -*- coding: utf-8 -*-
 
 # LUA PATH MUST BE PASSED AS SECOND OPTION!!!!!!
 
@@ -22,13 +23,11 @@ import sys
 
 #AiiDA classes and functions
 from aiida.engine import submit
-from aiida.orm import load_code
-from aiida.orm import (Dict, StructureData, KpointsData)
-from aiida.orm import TrajectoryData, SinglefileData
+from aiida.orm import Dict, KpointsData, SinglefileData, StructureData, TrajectoryData, load_code
 from aiida_pseudo.data.pseudo.psf import PsfData
+
 from aiida_siesta.utils.xyz_utils import get_structure_list_from_folder
 from aiida_siesta.workflows.neb_base import SiestaBaseNEBWorkChain
-
 
 try:
     codename = sys.argv[1]
@@ -55,7 +54,7 @@ cell = [[15.0, 00.0 , 00.0,],
 s = StructureData(cell=cell)
 s.append_atom(position=( 0.000,  0.000,  0.000 ),symbols=['O']) #1
 s.append_atom(position=( 0.757,  0.586,  0.000 ),symbols=['H']) #2
-s.append_atom(position=(-0.757,  0.586,  0.000 ),symbols=['H']) #3 
+s.append_atom(position=(-0.757,  0.586,  0.000 ),symbols=['H']) #3
 s.append_atom(position=( 0.000,  3.500,  0.000 ),symbols=['O']) #4
 s.append_atom(position=( 0.757,  2.914,  0.000 ),symbols=['H']) #5
 s.append_atom(position=(-0.757,  2.914,  0.000 ),symbols=['H']) #6
@@ -78,7 +77,7 @@ lua_script = SinglefileData(absname)
 # would likely not converge, as the magnitude of the forces on
 # ghosts bear no relation to the rest...
 #
-parameters = Dict(dict={
+parameters = Dict({
    "mesh-cutoff": "50 Ry",
    "dm-tolerance": "0.0001",
    "DM-NumberPulay ":  "3",
@@ -99,7 +98,7 @@ parameters = Dict(dict={
 # Basis set info, including floating sites. Note that
 # O_top will get a default DZP basis set. If needed,
 # it can be specified in the block.
-basis = Dict(dict={
+basis = Dict({
   'floating_sites': [ {"name":'O_top', "symbols":'O', "position":(-0.757,  0.586,  2.00 ) } ],
   '%block PAO-Basis':
     """
@@ -130,14 +129,14 @@ for fname, kinds in raw_pseudos:
     absname = op.realpath(op.join(op.dirname(__file__), "../fixtures/sample_psf", fname))
     pseudo = PsfData.get_or_create(absname)
     if not pseudo.is_stored:
-        print("\nCreated the pseudo for {}".format(kinds))
+        print(f"\nCreated the pseudo for {kinds}")
     else:
-        print("\nUsing the pseudo for {} from DB: {}".format(kinds, pseudo.pk))
+        print(f"\nUsing the pseudo for {kinds} from DB: {pseudo.pk}")
     for j in kinds:
         pseudos_dict[j]=pseudo
 
 # Resources and other options
-options = Dict(dict={
+options = Dict({
     "max_wallclock_seconds": 3600,
     'withmpi': True,
     "resources": {
@@ -161,7 +160,6 @@ inputs = {
 }
 
 process = submit(SiestaBaseNEBWorkChain, **inputs)
-print("Submitted Siesta NEB Base workchain; ID={}".format(process.pk))
-print("For information type: verdi process show {}".format(process.pk))
+print(f"Submitted Siesta NEB Base workchain; ID={process.pk}")
+print(f"For information type: verdi process show {process.pk}")
 print("For a list of running processes type: verdi process list")
-

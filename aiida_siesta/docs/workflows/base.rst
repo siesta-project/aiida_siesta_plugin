@@ -18,7 +18,7 @@ of the **SiestaBaseWorkChain** follow the conventions already presented in the
 the input keyword **bandskpoints** triggers the calculation of the band structure
 of a system, while it is sufficient to add the SIESTA MD keywords to the
 **parameters** input in order to perforem the relaxation of a structure.
-In contarst to the **SiestaCalculation** plugin, however, the 
+In contarst to the **SiestaCalculation** plugin, however, the
 workchain is able to automatically restart a calculation in case of failure (lack of
 electronic-structure or geometry relaxation convergence, termination due to
 walltime restrictions, etc).
@@ -36,7 +36,7 @@ Supported Siesta versions
 At least 4.0.1 of the 4.0 series, 4.1-b3 of the 4.1 series and the MaX-1.0 release, which
 can be found in the development platform
 (https://gitlab.com/siesta-project/siesta).
-For more up to date info on compatibility, please check the      
+For more up to date info on compatibility, please check the
 `wiki <https://github.com/siesta-project/aiida_siesta_plugin/wiki/Supported-siesta-versions>`_.
 
 
@@ -48,7 +48,7 @@ Inputs
 
 All the siesta plugin inputs are also inputs of the **SiestaBaseWorkChain**. Therefore,
 detailed information on them can be found :ref:`here <siesta-plugin-inputs>`.
-The only difference is regarding the way the computational resources are passed. 
+The only difference is regarding the way the computational resources are passed.
 The siesta plugin makes use of ``metadada.options`` for this task, here, instead, we have
 a dedicated input node.
 
@@ -97,7 +97,7 @@ to control additional features.
 * **max_iterations**, class :py:class:`Int <aiida.orm.Int>`, *Optional*
 
   The maximum number of iterations allowed in the restart cycle for
-  calculations. The **SiestaBaseWorkChain** tries to deal with some 
+  calculations. The **SiestaBaseWorkChain** tries to deal with some
   common siesta errors (see :ref:`here <basewc-error>`) and restart the calculation with appropriate
   modifications. The integer **max_iterations** is the maximum number
   of times the restart is performed no matter what error is recorded.
@@ -110,7 +110,7 @@ to control additional features.
 
 Relaxation and bands
 --------------------
-As already mentioned in the introduction, in addition to simple scf calculations, the **SiestaBaseWorkChain** 
+As already mentioned in the introduction, in addition to simple scf calculations, the **SiestaBaseWorkChain**
 can be used to perform the relaxation of a structure and the electronic bands calculations.
 For the electronic bands, however, we suggest the use of the **BandgapWorkChain** distributed in this package, because
 it adds the feature to automatically calculate the band gap.

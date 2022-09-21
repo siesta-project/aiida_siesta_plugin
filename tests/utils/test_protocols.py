@@ -1,8 +1,11 @@
 #!/usr/bin/env runaiida
 # -*- coding: utf-8 -*-
 import os
+
 from aiida_pseudo.groups.family.pseudo import PseudoPotentialFamily
+
 from aiida_siesta.utils.protocols_system.protocols import ProtocolManager
+
 #from aiida_siesta.groups.pseudos import PsmlFamily
 
 
@@ -51,7 +54,7 @@ def test_methods(aiida_profile):
     PseudoPotentialFamily.objects.get_or_create("PseudoDojo/0.4/PBE/SR/standard/psml")
 
     pmanager=ProtocolManager()
-        
+
     assert pmanager.is_valid_protocol("standard_psml")
     assert not pmanager.is_valid_protocol("yoyo")
 

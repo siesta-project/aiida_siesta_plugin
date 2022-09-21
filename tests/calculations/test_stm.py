@@ -1,12 +1,14 @@
 #!/usr/bin/env runaiida
+# -*- coding: utf-8 -*-
 import os.path as op
-import pytest
+
 from aiida import orm
 from aiida.common import datastructures
 from aiida.tools import get_explicit_kpoints_path
+import pytest
 
 
-def test_base(aiida_profile, fixture_sandbox, fixture_localhost, generate_calc_job, 
+def test_base(aiida_profile, fixture_sandbox, fixture_localhost, generate_calc_job,
     fixture_code, file_regression, generate_remote_data):
     """
     Test that a single STM calculation is submitted.
@@ -37,7 +39,7 @@ def test_base(aiida_profile, fixture_sandbox, fixture_localhost, generate_calc_j
             subf)]
     cmdline_params = ['-i', '2.00000', '-s', 's', 'aiida.LDOS']
     retrieve_list = ['*.STM', 'stm.out']
-    
+
     # Check the attributes of the returned `CalcInfo`
     assert isinstance(calc_info, datastructures.CalcInfo)
     #check command line
@@ -54,7 +56,7 @@ def test_base(aiida_profile, fixture_sandbox, fixture_localhost, generate_calc_j
 
 
 
-def test_validators(aiida_profile, fixture_sandbox, fixture_localhost, generate_calc_job, 
+def test_validators(aiida_profile, fixture_sandbox, fixture_localhost, generate_calc_job,
     fixture_code, file_regression, generate_remote_data):
     """
     Test validators STM calculation is submitted.

@@ -1,11 +1,14 @@
 #!/usr/bin/env runaiida
+# -*- coding: utf-8 -*-
 """
 File showcasing the submission of a SiestaBaseWorkChain using the protocol system.
 """
 import sys
-from aiida_siesta.workflows.base import SiestaBaseWorkChain
+
 from aiida.engine import submit
 from aiida.orm import Dict, StructureData
+
+from aiida_siesta.workflows.base import SiestaBaseWorkChain
 
 try:
     codename = sys.argv[1]
@@ -28,9 +31,9 @@ structure.append_atom(position=(0.250 * alat, 0.250 * alat, 0.250 * alat),
 
 calc_engines = {
      'siesta': {
-         'code': codename, 
+         'code': codename,
          'options': {
-             'resources': {'num_machines': 1, "num_mpiprocs_per_machine": 1}, 
+             'resources': {'num_machines': 1, "num_mpiprocs_per_machine": 1},
              "max_wallclock_seconds": 3600, #'queue_name': 'DevQ', 'withmpi': True, 'account': "tcphy113c"
          }}}
 
@@ -65,11 +68,10 @@ print(inp_gen.how_to_pass_computation_options())
 # If no change is performed, just submitting the builder should still work and produce sensible results.
 new_params = builder.parameters.get_dict()
 new_params['max_scf_iterations'] = 200
-builder.parameters = Dict(dict=new_params)
+builder.parameters = Dict(new_params)
 
 # Here we just submit the builder
 process = submit(builder)
-print("Submitted workchain; ID={}".format(process.pk))
-print("For information about this workchain type: verdi process show {}".format(process.pk))
+print(f"Submitted workchain; ID={process.pk}")
+print(f"For information about this workchain type: verdi process show {process.pk}")
 print("For a list of running processes type: verdi process list")
-

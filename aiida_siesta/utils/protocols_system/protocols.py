@@ -1,12 +1,18 @@
+# -*- coding: utf-8 -*-
+"""
+The protocol manager.
+"""
+
 import os
-import yaml
-from aiida.orm import Group
+
 from aiida.common import exceptions
+from aiida.orm import Group
+import yaml
 
 
 class ProtocolManager:
     """
-    This class is meant to become the central engine for the management of protocols.
+    Class meant to become the central engine for the management of protocols.
 
     With the word "protocol" we mean a series of suggested inputs for AiiDA WorkChains that allow
     users to more easly authomatize their workflows. Even though this approach could be general, at
@@ -35,7 +41,9 @@ class ProtocolManager:
 
     def __init__(self):
         """
-        Construct an instance of ProtocolManager, validating the class attribute _calc_types set by the sub class
+        Construct an instance of ProtocolMainager.
+
+        Validate the class attribute _calc_types set by the sub class
         and the presence of correct sintax in the protocols files (custom protocols can be set by users).
         """
         self._initialize_protocols()
@@ -44,15 +52,18 @@ class ProtocolManager:
         self._protocols_checks()
 
     def _initialize_protocols(self):
+        """
+        Read the file with the protocols and the possible custom one in AIIDA_SIESTA_PROTOCOLS env variable.
+        """
         filepath = os.path.join(os.path.dirname(__file__), 'protocols_registry.yaml')
 
-        with open(filepath) as thefile:
+        with open(filepath, encoding='utf8') as thefile:
             self._protocols = yaml.full_load(thefile)
 
         if 'AIIDA_SIESTA_PROTOCOLS' in os.environ:
             bisfilepath = os.environ['AIIDA_SIESTA_PROTOCOLS']
             try:
-                with open(bisfilepath) as thefile:
+                with open(bisfilepath, encoding='utf8') as thefile:
                     custom_protocols = yaml.full_load(thefile)
             except (IsADirectoryError, FileNotFoundError):
                 raise RuntimeError(
@@ -65,7 +76,9 @@ class ProtocolManager:
 
     def _protocols_checks(self):  # noqa: MC0001  - is mccabe too complex funct -
         """
-        Here implemented all the checks on the correct structure of each protocol. It also checks
+        Here implemented all the checks on the correct structure of each protocol.
+
+        It also checks
         that, for each protocol, the correct pseudo family already loaded in the database.
         """
 
@@ -107,25 +120,7 @@ class ProtocolManager:
                 try:
                     Group.get(label=famname)
                 except exceptions.NotExistent:
-                    if k == "standard_psml":
-                        try:
-                            Group.get(label="nc-sr-04_pbe_standard_psml")
-                            from aiida_siesta.utils.warn import AiidaSiestaDeprecationWarning
-                            import warnings
-                            mesg = (
-                                f'protocol `{k}` now requires `pseudo_family` with name `{famname}`. This is not ' +
-                                'present in the database, but family `nc-sr-04_pbe_standard_psml` is found instead. ' +
-                                f'This is an old name for the family of {k}. It is accepted now but deprecated ' +
-                                'after v2.0. To create the family with updated name, run the command ' +
-                                '`aiida-pseudo install pseudo-dojo -v 0.4 -x PBE -r SR -p standard -f psml`. ' +
-                                'This will also remove other deprecation messages.'
-                            )
-                            warnings.warn(mesg, AiidaSiestaDeprecationWarning)
-                            self._protocols[k]["pseudo_family"] = "nc-sr-04_pbe_standard_psml"
-                        except exceptions.NotExistent:
-                            raise_invalid(messagg)
-                    else:
-                        raise_invalid(messagg)
+                    raise_invalid(messagg)
 
         if self._default_protocol not in self._protocols:
             raise_invalid(f'default protocol `{self._default_protocol}` is not a defined protocol')
@@ -133,30 +128,46 @@ class ProtocolManager:
     #Some methods to return informations about the protocols
     #available and the _calc_types, describing the use of resources
     def is_valid_protocol(self, name):
+        """
+        Check a protocol is available.
+        """
         return name in self._protocols
 
     def get_protocol_names(self):
+        """
+        List protocol names.
+        """
         return list(self._protocols.keys())
 
     def get_default_protocol_name(self):
+        """
+        Return the name of default protocol.
+        """
         return self._default_protocol
 
     def get_protocol_info(self, key):
+        """
+        Return info of a protocol.
+        """
         try:
             return self._protocols[key]["description"]
         except KeyError:
-            raise ValueError("Wrong protocol: no protocol with name {} implemented".format(key))
+            raise ValueError(f"Wrong protocol: no protocol with name {key} implemented")
 
     def get_protocol(self, key):
+        """
+        Return the full spec of a protocol.
+        """
         try:
             return self._protocols[key]
         except KeyError:
-            raise ValueError("Wrong protocol: no protocol with name {} implemented".format(key))
+            raise ValueError(f"Wrong protocol: no protocol with name {key} implemented")
 
     def _get_param(self, key, structure):
         """
-        Method to construct the `parameters` input. Heuristics are applied, a dictionary
-        with the parameters is returned.
+        Method to construct the `parameters` input.
+
+        Heuristics are applied, a dictionary with the parameters is returned.
         """
         parameters = self._protocols[key]["parameters"].copy()
 
@@ -183,8 +194,7 @@ class ProtocolManager:
                             cust_meshcut = float(cust_param["mesh-cutoff"].split()[0])
                         except (ValueError, IndexError):
                             raise RuntimeError(
-                                "Wrong `mesh-cutoff` value for heuristc "
-                                "{0} of protocol {1}".format(kind.symbol, key)
+                                f"Wrong `mesh-cutoff` value for heuristc {kind.symbol} of protocol {key}"
                             )
                         if meshcut_glob is not None:
                             if cust_meshcut > float(meshcut_glob):
@@ -195,19 +205,19 @@ class ProtocolManager:
                                 meshcut_units = cust_param["mesh-cutoff"].split()[1]
                             except (ValueError, IndexError):
                                 raise RuntimeError(
-                                    "Wrong `mesh-cutoff` units for heuristc "
-                                    "{0} of protocol {1}".format(kind.symbol, key)
+                                    f"Wrong `mesh-cutoff` units for heuristc {kind.symbol} of protocol {key}"
                                 )
 
             if meshcut_glob is not None:
-                parameters["mesh-cutoff"] = "{0} {1}".format(meshcut_glob, meshcut_units)
+                parameters["mesh-cutoff"] = f"{meshcut_glob} {meshcut_units}"
 
         return parameters
 
     def _add_spin_options(self, key, orig_param):
         """
-        Add to the parameters dictionary some additional parameters, called
-        only if a calculation with spin polarization is requested.
+        Add to the parameters dictionary some additional parameters.
+
+        Called only if a calculation with spin polarization is requested.
         """
         if "spin_additions" in self._protocols[key]:
             #Check if mesh-cutoff is defined in "relax_additions" and has correct sintax
@@ -219,7 +229,7 @@ class ProtocolManager:
                 except (ValueError, IndexError):
                     raise RuntimeError(
                         'Wrong format of `mesh-cutoff` in `spin_additions` of protocol '
-                        '`{}`. Value and units are required'.format(key)
+                        f'`{key}`. Value and units are required'
                     )
             #Merege the two dictionary in case of keys that are present in both dictionaries, the value
             #of the second dictionary is stored!
@@ -235,8 +245,9 @@ class ProtocolManager:
 
     def _add_relaxation_options(self, key, orig_param):
         """
-        Add to the parameters dictionary some additional parameters, called
-        only if a relaxation is requested
+        Add to the parameters dictionary some additional parameters.
+
+        Called only if a relaxation is requested
         """
         if "relax_additions" in self._protocols[key]:
             #Check if mesh-cutoff is defined in "relax_additions" and has correct sintax
@@ -248,7 +259,7 @@ class ProtocolManager:
                 except (ValueError, IndexError):
                     raise RuntimeError(
                         'Wrong format of `mesh-cutoff` in `relax_additions` of protocol '
-                        '`{}`. Value and units are required'.format(key)
+                        f'`{key}`. Value and units are required'
                     )
             #Merege the two dictionary in case of keys that are present in both dictionaries, the value
             #of the second dictionary is stored!
@@ -265,6 +276,7 @@ class ProtocolManager:
     def _get_basis(self, key, structure):  # noqa: MC0001  - is mccabe too complex funct -
         """
         Method to construct the `basis` input.
+
         Heuristics are applied, a dictionary with the basis is returned.
         """
         basis = self._protocols[key]["basis"].copy()
@@ -299,25 +311,28 @@ class ProtocolManager:
             if pol_dict:
                 card = '\n'
                 for k, v in pol_dict.items():
-                    card = card + '  {0}  {1} \n'.format(k, v)
+                    card = card + f'  {k}  {v} \n'
                 card = card + '%endblock paopolarizationscheme'
                 basis['%block pao-polarization-scheme'] = card
             if size_dict:
                 card = '\n'
                 for k, v in size_dict.items():
-                    card = card + '  {0}  {1} \n'.format(k, v)
+                    card = card + f'  {k}  {v} \n'
                 card = card + '%endblock paobasissizes'
                 basis['%block pao-basis-sizes'] = card
             if pao_block_dict:
                 card = '\n'
                 for k, v in pao_block_dict.items():
-                    card = card + '{0} \n'.format(v)
+                    card = card + f'{v} \n'
                 card = card + '%endblock pao-basis'
                 basis['%block pao-basis'] = card
 
         return basis
 
     def _get_kpoints(self, key, structure):
+        """
+        Construct the kpoints input.
+        """
         from aiida.orm import KpointsData
         if "kpoints" in self._protocols[key]:
             kpoints_mesh = KpointsData()
@@ -333,15 +348,11 @@ class ProtocolManager:
         return kpoints_mesh
 
     def _get_pseudos(self, key, structure):
-
+        """
+        Get pseudo from family.
+        """
         family = self._protocols[key]["pseudo_family"]
         group = Group.get(label=family)
-
-        # To be removed in v2.0
-        if "data" in group.type_string:
-            from aiida_siesta.data.common import get_pseudos_from_structure
-            pseudos = get_pseudos_from_structure(structure, family)
-            return pseudos
 
         pseudos = group.get_pseudos(structure=structure)
         return pseudos

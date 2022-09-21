@@ -1,12 +1,14 @@
 #!/usr/bin/env runaiida
-import pytest
-from plumpy import ProcessState
+# -*- coding: utf-8 -*-
 from aiida import orm
-from aiida.common import (LinkType, AttributeDict)
+from aiida.common import AttributeDict, LinkType
 from aiida.engine import ExitCode
+from plumpy import ProcessState
+import pytest
+
 
 @pytest.fixture
-def generate_workchain_bandgap(generate_psml_data, fixture_code, fixture_localhost, generate_workchain, 
+def generate_workchain_bandgap(generate_psml_data, fixture_code, fixture_localhost, generate_workchain,
         generate_structure, generate_param, generate_basis, generate_kpoints_mesh,
         generate_calc_job_node, generate_parser):
     """Generate an instance of a `BandgapWorkChain`."""
@@ -67,7 +69,7 @@ def test_preproc_and_add_kpb(aiida_profile, generate_workchain_bandgap):
     process = generate_workchain_bandgap(bands=False,relax=False)
     process.preprocess()
     assert process.ctx.need_to_generate_bandskp
-    assert not process.ctx.need_fin_step 
+    assert not process.ctx.need_fin_step
 
     res = process.run_siesta_wc()
 
@@ -121,15 +123,15 @@ def test_final_run(aiida_profile, fixture_localhost, generate_workchain_bandgap,
     fin_basewc = generate_wc_job_node("siesta.base", fixture_localhost)
     fin_basewc.set_process_state(ProcessState.FINISHED)
     fin_basewc.set_exit_status(ExitCode(0).status)
-    
+
     out_par = orm.Dict(dict={'E_Fermi' : -1})
     out_par.store()
     out_par.add_incoming(fin_basewc, link_type=LinkType.RETURN, link_label='output_parameters')
-    
+
     out_force_stress = orm.ArrayData()
     out_force_stress.store()
     out_force_stress.add_incoming(fin_basewc, link_type=LinkType.RETURN, link_label='forces_and_stress')
-    
+
     remote_folder = orm.RemoteData(computer=fixture_localhost, remote_path='/tmp')
     remote_folder.store()
     remote_folder.add_incoming(fin_basewc, link_type=LinkType.RETURN, link_label='remote_folder')
@@ -145,7 +147,7 @@ def test_final_run(aiida_profile, fixture_localhost, generate_workchain_bandgap,
 
     retrieved = orm.FolderData().store()
     retrieved.add_incoming(fin_basewc, link_type=LinkType.RETURN, link_label='retrieved')
-   
+
     process.ctx.workchain_base = fin_basewc
     process.run_results()
 

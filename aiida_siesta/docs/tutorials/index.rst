@@ -9,4 +9,3 @@ tools delivered within the ``aiida-siesta`` package.
 
    icn2-2020
    siesta-school-2021
-

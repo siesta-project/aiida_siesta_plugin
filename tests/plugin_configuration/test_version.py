@@ -1,12 +1,6 @@
+# -*- coding: utf-8 -*-
 def test_version():
     import aiida_siesta
-    import json
-
-    with open('setup.json') as filee: 
-        data = json.load(filee) 
-
-    assert data["version"] == aiida_siesta.__version__
-
     from aiida_siesta.parsers.siesta import SiestaParser
     assert SiestaParser._version == aiida_siesta.__version__
 
@@ -18,4 +12,3 @@ def test_version():
             if "version =" in line:
                 s=line
     assert str(s.split()[2][2:-1]) == str(aiida_siesta.__version__)
-

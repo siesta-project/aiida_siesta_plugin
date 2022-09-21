@@ -1,18 +1,20 @@
 #!/usr/bin/env runaiida
+# -*- coding: utf-8 -*-
 
 import sys
 
 from aiida.engine import submit
 from aiida.orm import load_code
-from aiida_siesta.calculations.siesta import SiestaCalculation
 from aiida.plugins import DataFactory
+
+from aiida_siesta.calculations.siesta import SiestaCalculation
 
 #----------------- Example of the use of a pseudopotential family
 # Read 00_README to learn how to set up a family
 
-Dict = DataFactory('dict')
-KpointsData = DataFactory('array.kpoints')
-StructureData = DataFactory('structure')
+Dict = DataFactory('core.dict')
+KpointsData = DataFactory('core.array.kpoints')
+StructureData = DataFactory('core.structure')
 
 try:
     dontsend = sys.argv[1]
@@ -48,7 +50,7 @@ options = {
 }
 #
 settings_dict = {'additional_retrieve_list': ['aiida.BONDS', 'aiida.EIG']}
-settings = Dict(dict=settings_dict)
+settings = Dict(settings_dict)
 #---------------------------------------------------------------------
 
 #
@@ -109,7 +111,7 @@ params_dict = {
     'writeforces': True,
 }
 
-parameters = Dict(dict=params_dict)
+parameters = Dict(params_dict)
 #------------------------------------------------------------------------
 
 #
@@ -131,7 +133,7 @@ H    SZP
 %endblock pao-basis-sizes""",
 }
 
-basis = Dict(dict=basis_dict)
+basis = Dict(basis_dict)
 #------------------------------------------------------------------------
 
 #--------------------- Pseudopotentials ---------------------------------
@@ -161,12 +163,11 @@ if submit_test:
     inputs["metadata"]["dry_run"] = True
     inputs["metadata"]["store_provenance"] = False
     process = submit(SiestaCalculation, **inputs)
-    print("Submited test for calculation (uuid='{}')".format(process.uuid))
+    print(f"Submited test for calculation (uuid='{process.uuid}')")
     print("Check the folder submit_test for the result of the test")
 
 else:
     process = submit(SiestaCalculation, **inputs)
-    print("Submitted calculation; ID={}".format(process.pk))
-    print("For information about this calculation type: verdi process show {}".
-          format(process.pk))
+    print(f"Submitted calculation; ID={process.pk}")
+    print(f"For information about this calculation type: verdi process show {process.pk}")
     print("For a list of running processes type: verdi process list")

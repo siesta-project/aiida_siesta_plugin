@@ -17,7 +17,7 @@ Supported Siesta versions
 At least 4.0.1 of the 4.0 series, 4.1-b3 of the 4.1 series and the MaX-1.0 release, which
 can be found in the development platform
 (https://gitlab.com/siesta-project/siesta).
-For more up to date info on compatibility, please check the      
+For more up to date info on compatibility, please check the
 `wiki <https://github.com/siesta-project/aiida_siesta_plugin/wiki/Supported-siesta-versions>`_.
 
 
@@ -36,12 +36,12 @@ The additional inputs are:
 
   A dictionary where each key is the name of a parameter we want to iterate
   over (:py:class:`str <str>`) and each value is a :py:class:`list <list>` with all the values to iterate over for
-  the corresponding key.  
+  the corresponding key.
   Accepted keys are:
 
   * Name of the input ports of the **SiestaBaseWorkChain**. Meaning all the names listed
     :ref:`here <siesta-base-wc-inputs>`.
-    In this case, the corresponding values list must contains the list of :py:class:`Data <aiida.orm.Data>` 
+    In this case, the corresponding values list must contains the list of :py:class:`Data <aiida.orm.Data>`
     nodes (stored or unstored) accepted by the key. Examples are::
 
         code1 = load_code("SiestaHere@localhost")
@@ -54,13 +54,13 @@ The additional inputs are:
 
   * Name of accepted Siesta input keywords (for instance ``mesh-cutoff``, ``pao-energy-shift``, etc ...).
     In this case, the corresponding values list must contains the list of values directly, meaning
-    :py:class:`str <str>`, :py:class:`float <float>`, :py:class:`int <int>` or :py:class:`bool <bool>` 
+    :py:class:`str <str>`, :py:class:`float <float>`, :py:class:`int <int>` or :py:class:`bool <bool>`
     python types. Examples are::
 
         iterate_over = {"spin" : ["polarized", "spin-orbit"]}
 
     .. warning:: In order to guarantee full flexibility, no check on the Siesta parameters is performed. If you pass as key something not recognized by Siesta, the SiestaIterator will include it in the `parameters` input and run the calculation with no warning issued. Because Siesta will not understand the keyword, it will ignore it, resulting in a series of identical calculations.
-    
+
   The `iterate_over` is a dictionary because it is possible to iterate over several keywords at
   the same time. Something of this kind::
 
@@ -79,7 +79,7 @@ The additional inputs are:
 
   Indicates the way the parameters should be iterated. Currently allowed values are
   'zip' (zips all the parameters together, this imposes that all keys should
-  have the same number of values in the list!) and 'product' (performs a cartesian product of the 
+  have the same number of values in the list!) and 'product' (performs a cartesian product of the
   parameters, meaning that all possible combinations of parameters and values are explored).
 
   The option 'zip' is the default one.

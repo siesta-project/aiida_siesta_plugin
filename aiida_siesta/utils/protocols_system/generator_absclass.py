@@ -1,11 +1,18 @@
+# -*- coding: utf-8 -*-
+"""
+Base class to create input generators.
+"""
+
 from abc import ABCMeta, abstractmethod
+
 from .protocols import ProtocolManager
 
 
 class InputGenerator(ProtocolManager, metaclass=ABCMeta):
     """
-    This abstract class sets the structure for WorkChain specific inputs generators,
-    meaning classes that are able to produce WorkChain inputs starting from
+    Set the structure for WorkChain specific inputs generators.
+
+    Theese are classes that are able to produce WorkChain inputs starting from
     a structure, a protocol and few more task specific options.
 
     Child classes need to define _calc_types (containing the schema for the
@@ -32,27 +39,30 @@ class InputGenerator(ProtocolManager, metaclass=ABCMeta):
 
     def __init__(self, workchain_class):
         """
-        Construct an instance of ProtocolManager, validating the class attribute _calc_types set by the sub class
+        Construct an instance of ProtocolManager.
+
+        Valida the class attribute _calc_types set by the sub class
         and the presence of correct sintax in the protocols files (custom protocols can be set by users).
         """
-
         super().__init__()
 
         if self._calc_types is None:
-            message = 'invalid inputs generator `{}`: does not define `_calc_types`'.format(self.__class__.__name__)
+            message = f'invalid inputs generator `{self.__class__.__name__}`: does not define `_calc_types`'
             raise RuntimeError(message)
 
         try:
             workchain_class.get_builder()
         except AttributeError:
-            message = 'invalid inputs generator `{}`: the defined `_workchain_class` is not a valid process'.format(
-                self.__class__.__name__
-            )
-            raise RuntimeError(message)
+            name = self.__class__.__name__
+            mes = f'invalid inputs generator `{name}`: the defined `_workchain_class` is not a valid process'
+            raise RuntimeError(mes)
 
         self._workchain_class = workchain_class
 
     def how_to_pass_computation_options(self):
+        """
+        Explains how to pass computational resuources.
+        """
         message = (
             "Computational resources are passed to get_filled_builder with the argument "
             "`calc_engines`. It's a dictionary with the following structure:"
@@ -62,23 +72,27 @@ class InputGenerator(ProtocolManager, metaclass=ABCMeta):
     @abstractmethod
     def get_inputs_dict(self, structure, calc_engines, protocol, **kwargs):
         """
-        Return a dictionary with all the inputs, according to a protocol. The dictionary
-        must contain only keywords that the builder of the corresponding WorkChain accepts!
+        Return a dictionary with all the inputs, according to a protocol.
+
+        The dictionary must contain only keywords that the builder of the corresponding WorkChain accepts!
         I think we should allow to change signature of this method.
         """
 
     @abstractmethod
     def get_filled_builder(self, structure, calc_engines, protocol, **kwargs):
         """
-        Here it's the place were one should call `get_inputs_dict` in order to
-        obtain the dictionary of inputs and then call `_fill builder` to obtain the
-        builder.
+        Create the filled builder.
+
+        Here one should call `get_inputs_dict` in order to obtain the dictionary of inputs
+        and then call `_fill builder` to obtain the builder.
         I think we should allow to change signature of this method.
         """
 
     def _fill_builder(self, inp_dict):
         """
-        Return a builder, prefilled. Needs `_workchain_class` to obtain the builder
+        Return a builder, prefilled.
+
+        Needs `_workchain_class` to obtain the builder
         and in input `inp_dict`, the dictionary containing all the inputs.
         """
         builder = self._workchain_class.get_builder()

@@ -24,7 +24,7 @@ returns ``dict_keys(['thiskey', 'another', 'third'])``.
 
 When two keys in the same dictionary will become the same string after translation, the last
 definition will remain::
-        
+
          from aiida_siesta.calculations.tkdict import FDFDict
          inp_dict = {"w":3,"e":4,"w--":5}
          f = FDFDict(inp_dict)
@@ -45,5 +45,3 @@ the value of key ``"w"``, also changing the "last untranslated key" to ``"w---"`
 Many more methods are available in the FDFDict class. They can be explored from the source code
 (``aiida_siesta.calculations.tkdict``).
 It is a useful tool for the development of new CalcJobs and WorkChains.
-
-

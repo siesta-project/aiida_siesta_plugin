@@ -1,0 +1,178 @@
+[build-system]
+requires = ['flit_core >=3.4,<4']
+build-backend = 'flit_core.buildapi'
+
+[project]
+name = 'aiida-siesta'
+dynamic = ['version']  # read from aiida/__init__.py
+description = "A plugin for Siesta's basic functionality within the AiiDA framework."
+authors = [
+    {name = 'Albero Garcia', email = 'albertog@icmab.es'},
+    {name = 'Victor M. Garcia-Suarez', email = 'garciavictor@uniovi.es'},
+    {name = 'Emanuele Bosoni', email = 'ebosoni@icmab.es'},
+    {name = 'Vladimir Dikan', email = 'vdikan@icmab.es'},
+    {name = 'Pol Febrer', email = 'pol.febrer@icn2.cat'}
+]
+readme = 'README.rst'
+license = {file = 'LICENSE.txt'}
+classifiers = [
+    'Development Status :: 5 - Production/Stable',
+    'Framework :: AiiDA',
+    'License :: OSI Approved :: MIT License',
+    'Operating System :: POSIX :: Linux',
+    'Operating System :: MacOS :: MacOS X',
+    'Programming Language :: Python',
+    'Programming Language :: Python :: 3.8',
+    'Programming Language :: Python :: 3.9',
+    'Programming Language :: Python :: 3.10',
+]
+keywords = ['aiida', 'siesta', 'dft']
+requires-python = '>=3.8'
+dependencies = [
+    "aiida-core>=2.0.0,<3.0.0",
+    "aiida-pseudo>=0.7.0",
+    "ase~=3.18",
+    "seekpath~=1.9,>=1.9.3",
+    "sisl",
+    "aiida-optimize>=0.5.0"
+]
+
+[project.urls]
+Home = 'https://github.com/siesta-project/aiida_siesta_plugin'
+Source = 'https://github.com/siesta-project/aiida_siesta_plugin'
+Documentation = 'http://aiida-siesta-plugin.readthedocs.io'
+
+[project.optional-dependencies]
+docs = [
+    "Sphinx",
+    "docutils",
+    "sphinx_rtd_theme",
+    "sphinx-copybutton"
+
+]
+dev = [
+    'pre-commit~=2.3',
+    'pylint==2.13.7',
+    'pylint-aiida~=0.1',
+    'pgtest~=1.3,>=1.3.1',
+    'pytest>=6.0',
+    'pytest-regressions~=2.2',
+]
+
+[project.entry-points.'aiida.calculations']
+"siesta.siesta" = "aiida_siesta.calculations.siesta:SiestaCalculation"
+"siesta.stm" = "aiida_siesta.calculations.stm:STMCalculation"
+
+[project.entry-points.'aiida.parsers']
+"siesta.parser" = "aiida_siesta.parsers.siesta:SiestaParser"
+"siesta.stm" = "aiida_siesta.parsers.stm:STMParser"
+
+[project.entry-points.'aiida.workflows']
+"siesta.base" = "aiida_siesta.workflows.base:SiestaBaseWorkChain"
+"siesta.eos" = "aiida_siesta.workflows.eos:EqOfStateFixedCellShape"
+"siesta.bandgap" = "aiida_siesta.workflows.bandgap:BandgapWorkChain"
+"siesta.stm" = "aiida_siesta.workflows.stm:SiestaSTMWorkChain"
+"siesta.baseneb" = "aiida_siesta.workflows.neb_base:SiestaBaseNEBWorkChain"
+"siesta.epsilon" = "aiida_siesta.workflows.epsilon:EpsilonWorkChain"
+"siesta.iterator" = "aiida_siesta.workflows.iterate:SiestaIterator"
+"siesta.converger" = "aiida_siesta.workflows.converge:SiestaConverger"
+"siesta.sequential_converger" = "aiida_siesta.workflows.converge:SiestaSequentialConverger"
+"siesta.forbasisopt" = "aiida_siesta.workflows._for_optimization:ForBasisOptWorkChain"
+"siesta.simplex_basis" = "aiida_siesta.workflows.simplex_basis:SimplexBasisOptimization"
+"siesta.two_step_basis_opt" = "aiida_siesta.workflows.two_steps_optimization:TwoStepsBasisOpt"
+"siesta.basis_optimization" = "aiida_siesta.workflows.basis_optimization:BasisOptimizationWorkChain"
+
+[project.entry-points.'aiida.data']
+'siesta.ion' = 'aiida_siesta.data.ion:IonData'
+
+[project.entry-points.'aiida.tools.data.orbitals']
+"siesta.atomic_orbital" = "aiida_siesta.data.atomic_orbitals:SislAtomicOrbital"
+
+[tool.flit.module]
+name = 'aiida_siesta'
+
+[tool.flit.sdist]
+exclude = [
+    '.github/',
+    'tests/',
+    'aiida_siesta/docs/',
+]
+
+[tool.flynt]
+line-length = 120
+fail-on-change = true
+
+[tool.isort]
+force_sort_within_sections = true
+include_trailing_comma = true
+line_length = 120
+multi_line_output = 3
+
+[tool.pydocstyle]
+ignore = [
+    'D104',
+    'D200',
+    'D202',
+    'D203',
+    'D212',
+    'D213',
+    'D401'
+]
+
+[tool.pylint.master]
+load-plugins = ['pylint_aiida']
+
+[tool.pylint.format]
+max-line-length = 120
+
+[tool.pylint.messages_control]
+disable = [
+    'bad-continuation',
+    'duplicate-code',
+    'import-outside-toplevel',
+    'too-many-arguments',
+    'inconsistent-return-statements',
+    'raise-missing-from'
+]
+
+[tool.pylint.basic]
+good-names = [
+    'i',
+    'j',
+    'x',
+    'y',
+    'z',
+    'l',
+    'm',
+    'n',
+    'k',
+    'v',
+    'Z'
+]
+
+[tool.pylint.design]
+max-locals = 25
+max-returns=10
+max-branches=20
+
+[tool.pytest.ini_options]
+minversion = '6.0'
+testpaths = [
+    'tests',
+]
+filterwarnings = [
+    'ignore::DeprecationWarning:distutils:',
+    'ignore::DeprecationWarning:frozendict:',
+    'ignore::DeprecationWarning:sqlalchemy_utils:',
+    'ignore::DeprecationWarning:reentry:',
+    'ignore::DeprecationWarning:pkg_resources:',
+]
+
+[tool.yapf]
+align_closing_bracket_with_visual_indent = true
+based_on_style = 'google'
+coalesce_brackets = true
+column_limit = 120
+dedent_closing_brackets = true
+indent_dictionary_value = false
+split_arguments_when_comma_terminated = true

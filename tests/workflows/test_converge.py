@@ -1,10 +1,13 @@
 #!/usr/bin/env runaiida
-import pytest
-from plumpy import ProcessState
-from aiida.engine import ExitCode
+# -*- coding: utf-8 -*-
 from aiida import orm
-from aiida.common import (LinkType, AttributeDict)
-from aiida_siesta.workflows.iterate import set_up_parameters_dict 
+from aiida.common import AttributeDict, LinkType
+from aiida.engine import ExitCode
+from plumpy import ProcessState
+import pytest
+
+from aiida_siesta.workflows.iterate import set_up_parameters_dict
+
 
 @pytest.fixture
 def generate_workchain_converge(generate_psml_data, fixture_code, generate_workchain,
@@ -44,7 +47,7 @@ def generate_workchain_converge(generate_psml_data, fixture_code, generate_workc
 
 def test_converged(aiida_profile, generate_workchain_converge):
     """Test `SiestaConvereger` convergence check"""
-    
+
     process = generate_workchain_converge()
     process.initialize()
 
@@ -64,15 +67,15 @@ def test_converged(aiida_profile, generate_workchain_converge):
     assert proceed == False
 
 
-def test_analyze_process(aiida_profile, generate_workchain_converge, 
+def test_analyze_process(aiida_profile, generate_workchain_converge,
         fixture_localhost, generate_wc_job_node):
-    """ 
+    """
     Test method `_analyze_process` of `SiestaConvereger`. Moreover it
     calls return_results but we no correct setup. Therefore it does
     only test the case when the simulation is not converged and as output
     only the Bool `converged` is returned.
     """
-    
+
     process = generate_workchain_converge()
     process.initialize()
 
@@ -82,7 +85,7 @@ def test_analyze_process(aiida_profile, generate_workchain_converge,
     out_par = orm.Dict(dict={"E_KS":1111,"E_KS_units":"eV"})
     out_par.store()
     out_par.add_incoming(basewc, link_type=LinkType.RETURN, link_label='output_parameters')
-    
+
     assert len(process.ctx.target_values) == 0
 
     process._analyze_process(basewc)
@@ -93,7 +96,7 @@ def test_analyze_process(aiida_profile, generate_workchain_converge,
 
     process.return_results()
 
-    assert "converged" in process.outputs 
+    assert "converged" in process.outputs
     assert process.outputs["converged"].value == False
 
 @pytest.fixture
@@ -108,14 +111,14 @@ def generate_workchain_seq_converger(generate_workchain, generate_structure, gen
         }
         process = generate_workchain(entry_point_wc, inputs)
         return process
-    
+
     return _generate_workchain_seq_converge
 
 def test_sequential(aiida_profile, generate_workchain_seq_converger, generate_wc_job_node,
         fixture_localhost):
     """
     We test here the SiestaSequentialConverger, just the main two methods
-    that distinguish it from the BaseIterator, meaning the `initialize` and the 
+    that distinguish it from the BaseIterator, meaning the `initialize` and the
     `_analyze_process`
     """
 

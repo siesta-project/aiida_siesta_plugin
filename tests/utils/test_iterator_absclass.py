@@ -1,12 +1,15 @@
+# -*- coding: utf-8 -*-
 """
 Here I test only the validation checks and the errors of the three classmethods
 of BaseIterator. The rest is tested in the tests of SiestaIterator.
 """
 
-from aiida_siesta.utils.iterate_absclass import BaseIterator
+from aiida import orm
 from aiida.plugins import WorkflowFactory
 import pytest
-from aiida import orm
+
+from aiida_siesta.utils.iterate_absclass import BaseIterator
+
 
 @pytest.fixture
 def generate_iterator():
@@ -27,7 +30,7 @@ def test_validation(aiida_profile):
     with pytest.raises(ValueError):
         SubBaseIterator()
 
-    with pytest.raises(ValueError):      
+    with pytest.raises(ValueError):
         class SubBaseIterator(BaseIterator):
             _process_class = "w"
 

@@ -13,9 +13,9 @@ Lua support
 * Running on 2 nodes in parallel
 >> Start of run:  11-MAY-2020   9:57:42
 
-                           ***********************       
-                           *  WELCOME TO SIESTA  *       
-                           ***********************       
+                           ***********************
+                           *  WELCOME TO SIESTA  *
+                           ***********************
 
 reinit: Reading from standard input
 reinit: Dumped input in INPUT_TMP.65972
@@ -94,7 +94,7 @@ Valence configuration for pseudopotential generation:
 3d( 0.00) rc: 1.89
 4f( 0.00) rc: 1.89
 Dumping pseudopotential information in formatted form in Si.psdump
-resizes: Read basis size for species Si = dzp                 
+resizes: Read basis size for species Si = dzp
 
 Valence configuration for pseudopotential generation:
 3s( 2.00) rc: 1.89
@@ -111,24 +111,24 @@ Si                   Z=  14    Mass=  28.090        Charge= 0.17977+309
 Lmxo=2 Lmxkb= 3    BasisType=split      Semic=F
 L=0  Nsemic=0  Cnfigmx=3
           i=1  nzeta=2  polorb=0  (3s)
-            splnorm:   0.15000    
-               vcte:    0.0000    
-               rinn:    0.0000    
-               qcoe:    0.0000    
-               qyuk:    0.0000    
+            splnorm:   0.15000
+               vcte:    0.0000
+               rinn:    0.0000
+               qcoe:    0.0000
+               qyuk:    0.0000
                qwid:   0.10000E-01
-                rcs:    0.0000      0.0000    
-            lambdas:    1.0000      1.0000    
+                rcs:    0.0000      0.0000
+            lambdas:    1.0000      1.0000
 L=1  Nsemic=0  Cnfigmx=3
           i=1  nzeta=2  polorb=1  (3p)  (to be polarized perturbatively)
-            splnorm:   0.15000    
-               vcte:    0.0000    
-               rinn:    0.0000    
-               qcoe:    0.0000    
-               qyuk:    0.0000    
+            splnorm:   0.15000
+               vcte:    0.0000
+               rinn:    0.0000
+               qcoe:    0.0000
+               qyuk:    0.0000
                qwid:   0.10000E-01
-                rcs:    0.0000      0.0000    
-            lambdas:    1.0000      1.0000    
+                rcs:    0.0000      0.0000
+            lambdas:    1.0000      1.0000
 L=2  Nsemic=0  Cnfigmx=3
           i=1  nzeta=0  polorb=0  (3d)  (perturbative polarization orbital)
 -------------------------------------------------------------------------------
@@ -142,7 +142,7 @@ L=3  Nkbl=1  erefs: 0.17977+309
 atom: Called for Si                    (Z =  14)
 
 read_vps: Pseudopotential generation method:
-read_vps: ATM3      Troullier-Martins                       
+read_vps: ATM3      Troullier-Martins
 Total valence charge:    4.00000
 
 xc_check: Exchange-correlation functional:
@@ -167,11 +167,11 @@ atom: Maximum radius forchloc:    2.85303
 atom: Maximum radius for r*vlocal+2*Zval:    2.85303
   new_kb_reference_orbitals =  F
   restricted_grid =  T
-  Rmax_kb_default =    6.0000000000000000     
-  KB.Rmax =    6.0000000000000000     
+  Rmax_kb_default =    6.0000000000000000
+  KB.Rmax =    6.0000000000000000
   nrwf, nrval, nrlimit =          835        1075        1075
 
-KBgen: Kleinman-Bylander projectors: 
+KBgen: Kleinman-Bylander projectors:
 GHOST: No ghost state for L =  0
    l= 0   rc=  1.936440   el= -0.796617   Ekb=  4.661340   kbcos=  0.299756
 GHOST: No ghost state for L =  1
@@ -185,7 +185,7 @@ KBgen: Total number of Kleinman-Bylander projectors:  16
 atom: -------------------------------------------------------------------------
 
 atom: SANKEY-TYPE ORBITALS:
-atom: Selected multiple-zeta basis: split     
+atom: Selected multiple-zeta basis: split
 
 SPLIT: Orbitals with angular momentum L= 0
 
@@ -246,20 +246,20 @@ POLgen: Polarization orbital for state 3p
 atom: Total number of Sankey-type orbitals: 13
 
 atm_pop: Valence configuration (for local Pseudopot. screening):
- 3s( 2.00)                                                            
- 3p( 2.00)                                                            
- 3d( 0.00)                                                            
+ 3s( 2.00)
+ 3p( 2.00)
+ 3d( 0.00)
 Vna: chval, zval:    4.00000   4.00000
 
 Vna:  Cut-off radius for the neutral-atom potential:   6.116033
 
 atom: _________________________________________________________________________
 
-prinput: Basis input 
+prinput: Basis input
 * WARNING: This information might be incomplete!!!
 ----------------------------------------------------------
 
-PAO.BasisType split     
+PAO.BasisType split
 
 %block ChemicalSpeciesLabel
     1   14 Si                      # Species index, atomic number, species label
@@ -268,18 +268,18 @@ PAO.BasisType split
 %block PAO.Basis                 # Define Basis set
 # WARNING: This information might be incomplete!!!
 Si                    2                    # Species label, number of l-shells
- n=3   0   2                         # n, l, Nzeta 
-   4.884      4.419   
-   1.000      1.000   
+ n=3   0   2                         # n, l, Nzeta
+   4.884      4.419
+   1.000      1.000
  n=3   1   2 P   1                   # n, l, Nzeta, Polarization, NzetaPol
-   6.116      4.945   
-   1.000      1.000   
+   6.116      4.945
+   1.000      1.000
 %endblock PAO.Basis
 
 prinput: ----------------------------------------------------------------------
 
- CH_OVERLAP: Z1=   4.0047242613001721       ZVAL1=   4.0000000000000000     
- CH_OVERLAP: Z2=   4.0047242613001721       ZVAL2=   4.0000000000000000     
+ CH_OVERLAP: Z1=   4.0047242613001721       ZVAL1=   4.0000000000000000
+ CH_OVERLAP: Z2=   4.0047242613001721       ZVAL2=   4.0000000000000000
 Dumping basis to NetCDF file Si.ion.nc
 coor:   Atomic-coordinates input format  =     Cartesian coordinates
 coor:                                          (in Angstroms)
@@ -288,7 +288,7 @@ siesta: Atomic coordinates (Bohr) and species
 siesta:      0.00000   0.00000   0.00000  1        1
 siesta:      2.56530   2.56530   2.56530  1        2
 
-siesta: System type = bulk      
+siesta: System type = bulk
 
 initatomlists: Number of atoms, orbitals, and projectors:      2    26    32
 

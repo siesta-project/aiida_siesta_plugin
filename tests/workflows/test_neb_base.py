@@ -1,24 +1,26 @@
 #!/usr/bin/env runaiida
-import pytest
-from plumpy import ProcessState
+# -*- coding: utf-8 -*-
 from aiida import orm
-from aiida.common import LinkType
-from aiida.common import AttributeDict
+from aiida.common import AttributeDict, LinkType
 from aiida.engine import ProcessHandlerReport
 from aiida_pseudo.groups.family.pseudo import PseudoPotentialFamily
+from plumpy import ProcessState
+import pytest
+
 from aiida_siesta.calculations.siesta import SiestaCalculation
 from aiida_siesta.workflows.base import SiestaBaseWorkChain
+
 #from aiida_siesta.groups.pseudos import PsmlFamily
 
 
 @pytest.fixture
-def generate_workchain_neb_base(generate_path_object, fixture_code, fixture_localhost, generate_workchain, 
+def generate_workchain_neb_base(generate_path_object, fixture_code, fixture_localhost, generate_workchain,
         generate_structure, generate_param, generate_psf_data, generate_kpoints_mesh, generate_lua_file,
         generate_calc_job_node, generate_parser):
     """
     Generate an instance of a `SiestaBaseNEBWorkChain`.
     The parameters:
-    1) exit_code. This inputs triggers the generation of a SiestaCalculation through the 
+    1) exit_code. This inputs triggers the generation of a SiestaCalculation through the
        `generate_calc_job_node` fixture with a particular exit_code and it is attached to
        the current SiestaBaseWorkChain as children.
     2) num_files. An input to determine the number of xyz files trasformed in structures of
@@ -59,7 +61,7 @@ def generate_workchain_neb_base(generate_path_object, fixture_code, fixture_loca
             #Set process state of the node
             node.set_process_state(ProcessState.FINISHED)
             node.set_exit_status(exit_code.status)
-            
+
             process.ctx.neb_wk = node
 
         return process
@@ -68,7 +70,7 @@ def generate_workchain_neb_base(generate_path_object, fixture_code, fixture_loca
 
 def test_validators(aiida_profile, generate_workchain_neb_base):
     """
-    Test SiestaBaseNEBWorkChain validator of the input port `starting_path`. 
+    Test SiestaBaseNEBWorkChain validator of the input port `starting_path`.
     """
     with pytest.raises(ValueError):
         process = generate_workchain_neb_base(num_files=1, kinds=True)
@@ -79,14 +81,14 @@ def test_validators(aiida_profile, generate_workchain_neb_base):
 
 def test_create_reference_structure_and_run(aiida_profile, generate_workchain_neb_base):
     """
-    Test `SiestaBaseNEBWorkChain.create_reference_structure` and 
+    Test `SiestaBaseNEBWorkChain.create_reference_structure` and
     `SiestaBaseNEBWorkChain.run_neb` functions.
     """
     process = generate_workchain_neb_base(num_files=None, kinds=True)
     process.create_reference_structure()
-    
+
     assert isinstance(process.ctx.reference_structure, orm.StructureData)
-    
+
     process.run_neb()
 
 def test_run_results(aiida_profile, generate_workchain_neb_base):
@@ -94,7 +96,7 @@ def test_run_results(aiida_profile, generate_workchain_neb_base):
     Test `SiestaBaseNEBWorkChain.run_results` function.
     """
     from aiida.engine import ExitCode
-    
+
     process = generate_workchain_neb_base(exit_code=ExitCode(0))
     process.create_reference_structure()
     process.run_results()

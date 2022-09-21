@@ -1,14 +1,25 @@
+# -*- coding: utf-8 -*-
+"""
+Run a SeistaBaseWorkchain and applys a post process.
+
+It is educational to see here how easy is to extend workchains to do
+a bit of postprocess.
+"""
+
 from aiida import orm
-from aiida.common.exceptions import NotExistent
-from aiida.engine import WorkChain, calcfunction, ToContext
 from aiida.common import AttributeDict
+from aiida.engine import ToContext, WorkChain, calcfunction
 from aiida.tools import get_explicit_kpoints_path
+
 from aiida_siesta.calculations.siesta import internal_structure
-from aiida_siesta.workflows.base import SiestaBaseWorkChain
 from aiida_siesta.utils.tkdict import FDFDict
+from aiida_siesta.workflows.base import SiestaBaseWorkChain
 
 
 def drop_md_keys(param):
+    """
+    Remove the md keys from the parameters dict.
+    """
     for item in param.copy().keys():
         trans_item = FDFDict.translate_key(item)
         if trans_item.startswith("md"):
@@ -19,7 +30,8 @@ def drop_md_keys(param):
 @calcfunction
 def get_bandgap(e_fermi, band):
     """
-    Takes a band object, and a Fermi energy, and extracts the band gap value and 'is_insulator' boolean
+    Takes a band object, and a Fermi energy, and extracts the band gap value and 'is_insulator' boolean.
+
     :param band: (orm.BandsData): band-structure object
     :param e_energy: (orm.Float): value of the fermi energy.
     :return: An orm.Dict containing the keys:
@@ -40,7 +52,9 @@ def get_bandgap(e_fermi, band):
 
 def validate_inputs(value, _):
     """
-    Validate the entire input namespace. It takes care to ckeck the consistency
+    Validate the entire input namespace.
+
+    It takes care to ckeck the consistency
     and compatibility of the inputed basis, pseudos, pseudofamilies and ions.
     It is the same validator of the SiestaBaseWorkChain but with no warnings on bandkpoints.
     """
@@ -68,18 +82,10 @@ def validate_inputs(value, _):
 
     if 'pseudo_family' in value:
         group = orm.Group.get(label=value['pseudo_family'].value)
-        # To be removed in v2.0
-        if "data" in group.type_string:
-            from aiida_siesta.data.common import get_pseudos_from_structure
-            try:
-                get_pseudos_from_structure(structure, value['pseudo_family'].value)
-            except NotExistent:
-                return "The pseudo family does not incude all the required pseudos"
-        else:
-            try:
-                group.get_pseudos(structure=structure)
-            except ValueError:
-                return "The pseudo family does not incude all the required pseudos"
+        try:
+            group.get_pseudos(structure=structure)
+        except ValueError:
+            return "The pseudo family does not incude all the required pseudos"
     else:
         if set(kinds) != set(value[quantity].keys()):
             ps_io = ', '.join(list(value[quantity].keys()))
@@ -94,6 +100,7 @@ def validate_inputs(value, _):
 class BandgapWorkChain(WorkChain):
     """
     Workchain to obtain the bands and bandgap of a structure through Siesta.
+
     If "bandskpoints" are set in inputs, it behaves like `SiestaBaseWorkChain`
     adding just the bandgap calculation at the end. If no bandskpoints
     was specified, the bands are computed anyway on a kpoints path automatically
@@ -103,6 +110,9 @@ class BandgapWorkChain(WorkChain):
 
     @classmethod
     def define(cls, spec):
+        """
+        Define the specs.
+        """
         super().define(spec)
         spec.expose_inputs(SiestaBaseWorkChain, exclude=('metadata',))
         spec.expose_outputs(SiestaBaseWorkChain)
@@ -129,6 +139,7 @@ class BandgapWorkChain(WorkChain):
     def preprocess(self):
         """
         In the preprocess, we make decisions on bandskpoints if they are not requested in input.
+
         In case of single point calculation, bandskpoints are added using seekpath.
         In case of relaxation, the relaxation is run, but an extra step at the end of
         the calculation will calculate the bands.
@@ -204,7 +215,9 @@ class BandgapWorkChain(WorkChain):
             return ToContext(final_run=running)
 
     def run_results(self):
-
+        """
+        Get the results.
+        """
         from aiida.common import LinkType
 
         if self.ctx.need_fin_step:
@@ -232,5 +245,8 @@ class BandgapWorkChain(WorkChain):
 
     @classmethod
     def inputs_generator(cls):  # pylint: disable=no-self-argument,no-self-use
+        """
+        Call the input generator.
+        """
         from aiida_siesta.utils.protocols_system.input_generators import BaseWorkChainInputGenerator
         return BaseWorkChainInputGenerator(cls)

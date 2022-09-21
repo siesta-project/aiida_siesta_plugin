@@ -13,16 +13,16 @@ if f then
    -- now configEnv should contain your data
 
    n_images = configEnv.number_of_internal_images_in_path
-   k_spring = configEnv.neb_spring_constant 
+   k_spring = configEnv.neb_spring_constant
    image_label = configEnv.neb_image_file_prefix
 
 else
    -- no 'config.lua' file found. Set defaults
    -- (to be implemented: keep defaults for variables not in config.lua
-   
+
    image_label = "image_"
    -- Total  number of images
-   -- (excluding initial[0] and final[n_images+1])	
+   -- (excluding initial[0] and final[n_images+1])
    n_images = 5
    k_spring  = 1
 
@@ -119,13 +119,13 @@ local Unit = siesta.Units
 
 
 function siesta_comm()
-   
+
    -- This routine does exchange of data with SIESTA
    local ret_tbl = {}
 
    -- Do the actual communication with SIESTA
    if siesta.state == siesta.INITIALIZE then
-      
+
       -- In the initialization step we request the
       -- convergence criteria
       --  MD.MaxDispl
@@ -148,7 +148,7 @@ function siesta_comm()
 	 for i = 1, #relax[img] do
 	    relax[img][i].tolerance = siesta.MD.MaxForceTol * Unit.Ang / Unit.eV
 	    relax[img][i].max_dF = siesta.MD.MaxDispl / Unit.Ang
-	    
+
 	    -- Print information for this relaxation method
 	    if siesta.IONode then
 	       relax[img][i]:info()
@@ -173,7 +173,7 @@ function siesta_comm()
    end
 
    if siesta.state == siesta.MOVE then
-      
+
       -- Here we are doing the actual LBFGS algorithm.
       -- We retrieve the current coordinates, the forces
       -- and whether the geometry has relaxed
@@ -185,7 +185,7 @@ function siesta_comm()
       -- in this way we can check whether we have moved to
       -- a new image.
       local old_image = current_image
-      
+
       ret_tbl = siesta_move(siesta)
 
       -- we need to re-organize the DM files for faster convergence
@@ -220,7 +220,7 @@ function siesta_move(siesta)
       --siesta_update_DM(0, current_image)
       -- The siesta relaxation is already not set
       return {'geom.xa'}
-      
+
    elseif current_image == NEB.n_images + 1 then
 
       -- Start the NEB calculation
@@ -230,7 +230,7 @@ function siesta_move(siesta)
       siesta.geom.xa = NEB[current_image].R * Unit.Ang
 
       IOprint(("\nLUA/NEB running NEB image %d / %d\n"):format(current_image, NEB.n_images))
-	 
+
       -- The siesta relaxation is already not set
       return {'geom.xa'}
 
@@ -240,14 +240,14 @@ function siesta_move(siesta)
 
       -- Set the atomic coordinates for the image
       siesta.geom.xa = NEB[current_image].R * Unit.Ang
-      
+
       IOprint(("\nLUA/NEB running NEB image %d / %d\n"):format(current_image, NEB.n_images))
-      
+
       -- The siesta relaxation is already not set
       return {'geom.xa'}
 
    end
-   
+
    -- First we figure out how perform the NEB optimizations
    -- Now we have calculated all the systems and are ready for doing
    -- an NEB MD step
@@ -280,7 +280,7 @@ function siesta_move(siesta)
       if #relax[img] > 1 then
 	 IOprint("\n weighted average for relaxation: ", tostring(weight))
       end
-      
+
       -- Calculate the new coordinates and figure out
       -- if the algorithm has converged (all forces below)
       local out_xa = all_xa[1] * weight[1]
@@ -289,7 +289,7 @@ function siesta_move(siesta)
 	 out_xa = out_xa + all_xa[i] * weight[i]
 	 relaxed = relaxed and relax[img][i]:optimized()
       end
-      
+
       -- Copy the optimized coordinates to a table
       out_R[img] = out_xa
 
@@ -305,7 +305,7 @@ function siesta_move(siesta)
    for img = 1, NEB.n_images do
       NEB[img]:set{R=out_R[img]}
    end
-   
+
    -- Start over in case the system has not relaxed
    current_image = 1
    if relaxed then
@@ -318,7 +318,7 @@ function siesta_move(siesta)
    end
 
    siesta.MD.Relaxed = relaxed
-      
+
    return {"geom.xa",
 	   "MD.Relaxed"}
 end
@@ -344,7 +344,7 @@ function siesta_update_DM(old, current)
 
    -- Helper function. No need to put it in the NEB package
    function file_exists(name)
-     local f = io.open(name, "r") 
+     local f = io.open(name, "r")
      if f ~= nil then
        io.close(f)
        return true
@@ -352,13 +352,13 @@ function siesta_update_DM(old, current)
        return false
      end
    end
-   
+
    -- Move about files so that we re-use old DM files
    local DM = label .. ".DM"
    local old_DM = DM .. "." .. tostring(old)
    local current_DM = DM .. "." .. tostring(current)
    local initial_DM = DM .. ".0"
-   local final_DM = DM .. ".".. tostring(NEB.n_images+1) 
+   local final_DM = DM .. ".".. tostring(NEB.n_images+1)
    print ("The Label of Old DM is : " .. old_DM)
    print ("The Label of Current DM is : " .. current_DM)
    -- Saving initial DM
@@ -366,8 +366,8 @@ function siesta_update_DM(old, current)
      print("Removing DM for Resuming")
      IOprint("Deleting " .. DM .. " for a clean restart...")
      os.execute("rm " .. DM)
-   end 
-  
+   end
+
    if 0 <= old and old <= NEB.n_images+1 and file_exists(DM) then
       -- store the current DM for restart purposes
       IOprint("Saving " .. DM .. " to " .. old_DM)
@@ -396,7 +396,7 @@ function siesta_update_xyz(current)
   local xyz_label = image_label ..tostring(current)..".xyz"
   --self:_n_images=self.n_images
   --self:_check_image(image)
-    
+
   local f=io.open(xyz_label,"w")
   f:write(tostring(#NEB[current].R).."\n \n")
   --f:write(tostring(initialize:self.n_images).."\n \n")
@@ -404,5 +404,5 @@ function siesta_update_xyz(current)
     f:write(string.format(" %19.17f",tostring(NEB[current].R[i][1])).. "   "..string.format("%19.17f",tostring(NEB[current].R[i][2]))..string.format("   %19.17f",tostring(NEB[current].R[i][3])).."\n")
  end
  f:close()
-  --  
+  --
 end

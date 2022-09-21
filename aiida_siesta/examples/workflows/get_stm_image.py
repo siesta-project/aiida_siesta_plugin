@@ -1,4 +1,5 @@
 #!/usr/bin/env runaiida
+# -*- coding: utf-8 -*-
 
 # Example script to load an stm_array from a Siesta STM calculation and
 # generate a contour plot.
@@ -25,11 +26,12 @@
 
 
 
+import sys
+
 from aiida.orm import load_node
 import matplotlib
-import numpy as np
 import matplotlib.pyplot as plt
-import sys
+import numpy as np
 
 try:
     stm_id = int(sys.argv[1])

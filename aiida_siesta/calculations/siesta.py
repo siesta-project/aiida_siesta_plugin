@@ -1,15 +1,19 @@
+# -*- coding: utf-8 -*-
+"""
+Main module of the project: host the siesta calculation plugin.
+"""
 import os
+
 from aiida import orm
 from aiida.common import CalcInfo, CodeInfo
 from aiida.common.constants import elements
 from aiida.engine import CalcJob
-from aiida.orm import Dict, StructureData, BandsData, ArrayData
+from aiida.orm import ArrayData, BandsData, Dict, StructureData
 from aiida_pseudo.data.pseudo.psf import PsfData
 from aiida_pseudo.data.pseudo.psml import PsmlData
-from aiida_siesta.utils.tkdict import FDFDict
-from aiida_siesta.data.psf import PsfData as DeprecatedPsfData
-from aiida_siesta.data.psml import PsmlData as DeprecatedPsmlData
+
 from aiida_siesta.data.ion import IonData
+from aiida_siesta.utils.tkdict import FDFDict
 
 # See the LICENSE.txt and AUTHORS.txt files.
 
@@ -23,6 +27,7 @@ from aiida_siesta.data.ion import IonData
 def internal_structure(structure, basis_dict=None):
     """
     Add the floating sites to the structure if necessary.
+
     Params:
     * structure. StructureData passed in input.
     * basis_dict. Python dictionary with the basis info passed in input (no Dict!!)
@@ -31,9 +36,9 @@ def internal_structure(structure, basis_dict=None):
     2) a clone of the original structure if no floating sites are specified in the basis dict
     3) None if a floating site with the same name of a site in the original struture is present
     """
-
     tweaked = structure.clone()
-    tweaked._internal_kind_tags = {}  #Nedded for a bug? Investigate!
+    #Nedded for a bug? Investigate!
+    tweaked._internal_kind_tags = {}  # pylint: disable=protected-access
 
     if basis_dict is not None:
         floating = basis_dict.get('floating_sites', None)
@@ -61,29 +66,11 @@ def validate_optical(value, _):
             return "An optical-mesh block must always be defined. For molecules set to [1 1 1]"
 
 
-def validate_pseudos(value, _):
-    """
-    Only used to throw deprecation warnings. Can be deleted in v2.0.0
-    """
-    if value:
-        for key, val in value.items():
-            if isinstance(val, (DeprecatedPsfData, DeprecatedPsmlData)):
-                import warnings
-                from aiida_siesta.utils.warn import AiidaSiestaDeprecationWarning
-                message = (
-                    f'You are using as pseudos for {key} a `PsfData/PsmlData` class from the aiida_siesta package. ' +
-                    'These classes has been deprecated and will be removed in `v2.0.0`. ' +
-                    'Use the same classes imported from `aiida_pseudo.data.pseudo`.'
-                )
-                warnings.warn(message, AiidaSiestaDeprecationWarning)
-
-        return None
-
-
 def validate_basis(value, _):
     """
-    Validate basis input port. Only validates that `floating_sites`, if present,
-    has the correct format.
+    Validate basis input port.
+
+    Only validates that `floating_sites`, if present, has the correct format.
     """
     # Before plumpy 0.17.0, the port was checked even if not required and the value
     # set to empty tuple if not passed. This is the reason of the first "if" statement.
@@ -101,8 +88,9 @@ def validate_basis(value, _):
 
 def validate_structure(value, _):
     """
-    Validate structure input port. It takes care to check that no alchemical atoms
-    are passed, since they are not supported.
+    Validate structure input port.
+
+    It takes care to check that no alchemical atoms are passed, since they are not supported.
     """
     # Even though structure is mandatory here, other workchain might change this requirement
     # (see iterator) and therefore the "if" is still needed.
@@ -114,7 +102,9 @@ def validate_structure(value, _):
 
 def validate_parameters(value, _):
     """
-    Validate parameters input port. Looks for blocked keywords (defined as attribute of SiestaCalculation)
+    Validate parameters input port.
+
+    Looks for blocked keywords (defined as attribute of SiestaCalculation)
     and that pao infos are not here (they belong to the basis Dict).
     """
     if value:
@@ -130,7 +120,7 @@ def validate_parameters(value, _):
                     "they belong to the `optical` input port."
                 )
                 warnings.warn(message)  #return message
-            if key in SiestaCalculation._aiida_blocked_keywords:
+            if key in SiestaCalculation._aiida_blocked_keywords:  # pylint: disable=protected-access
                 message = (
                     f"you can't specify explicitly the '{input_params.get_last_untranslated_key(key)}' flag " +
                     "in the input parameters."
@@ -140,7 +130,7 @@ def validate_parameters(value, _):
 
 def validate_kpoints(value, _):
     """
-    Validate kpoints input port. Checks the mesh is set.
+    Validate kpoints input port. Checks that the mesh is set.
     """
     if value:
         mesh = value.get_attribute("mesh", None)
@@ -150,7 +140,7 @@ def validate_kpoints(value, _):
 
 def validate_bandskpoints(value, _):
     """
-    Validate bandskpoints input port. Checks the kpoints list is set.
+    Validate bandskpoints input port. Checks that the kpoints list is set.
     """
     if value:
         try:
@@ -161,7 +151,7 @@ def validate_bandskpoints(value, _):
 
 def bandskpoints_warnings(value):
     """
-    Called in validate_inputs. Only issue warnings.
+    Only issues warning messages and is called in validate_inputs.
     """
     import warnings
 
@@ -196,8 +186,9 @@ def bandskpoints_warnings(value):
 
 def validate_inputs(value, _):
     """
-    Validate the entire input namespace. It takes care to ckeck the consistency
-    and compatibility of the inputed basis, pseudos, and ions.
+    Validate the entire input namespace.
+
+    It takes care to ckeck the consistency and compatibility of the inputed basis, pseudos, and ions.
     Also calls the `bandskpoints_warnings` that issues warning about bandskpoints selection.
     """
     import warnings
@@ -241,6 +232,7 @@ class SiestaCalculation(CalcJob):
     _JSON_FILE = 'time.json'
     _MESSAGES_FILE = 'MESSAGES'
     _BASIS_ENTHALPY_FILE = 'BASIS_ENTHALPY'
+    _HARRIS_ENTHALPY_FILE = 'BASIS_HARRIS_ENTHALPY'
 
     # Class attributes: default of the input.spec...just default, but user could change the name
     _DEFAULT_PREFIX = 'aiida'
@@ -273,6 +265,9 @@ class SiestaCalculation(CalcJob):
 
     @classmethod
     def define(cls, spec):
+        """
+        Define the process specifications.
+        """
         super().define(spec)
 
         # Input nodes
@@ -301,11 +296,10 @@ class SiestaCalculation(CalcJob):
         spec.input('parent_calc_folder', valid_type=orm.RemoteData, required=False, help='Parent folder')
         spec.input_namespace(
             'pseudos',
-            valid_type=(PsfData, PsmlData, DeprecatedPsfData, DeprecatedPsmlData),
+            valid_type=(PsfData, PsmlData),
             help='Input pseudo potentials',
             dynamic=True,
             required=False,
-            validator=validate_pseudos
         )
         spec.input_namespace('ions', valid_type=IonData, help='Input ion file', dynamic=True, required=False)
 
@@ -353,7 +347,8 @@ class SiestaCalculation(CalcJob):
 
     def initialize(self):
         """
-        Some initialization (called at the beginning of `prepare_for_submission`:
+        Apply some initialization (called at the beginning of `prepare_for_submission`).
+
         1) Create an internal structure where possible `floating_sites` are added.
         2) Create a list containing floating_species_names.
         3) Remove the `floating_sites` to the basis dictionary.
@@ -382,9 +377,10 @@ class SiestaCalculation(CalcJob):
 
         return structure, basis_dict, floating_species_names, ion_or_pseudo
 
-    def prepare_for_submission(self, folder):  # noqa: MC0001  - is mccabe too complex funct -
+    def prepare_for_submission(self, folder):  # pylint: disable=too-many-statements,too-many-locals,too-many-branches
         """
         Create the input files from the input nodes passed to this instance of the `CalcJob`.
+
         :param folder: an `aiida.common.folders.Folder` to temporarily write files on disk
         :return: `aiida.common.datastructures.CalcInfo` instance
         """
@@ -492,7 +488,7 @@ class SiestaCalculation(CalcJob):
         # -------------------------------- CELL_PARAMETERS ---------------------------------------
         cell_parameters_card = "%block lattice-vectors\n"
         for vector in structure.cell:
-            cell_parameters_card += ("{0:18.10f} {1:18.10f} {2:18.10f}" "\n".format(*vector))
+            cell_parameters_card += (f"{vector[0]:18.10f} {vector[1]:18.10f} {vector[2]:18.10f}\n")
         cell_parameters_card += "%endblock lattice-vectors\n"
 
         # ----------------------------ATOMIC_SPECIES & PSEUDOS/IONS-------------------------------
@@ -509,9 +505,7 @@ class SiestaCalculation(CalcJob):
             if kind.name in floating_species_names:
                 atomic_number = -atomic_number
             #Create the core of the chemicalspecieslabel block
-            atomic_species_card_list.append(
-                "{0:5} {1:5} {2:5}\n".format(spind[kind.name], atomic_number, kind.name.rjust(6))
-            )
+            atomic_species_card_list.append(f"{spind[kind.name]:5} {atomic_number:5} {kind.name.rjust(6):5}\n")
             psp_or_ion = ion_or_pseudo[kind.name]
             # Add pseudo (ion) file to the list of files to copy (create), with the appropiate name.
             # In the case of sub-species (different kind.name but same kind.symbol, e.g., 'C_surf',
@@ -523,9 +517,9 @@ class SiestaCalculation(CalcJob):
                 file_name = kind.name + ".ion"
                 with folder.open(file_name, 'w', encoding='utf8') as handle:
                     handle.write(psp_or_ion.get_content_ascii_format())
-            if isinstance(psp_or_ion, (PsfData, DeprecatedPsfData)):
+            if isinstance(psp_or_ion, PsfData):
                 local_copy_list.append((psp_or_ion.uuid, psp_or_ion.filename, kind.name + ".psf"))
-            if isinstance(psp_or_ion, (PsmlData, DeprecatedPsmlData)):
+            if isinstance(psp_or_ion, PsmlData):
                 local_copy_list.append((psp_or_ion.uuid, psp_or_ion.filename, kind.name + ".psml"))
         atomic_species_card_list = (["%block chemicalspecieslabel\n"] + list(atomic_species_card_list))
         atomic_species_card = "".join(atomic_species_card_list)
@@ -538,11 +532,10 @@ class SiestaCalculation(CalcJob):
         countatm = 0
         for site in structure.sites:
             countatm += 1
+            sipo = site.position
+            kind = site.kind_name
             atomic_positions_card_list.append(
-                "{0:18.10f} {1:18.10f} {2:18.10f} {3:4} {4:6} {5:6}\n".format(
-                    site.position[0], site.position[1], site.position[2], spind[site.kind_name],
-                    site.kind_name.rjust(6), countatm
-                )
+                f"{sipo[0]:18.10f} {sipo[1]:18.10f} {sipo[2]:18.10f} {spind[kind]:4} {kind.rjust(6):6} {countatm:6}\n"
             )
         atomic_positions_card = "".join(atomic_positions_card_list)
         del atomic_positions_card_list  # Free memory
@@ -553,9 +546,9 @@ class SiestaCalculation(CalcJob):
         if kpoints is not None:
             mesh, offset = kpoints.get_kpoints_mesh()
             kpoints_card_list = ["%block kgrid_monkhorst_pack\n"]
-            kpoints_card_list.append("{0:6} {1:6} {2:6} {3:18.10f}\n".format(mesh[0], 0, 0, offset[0]))
-            kpoints_card_list.append("{0:6} {1:6} {2:6} {3:18.10f}\n".format(0, mesh[1], 0, offset[1]))
-            kpoints_card_list.append("{0:6} {1:6} {2:6} {3:18.10f}\n".format(0, 0, mesh[2], offset[2]))
+            kpoints_card_list.append(f"{mesh[0]:6} {0:6} {0:6} {offset[0]:18.10f}\n")
+            kpoints_card_list.append(f"{0:6} {mesh[1]:6} {0:6} {offset[1]:18.10f}\n")
+            kpoints_card_list.append(f"{0:6} {0:6} {mesh[2]:6} {offset[2]:18.10f}\n")
             kpoints_card = "".join(kpoints_card_list)
             kpoints_card += "%endblock kgrid_monkhorst_pack\n"
             del kpoints_card_list
@@ -573,7 +566,7 @@ class SiestaCalculation(CalcJob):
             if bandskpoints.labels is None:
                 bandskpoints_card_list.append("%block BandPoints\n")
                 for kpo in bandskpoints.get_kpoints():
-                    bandskpoints_card_list.append("{0:8.3f} {1:8.3f} {2:8.3f} \n".format(kpo[0], kpo[1], kpo[2]))
+                    bandskpoints_card_list.append(f"{kpo[0]:8.3f} {kpo[1]:8.3f} {kpo[2]:8.3f} \n")
                 fbkpoints_card = "".join(bandskpoints_card_list)
                 fbkpoints_card += "%endblock BandPoints\n"
             #set the BandLines
@@ -588,14 +581,10 @@ class SiestaCalculation(CalcJob):
                     rawindex = rawindex + 1
                     x, y, z = listforbands[indx]
                     if rawindex == 1:
-                        bandskpoints_card_list.append(
-                            "{0:3} {1:8.3f} {2:8.3f} {3:8.3f} {4:1} \n".format(1, x, y, z, label)
-                        )
+                        bandskpoints_card_list.append(f"{1:3} {x:8.3f} {y:8.3f} {z:8.3f} {label:1} \n")
                     else:
                         bandskpoints_card_list.append(
-                            "{0:3} {1:8.3f} {2:8.3f} {3:8.3f} {4:1} \n".format(
-                                indx - savindx[rawindex - 2], x, y, z, label
-                            )
+                            f"{indx - savindx[rawindex - 2]:3} {x:8.3f} {y:8.3f} {z:8.3f} {label:1} \n"
                         )
                 fbkpoints_card = "".join(bandskpoints_card_list)
                 fbkpoints_card += "%endblock BandLines\n"
@@ -638,20 +627,20 @@ class SiestaCalculation(CalcJob):
         input_filename = folder.get_abs_path(metadataoption.input_filename)
 
         # Print to file
-        with open(input_filename, 'w') as infile:
+        with open(input_filename, 'w', encoding='utf8') as infile:
             # Parameters
             for k, v in sorted(input_params.get_filtered_items()):
-                infile.write("%s %s\n" % (k, v))
+                infile.write(f"{k} {v}\n")
             # Basis set info is processed just like the general parameters section.
             if basis_dict:  #It migh also be empty dict. In such case we do not write.
                 infile.write("#\n# -- Basis Set Info follows\n#\n")
                 for k, v in basis_dict.items():
-                    infile.write("%s %s\n" % (k, v))
+                    infile.write(f"{k} {v}\n")
             # Optical properties info.
             if optical is not None:
                 infile.write("#\n# -- Optical properties Info follows\n#\n")
                 for k, v in optical_dict.items():
-                    infile.write("%s %s\n" % (k, v))
+                    infile.write(f"{k} {v}\n")
             # Write previously generated cards now
             infile.write("#\n# -- Structural Info follows\n#\n")
             infile.write(atomic_species_card)
@@ -675,13 +664,13 @@ class SiestaCalculation(CalcJob):
         if lua_parameters is not None:
             lua_config_filename = folder.get_abs_path("config.lua")
             # Generate a 'config.lua' file with Lua syntax
-            with open(lua_config_filename, 'w') as f_lua:
+            with open(lua_config_filename, 'w', encoding='utf8') as f_lua:
                 f_lua.write("--- Lua script parameters \n")
                 for k, v in lua_parameters.get_dict().items():
                     if isinstance(v, str):
-                        f_lua.write('%s = "%s"\n' % (k, v))
+                        f_lua.write(f'{k} = "{v}\"\n')
                     else:
-                        f_lua.write("%s = %s\n" % (k, v))
+                        f_lua.write(f"{k} = {v}\n")
 
         # ============================= Code and Calc info =========================================
         # Code information object and Calc information object are now
@@ -714,6 +703,7 @@ class SiestaCalculation(CalcJob):
         calcinfo.retrieve_list.append(self._JSON_FILE)
         calcinfo.retrieve_list.append(self._MESSAGES_FILE)
         calcinfo.retrieve_list.append(self._BASIS_ENTHALPY_FILE)
+        calcinfo.retrieve_list.append(self._HARRIS_ENTHALPY_FILE)
         calcinfo.retrieve_list.append("*.ion.xml")
 
         if bandskpoints is not None:
@@ -738,5 +728,8 @@ class SiestaCalculation(CalcJob):
 
     @classmethod
     def inputs_generator(cls):  # pylint: disable=no-self-argument,no-self-use
+        """
+        Shortcut to call the input generator.
+        """
         from aiida_siesta.utils.protocols_system.input_generators import SiestaCalculationInputGenerator
         return SiestaCalculationInputGenerator(cls)

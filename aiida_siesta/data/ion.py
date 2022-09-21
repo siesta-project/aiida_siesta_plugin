@@ -1,15 +1,21 @@
+# -*- coding: utf-8 -*-
 """
-This module manages the .ion.xml files in the local repository.
+Module that manages the .ion.xml files in the local repository.
 """
 import io
 import pathlib
+
+from aiida.common.exceptions import StoringNotAllowed
 from aiida.common.files import md5_from_filelike
 from aiida.orm.nodes import SinglefileData
-from aiida.common.exceptions import StoringNotAllowed
+
 from aiida_siesta.utils.pao_manager import PaoManager
 
 
 def xml_element_to_string(element, tail=True):
+    """
+    Transform xml to a standard string.
+    """
     string = "<" + element.tag + ">" + element.text + "</" + element.tag + ">"
     if tail:
         string = string + element.tail
@@ -18,13 +24,15 @@ def xml_element_to_string(element, tail=True):
 
 def parse_ion(stream):
     """
-    Try to get relevant information from the .ion. For the moment, only the
-    element symbol, name, mass and atomic number.
+    Retrieve relevant information from the .ion file.
+
+    For the moment, only the element symbol, name, mass and atomic number.
     Raise a ParsingError exception if the file does not contain the element symbol
     or the atomic number. The presence in the file of mass and name is, instead, considered
     optional. If not present, None is returned.
     """
     from xml.etree.ElementTree import ElementTree
+
     from aiida.common.exceptions import ParsingError
     from aiida.orm.nodes.data.structure import _valid_symbols
 
@@ -49,13 +57,13 @@ def parse_ion(stream):
 
 class IonData(SinglefileData):
     """
-    Handler for ion files
+    Handler for ion files.
     """
 
     @staticmethod
     def _prepare_source(source):
         """
-        if the ``source`` is a valid file on disk, its content is read and returned as a stream of bytes.
+        If the ``source`` is a valid file on disk, its content is read and returned as a stream of bytes.
         """
         if isinstance(source, (str, pathlib.Path)):
             save_name = source
@@ -65,11 +73,13 @@ class IonData(SinglefileData):
 
         return source
 
-    def set_file(self, source, filename=None):  #pylint: disable=arguments-differ
+    def set_file(self, source, filename=None):  #pylint: disable=arguments-differ,arguments-renamed
         """
-        This is called in the __init__ of SingleFileData. It supports both absolute path and file streams.
+        Set the file into the class.
+
+        This method is called in the __init__ of SingleFileData. It supports both absolute path and file streams.
         It is convenient to convert possible absolute paths in the corresponding file streams so we then
-        support for other methods called here only the file streams.
+        support only the file streams for other methods called here.
         Please note that this approach have problems if we create subclasses with `IonData` as a parent.
         This is because the call to super does not return anything.
         Therefore we can not have source = super().set_file(source, filename, **kwargs)
@@ -93,7 +103,9 @@ class IonData(SinglefileData):
 
     def store(self, **kwargs):  # pylint: disable=arguments-differ
         """
-        Store the node. It requires a previous check on the assigned attributes.
+        Store the node after some checks.
+
+        It requires a previous check on the assigned attributes.
         In fact, the attributes of this particular class must just reflect the info
         in the ion file. However the design of `Data` class do not allow to
         make attributes immutable before storing and, therefore, a crazy user
@@ -119,6 +131,7 @@ class IonData(SinglefileData):
     def validate_others_atts(self, elem, name, atm_n):
         """
         Validate the given element, name, atomic_number are the one of the stored file.
+
         Unfortunately it requires to reparse the file.
         :param elem: the symbol of the element.
                name: the name assigned to the atom/site.
@@ -136,6 +149,7 @@ class IonData(SinglefileData):
     def validate_md5(self, md5: str):
         """
         Validate that the md5 checksum matches that of the currently stored file.
+
         :param value: the md5 checksum.
         :raises ValueError: if the md5 does not match that of the currently stored file.
         """
@@ -150,10 +164,11 @@ class IonData(SinglefileData):
     @classmethod
     def get_or_create(cls, source, filename=None):
         """
-        Pass the same parameter of the __init__; if a file with the same md5
+        Do the same job of the instantiation, but before it checks for duplicates.
+
+        Accepts the same parameter of the __init__; if a file with the same md5
         is found, that IonData is returned, otherwise a new IonFile instance is
         created.
-
         :param source: an absolute path file on disk or a filelike object.
         :param filename: optional explicit filename to give to the file stored in the repository.
                          Ignored if a file with the same md5 has been found.
@@ -189,28 +204,44 @@ class IonData(SinglefileData):
 
     @property
     def element(self):
+        """
+        Return the element.
+        """
         return self.get_attribute('element', None)
 
     @property
     def name(self):
+        """
+        Return the name.
+        """
         return self.get_attribute('name', None)
 
     @property
     def mass(self):
+        """
+        Return the mass.
+        """
         return self.get_attribute('mass', None)
 
     @property
     def atomic_number(self):
+        """
+        Return the atomic number.
+        """
         return self.get_attribute('atomic_number', None)
 
     @property
     def md5(self):
+        """
+        Return the md5.
+        """
         return self.get_attribute('md5', None)
 
-    def get_content_ascii_format(self):  #pylint: disable=too-many-statements
+    def get_content_ascii_format(self):  #pylint: disable=too-many-statements,too-many-branches,too-many-locals
         """
-        from the content, write the old format .ion file. Necessary since siesta only reads
-        ion info in this format.
+        From the content, write the old format (ascii) .ion file.
+
+        Necessary since siesta only reads ion info in this format.
         """
         from xml.etree import ElementTree
 
@@ -301,21 +332,22 @@ class IonData(SinglefileData):
 
     def get_orbitals(self):
         """
-        Uses sisl to read the file and return the orbitals
+        Use sisl to read the file and return the orbitals.
         """
+        import os
 
         import sisl
-        import os
+
         from aiida_siesta.data.atomic_orbitals import SislAtomicOrbital
 
-        tmp_file = open("tmp.ion.xml", "w")
+        tmp_file = open("tmp.ion.xml", "w", encoding='utf8')  #pylint: disable=consider-using-with
         tmp_file.write(self.get_content())
         tmp_file.close()
         sile = sisl.get_sile("tmp.ion.xml")
         sisl_atom = sile.read_basis()
         listorb = []
-        for i in sisl_atom.orbitals:
-            atorb = SislAtomicOrbital(i.name(), (i.orb.__getstate__()["r"], i.orb.__getstate__()["f"]), q0=i.q0)
+        for orb in sisl_atom.orbitals:
+            atorb = SislAtomicOrbital(orb.name(), (orb.orb.__getstate__()["r"], orb.orb.__getstate__()["f"]), q0=orb.q0)
             listorb.append(atorb)
         os.remove("tmp.ion.xml")
 
@@ -323,8 +355,7 @@ class IonData(SinglefileData):
 
     def get_pao_modifier(self):
         """
-        Get the PaoModifiers, that makes available methods for the modification of
-        a PAO block.
+        Get the PaoModifiers, that makes available methods for the modification of a PAO block.
         """
         pao_manager = PaoManager()
         pao_manager.set_from_ion(self)
@@ -333,9 +364,8 @@ class IonData(SinglefileData):
 
     def get_pao_block(self):
         """
-        Returns the PAO block correspondent to the orbitals stored in this class.
+        Return the PAO block correspondent to the orbitals stored in this class.
         """
-
         pao_manager = PaoManager()
         pao_manager.set_from_ion(self)
 
@@ -343,8 +373,9 @@ class IonData(SinglefileData):
 
     def pao_size(self):
         """
-        Returns a string sumarazing the size of the basis in this class. Following the siesta convencion
-        (SZ, DZ, DZP ...)
+        Return a string sumarazing the size of the basis in this class.
+
+        Follows the siesta conventions (SZ, DZ, DZP ...).
         Please note that the string is composed  checking the maximum Z registred by orbitals, for both the polarized
         and unpolarixed orbitals. This means that the algorithm is not able to actually detect if the orbitals
         here are generated by a "PAO.BasisSize" in siesta or it is a manual PAO block. Take this method carefully.
@@ -353,3 +384,68 @@ class IonData(SinglefileData):
         pao_manager.set_from_ion(self)
 
         return pao_manager.pao_size()
+
+    def _analyze_basis_specs(self):
+        """
+        From the file content get the info on soft confinement and charge confinement.
+
+        The detection is based on reading the `<basis_specs>` section of the .ion file,
+        and it is pure string analysis. Therefore it is sensible to the change
+        of the printed info in Siesta. The current implementation supports only Max Siesta versions.
+        Monitor the basis_type.f90 file of Siesta to see if some changes are introduced.
+        """
+        #Extract first the `<basis_specs>` block from the content and put each word in a list
+        content = self.get_content()
+        str_start = content.index("<basis_specs>") + len("<basis_specs>")
+        str_end = content.index("</basis_specs>", str_start)
+        interest_content = content[str_start:str_end].split()
+
+        #Loop over the list to get the needed info
+        dict_q_and_e = {}
+        for ind, val in enumerate(interest_content):
+            if 'i=' in val:
+                dict_key = interest_content[ind + 3].strip("(").strip(")")
+                # Discart situation when no info on `vcte` are reported, meaning when
+                # perturbative polarization orbital or empty shell. Note that this distintion
+                # can be done only on MaX versions since the checked strings have been introduced
+                # only recently. With previous version there was no way to distinguish these orbitals.
+                if interest_content[ind + 4] != "(perturbative" and interest_content[ind + 4] != "(empty":
+                    for ind2, val2 in enumerate(interest_content[ind:]):
+                        saveind = ind2
+                        if val2 == "vcte:":
+                            break
+                    dict_q_and_e[dict_key] = {
+                        "Q": [
+                            float(interest_content[ind + saveind + 5]),
+                            float(interest_content[ind + saveind + 7]),
+                            float(interest_content[ind + saveind + 9])
+                        ],
+                        "E": [float(interest_content[ind + saveind + 1]),
+                              float(interest_content[ind + saveind + 3])]
+                    }
+
+        return dict_q_and_e
+
+    def get_info_charge_confinement(self):
+        """
+        Return the orbitals with charge confinement.
+        """
+        dict_q_and_e = self._analyze_basis_specs()
+        collect_q = {}
+        for basis_el_k, basis_el_v in dict_q_and_e.items():
+            if basis_el_v["Q"][0] != 0.0:
+                collect_q[basis_el_k] = basis_el_v["Q"]
+
+        return collect_q
+
+    def get_info_soft_confinement(self):
+        """
+        Return the orbitals with soft confinement.
+        """
+        dict_q_and_e = self._analyze_basis_specs()
+        collect_e = {}
+        for basis_el_k, basis_el_v in dict_q_and_e.items():
+            if basis_el_v["E"][0] != 0.0:
+                collect_e[basis_el_k] = basis_el_v["E"]
+
+        return collect_e
