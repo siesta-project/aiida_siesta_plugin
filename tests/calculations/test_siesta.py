@@ -517,6 +517,63 @@ def test_lua(aiida_profile, fixture_sandbox, generate_calc_job,
     file_regression.check(conflua_input_written, encoding='utf-8', extension='.lua')
 
 
+def test_lua_md_run(aiida_profile, fixture_sandbox, generate_calc_job,
+    fixture_code, generate_structure, generate_kpoints_mesh, generate_basis,
+    generate_param, generate_psml_data, generate_lua_file, generate_lua_folder, file_regression):
+    """
+    Test that single calculation is submitted with the right content of the
+    aiida.fdf file.
+    """
+
+    entry_point_name = 'siesta.siesta'
+
+    psml = generate_psml_data('Si')
+
+    lua_script = generate_lua_file()
+
+    inputs = {
+        'code': fixture_code(entry_point_name),
+        'structure': generate_structure(),
+        'kpoints': generate_kpoints_mesh(2),
+        'parameters': generate_param(),
+        'pseudos': {
+            'Si': psml,
+            'SiDiff': psml
+        },
+        'lua': {
+            'script': lua_script,
+            'md_run': orm.Bool(False),
+        },
+        'metadata': {
+            'options': {
+               'resources': {'num_machines': 1  },
+               'max_wallclock_seconds': 1800,
+               'withmpi': False,
+               }
+        }
+    }
+
+    calc_info = generate_calc_job(fixture_sandbox, entry_point_name, inputs)
+
+    local_copy_list = [
+            (psml.uuid, psml.filename, 'Si.psml'),
+            (psml.uuid, psml.filename, 'SiDiff.psml'),
+            (lua_script.uuid, lua_script.filename, lua_script.filename),
+            ]
+
+    retrieve_list = [
+            'BASIS_HARRIS_ENTHALPY','BASIS_ENTHALPY', 'MESSAGES','time.json','aiida.out','aiida.xml','*.ion.xml'
+            ]
+
+    assert sorted(calc_info.local_copy_list) == sorted(local_copy_list)
+    assert sorted(calc_info.retrieve_list) == sorted(retrieve_list)
+
+    with fixture_sandbox.open('aiida.fdf') as handle:
+        input_written = handle.read()
+
+    file_regression.check(input_written, encoding='utf-8', extension='.fdf')
+
+
 def test_optical(aiida_profile, fixture_sandbox, generate_calc_job,
     fixture_code, generate_structure, generate_kpoints_mesh, generate_basis,
     generate_param, generate_psml_data, file_regression):
