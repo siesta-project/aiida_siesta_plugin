@@ -457,7 +457,11 @@ Some examples are referenced in the following list. They are located in the fold
   modules in client workchains.
 
 * **lua.md_run** is a flag which controls whether we should set
-  ``MD.TypeOfRun`` to ``Lua``.
+  ``MD.TypeOfRun`` to ``Lua``.  For most uses of Lua in geometry
+  relaxation and molecular dynamics, the default setting is
+  appropriate, but in some other cases one can still use Lua
+  profitably for more general tasks.
+
 
 .. |br| raw:: html
 
