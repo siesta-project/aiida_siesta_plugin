@@ -434,6 +434,7 @@ Some examples are referenced in the following list. They are located in the fold
         spec.input('lua.parameters', valid_type=orm.Dict, required=False)
         spec.input('lua.input_files', valid_type=orm.FolderData, required=False)
         spec.input('lua.retrieve_list', valid_type=orm.List, required=False)
+	spec.input('lua.md_run', valid_type=orm.Bool, default=lambda: orm.Bool(True), required=False)
 
 * **lua.script** is a Lua script implementing a specific
   functionality, and possibly being able to set its own
@@ -454,6 +455,9 @@ Some examples are referenced in the following list. They are located in the fold
   produced by the operation of the Lua script that need to be
   retrieved. They should be parsed by functionality-specific
   modules in client workchains.
+
+* **lua.md_run** is a flag which controls whether we should set
+  ``MD.TypeOfRun`` to ``Lua``.
 
 .. |br| raw:: html
 

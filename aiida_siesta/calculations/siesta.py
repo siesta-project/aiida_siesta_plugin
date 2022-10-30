@@ -312,6 +312,7 @@ class SiestaCalculation(CalcJob):
         spec.input('lua.parameters', valid_type=orm.Dict, required=False)
         spec.input('lua.input_files', valid_type=orm.FolderData, required=False)
         spec.input('lua.retrieve_list', valid_type=orm.List, required=False)
+        spec.input('lua.md_run', valid_type=orm.Bool, default=lambda: orm.Bool(True), required=False)
 
         # Metadada.options host the inputs that are not stored as a separate node, but attached to `CalcJobNode`
         # as attributes. They are optional, since a default is specified, but they might be changed by the user.
@@ -446,6 +447,8 @@ class SiestaCalculation(CalcJob):
         else:
             lua_retrieve_list = None
 
+        lua_md_run = lua_inputs.md_run
+
         # List of files to copy in the folder where the calculation runs, e.g. pseudo files
         local_copy_list = []
 
@@ -465,7 +468,8 @@ class SiestaCalculation(CalcJob):
         input_params.update({'lattice-constant': '1.0 Ang'})
         input_params.update({'atomic-coordinates-format': 'Ang'})
         if lua_script is not None:
-            input_params.update({'md-type-of-run': 'Lua'})
+            if lua_md_run.value:
+                input_params.update({'md-type-of-run': 'Lua'})
             input_params.update({'lua-script': lua_script.filename})
             local_copy_list.append((lua_script.uuid, lua_script.filename, lua_script.filename))
         if lua_input_files is not None:
