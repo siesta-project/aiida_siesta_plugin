@@ -2,6 +2,7 @@ atomiccoordinatesformat Ang
 dmmixingweight 0.3
 dmnumberpulay 4
 dmtolerance 0.001
+dmusesavedm F
 electronictemperature 25 meV
 geometrymustconverge T
 latticeconstant 1.0 Ang
