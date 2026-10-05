@@ -1,0 +1,51 @@
+output_parameters:
+  global_time: 6.384
+  parser_info: AiiDA Siesta Parser V. 2.0.1.dev0
+  timing_decomposition:
+    compute_DM: 0.647
+    nlefsm-1: 0.084
+    nlefsm-2: 0.106
+    post-SCF: 1.857
+    setup_H: 2.107
+    setup_H0: 1.414
+    siesta: 6.384
+    siesta_analysis: 0.0
+    state_init: 0.267
+  variable_geometry: true
+  warnings:
+  - - BASIS_ENTHALPY file not retrieved
+  - - HARRIS_BASIS_ENTHALPY file not retrieved
+  - - 'FATAL: GEOM_NOT_CONV: Geometry relaxation not converged'
+    - 'FATAL: ABNORMAL_TERMINATION'
+output_structure:
+  cell:
+  - - 2.719000000075424
+    - 2.7159999997440942
+    - 0.0
+  - - 0.0
+    - 2.7149999998100434
+    - 2.7149999998100434
+  - - 2.7149999998100434
+    - 0.0
+    - 2.7149999998100434
+  kinds:
+  - mass: 28.085
+    name: Si
+    symbols:
+    - Si
+    weights:
+    - 1.0
+  pbc1: true
+  pbc2: true
+  pbc3: true
+  sites:
+  - kind_name: Si
+    position:
+    - -0.00022937979972406888
+    - -4.440008470360531e-05
+    - -7.860980385685155e-05
+  - kind_name: Si
+    position:
+    - 1.35895450009115
+    - 1.3579461899581793
+    - 1.3573288999790658

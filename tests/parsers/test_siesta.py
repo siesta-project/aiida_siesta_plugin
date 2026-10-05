@@ -318,6 +318,50 @@ def test_siesta_no_geom_conv(aiida_profile, fixture_localhost, generate_calc_job
         })
 
 
+def test_siesta_no_geom_conv_bad_xml(aiida_profile, fixture_localhost, generate_calc_job_node,
+    generate_parser, generate_structure, fixture_retrieved_temporary_folder, data_regression):
+    """
+    Test a parser in the situation when siesta stops with "GEOM_NOT_CONV" situation and the xml file
+    has gotten corrupted. It is produced with modern versions of the code that return "FATAL" in this case
+    (unless scf-must-converge F) is set by the user. An output_parameters node is always produced.
+    The file time.json is present at this time.
+    """
+
+    name = 'no_geom_conv_bad_xml'
+    entry_point_calc_job = 'siesta.siesta'
+    entry_point_parser = 'siesta.parser'
+
+    structure=generate_structure()
+
+    inputs = AttributeDict({
+        'structure': structure
+    })
+
+    attributes=AttributeDict({'input_filename':'aiida.fdf', 'output_filename':'aiida.out', 'prefix':'aiida'})
+
+    node = generate_calc_job_node(entry_point_calc_job, fixture_localhost, name, inputs, attributes)
+    parser = generate_parser(entry_point_parser)
+    retrieved_temporary_folder = fixture_retrieved_temporary_folder(entry_point_calc_job)
+    results, calcfunction = parser.parse_from_node(node, store_provenance=False, retrieved_temporary_folder=retrieved_temporary_folder)
+
+    assert calcfunction.is_finished
+    assert calcfunction.exception is None
+    assert not calcfunction.is_finished_ok
+    assert calcfunction.exit_message == 'Calculation did not reach geometry convergence!'
+    logs = orm.Log.objects.get_logs_for(node)
+    for log in logs:
+        if "GEOM_NOT_CONV" in log.message:
+            mylog=log
+    assert "GEOM_NOT_CONV" in mylog.message
+    assert 'output_parameters' in results
+    assert 'output_structure' in results
+
+    data_regression.check({
+        'output_structure': results['output_structure'].attributes,
+        'output_parameters': results['output_parameters'].get_dict()
+        })
+
+
 def test_siesta_bands_error(aiida_profile, fixture_localhost, generate_calc_job_node,
     generate_parser, generate_structure, data_regression):
     """

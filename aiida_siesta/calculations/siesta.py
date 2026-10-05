@@ -342,9 +342,11 @@ class SiestaCalculation(CalcJob):
         spec.exit_code(454, 'EPS2_FILE_NOT_PRODUCED', message='Optical calculation requested, but file is not present')
         spec.exit_code(450, 'SCF_NOT_CONV', message='Calculation did not reach scf convergence!')
         spec.exit_code(451, 'GEOM_NOT_CONV', message='Calculation did not reach geometry convergence!')
-        spec.exit_code(350, 'UNEXPECTED_TERMINATION', message='Statement "Job completed" not detected, unknown error')
+        spec.exit_code(350, 'UNEXPECTED_TERMINATION', message='Statement "Job completed" not detected, unknown error', invalidates_cache=True)
         spec.exit_code(449, 'SPLIT_NORM', message='Split_norm parameter too small')
         spec.exit_code(448, 'BASIS_POLARIZ', message='Problems in the polarization of a basis element')
+        spec.exit_code(455, 'XML_PARSE_FAIL', message='Failure while parsing the output xml file', invalidates_cache=True)
+        spec.exit_code(456, 'OUT_PARSE_FAIL', message='Failure while parsing the standard output file', invalidates_cache=True)
 
     def initialize(self):
         """
@@ -727,6 +729,11 @@ class SiestaCalculation(CalcJob):
         # Any other files specified in the settings dictionary
         settings_retrieve_list = settings_dict.pop('ADDITIONAL_RETRIEVE_LIST', [])
         calcinfo.retrieve_list += settings_retrieve_list
+
+        # Backup files in case parsing of XML file fails
+        calcinfo.retrieve_temporary_list = []
+        xv_file = str(metadataoption.prefix) + ".XV"
+        calcinfo.retrieve_temporary_list.append(xv_file)
 
         return calcinfo
 

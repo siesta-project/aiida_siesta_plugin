@@ -43,6 +43,20 @@ def fixture_code(fixture_localhost):
 
 
 @pytest.fixture
+def fixture_retrieved_temporary_folder():
+    """Return the absolute path to the retrieved temporary folder."""
+
+    def _fixture_retrieved_temporary_folder(entry_point_name):
+        basepath = os.path.dirname(os.path.abspath(__file__))
+        filepath = os.path.join(
+            basepath, 'parsers', 'fixtures', entry_point_name[len('siesta.'):], 'retrieve_temporary_folder'
+        )
+        return filepath
+
+    return _fixture_retrieved_temporary_folder
+
+
+@pytest.fixture
 def generate_calc_job():
     """Fixture to construct a new `CalcJob` instance and call `prepare_for_submission` for testing `CalcJob` classes.
     The fixture will return the `CalcInfo` returned by `prepare_for_submission` and the temporary folder that was passed

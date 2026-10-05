@@ -154,11 +154,12 @@ def get_parsed_xml_doc(output_folder, xml_name):
     """
 
     from xml.dom import minidom
+    from xml.parsers.expat import ExpatError
 
     with output_folder.base.repository.open(xml_name, mode='rb') as handle:
         try:
             xmldoc = minidom.parse(handle)
-        except EOFError:
+        except (EOFError, ExpatError):
             raise OutputParsingError("Faulty Xml File")
 
     return xmldoc
@@ -350,6 +351,35 @@ def get_last_structure(xmldoc, input_structure):
     return True, new_structure
 
 
+def get_last_structure_backup(retrieved_temporary_folder, input_structure, xv_name):
+    """
+    Extract final structure from XV file.
+    """
+    from os.path import join
+
+    from aiida.plugins import DataFactory
+    import sisl
+
+    StructureData = DataFactory('structure')
+
+    xv_file = join(retrieved_temporary_folder, xv_name)
+    try:
+        geom = sisl.get_sile(xv_file).read_geometry()
+    except:
+        return False, input_structure
+
+    # Only keep atoms that are "real" atoms (not floating sites)
+    number_of_real_atoms = len(input_structure.sites)
+    idx_real = np.zeros(geom.na, dtype=bool)
+    idx_real[0:number_of_real_atoms] = True
+    geom_real = geom.sub(idx_real)
+
+    new_structure = StructureData(ase=geom_real.to.ase())
+    new_structure.pbc = input_structure.pbc
+
+    return True, new_structure
+
+
 def get_final_forces_and_stress(xmldoc):
     """
     Extract final forces and stress as lists of lists.
@@ -411,7 +441,7 @@ class SiestaParser(Parser):
 
     _version = '2.0.1.dev0'
 
-    def parse(self, **kwargs):  # pylint: disable=too-many-locals,too-many-branches,too-many-statements
+    def parse(self, **kwargs):  # pylint: disable=too-many-locals,too-many-branches,too-many-statements,too-many-return-statements
         """
         Receives in input a dictionary of retrieved nodes. Does all the logic here.
         """
@@ -425,15 +455,33 @@ class SiestaParser(Parser):
         except exceptions.NotExistent:
             raise OutputParsingError("Folder not retrieved")
 
-        xml_name = str(self.node.get_option('prefix')) + ".xml"
-        if xml_name not in output_folder.list_object_names():
-            raise OutputParsingError("Xml file not retrieved")
-        xmldoc = get_parsed_xml_doc(output_folder, xml_name)
-        result_dict = get_dict_from_xml_doc(xmldoc)
-
         out_name = self.node.get_option('output_filename')
         if out_name not in output_folder.list_object_names():
-            raise OutputParsingError("output file not retrieved")
+            return self.exit_codes.OUT_PARSE_FAIL
+
+        xml_name = str(self.node.get_option('prefix')) + ".xml"
+        if xml_name not in output_folder.list_object_names():
+            xmldoc = None
+        else:
+            try:
+                xmldoc = get_parsed_xml_doc(output_folder, xml_name)
+            except OutputParsingError:
+                xmldoc = None
+
+        if xmldoc is not None:
+            result_dict = get_dict_from_xml_doc(xmldoc)
+        else:
+            self.logger.warning("Problem parsing XML file, attempting to extract info from backup files.")
+            retrieved_temporary_folder = kwargs['retrieved_temporary_folder']
+            result_dict = {}
+            with output_folder.base.repository.open(out_name, mode='r') as handle:
+                found = False
+                for line in handle:
+                    # Look for line of the form "Begin [ALGO] opt. move = N"
+                    found = "Begin" in line and "opt. move" in line
+                    if found:
+                        break
+                result_dict["variable_geometry"] = found
 
         output_dict = dict(list(result_dict.items()) + list(parser_info.items()))
 
@@ -498,7 +546,11 @@ class SiestaParser(Parser):
             # traditionally contains only the atomic symbols and not the site names.
             # The returned structure does not have any floating atoms, they are removed
             # in the `get_last_structure` call.
-            success, out_struc = get_last_structure(xmldoc, in_struc)
+            if xmldoc is not None:
+                success, out_struc = get_last_structure(xmldoc, in_struc)
+            else:
+                xv_name = str(self.node.get_option('prefix')) + ".XV"
+                success, out_struc = get_last_structure_backup(retrieved_temporary_folder, in_struc, xv_name)
             if not success:
                 self.logger.warning("Problem in parsing final structure, returning inp structure in output_structure")
 
@@ -506,13 +558,14 @@ class SiestaParser(Parser):
 
         # Attempt to parse forces and stresses. In case of failure "None" is returned.
         # Therefore the function never crashes
-        forces, stress = get_final_forces_and_stress(xmldoc)
-        if forces is not None and stress is not None:
-            from aiida.orm import ArrayData
-            arraydata = ArrayData()
-            arraydata.set_array('forces', np.array(forces[0:number_of_real_atoms]))
-            arraydata.set_array('stress', np.array(stress))
-            self.out('forces_and_stress', arraydata)
+        if xmldoc is not None:
+            forces, stress = get_final_forces_and_stress(xmldoc)
+            if forces is not None and stress is not None:
+                from aiida.orm import ArrayData
+                arraydata = ArrayData()
+                arraydata.set_array('forces', np.array(forces[0:number_of_real_atoms]))
+                arraydata.set_array('stress', np.array(stress))
+                self.out('forces_and_stress', arraydata)
 
         #Attempt to parse the ion files. Files ".ion.xml" are not produced by siesta if ions file are used
         #in input (`user-basis = T`). This explains the first "if" statement. The SiestaCal input is called
@@ -616,7 +669,7 @@ class SiestaParser(Parser):
                 )
                 return self.exit_codes.UNEXPECTED_TERMINATION
 
-        return ExitCode(0)
+        return ExitCode(0) if xmldoc is not None else self.exit_codes.XML_PARSE_FAIL
 
     def _get_warnings_from_file(self, output_folder, messages_name):
         """
